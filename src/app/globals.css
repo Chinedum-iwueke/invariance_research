@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-montserrat: "Montserrat";
+
+  --brand-research-red: #b00020;
+
+  --text-institutional: #111111;
+  --text-graphite: #2c2c2c;
+  --text-neutral: #6b6b6b;
+
+  --surface-white: #ffffff;
+  --surface-panel: #f7f7f7;
+
+  --border-divider: #e5e5e5;
+
+  --chart-primary: #b00020;
+  --chart-positive: #2e7d32;
+  --chart-negative: #c62828;
+  --chart-benchmark: #1a73e8;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  --shadow-soft: 0 2px 6px rgba(17, 17, 17, 0.04);
+  --shadow-raised: 0 8px 18px rgba(17, 17, 17, 0.08);
+
+  --container-max: 80rem;
+  --container-narrow: 64rem;
+
+  --section-xs: 2rem;
+  --section-sm: 3rem;
+  --section-md: 4rem;
+  --section-lg: 5rem;
+  --section-xl: 6rem;
+
+  --card-padding-sm: 1rem;
+  --card-padding-md: 1.5rem;
+  --card-padding-lg: 2rem;
+
+  --component-height-sm: 2rem;
+  --component-height-md: 2.5rem;
+  --component-height-lg: 3rem;
+
+  --z-base: 1;
+  --z-sticky: 20;
+  --z-overlay: 40;
+
+  --motion-fast: 120ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+
+  --chart-height-sm: 12rem;
+  --chart-height-md: 16rem;
+  --chart-height-lg: 20rem;
+}
+
+* {
+  @apply border-border-subtle;
+}
+
+body {
+  @apply bg-surface-white text-text-institutional antialiased;
+  font-family: var(--font-montserrat), sans-serif;
+  font-feature-settings: "ss01" on, "cv01" on;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @apply tracking-tight text-text-institutional;
+}
+
+:focus-visible {
+  @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-white;
+}
+
+@layer components {
+  .container-shell {
+    @apply mx-auto w-full max-w-container px-6;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral;
+  }
+
+  .card-shell {
+    @apply rounded-md border bg-white shadow-soft;
+  }
+}

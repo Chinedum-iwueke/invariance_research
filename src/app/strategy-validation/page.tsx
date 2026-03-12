@@ -1,0 +1,92 @@
+import type { Metadata } from "next";
+import { PublicShell } from "@/components/public/public-shell";
+import { ConfidentialityCallout } from "@/components/public/confidentiality-callout";
+import { ContactForm } from "@/components/public/contact-form";
+import { CtaBanner } from "@/components/public/cta-banner";
+import { PageHero } from "@/components/public/page-hero";
+import { ProcessTimeline } from "@/components/public/process-timeline";
+import { Card } from "@/components/ui/card";
+import { SectionHeader } from "@/components/ui/section-header";
+
+export const metadata: Metadata = {
+  title: "Strategy Validation | Invariance Research",
+  description: "Independent strategy validation engagements with execution-aware diagnostics and institutional reporting.",
+};
+
+export default function StrategyValidationPage() {
+  return (
+    <PublicShell>
+      <main>
+        <PageHero
+          eyebrow="Consulting Services"
+          title="Independent Strategy Validation"
+          description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
+          primaryCta={{ label: "Request Consultation", href: "#request" }}
+          secondaryCta={{ label: "View Methodology", href: "/methodology" }}
+        />
+
+        <section className="container-shell space-y-6 py-section-sm">
+          <SectionHeader title="Audit Tiers" description="Tiered scope for exploratory, institutional, and bespoke validation mandates." />
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              ["Audit Foundation", "Single-strategy diagnostic baseline", "2–3 weeks"],
+              ["Institutional Audit", "Multi-layer robustness and capital-risk review", "3–5 weeks"],
+              ["Bespoke Engagement", "Custom mandate for complex portfolios", "Variable"],
+            ].map(([tier, summary, window]) => (
+              <Card key={tier} className="space-y-3 p-card-md">
+                <h3 className="text-lg font-semibold">{tier}</h3>
+                <p className="text-sm text-text-neutral">{summary}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-text-neutral">Typical window: {window}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="container-shell space-y-6 py-section-sm">
+          <SectionHeader title="Core Deliverables" />
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              "Execution-aware backtest review",
+              "Monte Carlo robustness testing",
+              "Parameter stability analysis",
+              "Regime performance diagnostics",
+              "Capital risk modeling",
+              "Structured validation report",
+            ].map((item) => (
+              <Card key={item} className="p-card-md text-sm text-text-graphite">
+                {item}
+              </Card>
+            ))}
+          </div>
+          <ConfidentialityCallout />
+        </section>
+
+        <section className="container-shell space-y-6 py-section-sm">
+          <SectionHeader title="Engagement Process" description="Transparent steps from intake to final recommendation briefing." />
+          <ProcessTimeline
+            steps={[
+              { title: "Scoping", body: "Define objectives, constraints, and material requirements." },
+              { title: "Data Intake", body: "Collect strategy artifacts and execution context." },
+              { title: "Validation", body: "Run diagnostics, stress testing, and sensitivity analysis." },
+              { title: "Review", body: "Analyst synthesis with committee-ready interpretation." },
+              { title: "Delivery", body: "Issue structured report and discussion session." },
+            ]}
+          />
+        </section>
+
+        <section id="request" className="container-shell py-section-sm">
+          <ContactForm />
+        </section>
+
+        <section className="container-shell py-section-md">
+          <CtaBanner
+            title="Ready for independent review?"
+            description="Submit your strategy context for a structured validation engagement."
+            primary={{ label: "Request Strategy Audit", href: "/contact" }}
+            secondary={{ label: "Explore Robustness Lab", href: "/robustness-lab" }}
+          />
+        </section>
+      </main>
+    </PublicShell>
+  );
+}
