@@ -1,6 +1,8 @@
 # Invariance Research Web App
 
-Phase 1 implements the foundational institutional design system and reusable UI kit.
+## Scope
+- **Phase 1:** Institutional design system and reusable UI kit
+- **Phase 2:** Public marketing site with authority, methodology, and conversion pathways
 
 ## Run locally
 
@@ -9,8 +11,16 @@ npm install
 npm run dev
 ```
 
-Visit:
-- `/` for starter homepage shell
-- `/ui-kit` for complete component showcase
+## Routes
+- `/` Home
+- `/research-standards`
+- `/strategy-validation`
+- `/robustness-lab`
+- `/research`
+- `/methodology`
+- `/about`
+- `/contact`
+- `/pricing`
+- `/ui-kit` design system showcase
 
 Design-system notes: `docs/design-system.md`.

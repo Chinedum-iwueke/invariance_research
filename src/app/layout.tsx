@@ -10,8 +10,18 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Invariance Research",
-  description: "Institutional quantitative research platform",
+  metadataBase: new URL("https://invarianceresearch.com"),
+  title: {
+    default: "Invariance Research",
+    template: "%s | Invariance Research",
+  },
+  description: "Independent quantitative validation studio for execution-aware strategy evaluation.",
+  openGraph: {
+    title: "Invariance Research",
+    description: "Execution-aware strategy validation and robustness diagnostics.",
+    type: "website",
+    url: "https://invarianceresearch.com",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

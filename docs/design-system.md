@@ -31,3 +31,16 @@ Token sources:
 2. Wire real chart libraries into `ChartCard` while preserving current spacing and legend conventions.
 3. Add dark mode through existing token architecture (`themes.ts`) without changing component APIs.
 4. Add domain modules (research pipeline, report library, diagnostics) by combining existing primitives.
+
+## Phase 2 public-site extensions
+Additional reusable public-site components were added under `src/components/public/`:
+- `PublicShell` + site navbar/footer
+- `PageHero`
+- `ProcessTimeline`
+- `CtaBanner`
+- `ArticleCard`
+- `ConfidentialityCallout`
+- `ContactForm`
+- `DashboardMockShell`
+
+These are composed from Phase 1 primitives (`Button`, `Card`, `SectionHeader`, `ChartCard`, chart mocks) to preserve one visual language.

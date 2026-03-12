@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import type { ButtonHTMLAttributes } from "react";
 
-const buttonVariants = cva(
+export const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-normal disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
