@@ -48,3 +48,9 @@ These contracts avoid leaking internal engine-level objects and can be swapped w
   - what-this-means block
   - right insight rail
 - Replace placeholder figures/metrics with API-backed series payloads while preserving component contracts.
+
+## Refinement pass notes
+- Overview, Monte Carlo, and Report pages were visually refined to prioritize interpretability and institutional reading flow.
+- Chart framing is standardized via `FigureCard` (title, subtitle, figure, legend, note).
+- `InterpretationBlock` now supports optional bullet insights for analyst-style commentary.
+- Right rail commentary is route-aware through `AnalysisInsightRail` with section-specific insight sets.

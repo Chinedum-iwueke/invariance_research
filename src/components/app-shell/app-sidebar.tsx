@@ -13,7 +13,7 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
 
   return (
     <div className="space-y-2">
-      <p className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">{title}</p>
+      <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-neutral">{title}</p>
       <ul className="space-y-1">
         {items.map((item) => {
           const active = pathname === item.href;
@@ -25,12 +25,12 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center justify-between rounded-sm border border-transparent px-3 py-2 text-sm text-text-graphite transition-colors hover:bg-surface-panel",
+                  "group flex items-center justify-between rounded-sm border border-transparent px-3 py-2 text-sm text-text-graphite transition-colors hover:bg-surface-panel",
                   active && "border-brand/20 bg-brand/5 text-text-institutional",
                 )}
               >
                 <span className="flex min-w-0 items-center gap-2">
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className={cn("h-4 w-4 shrink-0 text-text-neutral", active && "text-brand")} />
                   <span className="truncate">{item.label}</span>
                 </span>
                 {item.locked ? <Lock className="h-3.5 w-3.5 text-text-neutral" /> : null}
@@ -61,12 +61,12 @@ export function AppSidebar() {
         </button>
       </div>
 
-      <aside className="hidden h-screen w-72 shrink-0 border-r bg-white lg:block lg:sticky lg:top-0">
-        <div className="flex h-full flex-col px-4 py-5">
-          <Link href="/app" className="mb-6 px-3 text-sm font-semibold tracking-wide">
+      <aside className="hidden h-screen w-72 shrink-0 border-r bg-white lg:sticky lg:top-0 lg:block">
+        <div className="flex h-full flex-col px-4 py-6">
+          <Link href="/app" className="mb-7 px-3 text-sm font-semibold tracking-wide text-text-institutional">
             Strategy Robustness Lab
           </Link>
-          <div className="space-y-6 overflow-y-auto">
+          <div className="space-y-7 overflow-y-auto pb-4">
             <NavGroup title="Validation Workflow" items={analysisWorkflowItems} />
             <NavGroup title="Workspace" items={appSecondaryItems} />
           </div>

@@ -3,6 +3,7 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { UploadDropzoneShell } from "@/components/forms/upload-dropzone-shell";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "New Analysis",
@@ -29,7 +30,7 @@ export default function NewAnalysisPage() {
           <WorkspaceCard title="Pre-validation hints" subtitle="Improve intake quality">
             <p className="text-sm text-text-neutral">Ensure timezone normalization, execution assumptions, and asset metadata are explicitly documented.</p>
             <p className="mt-2 text-xs text-text-neutral">Sample artifact package available in Phase 4 onboarding.</p>
-            <button className={buttonVariants({ className: "mt-4 w-full", variant: "secondary" })} disabled>
+            <button className={cn(buttonVariants({ variant: "secondary" }), "mt-4 w-full")} disabled>
               Submit for Validation (coming soon)
             </button>
           </WorkspaceCard>

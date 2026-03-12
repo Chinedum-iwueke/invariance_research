@@ -1,4 +1,5 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
+import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
@@ -15,11 +16,15 @@ export default function ExecutionPage() {
           <label className="text-sm">Fee Increase <input type="range" className="mt-2 w-full" /></label>
         </div>
       </WorkspaceCard>
-      <WorkspaceCard title="Scenario Performance" subtitle="Net outcome sensitivity by friction level">
-        <MockLineChart />
-      </WorkspaceCard>
+      <FigureCard title="Scenario Performance" subtitle="Net outcome sensitivity by friction level" figure={<MockLineChart />} />
       <MetricRow metrics={executionStats} cols={4} />
-      <InterpretationBlock body="Expected edge degrades quickly with friction escalation. Strategy viability depends on tight execution quality and market conditions aligned with baseline assumptions." />
+      <InterpretationBlock
+        body="Expected edge degrades quickly with friction escalation. Strategy viability depends on tight execution quality and market conditions aligned with baseline assumptions."
+        bullets={[
+          "Cost inflation above threshold materially compresses edge.",
+          "Execution conditions should be monitored as deployment gate.",
+        ]}
+      />
     </AnalysisPageFrame>
   );
 }

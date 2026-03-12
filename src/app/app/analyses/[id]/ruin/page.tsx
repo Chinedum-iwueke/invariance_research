@@ -15,7 +15,13 @@ export default function RuinPage() {
         </div>
       </WorkspaceCard>
       <MetricRow metrics={ruinStats} cols={4} />
-      <InterpretationBlock body="Current ruin probability is elevated for institutional tolerance. Position sizing or strategy constraints should be revisited before scaling." />
+      <InterpretationBlock
+        body="Current ruin probability is elevated for institutional tolerance. Position sizing or strategy constraints should be revisited before scaling."
+        bullets={[
+          "Capital survivability is sensitive to position sizing.",
+          "Stress outcomes warrant tighter loss controls.",
+        ]}
+      />
       <LockedFeatureCard title="Professional risk review recommended" body="Have us run full capital survivability diagnostics with scenario stress and policy recommendations." />
     </AnalysisPageFrame>
   );

@@ -16,9 +16,9 @@ export function AppShellLayout({ children, rightRail, context }: AppShellLayoutP
         <AppSidebar />
         <div className="min-w-0 flex-1">
           <AppTopbar context={context} />
-          <div className="grid min-h-[calc(100vh-65px)] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <main className="min-w-0 px-4 py-6 lg:px-8">{children}</main>
-            {rightRail ? <aside className="border-l bg-surface-panel/40 p-4 lg:p-5">{rightRail}</aside> : null}
+          <div className="grid min-h-[calc(100vh-68px)] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <main className="min-w-0 px-4 py-8 lg:px-8">{children}</main>
+            {rightRail ? <aside className="border-l bg-surface-panel/30 p-5">{rightRail}</aside> : null}
           </div>
         </div>
       </div>
