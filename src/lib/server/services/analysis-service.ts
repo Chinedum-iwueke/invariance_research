@@ -29,6 +29,7 @@ export function createAnalysisFromArtifact(payload: CreateAnalysisRequest): Crea
     artifact_id: artifact.artifact_id,
     created_at: timestamp,
     updated_at: timestamp,
+    eligibility_snapshot: artifact.eligibility_summary,
   });
 
   artifactRepository.attachAnalysis(artifact.artifact_id, analysisId);

@@ -15,6 +15,14 @@ export type UploadArtifact = {
   eligibility_summary: UploadEligibilitySummary;
 };
 
+export type AnalysisEngineContext = {
+  engine_name: string;
+  engine_version?: string;
+  seam?: string;
+  degraded?: boolean;
+  degradation_reasons?: string[];
+};
+
 export type AnalysisEntity = {
   analysis_id: string;
   owner_id: string;
@@ -24,6 +32,8 @@ export type AnalysisEntity = {
   created_at: string;
   updated_at: string;
   result?: AnalysisRecord;
+  eligibility_snapshot?: UploadEligibilitySummary;
+  engine_context?: AnalysisEngineContext;
   failure_code?: string;
   failure_message?: string;
 };
