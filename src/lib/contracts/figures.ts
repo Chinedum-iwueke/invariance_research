@@ -1,0 +1,30 @@
+export type FigureType = "line" | "area" | "bar" | "histogram" | "scatter" | "fan" | "table";
+
+export interface FigurePoint {
+  x: string | number;
+  y: number;
+}
+
+export interface FigureLegendItem {
+  key: string;
+  label: string;
+}
+
+export interface FigureSeries {
+  key: string;
+  label: string;
+  series_type: "line" | "area" | "bar" | "scatter";
+  points: FigurePoint[];
+}
+
+export interface FigurePayload {
+  figure_id: string;
+  title: string;
+  subtitle?: string;
+  type: FigureType;
+  series: FigureSeries[];
+  x_label?: string;
+  y_label?: string;
+  legend?: FigureLegendItem[];
+  note?: string;
+}

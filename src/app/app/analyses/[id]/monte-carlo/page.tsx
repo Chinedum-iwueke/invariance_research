@@ -5,10 +5,11 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { MockMonteCarloFanChart } from "@/components/charts/chart-mocks";
 import { buttonVariants } from "@/components/ui/button";
-import { monteCarloStats } from "@/lib/mock/analysis";
+import { getAnalysisRecord, monteCarloStats, toInterpretationBlockPayload } from "@/lib/mock/analysis";
 import { cn } from "@/lib/utils";
 
 export default function MonteCarloPage() {
+  const analysis = getAnalysisRecord("alpha-trend-v2");
   return (
     <AnalysisPageFrame
       title="Monte Carlo Crash Test"
@@ -29,15 +30,7 @@ export default function MonteCarloPage() {
 
       <MetricRow metrics={monteCarloStats} cols={6} />
 
-      <InterpretationBlock
-        title="Monte Carlo Interpretation"
-        body="Tail risk remains significant. While median outcomes remain acceptable, severe path realizations imply meaningful probability of deep impairment without strict risk controls."
-        bullets={[
-          "Probability of 30% drawdown is high enough to influence deployment policy.",
-          "Ruin probability is non-zero and must be sized against capital mandate.",
-          "Consider analyst-led stress extension before larger allocation.",
-        ]}
-      />
+      <InterpretationBlock {...toInterpretationBlockPayload(analysis.diagnostics.monte_carlo.interpretation)} />
 
       <WorkspaceCard title="Independent review" subtitle="Consulting bridge">
         <p className="text-sm text-text-neutral">Need a deeper independent validation of the stress profile and capital policy implications?</p>
