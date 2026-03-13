@@ -4,3 +4,5 @@ export * from "@/lib/contracts/figures";
 export * from "@/lib/contracts/figures.schema";
 export * from "@/lib/contracts/report";
 export * from "@/lib/contracts/report.schema";
+
+export * from "@/lib/contracts/intake";
