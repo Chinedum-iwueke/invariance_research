@@ -5,7 +5,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { MockEquityComparisonChart } from "@/components/charts/chart-mocks";
-import { overviewDiagnostic, overviewMetrics } from "@/lib/mock/analysis";
+import { overviewDiagnostic, overviewMetrics, toInterpretationBlockPayload } from "@/lib/mock/analysis";
 
 export default function OverviewPage() {
   return (
@@ -27,18 +27,11 @@ export default function OverviewPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <InterpretationBlock
-          body="Robustness remains moderate, but overfitting and tail-risk indicators suggest cautious deployment. The edge appears conditionally durable rather than structurally invariant."
-          bullets={[
-            "Overfitting risk is elevated relative to institutional tolerance.",
-            "Worst-case stress suggests meaningful capital impairment risk.",
-            "Execution-aware constraints should be enforced before scaling.",
-          ]}
-        />
+        <InterpretationBlock {...toInterpretationBlockPayload(overviewDiagnostic.interpretation)} />
         <VerdictCard
           title={overviewDiagnostic.verdict.title}
           summary={overviewDiagnostic.verdict.summary}
-          posture={overviewDiagnostic.verdict.posture}
+          posture={overviewDiagnostic.verdict.status}
         />
       </div>
 

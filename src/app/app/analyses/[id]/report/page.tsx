@@ -4,9 +4,10 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
-import { overviewDiagnostic, reportSections } from "@/lib/mock/analysis";
+import { getAnalysisRecord, reportSections, toInterpretationBlockPayload } from "@/lib/mock/analysis";
 
 export default function ReportPage() {
+  const analysis = getAnalysisRecord("alpha-trend-v2");
   return (
     <AnalysisPageFrame
       title="Validation Report"
@@ -14,23 +15,23 @@ export default function ReportPage() {
     >
       <WorkspaceCard title="Report Header" subtitle="Research artifact metadata">
         <div className="grid gap-2 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
-          <p><span className="font-medium text-text-graphite">Strategy:</span> Alpha Trend v2</p>
-          <p><span className="font-medium text-text-graphite">Date:</span> 2026-03-12</p>
+          <p><span className="font-medium text-text-graphite">Strategy:</span> {analysis.strategy.strategy_name}</p>
+          <p><span className="font-medium text-text-graphite">Date:</span> {analysis.report.generated_at ?? analysis.updated_at}</p>
           <p><span className="font-medium text-text-graphite">Scope:</span> Full diagnostic suite</p>
-          <p><span className="font-medium text-text-graphite">Asset:</span> US Equities</p>
+          <p><span className="font-medium text-text-graphite">Asset:</span> {analysis.dataset.market}</p>
         </div>
       </WorkspaceCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <WorkspaceCard title="Executive Summary" subtitle="Institutional snapshot">
           <p className="text-sm leading-relaxed text-text-neutral">
-            Alpha Trend v2 demonstrates moderate robustness with identifiable fragility under execution stress and regime drift. Deployment is feasible only with conservative sizing and explicit risk controls.
+            {analysis.report.executive_summary}
           </p>
         </WorkspaceCard>
         <VerdictCard
-          title={overviewDiagnostic.verdict.title}
-          summary={overviewDiagnostic.verdict.summary}
-          posture={overviewDiagnostic.verdict.posture}
+          title={analysis.summary.headline_verdict.title}
+          summary={analysis.summary.headline_verdict.summary}
+          posture={analysis.summary.headline_verdict.status}
         />
       </div>
 
@@ -46,20 +47,18 @@ export default function ReportPage() {
 
       <WorkspaceCard title="Methodology Assumptions" subtitle="Execution and stress model context">
         <ul className="space-y-2 text-sm text-text-neutral">
-          <li>• Transaction costs modeled with variable spread and slippage bands.</li>
-          <li>• Trade-sequence perturbations applied through Monte Carlo stress.</li>
-          <li>• Regime decomposition by volatility and trend-strength proxies.</li>
+          {analysis.report.methodology_assumptions.map((assumption) => (
+            <li key={assumption}>• {assumption}</li>
+          ))}
         </ul>
       </WorkspaceCard>
 
       <InterpretationBlock
-        title="Final Recommendations"
-        body="Proceed with constrained capital allocation and explicit monitoring gates. Trigger a full review if slippage or regime behavior deviates from baseline assumptions."
-        bullets={[
-          "Use conservative position sizing until further stability validation.",
-          "Monitor execution drift in high-volatility windows.",
-          "Escalate to independent audit for governance-critical mandates.",
-        ]}
+        {...toInterpretationBlockPayload({
+          title: "Final Recommendations",
+          summary: "Proceed with constrained capital allocation and explicit monitoring gates.",
+          bullets: analysis.report.recommendations,
+        })}
       />
 
       <WorkspaceCard title="Export & Share" subtitle="Report artifact actions">
