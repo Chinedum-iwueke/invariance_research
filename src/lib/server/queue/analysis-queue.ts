@@ -1,5 +1,6 @@
 import { logger } from "@/lib/server/ops/logger";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
+import { shouldRunEmbeddedWorkers } from "@/lib/server/queue/runtime-config";
 import { startAnalysisWorker } from "@/lib/server/workers/analysis-worker";
 
 const BASE_BACKOFF_MS = 2_000;
@@ -13,7 +14,7 @@ export function enqueueAnalysisRun(analysisId: string) {
     error_message: undefined,
   }));
   logger.info("analysis.queue.enqueued", { analysis_id: analysisId });
-  startAnalysisWorker();
+  if (shouldRunEmbeddedWorkers()) startAnalysisWorker();
 }
 
 export function enqueueAnalysisRetry(analysisId: string, retryCount: number) {
@@ -29,5 +30,5 @@ export function enqueueAnalysisRetry(analysisId: string, retryCount: number) {
     finished_at: undefined,
   }));
   logger.info("analysis.queue.retry_enqueued", { analysis_id: analysisId, retry_count: retryCount, available_at: availableAt });
-  startAnalysisWorker();
+  if (shouldRunEmbeddedWorkers()) startAnalysisWorker();
 }

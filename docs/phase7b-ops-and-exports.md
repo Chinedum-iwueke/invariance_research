@@ -9,7 +9,7 @@ Flow:
 1. `POST /api/analyses/:id/exports` calls export service.
 2. Service validates analysis ownership/completion and export entitlement.
 3. Service persists `exports` + `export_jobs` records and enqueues work.
-4. Export worker claims queued jobs, renders report payload (`json`/`md`), stores file via storage abstraction, and updates durable status.
+4. Export worker claims queued jobs, renders report payload (`json`/`md`/`pdf`), stores file via storage abstraction, and updates durable status.
 5. `GET /api/exports/:id` exposes export status; `GET /api/exports/:id/download` streams authorized binary payload.
 
 ## Storage hardening model
@@ -64,5 +64,5 @@ Exposed a sweep trigger endpoint `POST /api/maintenance/sweep` for cron/ops inte
 ## Remaining production-readiness gaps
 
 - Queue remains in-process DB-backed; Phase 7C can move export jobs to external workers (BullMQ/Redis) for horizontal scaling.
-- Health endpoint currently performs live checks on request; add caching/rate limiting if needed.
-- Export formats are intentionally minimal (`json`/`md`) and can be extended to richer PDF rendering in a dedicated worker stage.
+- Health endpoint currently performs live checks on request; launch readiness now classifies healthy/degraded/unhealthy and includes worker heartbeats. Add caching/rate limiting if needed.
+- Export formats are intentionally minimal (`json`/`md`/`pdf`) and can be extended to richer PDF rendering in a dedicated worker stage.

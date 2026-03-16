@@ -4,6 +4,7 @@ import { jobRepository } from "@/lib/server/repositories/job-repository";
 import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bulletproof-runner";
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
+import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
 
 const STEP_DELAY_MS = 50;
 let loopActive = false;
@@ -27,6 +28,10 @@ export function startAnalysisWorker() {
       loopActive = false;
     }
   });
+}
+
+export async function runAnalysisWorkerRuntime() {
+  await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob });
 }
 
 export async function processNextAnalysisJob(): Promise<boolean> {

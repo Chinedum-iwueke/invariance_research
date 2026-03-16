@@ -52,12 +52,14 @@ export function listAdminJobs(filters: { status?: string; type?: "analysis" | "e
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const staleCutoff = Date.now() - 60 * 60 * 1000;
+  const processingCutoff = Date.now() - 30 * 60 * 1000;
   const summary = {
     total: rows.length,
     queued: rows.filter((job) => job.status === "queued").length,
     processing: rows.filter((job) => job.status === "processing").length,
     failed: rows.filter((job) => job.status === "failed").length,
-    stale: rows.filter((job) => ["queued", "processing"].includes(job.status) && Date.parse(job.created_at) < staleCutoff).length,
+    stale: rows.filter((job) => ["queued", "processing"].includes(job.status) && Date.parse(job.updated_at) < staleCutoff).length,
+    overdue_processing: rows.filter((job) => job.status === "processing" && Date.parse(job.updated_at) < processingCutoff).length,
   };
 
   return { rows, summary, recentFailures: rows.filter((job) => job.status === "failed").slice(0, 10) };

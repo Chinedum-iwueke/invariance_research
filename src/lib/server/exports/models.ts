@@ -1,4 +1,4 @@
-export type ExportFormat = "json" | "md";
+export type ExportFormat = "json" | "md" | "pdf";
 
 export type ExportRecord = {
   export_id: string;
