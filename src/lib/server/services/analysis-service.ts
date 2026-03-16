@@ -6,16 +6,26 @@ import type {
   CreateAnalysisRequest,
   CreateAnalysisResponse,
 } from "@/lib/contracts";
+import { accountService } from "@/lib/server/accounts/service";
+import { assertUsageWithinPlan } from "@/lib/server/entitlements/usage";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
 import { scheduleAnalysisJob } from "@/lib/server/services/analysis-job-runner";
 
-export function createAnalysisFromArtifact(payload: CreateAnalysisRequest): CreateAnalysisResponse {
+export function createAnalysisFromArtifact(
+  payload: CreateAnalysisRequest & { owner_user_id: string; account_id: string },
+): CreateAnalysisResponse {
   const artifact = artifactRepository.findById(payload.artifact_id);
   if (!artifact || !artifact.eligibility_summary.accepted) {
     throw new Error("artifact_not_eligible");
   }
+
+  if (artifact.account_id !== payload.account_id) {
+    throw new Error("artifact_access_denied");
+  }
+
+  assertUsageWithinPlan(payload.account_id);
 
   const timestamp = new Date().toISOString();
   const analysisId = randomUUID();
@@ -23,7 +33,8 @@ export function createAnalysisFromArtifact(payload: CreateAnalysisRequest): Crea
 
   analysisRepository.save({
     analysis_id: analysisId,
-    owner_id: "demo-owner",
+    owner_user_id: payload.owner_user_id,
+    account_id: payload.account_id,
     status: "queued",
     strategy_name: payload.strategy_name,
     artifact_id: artifact.artifact_id,
@@ -44,6 +55,8 @@ export function createAnalysisFromArtifact(payload: CreateAnalysisRequest): Crea
     created_at: timestamp,
     retry_count: 0,
   });
+
+  accountService.incrementUsage(payload.account_id, "analysis");
 
   scheduleAnalysisJob(analysisId);
 
@@ -101,25 +114,28 @@ export function getAnalysisDetail(analysisId: string): AnalysisDetailResponse | 
   };
 }
 
-export function listAnalyses(): AnalysisListItem[] {
-  return analysisRepository.list().map((analysis) => {
-    const artifact = artifactRepository.findById(analysis.artifact_id);
-    const result = analysis.result;
-    return {
-      analysis_id: analysis.analysis_id,
-      strategy_name:
-        result?.strategy.strategy_name ??
-        analysis.strategy_name ??
-        artifact?.parsed_artifact.strategy_metadata?.strategy_name ??
-        "Untitled upload",
-      trade_count: result?.dataset.trade_count ?? artifact?.parsed_artifact.trades.length ?? 0,
-      timeframe: result?.strategy.timeframe ?? artifact?.parsed_artifact.trades[0]?.timeframe ?? "N/A",
-      asset: result?.dataset.market ?? artifact?.parsed_artifact.trades[0]?.market ?? "N/A",
-      created_at: analysis.created_at.slice(0, 10),
-      status: analysis.status,
-      robustness_score: result?.summary.robustness_score?.value ?? "Pending",
-    };
-  });
+export function listAnalyses(accountId?: string): AnalysisListItem[] {
+  return analysisRepository
+    .list()
+    .filter((analysis) => (accountId ? analysis.account_id === accountId : true))
+    .map((analysis) => {
+      const artifact = artifactRepository.findById(analysis.artifact_id);
+      const result = analysis.result;
+      return {
+        analysis_id: analysis.analysis_id,
+        strategy_name:
+          result?.strategy.strategy_name ??
+          analysis.strategy_name ??
+          artifact?.parsed_artifact.strategy_metadata?.strategy_name ??
+          "Untitled upload",
+        trade_count: result?.dataset.trade_count ?? artifact?.parsed_artifact.trades.length ?? 0,
+        timeframe: result?.strategy.timeframe ?? artifact?.parsed_artifact.trades[0]?.timeframe ?? "N/A",
+        asset: result?.dataset.market ?? artifact?.parsed_artifact.trades[0]?.market ?? "N/A",
+        created_at: analysis.created_at.slice(0, 10),
+        status: analysis.status,
+        robustness_score: result?.summary.robustness_score?.value ?? "Pending",
+      };
+    });
 }
 
 export function retryAnalysis(analysisId: string): AnalysisStatusResponse | undefined {

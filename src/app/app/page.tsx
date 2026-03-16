@@ -3,20 +3,27 @@ import type { Metadata } from "next";
 import { AnalysisTable } from "@/components/dashboard/analysis-table";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { MetricRow } from "@/components/dashboard/metric-row";
+import { UsageMeter } from "@/components/dashboard/usage-meter";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { analysisLibrary } from "@/lib/mock/analysis";
+import { accountService } from "@/lib/server/accounts/service";
+import { requireServerSession } from "@/lib/server/auth/session";
 
 export const metadata: Metadata = {
   title: "Workspace",
   description: "Authenticated product shell for the Strategy Robustness Lab.",
 };
 
-export default function AppHomePage() {
+export default async function AppHomePage() {
+  const session = await requireServerSession();
+  const state = accountService.getAccountState(session.account_id);
+  const usage = accountService.getUsage(session.account_id);
+
   return (
     <AnalysisPageFrame
       title="Research Workspace"
-      description="Welcome to the Strategy Robustness Lab. Start a new analysis, review recent artifacts, and continue your validation workflow."
+      description="Welcome to the Strategy Robustness Lab. Start a new analysis, review artifacts, and monitor usage boundaries clearly."
     >
       <MetricRow
         metrics={[
@@ -27,11 +34,17 @@ export default function AppHomePage() {
         ]}
       />
 
+      <UsageMeter
+        used={usage.analyses_created}
+        limit={state?.entitlements.analyses_per_month ?? 3}
+        retentionDays={state?.entitlements.history_retention_days ?? 30}
+      />
+
       <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
-        <WorkspaceCard title="Quick Start" subtitle="Structured flow" note="Phase 4 will enable upload parsing and job execution.">
+        <WorkspaceCard title="Quick Start" subtitle="Structured flow" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
           <ol className="space-y-2 text-sm text-text-neutral">
             <li>1. Upload backtest and trade artifacts.</li>
-            <li>2. Confirm assumptions and execution settings.</li>
+            <li>2. Confirm eligibility and plan boundaries.</li>
             <li>3. Review diagnostics and interpretation summaries.</li>
           </ol>
           <div className="mt-4 flex flex-wrap gap-2">

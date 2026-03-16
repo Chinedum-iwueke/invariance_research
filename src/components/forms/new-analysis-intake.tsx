@@ -7,8 +7,12 @@ import type {
   CreateAnalysisResponse,
   UploadInspectionResponse,
 } from "@/lib/contracts";
+import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
+import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
+import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
+import { isQuotaExceeded, isUploadPlanRestricted } from "@/lib/app/upgrade-visibility";
 import { cn } from "@/lib/utils";
 
 type IntakeState =
@@ -31,12 +35,14 @@ export function NewAnalysisIntake() {
   const [status, setStatus] = useState<AnalysisStatusResponse | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [apiErrorCode, setApiErrorCode] = useState<string | null>(null);
   const router = useRouter();
 
   const limitationList = useMemo(() => inspection?.limitation_reasons ?? [], [inspection]);
 
   async function onInspect(fileToInspect: File) {
     setClientError(null);
+    setApiErrorCode(null);
     const extension = fileToInspect.name.split(".").pop()?.toLowerCase();
     if (!extension || !["csv", "zip"].includes(extension)) {
       setClientError("Unsupported file type. Please upload a trade CSV or bundle ZIP.");
@@ -63,6 +69,9 @@ export function NewAnalysisIntake() {
 
     if (!response.ok || !payload.accepted) {
       setState("failed");
+      if (payload.validation_errors?.some((error) => error.code === "plan_upload_locked")) {
+        setApiErrorCode("plan_upload_locked");
+      }
       return;
     }
 
@@ -81,6 +90,8 @@ export function NewAnalysisIntake() {
 
     if (!response.ok) {
       setState("failed");
+      const payload = (await response.json()) as { error?: { code?: string } };
+      setApiErrorCode(payload.error?.code ?? "analysis_start_failed");
       setClientError("Unable to create analysis job.");
       return;
     }
@@ -209,6 +220,23 @@ export function NewAnalysisIntake() {
             </div>
           )}
           {clientError && <p className="text-xs text-red-600">{clientError}</p>}
+          {isQuotaExceeded(apiErrorCode) && (
+            <UpgradePanel
+              title="Monthly analysis limit reached"
+              explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
+              planHint="Professional and Research Lab increase monthly analysis throughput."
+            />
+          )}
+          {isUploadPlanRestricted(apiErrorCode) && (
+            <DiagnosticLockPanel
+              model={buildDiagnosticLockModel({
+                state: "plan_locked",
+                diagnosticTitle: "Advanced Artifact Upload",
+                diagnosticPurpose: "Upload structured or research bundles to unlock richer eligibility and diagnostics.",
+                requiredPlan: "Professional",
+              })}
+            />
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               className={buttonVariants({ variant: "primary" })}

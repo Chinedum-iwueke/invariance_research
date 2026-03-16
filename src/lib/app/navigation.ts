@@ -36,5 +36,7 @@ export const appSecondaryItems: AppNavItem[] = [
   { label: "New Analysis", href: "/app/new-analysis", icon: Sparkles },
   { label: "Analyses", href: "/app/analyses", icon: ListChecks },
   { label: "Settings", href: "/app/settings", icon: Settings },
+  { label: "Billing", href: "/app/billing", icon: FileText },
+  { label: "Upgrade", href: "/app/upgrade", icon: Sparkles },
   { label: "Workspace Home", href: "/app", icon: Sigma },
 ];
