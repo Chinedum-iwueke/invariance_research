@@ -1,17 +1,39 @@
-# Phase 4B Engine Integration (bulletproof_bt seam)
+# Phase 4B Engine Integration (bulletproof_bt distribution, `bt` runtime seam)
 
 ## What changed
 
-Phase 4 orchestration now executes analysis through the audited `bulletproof_bt` seam (`run_analysis_from_parsed_artifact`) instead of transitional in-process placeholder generation.
+Phase 4 orchestration now executes analysis through the audited engine seam (`bt.run_analysis_from_parsed_artifact`) instead of transitional in-process placeholder generation.
+
+## Dependency vs runtime namespace
+
+- Distribution/dependency/install name: `bulletproof_bt`
+- Runtime Python module import: `bt`
+
+Correct runtime examples:
+
+```python
+import bt
+
+bt.__version__
+bt.run_analysis_from_parsed_artifact(parsed_artifact, config)
+```
+
+Incorrect runtime example:
+
+```python
+import bulletproof_bt
+```
 
 ## Integration boundary
 
 - `src/lib/server/engine/bulletproof-client.ts`
   - Isolates package import details.
-  - Calls `run_analysis_from_parsed_artifact(parsedArtifact, config?)`.
+  - Dynamically imports runtime module `bt`.
+  - Verifies `run_analysis_from_parsed_artifact(parsedArtifact, config?)` exists.
 - `src/lib/server/engine/bulletproof-runner.ts`
   - Builds engine config from persisted upload eligibility.
   - Returns structured engine run context (engine name/version, seam name, degradation notes).
+  - Uses `bt.__version__` when version is not already present in run context.
 
 This keeps route handlers and general services free of direct engine package imports.
 

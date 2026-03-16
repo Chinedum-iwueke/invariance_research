@@ -6,7 +6,7 @@
 
 ## Three-layer separation
 
-1. **Engine schema (`bulletproof_bt`)**
+1. **Engine schema (`bulletproof_bt` distribution, runtime module `bt`)**
    - Raw computation-oriented objects.
    - Can change as algorithms, simulation internals, or optimization strategies evolve.
 2. **Adapter schema (`src/lib/server/adapters/bulletproof`)**
@@ -18,10 +18,10 @@
    - Version-stable API surface for pages/components.
    - Validated at runtime with Zod.
 
-## Integration rules for future `bulletproof_bt` package wiring
+## Integration rules for `bulletproof_bt` package wiring (`bt` runtime module)
 
 - Import raw package result types only inside adapter modules.
-- Never leak raw `bulletproof_bt` classes/objects into UI code.
+- Never leak raw engine classes/objects into UI code.
 - Map every diagnostic domain into `AnalysisRecord` before returning API payloads.
 - Validate payloads with `analysisRecordSchema` before storing/serving.
 - If raw fields change, adapt mapper logic without changing product contracts unless product requirements change.
