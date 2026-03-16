@@ -1,10 +1,39 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
+import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
-import { LockedFeatureCard } from "@/components/dashboard/locked-feature-card";
+import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { MockHeatmap } from "@/components/charts/chart-mocks";
+import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
+import { accountService } from "@/lib/server/accounts/service";
+import { requireServerSession } from "@/lib/server/auth/session";
+import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
+import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 
-export default function StabilityPage() {
+export default async function StabilityPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireServerSession();
+  const state = accountService.getAccountState(session.account_id);
+  const { id } = await params;
+  const analysis = analysisRepository.findById(id);
+  const artifact = analysis ? artifactRepository.findById(analysis.artifact_id) : undefined;
+  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "stability", parsed_artifact: artifact?.parsed_artifact });
+
+  if (!access.allowed && access.reason !== "enabled") {
+    const model = buildDiagnosticLockModel({
+      state: access.reason,
+      diagnosticTitle: "Parameter Stability",
+      diagnosticPurpose: "Assess fragility across parameter surfaces and perturbation ranges.",
+      currentPlan: state?.account.plan_id,
+      requiredPlan: "Research Lab",
+    });
+    return (
+      <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
+        <DiagnosticLockPanel model={model} />
+      </AnalysisPageFrame>
+    );
+  }
+
   return (
     <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
       <FigureCard
@@ -28,7 +57,11 @@ export default function StabilityPage() {
           "Edge may degrade rapidly outside tuned parameters.",
         ]}
       />
-      <LockedFeatureCard title="Advanced fragility diagnostics" body="Unlock full stability surface exports, fragility score decomposition, and parameter drift alerts." />
+      <UpgradePanel
+        title="Severe fragility should trigger expert review"
+        explanation="For high-stakes deployment, request a formal fragility and governance review before scaling capital."
+        planHint="Advisory pathway for independent validation audit."
+      />
     </AnalysisPageFrame>
   );
 }

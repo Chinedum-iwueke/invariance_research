@@ -1,33 +1,41 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
+import { UsageMeter } from "@/components/dashboard/usage-meter";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { accountService } from "@/lib/server/accounts/service";
+import { requireServerSession } from "@/lib/server/auth/session";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "Workspace settings shell.",
+  description: "Workspace settings and account controls.",
 };
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await requireServerSession();
+  const state = accountService.getAccountState(session.account_id);
+  const usage = accountService.getUsage(session.account_id);
+
   return (
-    <AnalysisPageFrame title="Settings" description="Profile, access tier, and workspace preferences.">
+    <AnalysisPageFrame title="Settings" description="Profile, plan posture, and account governance preferences.">
       <div className="grid gap-4 xl:grid-cols-2">
-        <WorkspaceCard title="Profile" subtitle="User shell">
-          <p className="text-sm text-text-neutral">Name, role, organization, and account metadata will be wired with auth in Phase 6.</p>
+        <WorkspaceCard title="Profile" subtitle="Identity">
+          <p className="text-sm text-text-neutral">Email: {session.email}</p>
+          <p className="text-sm text-text-neutral">User ID: {session.user_id}</p>
         </WorkspaceCard>
         <WorkspaceCard title="Plan & Access" subtitle="Current tier">
-          <p className="text-sm text-text-neutral">Tier: Research Essentials. Advanced diagnostics are available via upgrade.</p>
+          <p className="text-sm text-text-neutral">Tier: {state?.account.plan_id ?? "explorer"}</p>
+          <p className="text-sm text-text-neutral">Status: {state?.account.subscription_status ?? "trialing"}</p>
+          <Link href="/app/upgrade" className="mt-3 inline-block rounded-md border px-3 py-2 text-sm">Review plan comparison</Link>
         </WorkspaceCard>
-        <WorkspaceCard title="Billing" subtitle="Placeholder">
-          <p className="text-sm text-text-neutral">Billing controls will be introduced with product gating and subscriptions.</p>
-        </WorkspaceCard>
-        <WorkspaceCard title="Notifications" subtitle="Placeholder">
-          <p className="text-sm text-text-neutral">Configure analysis completion and risk-alert notifications in a future phase.</p>
-        </WorkspaceCard>
-        <WorkspaceCard title="Data and privacy" subtitle="Institutional standards">
-          <p className="text-sm text-text-neutral">Data retention, export policy, and confidentiality controls are managed under strict research governance conventions.</p>
-        </WorkspaceCard>
-        <WorkspaceCard title="Support" subtitle="Contact">
-          <p className="text-sm text-text-neutral">Need help with validation scope? Contact support or request professional audit assistance.</p>
+        <UsageMeter
+          used={usage.analyses_created}
+          limit={state?.entitlements.analyses_per_month ?? 3}
+          retentionDays={state?.entitlements.history_retention_days ?? 30}
+        />
+        <WorkspaceCard title="Billing" subtitle="Subscription controls">
+          <p className="text-sm text-text-neutral">Manage subscription details and review limits in billing.</p>
+          <Link href="/app/billing" className="mt-3 inline-block rounded-md border px-3 py-2 text-sm">Open billing</Link>
         </WorkspaceCard>
       </div>
     </AnalysisPageFrame>

@@ -3,6 +3,8 @@ import type { ArtifactKind, ArtifactRichness, ParsedArtifact, UploadEligibilityS
 
 export type UploadArtifact = {
   artifact_id: string;
+  owner_user_id: string;
+  account_id: string;
   analysis_id?: string;
   file_name: string;
   file_type: string;
@@ -25,7 +27,8 @@ export type AnalysisEngineContext = {
 
 export type AnalysisEntity = {
   analysis_id: string;
-  owner_id: string;
+  owner_user_id: string;
+  account_id: string;
   status: AnalysisStatus;
   strategy_name?: string;
   artifact_id: string;

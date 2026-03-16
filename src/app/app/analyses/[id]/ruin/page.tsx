@@ -1,11 +1,40 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
+import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
-import { LockedFeatureCard } from "@/components/dashboard/locked-feature-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
+import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { ruinStats } from "@/lib/mock/analysis";
+import { accountService } from "@/lib/server/accounts/service";
+import { requireServerSession } from "@/lib/server/auth/session";
+import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
+import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 
-export default function RuinPage() {
+export default async function RuinPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireServerSession();
+  const state = accountService.getAccountState(session.account_id);
+  const { id } = await params;
+  const analysis = analysisRepository.findById(id);
+  const artifact = analysis ? artifactRepository.findById(analysis.artifact_id) : undefined;
+  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "ruin", parsed_artifact: artifact?.parsed_artifact });
+
+  if (!access.allowed && access.reason !== "enabled") {
+    const model = buildDiagnosticLockModel({
+      state: access.reason,
+      diagnosticTitle: "Risk of Ruin",
+      diagnosticPurpose: "Estimate capital survivability and catastrophic drawdown exposure under stress assumptions.",
+      currentPlan: state?.account.plan_id,
+      requiredPlan: "Professional",
+    });
+    return (
+      <AnalysisPageFrame title="Risk of Ruin" description="Capital survivability and catastrophic drawdown exposure.">
+        <DiagnosticLockPanel model={model} />
+      </AnalysisPageFrame>
+    );
+  }
+
   return (
     <AnalysisPageFrame title="Risk of Ruin" description="Capital survivability and catastrophic drawdown exposure.">
       <WorkspaceCard title="Sizing Inputs" subtitle="Display shell for future calculator">
@@ -22,7 +51,11 @@ export default function RuinPage() {
           "Stress outcomes warrant tighter loss controls.",
         ]}
       />
-      <LockedFeatureCard title="Professional risk review recommended" body="Have us run full capital survivability diagnostics with scenario stress and policy recommendations." />
+      <UpgradePanel
+        title="High ruin profile detected"
+        explanation="If this strategy is intended for meaningful capital, request an expert-led survivability review and control policy audit."
+        planHint="Advisory pathway for mandate-level governance."
+      />
     </AnalysisPageFrame>
   );
 }

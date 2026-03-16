@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { UploadInspectionResponse } from "@/lib/contracts";
+import { accountService } from "@/lib/server/accounts/service";
 import { toUploadEligibilitySummary, type ArtifactValidationError } from "@/lib/server/ingestion";
 import { parseUploadArtifact } from "@/lib/server/ingestion/parsers";
 import { validateFileBasics } from "@/lib/server/ingestion/validators/file";
 import { extractZipEntries } from "@/lib/server/ingestion/utils/zip";
+import { assertUploadAllowed } from "@/lib/server/entitlements/policy";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
 
@@ -13,6 +15,8 @@ export async function inspectUpload(input: {
   fileName: string;
   contentType: string;
   bytes: Uint8Array;
+  owner_user_id: string;
+  account_id: string;
 }): Promise<UploadInspectionResponse> {
   const extension = input.fileName.split(".").pop()?.toLowerCase() ?? "";
 
@@ -49,9 +53,23 @@ export async function inspectUpload(input: {
   });
 
   if (!parsedResult.parsed) {
-    return failedInspection([
-      { code: "unsupported_artifact_structure", message: "Unable to parse this artifact structure" },
-    ], parsedResult.notes);
+    return failedInspection(
+      [{ code: "unsupported_artifact_structure", message: "Unable to parse this artifact structure" }],
+      parsedResult.notes,
+    );
+  }
+
+  const artifactClass =
+    parsedResult.parsed.richness === "research_complete"
+      ? "research_bundle"
+      : parsedResult.parsed.artifact_kind === "trade_csv"
+        ? "trade_csv"
+        : "structured_bundle";
+
+  try {
+    assertUploadAllowed(input.account_id, artifactClass);
+  } catch {
+    return failedInspection([{ code: "plan_upload_locked", message: "Current plan does not allow this artifact class." }]);
   }
 
   const eligibility = toUploadEligibilitySummary(parsedResult.parsed);
@@ -60,6 +78,8 @@ export async function inspectUpload(input: {
 
   artifactRepository.save({
     artifact_id: artifactId,
+    owner_user_id: input.owner_user_id,
+    account_id: input.account_id,
     file_name: input.fileName,
     file_type: input.contentType,
     file_size_bytes: input.bytes.byteLength,
@@ -70,6 +90,8 @@ export async function inspectUpload(input: {
     parsed_artifact: parsedResult.parsed,
     eligibility_summary: eligibility,
   });
+
+  accountService.incrementUsage(input.account_id, "upload");
 
   return {
     artifact_id: artifactId,
