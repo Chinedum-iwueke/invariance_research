@@ -73,7 +73,7 @@ export async function inspectUpload(input: {
   }
 
   const eligibility = toUploadEligibilitySummary(parsedResult.parsed);
-  const storage = saveUploadedArtifact(input.fileName, input.bytes);
+  const storage = saveUploadedArtifact(input.fileName, input.bytes, input.contentType || "application/octet-stream");
   const artifactId = randomUUID();
 
   artifactRepository.save({
@@ -84,6 +84,7 @@ export async function inspectUpload(input: {
     file_type: input.contentType,
     file_size_bytes: input.bytes.byteLength,
     storage_key: storage.storage_key,
+    checksum_sha256: storage.checksum_sha256,
     artifact_kind: parsedResult.parsed.artifact_kind,
     richness: parsedResult.parsed.richness,
     uploaded_at: new Date().toISOString(),
