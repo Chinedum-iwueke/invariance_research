@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "invariance-research"
+version = "0.1.0"
+description = "Python dependency shim for invariance_research backend engine integration"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "bulletproof_bt @ git+https://github.com/Chinedum-iwueke/bulletproof_bt.git@v0.1.0",
+]
+
+[tool.setuptools]
+py-modules = []
