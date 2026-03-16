@@ -58,11 +58,6 @@ bt.__version__
 bt.run_analysis_from_parsed_artifact(parsed_artifact, config)
 ```
 
-Incorrect runtime usage:
-
-```python
-import bulletproof_bt
-```
 
 ### Local development workflow
 If both repositories exist locally:
@@ -81,4 +76,4 @@ pip install -e ~/Projects/bulletproof_bt
 This editable install overrides the pinned Git dependency during active engine development.
 
 ### Reproducible environment workflow
-When `bulletproof_bt` is not present locally (CI, Codex containers, deploys), `pip install -e .` resolves `bulletproof_bt` from the pinned Git tag `v0.1.0` declared in `pyproject.toml`.
+When `bulletproof_bt` is not present locally (CI, Codex containers, deploys), `pip install -e .` resolves `bulletproof_bt` from the pinned Git tag `v0.1.2` declared in `pyproject.toml`.

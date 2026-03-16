@@ -18,11 +18,6 @@ bt.__version__
 bt.run_analysis_from_parsed_artifact(parsed_artifact, config)
 ```
 
-Incorrect runtime example:
-
-```python
-import bulletproof_bt
-```
 
 ## Integration boundary
 
