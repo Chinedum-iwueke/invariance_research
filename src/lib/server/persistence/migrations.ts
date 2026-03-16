@@ -161,4 +161,22 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_exports_account_analysis ON exports(account_id, analysis_id);
     `,
   },
+  {
+    version: 3,
+    name: "worker_heartbeats",
+    sql: `
+      CREATE TABLE IF NOT EXISTS worker_heartbeats (
+        worker_type TEXT NOT NULL,
+        instance_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL,
+        last_job_id TEXT,
+        last_job_status TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (worker_type, instance_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_type_last_seen ON worker_heartbeats(worker_type, last_seen_at);
+    `,
+  },
 ];

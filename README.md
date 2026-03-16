@@ -12,6 +12,15 @@ npm install
 npm run dev
 ```
 
+### Launch-style worker split
+
+```bash
+INVARIANCE_EMBEDDED_WORKERS=false npm run dev
+npm run worker:analysis
+npm run worker:export
+```
+
+
 ## Public routes
 - `/`
 - `/research-standards`
@@ -77,3 +86,5 @@ This editable install overrides the pinned Git dependency during active engine d
 
 ### Reproducible environment workflow
 When `bulletproof_bt` is not present locally (CI, Codex containers, deploys), `pip install -e .` resolves `bulletproof_bt` from the pinned Git tag `v0.1.2` declared in `pyproject.toml`.
+
+- `docs/phase8-launch-readiness.md`

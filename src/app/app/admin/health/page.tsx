@@ -9,13 +9,13 @@ export default async function AdminHealthPage() {
   return (
     <AdminPageShell title="System Health" description="Readiness checks for core platform dependencies.">
       <div className="grid gap-3 md:grid-cols-3">
-        <AdminStatCard label="Overall" value={snapshot.ok ? "Ready" : "Degraded"} />
+        <AdminStatCard label="Overall" value={snapshot.status} />
         <AdminStatCard label="Startup validation" value={snapshot.startup_validation_state} />
         <AdminStatCard label="Engine version" value={snapshot.engine_version} />
       </div>
       <p className="text-xs text-text-neutral">Last checked: {snapshot.timestamp}</p>
       <div className="grid gap-3 md:grid-cols-2">
-        {snapshot.checks.map((check) => <HealthStatusCard key={check.name} name={check.name} ok={check.ok} detail={check.detail} />)}
+        {snapshot.checks.map((check) => <HealthStatusCard key={check.name} name={check.name} status={check.status} detail={check.detail} />)}
       </div>
     </AdminPageShell>
   );

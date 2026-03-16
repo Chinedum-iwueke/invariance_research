@@ -16,7 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" };
+  const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };
 
   try {
     const created = requestExport({ analysis_id: id, account_id: session.account_id, user_id: session.user_id, format: body.format });

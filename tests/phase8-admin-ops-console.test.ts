@@ -72,7 +72,7 @@ test("jobs service lists and filters failures", () => {
     export_id: "export-1",
     analysis_id: "analysis-1",
     account_id: "account-1",
-    format: "json",
+    format: "pdf",
     status: "queued",
     retry_count: 0,
     current_step: "Queued",
@@ -111,7 +111,7 @@ test("exports service supports status views", () => {
     analysis_id: "analysis-1",
     account_id: account.account_id,
     requested_by_user_id: user.user_id,
-    format: "json",
+    format: "pdf",
     status: "failed",
     error_message: "render failed",
     requested_at: now.toISOString(),
@@ -130,7 +130,8 @@ test("health service returns structured snapshot", async () => {
   const snapshot = await getAdminHealthSnapshot();
   assert.equal(typeof snapshot.ok, "boolean");
   assert.ok(Array.isArray(snapshot.checks));
-  assert.ok(snapshot.startup_validation_state === "ready" || snapshot.startup_validation_state === "degraded");
+  assert.ok(["healthy", "degraded", "unhealthy"].includes(snapshot.startup_validation_state));
+  assert.ok(snapshot.workers.analysis === "healthy" || snapshot.workers.analysis === "degraded" || snapshot.workers.analysis === "unhealthy");
 });
 
 test("maintenance action execution returns structured counts", () => {

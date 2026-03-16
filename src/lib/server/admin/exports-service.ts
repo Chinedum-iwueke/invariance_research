@@ -9,11 +9,15 @@ export type AdminExportView = {
   analysis_id: string;
   account_id: string;
   owner_email?: string;
+  format: string;
   status: string;
   content_type?: string;
   storage_key?: string;
   file_size_bytes?: number;
   checksum_sha256?: string;
+  retry_count: number;
+  current_step?: string;
+  last_attempt_at?: string;
   created_at: string;
   expires_at?: string;
   error_summary?: string;
@@ -22,10 +26,11 @@ export type AdminExportView = {
 export function listAdminExports(filter?: "failed" | "expired" | "recent") {
   const rows = getDb()
     .prepare(
-      `SELECT e.*, u.email as owner_email
+      `SELECT e.*, u.email as owner_email, j.retry_count, j.current_step, j.last_attempt_at
        FROM exports e
        JOIN accounts a ON a.account_id = e.account_id
        JOIN users u ON u.user_id = a.owner_user_id
+       LEFT JOIN export_jobs j ON j.export_id = e.export_id
        ORDER BY e.created_at DESC`,
     )
     .all() as Record<string, unknown>[];
@@ -35,11 +40,15 @@ export function listAdminExports(filter?: "failed" | "expired" | "recent") {
     analysis_id: String(row.analysis_id),
     account_id: String(row.account_id),
     owner_email: row.owner_email ? String(row.owner_email) : undefined,
+    format: String(row.format),
     status: String(row.status),
     content_type: row.content_type ? String(row.content_type) : undefined,
     storage_key: row.storage_key ? String(row.storage_key) : undefined,
     file_size_bytes: row.file_size_bytes === null ? undefined : Number(row.file_size_bytes),
     checksum_sha256: row.checksum_sha256 ? String(row.checksum_sha256) : undefined,
+    retry_count: Number(row.retry_count ?? 0),
+    current_step: row.current_step ? String(row.current_step) : undefined,
+    last_attempt_at: row.last_attempt_at ? String(row.last_attempt_at) : undefined,
     created_at: String(row.created_at),
     expires_at: row.expires_at ? String(row.expires_at) : undefined,
     error_summary: row.error_message ? String(row.error_message) : undefined,
@@ -59,6 +68,7 @@ export function listAdminExports(filter?: "failed" | "expired" | "recent") {
       failed: mapped.filter((item) => item.status === "failed").length,
       expired: mapped.filter((item) => Boolean(item.expires_at && Date.parse(item.expires_at) <= Date.now())).length,
       completed: mapped.filter((item) => item.status === "completed").length,
+      pdf_exports: mapped.filter((item) => item.format === "pdf").length,
     },
   };
 }

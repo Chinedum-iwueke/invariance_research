@@ -4,6 +4,7 @@ import { exportJobRepository } from "@/lib/server/repositories/export-job-reposi
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
+import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
 
 let active = false;
 
@@ -19,6 +20,10 @@ export function startExportWorker() {
       active = false;
     }
   });
+}
+
+export async function runExportWorkerRuntime() {
+  await runWorkerLoop({ workerType: "export", processNext: processNextExportJob });
 }
 
 export async function processNextExportJob(): Promise<boolean> {
