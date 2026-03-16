@@ -9,7 +9,7 @@ description = "Python dependency shim for invariance_research backend engine int
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "bulletproof_bt @ git+https://github.com/Chinedum-iwueke/bulletproof_bt.git@v0.1.0",
+  "bulletproof_bt @ git+https://github.com/Chinedum-iwueke/bulletproof_bt.git@v0.1.2",
 ]
 
 [tool.setuptools]
