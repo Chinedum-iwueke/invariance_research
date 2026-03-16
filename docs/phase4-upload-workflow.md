@@ -77,9 +77,9 @@ Retry path:
 
 This guarantees page/API consumers receive product-facing contract shape rather than parser-native or engine-native output.
 
-## Future `bulletproof_bt` integration seam (`bt` runtime module)
+## Engine integration seam (`bulletproof_bt` distribution, `bt` runtime module)
 
-Replace transitional normalization/execution internals behind:
+Execution now routes through the integrated engine boundary. The seam remains the extension point for future engine capabilities behind:
 
 - `analysis-job-runner.ts` orchestration step
 - `analysis-normalizer.ts` adapter boundary

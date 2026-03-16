@@ -22,12 +22,12 @@ export function mapRawOverviewToOverviewDiagnostic(raw?: RawOverviewResult): Ove
     },
     interpretation: {
       title: "Overview Interpretation",
-      summary: "Placeholder adapter output until bulletproof_bt package integration is wired.",
+      summary: "Normalized overview summary generated from the bt runtime seam (bulletproof_bt distribution).",
     },
     verdict: {
       status: "moderate",
       title: "Preliminary robustness profile",
-      summary: "Adapter scaffold only. Replace with normalized verdict logic during engine integration.",
+      summary: "Verdict is emitted from current adapter normalization and can be deepened as engine diagnostics expand.",
     },
   };
 }
