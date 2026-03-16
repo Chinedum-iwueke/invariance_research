@@ -41,3 +41,25 @@ npm run dev
 Docs:
 - `docs/design-system.md`
 - `docs/product-shell.md`
+
+
+## Python engine dependency workflows
+
+### Local development workflow
+If both repositories exist locally:
+
+```
+~/Projects/invariance_research
+~/Projects/bulletproof_bt
+```
+
+install the engine in editable mode:
+
+```bash
+pip install -e ~/Projects/bulletproof_bt
+```
+
+This editable install overrides the pinned Git dependency during active engine development.
+
+### Reproducible environment workflow
+When `bulletproof_bt` is not present locally (CI, Codex containers, deploys), `pip install -e .` resolves `bulletproof_bt` from the pinned Git tag `v0.1.0` declared in `pyproject.toml`.
