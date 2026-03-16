@@ -10,6 +10,7 @@ export type UploadArtifact = {
   file_type: string;
   file_size_bytes: number;
   storage_key: string;
+  checksum_sha256: string;
   artifact_kind: ArtifactKind;
   richness: ArtifactRichness;
   uploaded_at: string;
@@ -54,4 +55,6 @@ export type AnalysisJob = {
   started_at?: string;
   finished_at?: string;
   retry_count: number;
+  available_at?: string;
+  last_attempt_at?: string;
 };

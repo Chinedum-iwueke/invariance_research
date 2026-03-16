@@ -8,6 +8,7 @@ import type {
 } from "@/lib/contracts";
 import { accountService } from "@/lib/server/accounts/service";
 import { assertUsageWithinPlan } from "@/lib/server/entitlements/usage";
+import { enqueueAnalysisRetry } from "@/lib/server/queue/analysis-queue";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
@@ -54,6 +55,7 @@ export function createAnalysisFromArtifact(
     current_step: "Queued",
     created_at: timestamp,
     retry_count: 0,
+    available_at: timestamp,
   });
 
   accountService.incrementUsage(payload.account_id, "analysis");
@@ -73,6 +75,12 @@ export function createAnalysisFromArtifact(
       overview: `/app/analyses/${analysisId}/overview`,
     },
   };
+}
+
+export function getOwnedAnalysis(analysisId: string, accountId: string) {
+  const analysis = analysisRepository.findById(analysisId);
+  if (!analysis || analysis.account_id !== accountId) return undefined;
+  return analysis;
 }
 
 export function getAnalysisStatus(analysisId: string): AnalysisStatusResponse | undefined {
@@ -104,7 +112,7 @@ export function getAnalysisDetail(analysisId: string): AnalysisDetailResponse | 
   const analysis = analysisRepository.findById(analysisId);
   if (!analysis) return undefined;
   return {
-    analysis_id: analysisId,
+    analysis_id: analysis.analysis_id,
     status: analysis.status,
     record: analysis.result,
     error:
@@ -151,17 +159,8 @@ export function retryAnalysis(analysisId: string): AnalysisStatusResponse | unde
     failure_message: undefined,
   }));
 
-  jobRepository.updateByAnalysisId(analysisId, (current) => ({
-    ...current,
-    status: "queued",
-    current_step: "Queued for retry",
-    progress_pct: 0,
-    error_code: undefined,
-    error_message: undefined,
-    retry_count: current.retry_count + 1,
-    finished_at: undefined,
-  }));
+  const retryCount = job.retry_count + 1;
+  enqueueAnalysisRetry(analysisId, retryCount);
 
-  scheduleAnalysisJob(analysisId);
   return getAnalysisStatus(analysisId);
 }

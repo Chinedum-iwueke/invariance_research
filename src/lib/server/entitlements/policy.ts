@@ -1,6 +1,7 @@
 import type { DiagnosticAccessReason } from "@/lib/contracts/entitlements";
 import type { ParsedArtifact } from "@/lib/server/ingestion";
 import { accountService } from "@/lib/server/accounts/service";
+import { logger } from "@/lib/server/ops/logger";
 
 export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin" | "execution" | "regimes" | "stability";
 
@@ -59,4 +60,14 @@ export function assertUploadAllowed(accountId: string, artifactClass: "trade_csv
   if (artifactClass === "trade_csv" && !state.entitlements.can_upload_trade_csv) throw new Error("upload_not_allowed");
   if (artifactClass === "structured_bundle" && !state.entitlements.can_upload_bundle) throw new Error("upload_not_allowed");
   if (artifactClass === "research_bundle" && !state.entitlements.can_upload_research_bundle) throw new Error("upload_not_allowed");
+}
+
+
+export function assertExportAllowed(accountId: string) {
+  const state = accountService.getAccountState(accountId);
+  if (!state) throw new Error("account_not_found");
+  if (!state.entitlements.can_export_report) {
+    logger.warn("export.denied", { account_id: accountId, reason: "plan_restricted" });
+    throw new Error("report_export_plan_restricted");
+  }
 }
