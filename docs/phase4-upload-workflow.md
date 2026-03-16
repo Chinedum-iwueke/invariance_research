@@ -77,7 +77,7 @@ Retry path:
 
 This guarantees page/API consumers receive product-facing contract shape rather than parser-native or engine-native output.
 
-## Future `bulletproof_bt` integration seam
+## Future `bulletproof_bt` integration seam (`bt` runtime module)
 
 Replace transitional normalization/execution internals behind:
 

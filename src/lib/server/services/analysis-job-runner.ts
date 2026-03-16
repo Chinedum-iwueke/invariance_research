@@ -10,7 +10,7 @@ const RUNNING_ANALYSES = new Set<string>();
 const STEPS = {
   validating: { step: "Validating canonical artifact", progress: 12 },
   loading: { step: "Loading persisted eligibility profile", progress: 25 },
-  engine: { step: "Running bulletproof_bt engine seam", progress: 70 },
+  engine: { step: "Running bt engine seam", progress: 70 },
   normalizing: { step: "Normalizing AnalysisRecord output", progress: 90 },
 } as const;
 
@@ -99,7 +99,7 @@ async function moveToStep(analysisId: string, next: { step: string; progress: nu
 }
 
 function mapErrorCode(message: string): string {
-  if (message.includes("engine_entrypoint_missing") || message.includes("bulletproof_bt")) return "engine_execution_failed";
+  if (message.includes("engine_entrypoint_missing") || message.includes("bt") || message.includes("bulletproof_bt")) return "engine_execution_failed";
   if (message.includes("parse")) return "artifact_parse_failed";
   if (message.includes("eligibility")) return "eligibility_conflict";
   if (message.includes("persist")) return "persistence_failed";

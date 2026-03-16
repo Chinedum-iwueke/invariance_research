@@ -45,6 +45,25 @@ Docs:
 
 ## Python engine dependency workflows
 
+### Engine naming distinction
+
+The engine is installed from the **distribution/dependency** named `bulletproof_bt`, but imported at runtime via the **Python module namespace** `bt`.
+
+Correct runtime usage:
+
+```python
+import bt
+
+bt.__version__
+bt.run_analysis_from_parsed_artifact(parsed_artifact, config)
+```
+
+Incorrect runtime usage:
+
+```python
+import bulletproof_bt
+```
+
 ### Local development workflow
 If both repositories exist locally:
 
