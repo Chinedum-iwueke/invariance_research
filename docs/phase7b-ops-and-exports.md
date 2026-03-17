@@ -34,9 +34,10 @@ Added startup/health checks for:
 - database connectivity
 - storage write/delete probe
 - Stripe configuration presence
-- engine importability (`bt`)
-- engine seam existence (`run_analysis_from_parsed_artifact`)
-- engine version signal
+- Python executable availability for engine bridge
+- bridge script availability
+- lightweight engine probe (`--probe`) validating `bt` import + seam
+- engine version signal returned from Python bridge
 - queue readiness (db-backed queue in current architecture)
 
 Exposed via `GET /api/health`, returning component-level check details and 200/503 status.

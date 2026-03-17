@@ -1,6 +1,9 @@
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+
 import { getDb } from "@/lib/server/persistence/database";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
-import { loadBulletproofModule } from "@/lib/server/engine/bulletproof-client";
+import { getBulletproofBridgeConfig, probeBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
 import { logger } from "@/lib/server/ops/logger";
 import { getWorkerHeartbeatStaleMs } from "@/lib/server/queue/runtime-config";
 import { workerHeartbeatRepository } from "@/lib/server/repositories/worker-heartbeat-repository";
@@ -29,21 +32,51 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
   const stripeOk = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
   checks.push({ name: "stripe_config", status: stripeOk ? "healthy" : "degraded", detail: stripeOk ? undefined : "Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET" });
 
-  try {
-    const bt = await loadBulletproofModule();
-    const seam = typeof bt.run_analysis_from_parsed_artifact === "function";
-    checks.push({ name: "engine_import", status: "healthy", detail: bt.__version__ ? `version=${bt.__version__}` : "version_unavailable" });
-    checks.push({ name: "engine_seam", status: seam ? "healthy" : "unhealthy", detail: seam ? "run_analysis_from_parsed_artifact available" : "seam_missing" });
-  } catch (error) {
-    checks.push({ name: "engine_import", status: "unhealthy", detail: error instanceof Error ? error.message : "engine_import_error" });
-    checks.push({ name: "engine_seam", status: "unhealthy", detail: "engine_not_loaded" });
-  }
+  checks.push(...(await getEngineChecks()));
 
   checks.push(getQueueCheck());
   checks.push(getWorkerCheck("analysis"));
   checks.push(getWorkerCheck("export"));
 
   logger.info("startup.validation.completed", { checks });
+  return checks;
+}
+
+async function getEngineChecks(): Promise<StartupCheck[]> {
+  const checks: StartupCheck[] = [];
+  const { pythonBin, bridgeScriptPath } = getBulletproofBridgeConfig();
+
+  const pythonProbe = spawnSync(pythonBin, ["--version"], { encoding: "utf-8" });
+  if (pythonProbe.error || pythonProbe.status !== 0) {
+    checks.push({ name: "engine_python", status: "unhealthy", detail: pythonProbe.error?.message ?? pythonProbe.stderr?.trim() ?? "python_not_available" });
+    checks.push({ name: "engine_bridge", status: "degraded", detail: "python_unavailable" });
+    checks.push({ name: "engine_probe", status: "degraded", detail: "python_unavailable" });
+    return checks;
+  }
+
+  checks.push({ name: "engine_python", status: "healthy", detail: (pythonProbe.stdout || pythonProbe.stderr).trim() });
+
+  const bridgeExists = fs.existsSync(bridgeScriptPath);
+  checks.push({
+    name: "engine_bridge",
+    status: bridgeExists ? "healthy" : "unhealthy",
+    detail: bridgeExists ? bridgeScriptPath : `missing_bridge_script:${bridgeScriptPath}`,
+  });
+
+  if (!bridgeExists) {
+    checks.push({ name: "engine_probe", status: "degraded", detail: "bridge_missing" });
+    return checks;
+  }
+
+  try {
+    const probe = await probeBulletproofEngine();
+    checks.push({ name: "engine_probe", status: probe.ok ? "healthy" : "unhealthy", detail: probe.engine_version ? `version=${probe.engine_version}` : "version_unavailable" });
+    checks.push({ name: "engine_seam", status: probe.ok ? "healthy" : "unhealthy", detail: "run_analysis_from_parsed_artifact available" });
+  } catch (error) {
+    checks.push({ name: "engine_probe", status: "unhealthy", detail: error instanceof Error ? error.message : "engine_probe_error" });
+    checks.push({ name: "engine_seam", status: "unhealthy", detail: "engine_not_available" });
+  }
+
   return checks;
 }
 
@@ -72,9 +105,9 @@ function getWorkerCheck(workerType: "analysis" | "export"): StartupCheck {
   return {
     name: `${workerType}_worker`,
     status: isStale ? "degraded" : "healthy",
-    detail: isStale ? "worker_heartbeat_stale" : "worker_available",
+    detail: isStale ? "worker_heartbeat_stale" : "worker_heartbeat_fresh",
     meta: {
-      instance_id: freshest.instance_id,
+      worker_id: freshest.worker_id,
       last_seen_at: freshest.last_seen_at,
       status: freshest.status,
       active_instances: heartbeats.length,
