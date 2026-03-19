@@ -14,7 +14,7 @@ export function DiagnosticLockPanel({ model }: { model: DiagnosticLockModel }) {
 
       <p className="text-sm leading-relaxed text-text-neutral">{model.diagnosticPurpose}</p>
 
-      <div className="space-y-2 rounded-sm border bg-white p-3">
+      <div className="space-y-2 rounded-sm border bg-surface-white p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Why this is currently unavailable</p>
         <p className="text-sm leading-relaxed text-text-neutral">{model.primaryExplanation}</p>
       </div>

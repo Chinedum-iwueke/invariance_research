@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   await requireAdminSessionOrRedirect();
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 rounded-sm border border-border-subtle bg-white p-3">
+      <div className="flex flex-wrap gap-2 rounded-sm border border-border-subtle bg-surface-white p-3">
         {items.map((item) => (
           <Link key={item.href} href={item.href} className="rounded-sm border border-border-subtle px-3 py-1 text-xs text-text-graphite hover:bg-surface-panel">
             {item.label}

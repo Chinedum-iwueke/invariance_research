@@ -48,7 +48,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <div className="sticky top-0 z-[var(--z-sticky)] border-b bg-white p-3 lg:hidden">
+      <div className="sticky top-0 z-[var(--z-sticky)] border-b bg-surface-white p-3 lg:hidden">
         <button
           type="button"
           className={buttonVariants({ variant: "secondary", size: "sm" })}
@@ -61,7 +61,7 @@ export function AppSidebar() {
         </button>
       </div>
 
-      <aside className="hidden h-screen w-72 shrink-0 border-r bg-white lg:sticky lg:top-0 lg:block">
+      <aside className="hidden h-screen w-72 shrink-0 border-r bg-surface-white lg:sticky lg:top-0 lg:block">
         <div className="flex h-full flex-col px-4 py-6">
           <Link href="/app" className="mb-7 px-3 text-sm font-semibold tracking-wide text-text-institutional">
             Strategy Robustness Lab
@@ -75,7 +75,7 @@ export function AppSidebar() {
 
       {open ? (
         <div className="fixed inset-0 z-[60] bg-black/20 lg:hidden" onClick={() => setOpen(false)}>
-          <aside className="h-full w-80 border-r bg-white p-4" onClick={(e) => e.stopPropagation()}>
+          <aside className="h-full w-80 border-r bg-surface-white p-4" onClick={(e) => e.stopPropagation()}>
             <Link href="/app" className="mb-6 block px-3 text-sm font-semibold tracking-wide" onClick={() => setOpen(false)}>
               Strategy Robustness Lab
             </Link>

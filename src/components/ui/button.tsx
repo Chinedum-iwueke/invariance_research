@@ -8,7 +8,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary: "border-brand bg-brand text-white hover:bg-[#92001b]",
-        secondary: "border-border-subtle bg-surface-panel text-text-graphite hover:bg-white",
+        secondary: "border-border-subtle bg-surface-panel text-text-graphite hover:bg-surface-white",
         tertiary: "border-transparent bg-transparent text-text-graphite hover:bg-surface-panel",
         destructive: "border-chart-negative bg-chart-negative text-white hover:bg-[#a92222]",
       },

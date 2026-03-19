@@ -26,7 +26,7 @@ function cell(value: string) {
 
 export function PlanComparisonTable() {
   return (
-    <Card className="overflow-x-auto rounded-md border bg-white p-0">
+    <Card className="overflow-x-auto rounded-md border bg-surface-white p-0">
       <table className="min-w-[760px] w-full text-sm">
         <thead>
           <tr className="border-b bg-surface-panel text-left">

@@ -10,13 +10,13 @@ interface AnalysisPageFrameProps {
 
 export function AnalysisPageFrame({ title, description, children, className }: AnalysisPageFrameProps) {
   return (
-    <section className={cn("mx-auto w-full max-w-[72rem] space-y-8", className)}>
-      <header className="space-y-3 border-b pb-5">
+    <section className={cn("w-full max-w-[88rem] space-y-10", className)}>
+      <header className="space-y-3 border-b border-border-subtle pb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">Analysis Workspace</p>
-        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-text-institutional">{title}</h1>
-        <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">{description}</p>
+        <h1 className="text-[1.9rem] font-semibold leading-tight tracking-tight text-text-institutional">{title}</h1>
+        <p className="max-w-4xl text-sm leading-relaxed text-text-neutral">{description}</p>
       </header>
-      <div className="space-y-6">{children}</div>
+      <div className="space-y-8">{children}</div>
     </section>
   );
 }

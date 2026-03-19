@@ -11,7 +11,7 @@ const toneMeta = {
 export function InsightCard({ insight }: { insight: InsightPoint }) {
   const tone = insight.tone ?? "info";
   return (
-    <article className={cn("rounded-sm border bg-white p-3", toneMeta[tone].wrap)}>
+    <article className={cn("rounded-sm border bg-surface-white p-3", toneMeta[tone].wrap)}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-neutral">{toneMeta[tone].chip}</p>
       <h4 className="mt-1 text-sm font-semibold text-text-institutional">{insight.title}</h4>
       <p className="mt-1 text-sm leading-relaxed text-text-neutral">{insight.body}</p>

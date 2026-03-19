@@ -10,11 +10,9 @@ import { overviewDiagnostic, overviewMetrics, toInterpretationBlockPayload } fro
 export default function OverviewPage() {
   return (
     <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
-      <MetricRow metrics={overviewMetrics} />
-
       <FigureCard
-        title="Equity Comparison Panel"
-        subtitle="Historical equity, median Monte Carlo path, and worst simulated path"
+        title="Primary Equity Robustness Figure"
+        subtitle="Historical equity against median and stressed Monte Carlo paths"
         figure={<MockEquityComparisonChart />}
         legend={
           <>
@@ -26,13 +24,11 @@ export default function OverviewPage() {
         note="Figure shell is chart-ready and will receive backend series payloads in Phase 5."
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <MetricRow metrics={overviewMetrics} />
+
+      <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
         <InterpretationBlock {...toInterpretationBlockPayload(overviewDiagnostic.interpretation)} />
-        <VerdictCard
-          title={overviewDiagnostic.verdict.title}
-          summary={overviewDiagnostic.verdict.summary}
-          posture={overviewDiagnostic.verdict.status}
-        />
+        <VerdictCard title={overviewDiagnostic.verdict.title} summary={overviewDiagnostic.verdict.summary} posture={overviewDiagnostic.verdict.status} />
       </div>
 
       <WorkspaceCard title="Methodology posture" subtitle="Validation sequence applied to this artifact">
