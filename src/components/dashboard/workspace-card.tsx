@@ -11,7 +11,7 @@ interface WorkspaceCardProps {
 
 export function WorkspaceCard({ title, subtitle, toolbar, children, note }: WorkspaceCardProps) {
   return (
-    <Card className="space-y-5 rounded-md border bg-white p-card-md">
+    <Card className="space-y-5 rounded-md border bg-surface-white p-card-md">
       <div className="flex items-start justify-between gap-4 border-b pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-text-institutional">{title}</h2>

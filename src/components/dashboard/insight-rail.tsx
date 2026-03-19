@@ -20,7 +20,7 @@ export function InsightRail({ title = "Analyst Commentary", insights }: InsightR
           <InsightCard key={insight.title} insight={insight} />
         ))}
       </div>
-      <div className="rounded-sm border bg-white p-3">
+      <div className="rounded-sm border bg-surface-white p-3">
         <p className="text-sm font-semibold">Need an independent validation audit?</p>
         <p className="mt-1 text-xs leading-relaxed text-text-neutral">
           Request analyst-led stress testing and report review for committee-level capital decisions.

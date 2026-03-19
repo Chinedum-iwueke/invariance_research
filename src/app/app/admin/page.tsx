@@ -21,9 +21,9 @@ export default function AdminOverviewPage() {
         <AdminStatCard label="Accounts" value={accounts.rows.length} />
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <Link className="rounded-sm border border-border-subtle bg-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/jobs">Jobs dashboard</Link>
-        <Link className="rounded-sm border border-border-subtle bg-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/webhooks">Webhook receipts</Link>
-        <Link className="rounded-sm border border-border-subtle bg-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/maintenance">Maintenance controls</Link>
+        <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/jobs">Jobs dashboard</Link>
+        <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/webhooks">Webhook receipts</Link>
+        <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/maintenance">Maintenance controls</Link>
       </div>
     </AdminPageShell>
   );

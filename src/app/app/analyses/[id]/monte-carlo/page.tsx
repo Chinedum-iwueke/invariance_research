@@ -11,12 +11,9 @@ import { cn } from "@/lib/utils";
 export default function MonteCarloPage() {
   const analysis = getAnalysisRecord("alpha-trend-v2");
   return (
-    <AnalysisPageFrame
-      title="Monte Carlo Crash Test"
-      description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing."
-    >
+    <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">
       <FigureCard
-        title="Monte Carlo Equity Fan"
+        title="Primary Crash-Test Fan"
         subtitle="Simulated paths with median and worst-case trajectories"
         figure={<MockMonteCarloFanChart />}
         legend={
@@ -30,14 +27,18 @@ export default function MonteCarloPage() {
 
       <MetricRow metrics={monteCarloStats} cols={6} />
 
-      <InterpretationBlock {...toInterpretationBlockPayload(analysis.diagnostics.monte_carlo.interpretation)} />
+      <div className="grid gap-5 2xl:grid-cols-[1.25fr_0.95fr]">
+        <InterpretationBlock {...toInterpretationBlockPayload(analysis.diagnostics.monte_carlo.interpretation)} />
 
-      <WorkspaceCard title="Independent review" subtitle="Consulting bridge">
-        <p className="text-sm text-text-neutral">Need a deeper independent validation of the stress profile and capital policy implications?</p>
-        <a href="/contact" className={cn(buttonVariants({ size: "sm" }), "mt-3 inline-flex")}>
-          Request Strategy Audit
-        </a>
-      </WorkspaceCard>
+        <WorkspaceCard title="Independent review" subtitle="Consulting bridge">
+          <p className="text-sm text-text-neutral">
+            Need a deeper independent validation of the stress profile and capital policy implications?
+          </p>
+          <a href="/contact" className={cn(buttonVariants({ size: "sm" }), "mt-3 inline-flex")}>
+            Request Strategy Audit
+          </a>
+        </WorkspaceCard>
+      </div>
     </AnalysisPageFrame>
   );
 }

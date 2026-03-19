@@ -13,7 +13,7 @@ function GridBackground() {
 
 export function MockLineChart() {
   return (
-    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border bg-white p-4">
+    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border bg-surface-white p-4">
       <GridBackground />
       <svg className="absolute inset-0 h-full w-full p-4" viewBox="0 0 400 220" preserveAspectRatio="none">
         <polyline
@@ -35,7 +35,7 @@ export function MockLineChart() {
 
 export function MockEquityComparisonChart() {
   return (
-    <div className="relative h-[var(--chart-height-lg)] overflow-hidden rounded-sm border bg-white p-4">
+    <div className="relative h-[var(--chart-height-lg)] overflow-hidden rounded-sm border bg-surface-white p-4">
       <GridBackground />
       <svg className="absolute inset-0 h-full w-full p-4" viewBox="0 0 440 240" preserveAspectRatio="none">
         <polyline
@@ -70,7 +70,7 @@ export function MockMonteCarloFanChart() {
   ];
 
   return (
-    <div className="relative h-[var(--chart-height-lg)] overflow-hidden rounded-sm border bg-white p-4">
+    <div className="relative h-[var(--chart-height-lg)] overflow-hidden rounded-sm border bg-surface-white p-4">
       <GridBackground />
       <svg className="absolute inset-0 h-full w-full p-4" viewBox="0 0 440 240" preserveAspectRatio="none">
         {paths.map((points, idx) => (
@@ -101,7 +101,7 @@ export function MockMonteCarloFanChart() {
 
 export function MockHistogram() {
   return (
-    <div className="relative h-[var(--chart-height-sm)] rounded-sm border bg-white p-4">
+    <div className="relative h-[var(--chart-height-sm)] rounded-sm border bg-surface-white p-4">
       <GridBackground />
       <div className="absolute inset-0 flex items-end gap-2 p-5">
         {[22, 36, 64, 96, 74, 44, 28].map((height, idx) => (
@@ -114,7 +114,7 @@ export function MockHistogram() {
 
 export function MockHeatmap() {
   return (
-    <div className="grid h-[var(--chart-height-sm)] grid-cols-8 gap-1 rounded-sm border bg-white p-3">
+    <div className="grid h-[var(--chart-height-sm)] grid-cols-8 gap-1 rounded-sm border bg-surface-white p-3">
       {Array.from({ length: 48 }).map((_, i) => (
         <div
           key={i}
@@ -128,7 +128,7 @@ export function MockHeatmap() {
 
 export function MockMultiMetricPanel() {
   return (
-    <div className="grid h-[var(--chart-height-md)] grid-cols-2 gap-3 rounded-sm border bg-white p-4">
+    <div className="grid h-[var(--chart-height-md)] grid-cols-2 gap-3 rounded-sm border bg-surface-white p-4">
       {[
         ["Sharpe", "1.42"],
         ["Sortino", "2.07"],

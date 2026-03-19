@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="light"] {
   --font-montserrat: "Montserrat";
 
   --brand-research-red: #b00020;
@@ -27,8 +28,9 @@
 
   --shadow-soft: 0 2px 6px rgba(17, 17, 17, 0.04);
   --shadow-raised: 0 8px 18px rgba(17, 17, 17, 0.08);
+  --focus-ring-offset: var(--surface-white);
 
-  --container-max: 80rem;
+  --container-max: 84rem;
   --container-narrow: 64rem;
 
   --section-xs: 2rem;
@@ -58,6 +60,28 @@
   --chart-height-lg: 20rem;
 }
 
+[data-theme="dark"] {
+  --brand-research-red: #b64658;
+
+  --text-institutional: #ece9e7;
+  --text-graphite: #cfcbc8;
+  --text-neutral: #948e8a;
+
+  --surface-white: #121416;
+  --surface-panel: #1a1d21;
+
+  --border-divider: #2a2f35;
+
+  --chart-primary: #b64658;
+  --chart-positive: #6fb08b;
+  --chart-negative: #d97575;
+  --chart-benchmark: #6f9bcf;
+
+  --shadow-soft: 0 2px 12px rgba(5, 6, 8, 0.45);
+  --shadow-raised: 0 14px 28px rgba(2, 4, 7, 0.55);
+  --focus-ring-offset: var(--surface-white);
+}
+
 * {
   @apply border-border-subtle;
 }
@@ -76,7 +100,8 @@ h4 {
 }
 
 :focus-visible {
-  @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-white;
+  @apply outline-none ring-2 ring-brand ring-offset-2;
+  ring-offset-color: var(--focus-ring-offset);
 }
 
 @layer components {
@@ -89,6 +114,6 @@ h4 {
   }
 
   .card-shell {
-    @apply rounded-md border bg-white shadow-soft;
+    @apply rounded-md border border-border-subtle bg-surface-white shadow-soft;
   }
 }

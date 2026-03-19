@@ -5,7 +5,7 @@ export function UsageMeter({ used, limit, retentionDays }: { used: number; limit
   const remaining = Math.max(0, limit - used);
 
   return (
-    <Card className="space-y-3 rounded-md border bg-white p-card-md">
+    <Card className="space-y-3 rounded-md border bg-surface-white p-card-md">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-text-institutional">Monthly analysis usage</h3>
         <p className="text-xs text-text-neutral">{used} / {limit}</p>

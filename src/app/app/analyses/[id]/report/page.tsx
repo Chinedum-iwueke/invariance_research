@@ -20,12 +20,9 @@ export default async function ReportPage() {
   const canViewFull = state?.entitlements.can_view_full_report ?? false;
 
   return (
-    <AnalysisPageFrame
-      title="Validation Report"
-      description="Structured deliverable summarizing strategy robustness, risk posture, and deployment guidance."
-    >
+    <AnalysisPageFrame title="Validation Report" description="Structured deliverable summarizing strategy robustness, risk posture, and deployment guidance.">
       <WorkspaceCard title="Report Header" subtitle="Research artifact metadata">
-        <div className="grid gap-2 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
           <p><span className="font-medium text-text-graphite">Strategy:</span> {analysis.strategy.strategy_name}</p>
           <p><span className="font-medium text-text-graphite">Date:</span> {analysis.report.generated_at ?? analysis.updated_at}</p>
           <p><span className="font-medium text-text-graphite">Scope:</span> {canViewFull ? "Full diagnostic suite" : "Limited report scope"}</p>
@@ -41,21 +38,17 @@ export default async function ReportPage() {
         />
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
         <WorkspaceCard title="Executive Summary" subtitle="Institutional snapshot">
           <p className="text-sm leading-relaxed text-text-neutral">{analysis.report.executive_summary}</p>
         </WorkspaceCard>
-        <VerdictCard
-          title={analysis.summary.headline_verdict.title}
-          summary={analysis.summary.headline_verdict.summary}
-          posture={analysis.summary.headline_verdict.status}
-        />
+        <VerdictCard title={analysis.summary.headline_verdict.title} summary={analysis.summary.headline_verdict.summary} posture={analysis.summary.headline_verdict.status} />
       </div>
 
       <WorkspaceCard title="Diagnostics Summary" subtitle="Quick access to supporting diagnostics">
         <div className="grid gap-2 md:grid-cols-2">
           {reportSections.map((section) => (
-            <Link key={section.title} href={section.href} className="rounded-sm border p-3 text-sm text-text-graphite hover:bg-surface-panel">
+            <Link key={section.title} href={section.href} className="rounded-sm border border-border-subtle p-3 text-sm text-text-graphite hover:bg-surface-panel">
               {section.title}
             </Link>
           ))}
