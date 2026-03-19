@@ -5,10 +5,6 @@ export interface HeaderNavGroup {
 
 export const headerNavGroups: HeaderNavGroup[] = [
   {
-    label: "INSIGHTS",
-    items: [{ label: "Research", href: "/research" }],
-  },
-  {
     label: "OUR APPROACH",
     items: [
       { label: "Strategy Validation", href: "/strategy-validation" },
@@ -17,7 +13,12 @@ export const headerNavGroups: HeaderNavGroup[] = [
     ],
   },
   {
+    label: "INSIGHTS",
+    items: [{ label: "Research", href: "/research" }],
+  },
+  {
     label: "IR LABS",
+    // Keep this group intentionally lightweight for future lab expansions.
     items: [{ label: "Robustness Lab", href: "/robustness-lab" }],
   },
   {
