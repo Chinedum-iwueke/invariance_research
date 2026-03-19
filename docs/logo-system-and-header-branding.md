@@ -26,20 +26,20 @@ All SVG roots are normalized to rely on:
 
 Institutional sizing targets were implemented with fixed height rails and auto width:
 
-- **Primary logo:** `h-7 md:h-8` (28px / 32px)
-- **Monogram compact logo:** `h-6 md:h-7` (24px / 28px)
+- **Primary logo:** `h-8 md:h-10` (32px / 40px)
+- **Monogram compact logo:** `h-8 md:h-9` (32px / 36px)
 
 This keeps the mark present but restrained, avoiding oversized startup-style branding.
 
 ## Spacing and centering refinements
 
-Desktop header layout is now structured as a 3-column grid:
+Desktop header layout now uses a left-anchored flex composition:
 
-1. left brand zone: `minmax(15rem, 1fr)`
-2. center nav zone: `auto`
-3. right controls zone: `minmax(15rem, 1fr)`
+1. logo block on the left
+2. nav block offset with `ml-10` / `xl:ml-14`
+3. right controls pinned with `ml-auto`
 
-This creates deliberate breathing room between logo and menu cluster, while visually centering the 4 dropdown groups.
+This keeps a deliberate 40px–56px separation between logo and nav while shifting the nav slightly left from perfect center for improved optical balance.
 
 ## Accessibility and interaction
 

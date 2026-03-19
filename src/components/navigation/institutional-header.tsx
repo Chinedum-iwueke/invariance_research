@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 function HeaderDropdowns({ compact }: { compact: boolean }) {
   return (
-    <div className="hidden items-center justify-center gap-2 lg:flex">
+    <div className="hidden items-center gap-1.5 xl:gap-2 lg:flex">
       {headerNavGroups.map((group) => (
         <div key={group.label} className="group relative">
           <button
@@ -80,21 +80,16 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
 
   return (
     <header className="sticky top-0 z-[var(--z-sticky)] border-b bg-surface-white/95 backdrop-blur">
-      <div
-        className={cn(
-          "container-shell grid items-center gap-3 transition-[height,padding] duration-normal lg:grid-cols-[minmax(15rem,1fr)_auto_minmax(15rem,1fr)] lg:gap-8",
-          compact ? "h-16" : "h-[4.75rem]",
-        )}
-      >
+      <div className={cn("container-shell flex items-center gap-3 transition-[height,padding] duration-normal", compact ? "h-16" : "h-[4.75rem]")}>
         <div className="flex min-w-0 items-center">
-          <BrandLogoLink compact={compact} className={cn("-ml-1", compact ? "h-9" : "h-10")} />
+          <BrandLogoLink compact={compact} className={cn("-ml-1", compact ? "h-11" : "h-12")} />
         </div>
 
-        <div className="hidden justify-center lg:flex">
+        <div className="hidden lg:ml-10 lg:flex xl:ml-14">
           <HeaderDropdowns compact={compact} />
         </div>
 
-        <div className="hidden items-center justify-end gap-2 lg:flex">
+        <div className="hidden items-center gap-2 lg:ml-auto lg:flex">
           <Link href="/contact" className={buttonVariants({ size: "sm" })}>
             Request Audit
           </Link>
@@ -105,7 +100,7 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="col-start-3 justify-self-end inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border-subtle lg:hidden"
+          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border-subtle lg:hidden"
           aria-label="Toggle header navigation"
           aria-expanded={mobileOpen}
         >

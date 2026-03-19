@@ -20,7 +20,7 @@ function LogoAsset({ asset, alt, className, priority }: LogoAssetProps & { asset
       alt={alt}
       priority={priority}
       className={cn("h-full w-auto", className)}
-      sizes="(max-width: 768px) 160px, 240px"
+      sizes="(max-width: 768px) 170px, 280px"
     />
   );
 }
@@ -42,14 +42,14 @@ export function BrandLogo({ compact = false, className }: { compact?: boolean; c
 
   if (compact) {
     return (
-      <span className={cn("block h-6 md:h-7", className)} aria-hidden="true">
+      <span className={cn("block h-8 md:h-9", className)} aria-hidden="true">
         <LogoMonogram priority className="object-contain" />
       </span>
     );
   }
 
   return (
-    <span className={cn("block h-7 md:h-8", className)} aria-hidden="true">
+    <span className={cn("block h-8 md:h-10", className)} aria-hidden="true">
       {theme === "dark" ? <LogoPrimaryDark priority className="object-contain" /> : <LogoPrimaryLight priority className="object-contain" />}
     </span>
   );
@@ -61,7 +61,7 @@ export function BrandLogoLink({ compact = false, className }: { compact?: boolea
       href="/"
       aria-label="Invariance Research home"
       className={cn(
-        "inline-flex h-10 items-center rounded-sm px-1.5 opacity-100 transition-opacity duration-normal hover:opacity-85 focus-visible:ring-brand",
+        "inline-flex h-12 items-center rounded-sm px-1.5 opacity-100 transition-opacity duration-normal hover:opacity-85 focus-visible:ring-brand",
         className,
       )}
     >
