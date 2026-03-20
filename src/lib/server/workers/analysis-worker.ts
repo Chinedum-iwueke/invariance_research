@@ -107,6 +107,8 @@ async function moveToStep(analysisId: string, next: { step: string; progress: nu
 }
 
 function mapErrorCode(message: string): string {
+  if (message.includes("engine_input_validation_failed")) return "engine_input_validation_failed";
+  if (message.includes("engine_contract_mismatch")) return "engine_contract_mismatch";
   if (
     message.includes("engine_execution_failed")
     || message.includes("engine_process_failed")
@@ -126,6 +128,8 @@ function mapErrorCode(message: string): string {
 function normalizeErrorMessage(code: string): string {
   const map: Record<string, string> = {
     artifact_parse_failed: "Artifact parsing failed before engine execution.",
+    engine_input_validation_failed: "Engine rejected the analysis payload because it did not match the expected input schema.",
+    engine_contract_mismatch: "Engine bridge contract mismatch detected. Verify bridge/runtime compatibility.",
     eligibility_conflict: "Upload eligibility conflicts with requested diagnostics.",
     engine_execution_failed: "Engine execution failed. You can retry this analysis.",
     normalization_failed: "Engine output could not be normalized safely.",

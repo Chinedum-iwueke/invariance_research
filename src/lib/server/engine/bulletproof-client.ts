@@ -38,7 +38,9 @@ export async function probeBulletproofEngine(): Promise<BulletproofProbeResult> 
 }
 
 export async function runBulletproofEngine(parsedArtifact: ParsedArtifact, config?: Record<string, unknown>): Promise<BulletproofBridgeRunResponse> {
-  const output = await invokeBridge([], { parsedArtifact, config: config ?? {} });
+  const payload: Record<string, unknown> = { parsedArtifact };
+  if (config !== undefined) payload.config = config;
+  const output = await invokeBridge([], payload);
   return parseBridgeOutput<BulletproofBridgeRunResponse>(output);
 }
 
