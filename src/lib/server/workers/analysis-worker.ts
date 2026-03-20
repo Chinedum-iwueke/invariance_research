@@ -107,7 +107,15 @@ async function moveToStep(analysisId: string, next: { step: string; progress: nu
 }
 
 function mapErrorCode(message: string): string {
-  if (message.includes("engine_entrypoint_missing") || message.includes("bt") || message.includes("bulletproof_bt")) return "engine_execution_failed";
+  if (
+    message.includes("engine_execution_failed")
+    || message.includes("engine_process_failed")
+    || message.includes("engine_entrypoint_missing")
+    || message.includes("run_analysis_from_parsed_artifact")
+    || message.includes("positional argument")
+    || message.includes("bt")
+    || message.includes("bulletproof_bt")
+  ) return "engine_execution_failed";
   if (message.includes("parse")) return "artifact_parse_failed";
   if (message.includes("eligibility")) return "eligibility_conflict";
   if (message.includes("persist")) return "persistence_failed";
