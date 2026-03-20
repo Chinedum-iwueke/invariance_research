@@ -5,6 +5,7 @@ import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bu
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
 import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
+import { accountService } from "@/lib/server/accounts/service";
 
 const STEP_DELAY_MS = 50;
 let loopActive = false;
@@ -81,6 +82,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
       failure_code: undefined,
       failure_message: undefined,
     }));
+    accountService.incrementUsage(analysis.account_id, "analysis");
 
     jobRepository.updateByAnalysisId(analysisId, (current) => ({
       ...current,

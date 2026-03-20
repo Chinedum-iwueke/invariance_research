@@ -7,15 +7,17 @@ import { UsageMeter } from "@/components/dashboard/usage-meter";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { accountService } from "@/lib/server/accounts/service";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 
 export default async function BillingPage() {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
   const usage = accountService.getUsage(session.account_id);
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const limit = state?.entitlements.analyses_per_month ?? 3;
   const retentionDays = state?.entitlements.history_retention_days ?? 30;
-  const remaining = Math.max(0, limit - usage.analyses_created);
+  const remaining = isAdmin ? "Unlimited" : String(Math.max(0, limit - usage.analyses_created));
 
   return (
     <AnalysisPageFrame title="Billing & Plan" description="Transparent usage, clear plan boundaries, and calm upgrade controls.">
@@ -25,10 +27,11 @@ export default async function BillingPage() {
         analysesUsed={usage.analyses_created}
         analysesLimit={limit}
         retentionDays={retentionDays}
+        unlimitedAnalyses={isAdmin}
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <UsageMeter used={usage.analyses_created} limit={limit} retentionDays={retentionDays} />
+        <UsageMeter used={usage.analyses_created} limit={limit} retentionDays={retentionDays} unlimited={isAdmin} />
         <WorkspaceCard title="Usage context" subtitle="Why upgrades are suggested">
           <p className="text-sm text-text-neutral">Analyses remaining this month: {remaining}</p>
           <p className="mt-2 text-sm text-text-neutral">Uploads this month: {usage.artifacts_uploaded}</p>

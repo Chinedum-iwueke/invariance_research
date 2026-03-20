@@ -4,6 +4,7 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { UsageMeter } from "@/components/dashboard/usage-meter";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { accountService } from "@/lib/server/accounts/service";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
   const usage = accountService.getUsage(session.account_id);
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
 
   return (
     <AnalysisPageFrame title="Settings" description="Profile, plan posture, and account governance preferences.">
@@ -32,6 +34,7 @@ export default async function SettingsPage() {
           used={usage.analyses_created}
           limit={state?.entitlements.analyses_per_month ?? 3}
           retentionDays={state?.entitlements.history_retention_days ?? 30}
+          unlimited={isAdmin}
         />
         <WorkspaceCard title="Billing" subtitle="Subscription controls">
           <p className="text-sm text-text-neutral">Manage subscription details and review limits in billing.</p>

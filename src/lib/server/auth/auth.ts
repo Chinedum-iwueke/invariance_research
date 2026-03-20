@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { accountService } from "@/lib/server/accounts/service";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+export const authConfig = {
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   providers: [
     Credentials({
       name: "Credentials",
@@ -37,9 +37,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return baseUrl;
+    },
   },
   pages: {
     signIn: "/login",
   },
   trustHost: true,
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

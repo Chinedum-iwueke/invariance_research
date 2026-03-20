@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "worker:analysis": "tsx scripts/run-analysis-worker.ts",
-    "worker:export": "tsx scripts/run-export-worker.ts"
+    "worker:export": "tsx scripts/run-export-worker.ts",
+    "usage:recalculate": "tsx scripts/recalculate-usage.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

@@ -1,5 +1,10 @@
 import type { PlanId, SubscriptionStatus } from "@/lib/contracts/account";
 import { accountRepository, entitlementRepository, subscriptionRepository, usageRepository, userRepository } from "@/lib/server/accounts/repositories";
+import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+
+function monthBucket(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 export const accountService = {
   ensureUserAndAccount(input: { email: string; name?: string }) {
@@ -30,8 +35,10 @@ export const accountService = {
 
   getUsage(accountId: string) {
     const now = new Date();
-    const bucket = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-    return usageRepository.get(accountId, bucket);
+    const bucket = monthBucket(now);
+    const usage = usageRepository.get(accountId, bucket);
+    const completedAnalyses = analysisRepository.countCompletedForMonth(accountId, bucket);
+    return { ...usage, analyses_created: completedAnalyses };
   },
 
   incrementUsage(accountId: string, kind: "analysis" | "upload" | "export") {
