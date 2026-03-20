@@ -6,7 +6,6 @@ import type {
   CreateAnalysisRequest,
   CreateAnalysisResponse,
 } from "@/lib/contracts";
-import { accountService } from "@/lib/server/accounts/service";
 import { assertUsageWithinPlan } from "@/lib/server/entitlements/usage";
 import { enqueueAnalysisRetry } from "@/lib/server/queue/analysis-queue";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
@@ -57,8 +56,6 @@ export function createAnalysisFromArtifact(
     retry_count: 0,
     available_at: timestamp,
   });
-
-  accountService.incrementUsage(payload.account_id, "analysis");
 
   scheduleAnalysisJob(analysisId);
 

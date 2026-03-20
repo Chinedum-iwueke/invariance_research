@@ -32,12 +32,17 @@ export const analysisWorkflowItems: AppNavItem[] = [
   { label: "Validation Report", href: "/app/analyses/alpha-trend-v2/report", icon: FileText },
 ];
 
-export const appSecondaryItems: AppNavItem[] = [
+const baseSecondaryItems: AppNavItem[] = [
   { label: "New Analysis", href: "/app/new-analysis", icon: Sparkles },
   { label: "Analyses", href: "/app/analyses", icon: ListChecks },
   { label: "Settings", href: "/app/settings", icon: Settings },
   { label: "Billing", href: "/app/billing", icon: FileText },
   { label: "Upgrade", href: "/app/upgrade", icon: Sparkles },
   { label: "Workspace Home", href: "/app", icon: Sigma },
-  { label: "Admin Ops", href: "/app/admin", icon: ShieldAlert },
 ];
+
+const adminSecondaryItem: AppNavItem = { label: "Admin Ops", href: "/app/admin", icon: ShieldAlert };
+
+export function getAppSecondaryItems(isAdmin: boolean): AppNavItem[] {
+  return isAdmin ? [...baseSecondaryItems, adminSecondaryItem] : baseSecondaryItems;
+}

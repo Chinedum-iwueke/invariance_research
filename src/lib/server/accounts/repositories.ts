@@ -14,6 +14,9 @@ function toBool(value: unknown) {
 }
 
 export const userRepository = {
+  findById(userId: string) {
+    return getDb().prepare("SELECT * FROM users WHERE user_id = ?").get(userId) as User | undefined;
+  },
   findByEmail(email: string) {
     const row = getDb().prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as User | undefined;
     return row;

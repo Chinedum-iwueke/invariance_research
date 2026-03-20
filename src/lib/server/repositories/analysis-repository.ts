@@ -72,4 +72,29 @@ export const analysisRepository = {
     const rows = getDb().prepare("SELECT * FROM analyses ORDER BY created_at DESC").all() as Record<string, unknown>[];
     return rows.map(mapRow);
   },
+  countCompletedForMonth(accountId: string, monthBucket: string): number {
+    const row = getDb()
+      .prepare(
+        `SELECT COUNT(*) as total
+         FROM analyses
+         WHERE account_id = ?
+           AND status = 'completed'
+           AND substr(updated_at, 1, 7) = ?`,
+      )
+      .get(accountId, monthBucket) as { total: number };
+    return Number(row?.total ?? 0);
+  },
+  completedCountsByMonth(accountId: string): Array<{ month_bucket: string; completed_count: number }> {
+    const rows = getDb()
+      .prepare(
+        `SELECT substr(updated_at, 1, 7) AS month_bucket, COUNT(*) AS completed_count
+         FROM analyses
+         WHERE account_id = ?
+           AND status = 'completed'
+         GROUP BY substr(updated_at, 1, 7)
+         ORDER BY month_bucket ASC`,
+      )
+      .all(accountId) as Array<{ month_bucket: string; completed_count: number }>;
+    return rows.map((row) => ({ month_bucket: String(row.month_bucket), completed_count: Number(row.completed_count) }));
+  },
 };

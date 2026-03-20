@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { analysisWorkflowItems, appSecondaryItems, type AppNavItem } from "@/lib/app/navigation";
+import { analysisWorkflowItems, getAppSecondaryItems, type AppNavItem } from "@/lib/app/navigation";
 
 function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -43,8 +43,9 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutAction: (formData: FormData) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const appSecondaryItems = getAppSecondaryItems(isAdmin);
 
   return (
     <>
@@ -70,6 +71,11 @@ export function AppSidebar() {
             <NavGroup title="Validation Workflow" items={analysisWorkflowItems} />
             <NavGroup title="Workspace" items={appSecondaryItems} />
           </div>
+          <form action={logoutAction} className="mt-auto px-3 pt-3">
+            <button type="submit" className="w-full rounded-sm border border-border-subtle px-3 py-2 text-left text-sm text-text-neutral hover:bg-surface-panel">
+              Log out
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -82,6 +88,11 @@ export function AppSidebar() {
             <div className="space-y-6">
               <NavGroup title="Validation Workflow" items={analysisWorkflowItems} onNavigate={() => setOpen(false)} />
               <NavGroup title="Workspace" items={appSecondaryItems} onNavigate={() => setOpen(false)} />
+              <form action={logoutAction} className="px-3 pt-2">
+                <button type="submit" className="w-full rounded-sm border border-border-subtle px-3 py-2 text-left text-sm text-text-neutral hover:bg-surface-panel">
+                  Log out
+                </button>
+              </form>
             </div>
           </aside>
         </div>

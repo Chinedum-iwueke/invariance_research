@@ -8,6 +8,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { analysisLibrary } from "@/lib/mock/analysis";
 import { accountService } from "@/lib/server/accounts/service";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default async function AppHomePage() {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
   const usage = accountService.getUsage(session.account_id);
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
 
   return (
     <AnalysisPageFrame
@@ -38,6 +40,7 @@ export default async function AppHomePage() {
         used={usage.analyses_created}
         limit={state?.entitlements.analyses_per_month ?? 3}
         retentionDays={state?.entitlements.history_retention_days ?? 30}
+        unlimited={isAdmin}
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
