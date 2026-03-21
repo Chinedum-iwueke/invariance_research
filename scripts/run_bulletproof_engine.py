@@ -7,9 +7,10 @@ import argparse
 import dataclasses
 import inspect
 import json
+import re
 import sys
 from types import ModuleType
-from typing import Any
+from typing import Any, Literal, get_args, get_origin
 
 
 def _read_payload(stdin: str) -> dict[str, Any]:
@@ -51,6 +52,20 @@ class EngineContractMismatchError(RuntimeError):
     """Raised when bt exposes an unexpected seam/model contract."""
 
 
+def _safe_isinstance(value: Any, runtime_type: Any) -> bool:
+    """Runtime-safe isinstance that tolerates typing generics."""
+    try:
+        return isinstance(value, runtime_type)
+    except TypeError:
+        origin = get_origin(runtime_type)
+        if origin is None:
+            return False
+        try:
+            return isinstance(value, origin)
+        except TypeError:
+            return False
+
+
 def _ensure_dict(value: Any, *, field_name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise EngineInputValidationError(f"root_parsed_artifact_field_mismatch:{field_name}: expected object")
@@ -83,7 +98,15 @@ def _coerce_enum_value(raw_value: Any, enum_type: Any, *, field_name: str) -> An
     if enum_type is None:
         return raw_value
 
-    if isinstance(raw_value, enum_type):
+    if get_origin(enum_type) is Literal:
+        literal_choices = get_args(enum_type)
+        if raw_value in literal_choices:
+            return raw_value
+        raise EngineInputValidationError(
+            f"enum_conversion_mismatch:{field_name}: got {raw_value!r}; expected one of {list(literal_choices)}"
+        )
+
+    if _safe_isinstance(raw_value, enum_type):
         return raw_value
 
     if raw_value is None:
@@ -144,7 +167,10 @@ def _to_bool_diagnostic_eligibility(raw_value: Any) -> dict[str, bool]:
 def _constructor_param_names(model_type: Any) -> set[str] | None:
     if model_type is None:
         return None
-    signature = inspect.signature(model_type)
+    try:
+        signature = inspect.signature(model_type)
+    except (TypeError, ValueError):
+        return None
     params: set[str] = set()
     for name, parameter in signature.parameters.items():
         if name == "self":
@@ -152,6 +178,24 @@ def _constructor_param_names(model_type: Any) -> set[str] | None:
         if parameter.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
             params.add(name)
     return params
+
+
+def _prune_unknown_kwargs(model_type: Any, value: dict[str, Any]) -> dict[str, Any]:
+    accepted = _constructor_param_names(model_type)
+    if not accepted:
+        return value
+    return {key: raw for key, raw in value.items() if key in accepted}
+
+
+def _drop_unexpected_kwarg(value: dict[str, Any], error: Exception) -> dict[str, Any]:
+    message = str(error)
+    matched = re.search(r"unexpected keyword argument ['\"]([^'\"]+)['\"]", message)
+    if not matched:
+        return value
+    unexpected_key = matched.group(1)
+    if unexpected_key not in value:
+        return value
+    return {key: raw for key, raw in value.items() if key != unexpected_key}
 
 
 def _adapt_trade(
@@ -270,7 +314,7 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
     if model_type is None:
         return value
 
-    if isinstance(value, model_type):
+    if _safe_isinstance(value, model_type):
         return value
 
     if value is None:
@@ -282,6 +326,15 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
         try:
             return model_validate(value)
         except Exception as exc:  # noqa: BLE001
+            if isinstance(value, dict):
+                pruned = _prune_unknown_kwargs(model_type, value)
+                if pruned == value:
+                    pruned = _drop_unexpected_kwarg(value, exc)
+                if pruned != value:
+                    try:
+                        return model_validate(pruned)
+                    except Exception:  # noqa: BLE001
+                        pass
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
     # Pydantic v1 style
@@ -290,6 +343,15 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
         try:
             return parse_obj(value)
         except Exception as exc:  # noqa: BLE001
+            if isinstance(value, dict):
+                pruned = _prune_unknown_kwargs(model_type, value)
+                if pruned == value:
+                    pruned = _drop_unexpected_kwarg(value, exc)
+                if pruned != value:
+                    try:
+                        return parse_obj(pruned)
+                    except Exception:  # noqa: BLE001
+                        pass
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
     # Dataclass / plain class constructor
@@ -298,6 +360,19 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
             raise EngineInputValidationError(f"{field_name}: expected object payload")
         try:
             return model_type(**value)
+        except TypeError as exc:
+            pruned = _prune_unknown_kwargs(model_type, value)
+            if pruned == value:
+                pruned = _drop_unexpected_kwarg(value, exc)
+            if pruned != value:
+                try:
+                    return model_type(**pruned)
+                except Exception as exc:  # noqa: BLE001
+                    raise EngineInputValidationError(f"{field_name}: {exc}") from exc
+            try:
+                return model_type(value)
+            except Exception as exc:  # noqa: BLE001
+                raise EngineInputValidationError(f"{field_name}: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
@@ -306,7 +381,15 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
             raise EngineInputValidationError(f"{field_name}: expected object payload")
         try:
             return model_type(**value)
-        except TypeError:
+        except TypeError as exc:
+            pruned = _prune_unknown_kwargs(model_type, value)
+            if pruned == value:
+                pruned = _drop_unexpected_kwarg(value, exc)
+            if pruned != value:
+                try:
+                    return model_type(**pruned)
+                except Exception:  # noqa: BLE001
+                    pass
             try:
                 return model_type(value)
             except Exception as exc:  # noqa: BLE001
