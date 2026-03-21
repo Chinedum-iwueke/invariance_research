@@ -51,6 +51,18 @@ class EngineContractMismatchError(RuntimeError):
     """Raised when bt exposes an unexpected seam/model contract."""
 
 
+def _ensure_dict(value: Any, *, field_name: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise EngineInputValidationError(f"root_parsed_artifact_field_mismatch:{field_name}: expected object")
+    return value
+
+
+def _ensure_list(value: Any, *, field_name: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise EngineInputValidationError(f"root_parsed_artifact_field_mismatch:{field_name}: expected array")
+    return value
+
+
 def _resolve_bt_symbol(bt_module: ModuleType, symbol_name: str) -> Any | None:
     if hasattr(bt_module, symbol_name):
         return getattr(bt_module, symbol_name)
@@ -65,6 +77,193 @@ def _resolve_bt_symbol(bt_module: ModuleType, symbol_name: str) -> Any | None:
         if current is not None and hasattr(current, symbol_name):
             return getattr(current, symbol_name)
     return None
+
+
+def _coerce_enum_value(raw_value: Any, enum_type: Any, *, field_name: str) -> Any:
+    if enum_type is None:
+        return raw_value
+
+    if isinstance(raw_value, enum_type):
+        return raw_value
+
+    if raw_value is None:
+        raise EngineInputValidationError(f"enum_conversion_mismatch:{field_name}: missing required enum value")
+
+    try:
+        return enum_type(raw_value)
+    except Exception:  # noqa: BLE001
+        pass
+
+    if isinstance(raw_value, str):
+        by_name = getattr(enum_type, "__members__", {}).get(raw_value)
+        if by_name is not None:
+            return by_name
+        lowered = raw_value.lower()
+        for member_name, member_value in getattr(enum_type, "__members__", {}).items():
+            if member_name.lower() == lowered:
+                return member_value
+        for member in enum_type:
+            member_raw = getattr(member, "value", None)
+            if isinstance(member_raw, str) and member_raw.lower() == lowered:
+                return member
+
+    choices = []
+    try:
+        choices = [getattr(member, "value", str(member)) for member in enum_type]
+    except Exception:  # noqa: BLE001
+        choices = list(getattr(enum_type, "__members__", {}).keys())
+    raise EngineInputValidationError(
+        f"enum_conversion_mismatch:{field_name}: got {raw_value!r}; expected one of {choices}"
+    )
+
+
+def _extract_validation_warnings(parsed_artifact: dict[str, Any]) -> list[str]:
+    validation = parsed_artifact.get("validation")
+    if not isinstance(validation, dict):
+        return []
+    warnings = validation.get("warnings")
+    if not isinstance(warnings, list):
+        return []
+    return [str(item) for item in warnings if isinstance(item, str)]
+
+
+def _to_bool_diagnostic_eligibility(raw_value: Any) -> dict[str, bool]:
+    if raw_value is None:
+        return {}
+    eligibility = _ensure_dict(raw_value, field_name="diagnostic_eligibility")
+    mapped: dict[str, bool] = {}
+    for diagnostic, status in eligibility.items():
+        if isinstance(status, dict):
+            availability = status.get("availability")
+            mapped[str(diagnostic)] = availability in {"available", "limited", True}
+        else:
+            mapped[str(diagnostic)] = bool(status)
+    return mapped
+
+
+def _constructor_param_names(model_type: Any) -> set[str] | None:
+    if model_type is None:
+        return None
+    signature = inspect.signature(model_type)
+    params: set[str] = set()
+    for name, parameter in signature.parameters.items():
+        if name == "self":
+            continue
+        if parameter.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+            params.add(name)
+    return params
+
+
+def _adapt_trade(
+    bt_module: ModuleType,
+    trade: Any,
+    *,
+    index: int,
+) -> Any:
+    trade_dict = _ensure_dict(trade, field_name=f"trades[{index}]")
+    trade_model_type = _resolve_bt_symbol(bt_module, "NormalizedTradeRecord")
+    if trade_model_type is None:
+        raise EngineContractMismatchError("unsupported_model_factory:trade:NormalizedTradeRecord missing")
+
+    accepted_fields = _constructor_param_names(trade_model_type)
+
+    aliases: dict[str, tuple[str, ...]] = {
+        "symbol": ("symbol",),
+        "side": ("side", "direction"),
+        "entry_time": ("entry_time", "entry_timestamp"),
+        "exit_time": ("exit_time", "exit_timestamp"),
+        "entry_price": ("entry_price",),
+        "exit_price": ("exit_price",),
+        "quantity": ("quantity", "size"),
+        "trade_id": ("trade_id", "id"),
+        "fees": ("fees", "fee", "commission"),
+        "pnl": ("pnl", "profit_loss"),
+        "pnl_pct": ("pnl_pct", "return_pct"),
+        "mae": ("mae",),
+        "mfe": ("mfe",),
+        "duration_seconds": ("duration_seconds",),
+        "strategy_name": ("strategy_name",),
+        "timeframe": ("timeframe",),
+        "market": ("market",),
+        "exchange": ("exchange",),
+        "notes": ("notes",),
+        "entry_reason": ("entry_reason",),
+        "exit_reason": ("exit_reason",),
+        "risk_r": ("risk_r",),
+    }
+
+    kwargs: dict[str, Any] = {}
+    for dest_name, source_candidates in aliases.items():
+        if accepted_fields is not None and dest_name not in accepted_fields:
+            continue
+        for source_name in source_candidates:
+            if source_name in trade_dict and trade_dict[source_name] is not None:
+                kwargs[dest_name] = trade_dict[source_name]
+                break
+
+    required_min = ("symbol", "side", "entry_time", "exit_time", "entry_price", "exit_price", "quantity")
+    for required_name in required_min:
+        if accepted_fields is not None and required_name not in accepted_fields:
+            continue
+        if required_name not in kwargs:
+            raise EngineInputValidationError(
+                f"trade_field_mismatch:index={index}:missing_required_field:{required_name}"
+            )
+
+    try:
+        return trade_model_type(**kwargs)
+    except Exception as exc:  # noqa: BLE001
+        raise EngineInputValidationError(f"trade_field_mismatch:index={index}:{exc}") from exc
+
+
+def _adapt_parsed_artifact(bt_module: ModuleType, parsed_artifact: Any) -> Any:
+    parsed_dict = _ensure_dict(parsed_artifact, field_name="parsedArtifact")
+    parsed_model_type = _resolve_bt_symbol(bt_module, "ParsedArtifactInput")
+    if parsed_model_type is None:
+        raise EngineContractMismatchError("unsupported_model_factory:parsedArtifact:ParsedArtifactInput missing")
+
+    artifact_kind_type = _resolve_bt_symbol(bt_module, "ArtifactKind")
+    richness_type = _resolve_bt_symbol(bt_module, "ArtifactRichness")
+
+    artifact_kind_raw = parsed_dict.get("artifact_kind")
+    if artifact_kind_raw is None and parsed_dict.get("artifact_type") == "trade_csv":
+        artifact_kind_raw = "trade_csv"
+    if artifact_kind_raw is None and parsed_dict.get("artifact_type") is not None:
+        artifact_kind_raw = "bundle_v1"
+
+    artifact_kind = _coerce_enum_value(artifact_kind_raw, artifact_kind_type, field_name="artifact_kind")
+    richness = _coerce_enum_value(parsed_dict.get("richness"), richness_type, field_name="richness")
+
+    raw_trades = _ensure_list(parsed_dict.get("trades"), field_name="trades")
+    trades = [_adapt_trade(bt_module, item, index=idx) for idx, item in enumerate(raw_trades)]
+
+    parser_notes = parsed_dict.get("parser_notes")
+    if parser_notes is None:
+        parser_notes = []
+    elif not isinstance(parser_notes, list):
+        raise EngineInputValidationError("root_parsed_artifact_field_mismatch:parser_notes: expected array")
+
+    parser_notes_output = [str(item) for item in parser_notes if item is not None]
+    parser_notes_output.extend(_extract_validation_warnings(parsed_dict))
+
+    kwargs = {
+        "artifact_kind": artifact_kind,
+        "richness": richness,
+        "trades": trades,
+        "strategy_metadata": parsed_dict.get("strategy_metadata") if isinstance(parsed_dict.get("strategy_metadata"), dict) else {},
+        "equity_curve": parsed_dict.get("equity_curve") if isinstance(parsed_dict.get("equity_curve"), list) else None,
+        "assumptions": parsed_dict.get("assumptions") if isinstance(parsed_dict.get("assumptions"), dict) else None,
+        "params": parsed_dict.get("params") if isinstance(parsed_dict.get("params"), dict) else None,
+        "ohlcv_present": bool(parsed_dict.get("ohlcv_present", False)),
+        "benchmark_present": bool(parsed_dict.get("benchmark_present", False)),
+        "parser_notes": parser_notes_output,
+        "diagnostic_eligibility": _to_bool_diagnostic_eligibility(parsed_dict.get("diagnostic_eligibility")),
+    }
+
+    try:
+        return parsed_model_type(**kwargs)
+    except Exception as exc:  # noqa: BLE001
+        raise EngineInputValidationError(f"root_parsed_artifact_field_mismatch:model_construction:{exc}") from exc
 
 
 def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
@@ -125,10 +324,8 @@ def _build_seam_inputs(bt_module: ModuleType, payload: dict[str, Any]) -> tuple[
     parsed_artifact = payload.get("parsedArtifact")
     config = payload.get("config")
 
-    parsed_artifact_model_type = _resolve_bt_symbol(bt_module, "ParsedArtifactInput")
     config_model_type = _resolve_bt_symbol(bt_module, "AnalysisRunConfig")
-
-    parsed_artifact_input = _coerce_model(parsed_artifact, parsed_artifact_model_type, field_name="parsedArtifact")
+    parsed_artifact_input = _adapt_parsed_artifact(bt_module, parsed_artifact)
 
     if config is None:
         config_input = None
