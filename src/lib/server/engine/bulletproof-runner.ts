@@ -6,7 +6,6 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
   const startedAt = Date.now();
 
   const config = {
-    eligibility,
     requested_diagnostics: eligibility.diagnostics_available,
   };
 

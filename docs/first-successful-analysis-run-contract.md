@@ -93,7 +93,7 @@ CSV parser emits a `ParsedArtifact` containing:
 Node worker invokes Python bridge with:
 
 - `parsedArtifact` object (from persisted parsed artifact)
-- optional `config`
+- optional `config` with `requested_diagnostics` only (bridge tolerates extra unknown keys by pruning them before model construction)
 
 Bridge adapts to bt’s expected model construction:
 

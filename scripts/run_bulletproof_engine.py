@@ -179,6 +179,13 @@ def _constructor_param_names(model_type: Any) -> set[str] | None:
     return params
 
 
+def _prune_unknown_kwargs(model_type: Any, value: dict[str, Any]) -> dict[str, Any]:
+    accepted = _constructor_param_names(model_type)
+    if not accepted:
+        return value
+    return {key: raw for key, raw in value.items() if key in accepted}
+
+
 def _adapt_trade(
     bt_module: ModuleType,
     trade: Any,
@@ -307,6 +314,13 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
         try:
             return model_validate(value)
         except Exception as exc:  # noqa: BLE001
+            if isinstance(value, dict):
+                pruned = _prune_unknown_kwargs(model_type, value)
+                if pruned != value:
+                    try:
+                        return model_validate(pruned)
+                    except Exception:  # noqa: BLE001
+                        pass
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
     # Pydantic v1 style
@@ -315,6 +329,13 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
         try:
             return parse_obj(value)
         except Exception as exc:  # noqa: BLE001
+            if isinstance(value, dict):
+                pruned = _prune_unknown_kwargs(model_type, value)
+                if pruned != value:
+                    try:
+                        return parse_obj(pruned)
+                    except Exception:  # noqa: BLE001
+                        pass
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
     # Dataclass / plain class constructor
@@ -323,6 +344,17 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
             raise EngineInputValidationError(f"{field_name}: expected object payload")
         try:
             return model_type(**value)
+        except TypeError:
+            pruned = _prune_unknown_kwargs(model_type, value)
+            if pruned != value:
+                try:
+                    return model_type(**pruned)
+                except Exception as exc:  # noqa: BLE001
+                    raise EngineInputValidationError(f"{field_name}: {exc}") from exc
+            try:
+                return model_type(value)
+            except Exception as exc:  # noqa: BLE001
+                raise EngineInputValidationError(f"{field_name}: {exc}") from exc
         except Exception as exc:  # noqa: BLE001
             raise EngineInputValidationError(f"{field_name}: {exc}") from exc
 
@@ -332,6 +364,12 @@ def _coerce_model(value: Any, model_type: Any, *, field_name: str) -> Any:
         try:
             return model_type(**value)
         except TypeError:
+            pruned = _prune_unknown_kwargs(model_type, value)
+            if pruned != value:
+                try:
+                    return model_type(**pruned)
+                except Exception:  # noqa: BLE001
+                    pass
             try:
                 return model_type(value)
             except Exception as exc:  # noqa: BLE001
