@@ -14,7 +14,7 @@ type CsvParseResult = {
   rows: Record<string, string>[];
 };
 
-const REQUIRED_FIELDS = [
+export const REQUIRED_TRADE_CSV_FIELDS = [
   "symbol",
   "side",
   "entry_time",
@@ -24,7 +24,7 @@ const REQUIRED_FIELDS = [
   "quantity",
 ] as const;
 
-const OPTIONAL_NUMERIC_FIELDS = [
+export const OPTIONAL_TRADE_CSV_NUMERIC_FIELDS = [
   "fees",
   "pnl",
   "pnl_pct",
@@ -34,7 +34,7 @@ const OPTIONAL_NUMERIC_FIELDS = [
   "risk_r",
 ] as const;
 
-const OPTIONAL_TEXT_FIELDS = [
+export const OPTIONAL_TRADE_CSV_TEXT_FIELDS = [
   "trade_id",
   "strategy_name",
   "timeframe",
@@ -81,14 +81,24 @@ export function validateTradeCsv(
     }
   }
 
-  for (const requiredField of REQUIRED_FIELDS) {
+  const missingRequiredFields: string[] = [];
+
+  for (const requiredField of REQUIRED_TRADE_CSV_FIELDS) {
     if (!resolvedHeaders[requiredField]) {
+      missingRequiredFields.push(requiredField);
       errors.push({
         code: "unrecognized_required_headers",
         message: `Missing required field: ${requiredField}`,
         field: requiredField,
       });
     }
+  }
+
+  if (missingRequiredFields.length > 0) {
+    errors.unshift({
+      code: "invalid_csv_schema",
+      message: `Missing required headers: ${missingRequiredFields.join(", ")}. Found headers: ${parsed.headers.join(", ") || "<none>"}`,
+    });
   }
 
   if (errors.length > 0) {
@@ -177,7 +187,7 @@ function mapCsvRowToCanonical(
     quantity,
   };
 
-  for (const field of OPTIONAL_NUMERIC_FIELDS) {
+  for (const field of OPTIONAL_TRADE_CSV_NUMERIC_FIELDS) {
     const sourceHeader = resolvedHeaders[field];
     if (!sourceHeader) continue;
     const value = row[sourceHeader];
@@ -195,7 +205,7 @@ function mapCsvRowToCanonical(
     (candidate as Record<string, unknown>)[field] = numeric;
   }
 
-  for (const field of OPTIONAL_TEXT_FIELDS) {
+  for (const field of OPTIONAL_TRADE_CSV_TEXT_FIELDS) {
     const sourceHeader = resolvedHeaders[field];
     if (!sourceHeader) continue;
     const value = readText(row, sourceHeader);

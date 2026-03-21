@@ -59,6 +59,13 @@ export async function inspectUpload(input: {
     );
   }
 
+  if (!parsedResult.parsed.validation.valid) {
+    return failedInspection(parsedResult.parsed.validation.errors, [
+      ...(parsedResult.parsed.parser_notes ?? []),
+      ...parsedResult.notes,
+    ]);
+  }
+
   const artifactClass =
     parsedResult.parsed.richness === "research_complete"
       ? "research_bundle"
