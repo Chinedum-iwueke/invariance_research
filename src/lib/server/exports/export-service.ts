@@ -10,7 +10,7 @@ import { logger } from "@/lib/server/ops/logger";
 
 const EXPORT_TTL_DAYS = 14;
 
-export function requestExport(input: { analysis_id: string; account_id: string; user_id: string; format?: ExportFormat }) {
+export function requestExport(input: { analysis_id: string; account_id: string; user_id: string; format?: ExportFormat; is_admin?: boolean }) {
   const format = input.format ?? "json";
   const analysis = analysisRepository.findById(input.analysis_id);
 
@@ -21,7 +21,7 @@ export function requestExport(input: { analysis_id: string; account_id: string; 
     throw new Error("analysis_not_completed");
   }
 
-  assertExportAllowed(input.account_id);
+  assertExportAllowed(input.account_id, input.is_admin);
 
   const now = new Date();
   const exportId = randomUUID();

@@ -55,6 +55,94 @@ function pctBand(value: number | undefined, low: number, high: number): ScoreBan
   return "moderate";
 }
 
+function formatNumber(value: number | undefined, digits = 2): string {
+  if (value === undefined || !Number.isFinite(value)) return "Unavailable";
+  return value.toFixed(digits);
+}
+
+function formatDuration(seconds: number | undefined): string {
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds <= 0) return "Unavailable";
+  if (seconds >= 86_400) return `${(seconds / 86_400).toFixed(2)} days`;
+  if (seconds >= 3_600) return `${(seconds / 3_600).toFixed(2)} hours`;
+  if (seconds >= 60) return `${(seconds / 60).toFixed(2)} min`;
+  return `${seconds.toFixed(0)} sec`;
+}
+
+function median(values: number[]): number | undefined {
+  if (values.length === 0) return undefined;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function buildTradeDerivedStats(parsedArtifact: ParsedArtifact) {
+  const pnl = parsedArtifact.trades.map((trade) => trade.pnl).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const durations = parsedArtifact.trades.map((trade) => trade.duration_seconds).filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0);
+
+  if (pnl.length === 0) {
+    return {
+      totalPnl: undefined,
+      averagePnl: undefined,
+      medianPnl: undefined,
+      winRatePct: undefined,
+      expectancy: undefined,
+      avgDurationSeconds: durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : undefined,
+      equitySeries: [] as FigurePayload["series"],
+      histogramSeries: [] as FigurePayload["series"],
+    };
+  }
+
+  const totalPnl = pnl.reduce((sum, value) => sum + value, 0);
+  const wins = pnl.filter((value) => value > 0).length;
+  const winRatePct = (wins / pnl.length) * 100;
+  const avg = totalPnl / pnl.length;
+  const med = median(pnl);
+  let runningEquity = 0;
+
+  const equitySeries: FigurePayload["series"] = [
+    {
+      key: "derived-equity",
+      label: "Cumulative PnL",
+      series_type: "line",
+      points: pnl.map((value, idx) => {
+        runningEquity += value;
+        return { x: idx + 1, y: Number(runningEquity.toFixed(6)) };
+      }),
+    },
+  ];
+
+  const min = Math.min(...pnl);
+  const max = Math.max(...pnl);
+  const binCount = Math.min(12, Math.max(5, Math.ceil(Math.sqrt(pnl.length))));
+  const width = max === min ? 1 : (max - min) / binCount;
+  const bins = Array.from({ length: binCount }, (_, idx) => ({ low: min + idx * width, high: min + (idx + 1) * width, count: 0 }));
+  for (const value of pnl) {
+    const rawIndex = width === 0 ? 0 : Math.floor((value - min) / width);
+    const index = Math.min(binCount - 1, Math.max(0, rawIndex));
+    bins[index].count += 1;
+  }
+
+  const histogramSeries: FigurePayload["series"] = [
+    {
+      key: "derived-pnl-histogram",
+      label: "PnL Frequency",
+      series_type: "bar",
+      points: bins.map((bin, idx) => ({ x: `${idx + 1}`, y: bin.count })),
+    },
+  ];
+
+  return {
+    totalPnl,
+    averagePnl: avg,
+    medianPnl: med,
+    winRatePct,
+    expectancy: avg,
+    avgDurationSeconds: durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : undefined,
+    equitySeries,
+    histogramSeries,
+  };
+}
+
 function toFigureSeries(items: unknown): FigurePayload["series"] {
   if (!Array.isArray(items)) return [];
 
@@ -153,6 +241,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const regimesRaw = pickFirstRecord(diagnostics, ["regimes"]);
   const ruinRaw = pickFirstRecord(diagnostics, ["ruin"]);
   const stabilityRaw = pickFirstRecord(diagnostics, ["stability"]);
+  const derivedStats = buildTradeDerivedStats(parsedArtifact);
 
   const warnings: WarningItem[] = [
     ...eligibility.limitation_reasons.map((reason, idx) => ({
@@ -186,6 +275,24 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const verdict = engine.summary?.verdict ?? (robustness !== undefined && robustness >= 70 ? "robust" : robustness !== undefined && robustness >= 50 ? "moderate" : "fragile");
 
   const reportDiagnosticRows = DIAGNOSTICS.map((name) => `${name}: ${statusByDiagnostic.get(name)}`);
+  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure, {
+    title: "Equity Comparison",
+    type: "line",
+    note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
+  });
+
+  const overviewFigure: FigurePayload = mappedOverviewFigure.series.length > 0
+    ? mappedOverviewFigure
+    : { ...mappedOverviewFigure, title: "Derived cumulative PnL", note: "Engine did not emit overview chart series; a cumulative PnL curve was reconstructed from persisted trade-level PnL.", series: derivedStats.equitySeries };
+
+  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram, {
+    title: "Outcome Distribution",
+    type: "histogram",
+    note: "Distribution histogram shown when engine emits bin data.",
+  });
+  const distributionHistogram: FigurePayload = mappedDistributionHistogram.series.length > 0
+    ? mappedDistributionHistogram
+    : { ...mappedDistributionHistogram, title: "Trade PnL distribution (derived)", note: "Histogram bins were derived from persisted trade-level PnL because engine histogram bins were not emitted.", series: derivedStats.histogramSeries };
 
   const record: AnalysisRecord = {
     analysis_id: analysisId,
@@ -212,7 +319,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       execution_model: statusText(statusByDiagnostic.get("execution"), "Execution assumptions supplied", "Execution assumptions constrained"),
       monte_carlo: statusText(statusByDiagnostic.get("monte_carlo"), "Engine-backed monte carlo", "Monte Carlo constrained by eligibility/capability"),
       risk_model: "bulletproof_bt normalized seam",
-      notes: [eligibility.summary_text, ...engineContext.degradation_reasons].filter(Boolean).join(" | "),
+      notes: [eligibility.summary_text, ...engineContext.degradation_reasons, ...(parsedArtifact.parser_notes ?? [])].filter(Boolean).join(" | "),
     },
     summary: {
       robustness_score: score("Robustness Score", robustness !== undefined ? `${Math.round(robustness)} / 100` : "Unavailable", robustness !== undefined ? (robustness >= 70 ? "good" : "moderate") : "informational"),
@@ -228,6 +335,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       key_findings: engine.summary?.key_findings?.length
         ? engine.summary.key_findings
         : [
+            `Total realized PnL from persisted trades: ${formatNumber(derivedStats.totalPnl, 2)}.`,
+            `Trade-level win rate: ${formatPct(derivedStats.winRatePct)}.`,
             `Worst Monte Carlo drawdown: ${formatPct(mcWorst)}.`,
             `Ruin probability estimate: ${formatPct(ruinProbability)}.`,
             `${eligibility.diagnostics_available.length} diagnostics eligible at upload inspection.`,
@@ -239,14 +348,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         metrics: [
           score("Robustness Score", robustness !== undefined ? `${Math.round(robustness)} / 100` : "Unavailable", robustness !== undefined ? (robustness >= 70 ? "good" : "moderate") : "informational"),
           score("Overfitting Risk", overfit !== undefined ? `${Math.round(overfit)}%` : "Unavailable", pctBand(overfit, 30, 45)),
+          score("Trade Count", `${parsedArtifact.trades.length}`, "informational"),
+          score("Win Rate", formatPct(derivedStats.winRatePct), pctBand(derivedStats.winRatePct, 45, 60)),
           score("Worst Monte Carlo Drawdown", formatPct(mcWorst), pctBand(Math.abs(mcWorst ?? 0), 25, 40)),
           score("Risk-of-Ruin Probability", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
         ],
-        figure: mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure, {
-          title: "Equity Comparison",
-          type: "line",
-          note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
-        }),
+        figure: overviewFigure,
         interpretation: {
           title: "Overview interpretation",
           summary: statusText(
@@ -263,13 +370,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       },
       distribution: {
         metrics: [
-          score("Expectancy", getString(distributionRaw, ["expectancy", "expectancy_r", "expectancyR"]) ?? "Unavailable", "moderate"),
-          score("Win Rate", formatPct(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"])), pctBand(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"]), 45, 60)),
-          score("Median Return", getString(distributionRaw, ["median_return", "median_r", "medianReturn"]) ?? "Unavailable", "informational"),
-          score("Mean Duration", getString(distributionRaw, ["mean_duration", "meanDuration", "avg_duration"]) ?? "Unavailable", "informational"),
+          score("Expectancy", getString(distributionRaw, ["expectancy", "expectancy_r", "expectancyR"]) ?? formatNumber(derivedStats.expectancy, 4), "moderate"),
+          score("Win Rate", formatPct(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"]) ?? derivedStats.winRatePct), pctBand(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"]) ?? derivedStats.winRatePct, 45, 60)),
+          score("Median Return", getString(distributionRaw, ["median_return", "median_r", "medianReturn"]) ?? formatNumber(derivedStats.medianPnl, 4), "informational"),
+          score("Mean Duration", getString(distributionRaw, ["mean_duration", "meanDuration", "avg_duration"]) ?? formatDuration(derivedStats.avgDurationSeconds), "informational"),
         ],
         figures: [
-          mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram, { title: "Outcome Distribution", type: "histogram", note: "Distribution histogram shown when engine emits bin data." }),
+          distributionHistogram,
           mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter, { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
         ],
         interpretation: {
@@ -382,6 +489,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         `engine=${engineContext.engine_name}`,
         `seam=${engineContext.seam}`,
         `artifact_richness=${parsedArtifact.richness}`,
+        ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
       ],
       recommendations: engine.report?.recommendations ?? [
         "Review limited/skipped diagnostics before deployment decisions.",

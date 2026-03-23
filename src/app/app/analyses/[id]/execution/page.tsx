@@ -10,6 +10,7 @@ import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -17,10 +18,11 @@ import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-se
 export default async function ExecutionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
   const artifact = artifactRepository.findById(analysis.artifact_id);
-  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "execution", parsed_artifact: artifact?.parsed_artifact });
+  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "execution", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
 
   if (!access.allowed && access.reason !== "enabled") {
     const model = buildDiagnosticLockModel({

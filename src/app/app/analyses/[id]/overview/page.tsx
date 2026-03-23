@@ -39,6 +39,15 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         <VerdictCard title={record.diagnostics.overview.verdict.title} summary={record.diagnostics.overview.verdict.summary} posture={record.diagnostics.overview.verdict.status} />
       </div>
 
+      <WorkspaceCard title="Operational summary" subtitle="Persisted run-level context">
+        <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2">
+          <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count}</p>
+          <p><span className="font-medium text-text-graphite">Window:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Execution model:</span> {record.run_context.execution_model}</p>
+          <p><span className="font-medium text-text-graphite">Risk model:</span> {record.run_context.risk_model}</p>
+        </div>
+      </WorkspaceCard>
+
       <WorkspaceCard title="Methodology posture" subtitle="Validation sequence applied to this artifact">
         <p className="text-sm leading-relaxed text-text-neutral">{record.run_context.notes ?? "No additional methodology notes were persisted for this analysis."}</p>
       </WorkspaceCard>
