@@ -1,4 +1,5 @@
-import type { AnalysisRecord } from "@/lib/contracts";
+import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
+import { buildReportViewModel } from "@/lib/app/report-view";
 import type { ExportFormat } from "@/lib/server/exports/models";
 
 export function renderExport(record: AnalysisRecord, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
@@ -8,71 +9,285 @@ export function renderExport(record: AnalysisRecord, format: ExportFormat): { by
   }
 
   if (format === "pdf") {
-    const lines = buildReportLines(record);
-    const pdf = buildSimplePdf(lines);
-    return { bytes: pdf, content_type: "application/pdf", file_name: `${record.analysis_id}.pdf` };
+    const report = buildReportViewModel(record);
+    const pdf = buildInstitutionalPdf(record, report);
+    return { bytes: pdf, content_type: "application/pdf", file_name: `${record.analysis_id}-validation-report.pdf` };
   }
 
-  const md = [`# Invariance Analysis ${record.analysis_id}`, `Generated: ${new Date().toISOString()}`, "", ...buildReportLines(record)].join("\n");
+  const report = buildReportViewModel(record);
+  const md = [
+    `# Invariance Research Validation Report — ${record.strategy.strategy_name}`,
+    `Generated: ${record.report.generated_at ?? new Date().toISOString()}`,
+    "",
+    `## Executive Verdict (${report.verdict.statusLabel})`,
+    report.verdict.headline,
+    report.verdict.summary,
+    "",
+    `## Confidence: ${report.confidence.label}${report.confidence.value ? ` (${report.confidence.value})` : ""}`,
+    report.confidence.explanation,
+    "",
+    "## Key Metrics Snapshot",
+    ...report.keyMetrics.map((metric) => `- ${metric.label}: ${metric.value}`),
+    "",
+    "## Diagnostics Summary",
+    ...report.diagnosticsSummary.map((item) => `- ${item}`),
+  ].join("\n");
 
   return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}.md` };
 }
 
-function buildReportLines(record: AnalysisRecord): string[] {
-  return [
-    "## Strategy",
-    `- Name: ${record.strategy.strategy_name}`,
-    `- Timeframe: ${record.strategy.timeframe ?? "N/A"}`,
-    `- Trades: ${record.dataset.trade_count}`,
-    "",
-    "## Verdict",
-    `- ${record.summary.headline_verdict.title}: ${record.summary.headline_verdict.summary}`,
-    "",
-    "## Key findings",
-    ...record.summary.key_findings.map((finding) => `- ${finding}`),
-  ];
+interface PdfOp {
+  text: string;
+  x: number;
+  y: number;
+  size?: number;
 }
 
-function buildSimplePdf(lines: string[]): Uint8Array {
-  const escaped = lines
-    .flatMap((line) => wrap(line.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)"), 90))
-    .map((line) => `(${line}) Tj`)
-    .join("\nT*\n");
+interface PdfPage {
+  ops: PdfOp[];
+  charts: Array<{ figure: FigurePayload; x: number; y: number; width: number; height: number }>;
+}
 
-  const contentStream = `BT\n/F1 11 Tf\n50 770 Td\n14 TL\n${escaped}\nET`;
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-    "2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
-    "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    `5 0 obj << /Length ${Buffer.byteLength(contentStream, "utf-8")} >> stream\n${contentStream}\nendstream endobj`,
-  ];
+interface WrappedLine {
+  text: string;
+  bold?: boolean;
+}
 
+const PAGE = { width: 612, height: 792, margin: 44 };
+
+function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>): Uint8Array {
+  const pages: PdfPage[] = [{ ops: [], charts: [] }];
+  let current = pages[0];
+  let y = PAGE.height - PAGE.margin;
+
+  const ensureRoom = (heightNeeded: number) => {
+    if (y - heightNeeded < PAGE.margin) {
+      current = { ops: [], charts: [] };
+      pages.push(current);
+      y = PAGE.height - PAGE.margin;
+      drawPageHeader(current, record);
+      y -= 30;
+    }
+  };
+
+  const write = (text: string, opts?: { size?: number; leading?: number; bold?: boolean }) => {
+    const size = opts?.size ?? 10;
+    const leading = opts?.leading ?? Math.max(12, size + 2);
+    ensureRoom(leading + 4);
+    current.ops.push({ text: opts?.bold ? `**${text}**` : text, x: PAGE.margin, y, size });
+    y -= leading;
+  };
+
+  const writeBlock = (title: string, lines: WrappedLine[], options?: { gapAfter?: number }) => {
+    write(title, { size: 13, leading: 18, bold: true });
+    for (const line of lines) {
+      for (const wrapped of wrap(line.text, 92)) {
+        write(`${line.bold ? "• " : ""}${wrapped}`, { size: 10, leading: 14 });
+      }
+    }
+    y -= options?.gapAfter ?? 8;
+  };
+
+  drawPageHeader(current, record);
+  y -= 36;
+
+  write("Validation Report", { size: 19, leading: 24, bold: true });
+  write(`Executive Verdict: ${report.verdict.statusLabel}`, { size: 11, leading: 16 });
+  write(report.verdict.headline, { size: 14, leading: 18, bold: true });
+  wrap(report.verdict.summary, 90).forEach((line) => write(line, { size: 10, leading: 14 }));
+  y -= 6;
+
+  write(`Confidence Level: ${report.confidence.label}${report.confidence.value ? ` (${report.confidence.value})` : ""}`, { size: 11, leading: 16, bold: true });
+  wrap(report.confidence.explanation, 90).forEach((line) => write(line, { size: 10, leading: 14 }));
+  y -= 8;
+
+  writeBlock("Executive Summary", [{ text: record.report.executive_summary }]);
+
+  writeBlock(
+    "Key Metrics Snapshot",
+    report.keyMetrics.map((metric: ScoreBand) => ({ text: `${metric.label}: ${metric.value}` })),
+  );
+
+  writeBlock("Diagnostics Summary", report.diagnosticsSummary.map((line) => ({ text: line })));
+  writeBlock("Methodology", report.methodology.map((line) => ({ text: line })));
+  writeBlock("Limitations", (report.limitations.length ? report.limitations : ["No explicit report limitations were emitted."]).map((line) => ({ text: line })));
+
+  writeBlock("Deployment Guidance", [
+    { text: `${report.deploymentGuidance.advisoryLabel}: ${report.deploymentGuidance.summary}` },
+    ...report.deploymentGuidance.suitableContexts.map((item) => ({ text: `Appropriate usage — ${item}` })),
+    ...report.deploymentGuidance.requiredConditions.map((item) => ({ text: `Required condition — ${item}` })),
+    ...report.deploymentGuidance.blockers.map((item) => ({ text: `Blocker — ${item}` })),
+  ]);
+
+  writeBlock("Final Recommendations", report.recommendations.map((line) => ({ text: line })));
+
+  if (report.charts.length) {
+    ensureRoom(180);
+    write("Selected Charts", { size: 13, leading: 18, bold: true });
+    let x = PAGE.margin;
+    const width = 250;
+    const height = 120;
+
+    report.charts.slice(0, 4).forEach((figure, index) => {
+      if (index > 0 && index % 2 === 0) {
+        y -= height + 34;
+        x = PAGE.margin;
+      }
+
+      ensureRoom(height + 30);
+      current.ops.push({ text: figure.title, x, y, size: 9 });
+      current.charts.push({ figure, x, y: y - 10, width, height });
+      x += width + 20;
+    });
+    y -= 160;
+  }
+
+  return compilePdf(pages);
+}
+
+function drawPageHeader(page: PdfPage, record: AnalysisRecord) {
+  page.ops.push({ text: "INVARIANCE RESEARCH", x: PAGE.margin, y: PAGE.height - 26, size: 11 });
+  page.ops.push({ text: "Validation Report", x: PAGE.width - 170, y: PAGE.height - 26, size: 9 });
+  page.ops.push({ text: `Strategy: ${record.strategy.strategy_name}`, x: PAGE.margin, y: PAGE.height - 40, size: 8 });
+  page.ops.push({ text: `Generated: ${record.report.generated_at ?? record.updated_at}`, x: PAGE.width - 250, y: PAGE.height - 40, size: 8 });
+}
+
+function compilePdf(pages: PdfPage[]): Uint8Array {
+  const objects: string[] = [];
+  const pageObjectIds: number[] = [];
+  const contentObjectIds: number[] = [];
+
+  objects[0] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj";
+
+  pages.forEach((page, idx) => {
+    const contentId = 6 + idx * 2;
+    const pageId = 7 + idx * 2;
+    contentObjectIds.push(contentId);
+    pageObjectIds.push(pageId);
+  });
+
+  objects[1] = `2 0 obj << /Type /Pages /Count ${pages.length} /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] >> endobj`;
+  objects[2] = "3 0 obj << /ProcSet [/PDF /Text] /Font << /F1 4 0 R /F2 5 0 R >> >> endobj";
+  objects[3] = "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj";
+  objects[4] = "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj";
+
+  pages.forEach((page, index) => {
+    const contentId = contentObjectIds[index];
+    const pageId = pageObjectIds[index];
+    const stream = buildPageStream(page);
+    objects[contentId - 1] = `${contentId} 0 obj << /Length ${Buffer.byteLength(stream, "utf-8")} >> stream\n${stream}\nendstream endobj`;
+    objects[pageId - 1] = `${pageId} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.width} ${PAGE.height}] /Resources 3 0 R /Contents ${contentId} 0 R >> endobj`;
+  });
+
+  const orderedObjects = objects.filter(Boolean);
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [];
-  for (const object of objects) {
+  orderedObjects.forEach((obj) => {
     offsets.push(Buffer.byteLength(pdf, "utf-8"));
-    pdf += `${object}\n`;
-  }
+    pdf += `${obj}\n`;
+  });
+
   const xrefOffset = Buffer.byteLength(pdf, "utf-8");
-  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += `xref\n0 ${orderedObjects.length + 1}\n`;
   pdf += "0000000000 65535 f \n";
-  for (const offset of offsets) {
+  offsets.forEach((offset) => {
     pdf += `${offset.toString().padStart(10, "0")} 00000 n \n`;
-  }
-  pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  });
+  pdf += `trailer << /Size ${orderedObjects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
   return new Uint8Array(Buffer.from(pdf, "utf-8"));
 }
 
-function wrap(value: string, max: number): string[] {
-  if (value.length <= max) return [value];
-  const parts: string[] = [];
-  let remaining = value;
-  while (remaining.length > max) {
-    parts.push(remaining.slice(0, max));
-    remaining = remaining.slice(max);
+function buildPageStream(page: PdfPage): string {
+  const ops: string[] = ["BT"];
+
+  for (const op of page.ops) {
+    const bold = op.text.startsWith("**") && op.text.endsWith("**");
+    const rawText = bold ? op.text.slice(2, -2) : op.text;
+    const escaped = escapePdfText(rawText);
+    const font = bold ? "/F2" : "/F1";
+    const size = op.size ?? 10;
+    ops.push(`${font} ${size} Tf`);
+    ops.push(`1 0 0 1 ${op.x} ${op.y} Tm`);
+    ops.push(`(${escaped}) Tj`);
   }
-  if (remaining.length > 0) parts.push(remaining);
-  return parts;
+
+  ops.push("ET");
+
+  for (const chart of page.charts) {
+    ops.push(...drawChart(chart.figure, chart.x, chart.y, chart.width, chart.height));
+  }
+
+  return ops.join("\n");
+}
+
+function drawChart(figure: FigurePayload, x: number, y: number, width: number, height: number): string[] {
+  const allPoints = figure.series.flatMap((series) => series.points);
+  const numericX = allPoints.map((point) => (typeof point.x === "number" ? point.x : undefined)).filter((value): value is number => value !== undefined);
+  const yValues = allPoints.map((point) => point.y).filter((value) => Number.isFinite(value));
+  const minX = numericX.length ? Math.min(...numericX) : 0;
+  const maxX = numericX.length ? Math.max(...numericX) : Math.max(1, allPoints.length - 1);
+  const minY = yValues.length ? Math.min(...yValues) : 0;
+  const maxY = yValues.length ? Math.max(...yValues) : 1;
+  const spanX = Math.max(maxX - minX, 1);
+  const spanY = Math.max(maxY - minY, 1);
+
+  const colorPalette: Array<[number, number, number]> = [
+    [0.16, 0.35, 0.77],
+    [0.0, 0.55, 0.32],
+    [0.61, 0.28, 0.86],
+    [0.89, 0.31, 0.18],
+  ];
+
+  const xPos = (value: number) => x + ((value - minX) / spanX) * width;
+  const yPos = (value: number) => y - ((value - minY) / spanY) * height;
+
+  const commands: string[] = [
+    "q",
+    "0.88 0.9 0.94 rg",
+    `${x} ${y - height} ${width} ${height} re f`,
+    "0.75 0.78 0.84 RG",
+    `${x} ${y - height} ${width} ${height} re S`,
+  ];
+
+  figure.series.slice(0, 3).forEach((series, index) => {
+    const color = colorPalette[index % colorPalette.length];
+    commands.push(`${color[0]} ${color[1]} ${color[2]} RG`);
+    commands.push("1.3 w");
+
+    series.points.forEach((point, pointIndex) => {
+      const numericPointX = typeof point.x === "number" ? point.x : pointIndex;
+      const px = xPos(numericPointX);
+      const py = yPos(point.y);
+      commands.push(`${px} ${py} ${pointIndex === 0 ? "m" : "l"}`);
+    });
+    commands.push("S");
+  });
+
+  commands.push("Q");
+  return commands;
+}
+
+function wrap(value: string, max: number): string[] {
+  const words = value.split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+
+  const lines: string[] = [];
+  let current = words[0] ?? "";
+  for (let idx = 1; idx < words.length; idx += 1) {
+    const word = words[idx] ?? "";
+    const candidate = `${current} ${word}`;
+    if (candidate.length > max) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  lines.push(current);
+  return lines;
+}
+
+function escapePdfText(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
