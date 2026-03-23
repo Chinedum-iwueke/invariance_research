@@ -103,6 +103,13 @@ function formatNumber(value: number | undefined, digits = 2): string {
   return value.toFixed(digits);
 }
 
+function parseNumericText(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[%,$]/g, "").trim();
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function classifyExecutionScenario(expectancy: number | undefined, edgeDecayPct: number | undefined) {
   if (expectancy !== undefined && expectancy < 0) return "negative" as const;
   if (edgeDecayPct !== undefined && edgeDecayPct >= 70) return "fragile" as const;
@@ -114,6 +121,73 @@ function classifySensitivity(stressedExpectancy: number | undefined, edgeDecayPc
   if (stressedExpectancy !== undefined && stressedExpectancy < 0) return "cost_killed" as const;
   if (edgeDecayPct !== undefined && edgeDecayPct >= 70) return "fragile" as const;
   if (stressedExpectancy !== undefined && stressedExpectancy >= 0) return "resilient" as const;
+  return "informational" as const;
+}
+
+function toPct(value: number | undefined, digits = 1) {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return `${value.toFixed(digits)}%`;
+}
+
+function extractRegimeRows(raw: UnknownRecord | undefined, envelope: AnalysisRecord["engine_payload"]["diagnostics"]["regimes"] | undefined) {
+  const candidates: unknown[] = [];
+  if (Array.isArray(raw?.regime_metrics)) candidates.push(...raw.regime_metrics);
+  if (Array.isArray(raw?.regime_table)) candidates.push(...raw.regime_table);
+  if (Array.isArray(raw?.by_regime)) candidates.push(...raw.by_regime);
+  if (Array.isArray(raw?.regimes)) candidates.push(...raw.regimes);
+  if (Array.isArray(envelope?.metadata?.regime_metrics)) candidates.push(...(envelope.metadata.regime_metrics as unknown[]));
+
+  return candidates
+    .map((row) => {
+      const entry = asRecord(row);
+      if (!entry) return undefined;
+      const regimeName = getString(entry, ["regime_name", "regime", "name", "label", "bucket"]);
+      if (!regimeName) return undefined;
+
+      const tradeCount = getNumber(entry, ["trade_count", "trades", "n_trades", "count"]);
+      const expectancy = getNumber(entry, ["expectancy", "expectancy_r", "expectancyR", "avg_return", "average_return"]);
+      const winRate = getNumber(entry, ["win_rate", "win_rate_pct", "winRate", "winRatePct"]);
+      const drawdown = getNumber(entry, ["drawdown", "max_drawdown", "max_drawdown_pct", "maxDrawdownPct"]);
+
+      return {
+        regime_name: regimeName,
+        trade_count: getString(entry, ["trade_count_text", "trade_count_display"]) ?? (tradeCount === undefined ? undefined : `${Math.round(tradeCount)}`),
+        expectancy: getString(entry, ["expectancy_text", "expectancy_display"]) ?? (expectancy === undefined ? undefined : formatNumber(expectancy, 4)),
+        win_rate:
+          getString(entry, ["win_rate_text", "win_rate_display"])
+          ?? (winRate === undefined ? undefined : winRate <= 1 ? toPct(winRate * 100) : toPct(winRate)),
+        drawdown:
+          getString(entry, ["drawdown_text", "drawdown_display"])
+          ?? (drawdown === undefined ? undefined : drawdown <= 1 ? toPct(Math.abs(drawdown) * 100) : toPct(Math.abs(drawdown))),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+}
+
+function classifyRegimeDependence(
+  raw: UnknownRecord | undefined,
+  envelope: AnalysisRecord["engine_payload"]["diagnostics"]["regimes"] | undefined,
+  regimeRows: Array<{ expectancy?: string }>,
+) {
+  const emitted = getString(raw, ["classification", "regime_classification", "regime_dependence"])
+    ?? (typeof envelope?.metadata?.classification === "string" ? envelope.metadata.classification : undefined)
+    ?? (typeof envelope?.metadata?.regime_dependence === "string" ? envelope.metadata.regime_dependence : undefined);
+
+  if (emitted) {
+    const normalized = emitted.toLowerCase().replace(/[-\s]+/g, "_");
+    if (normalized.includes("fragile")) return "fragile" as const;
+    if (normalized.includes("agnostic")) return "regime_agnostic" as const;
+    if (normalized.includes("dependent")) return "regime_dependent" as const;
+  }
+
+  const expectancies = regimeRows.map((row) => parseNumericText(row.expectancy)).filter((value): value is number => value !== undefined);
+  if (expectancies.length < 2) return "informational" as const;
+  const min = Math.min(...expectancies);
+  const max = Math.max(...expectancies);
+  const spread = max - min;
+  if (min < 0 && max > 0) return "fragile" as const;
+  if (spread > 0.2) return "regime_dependent" as const;
+  if (spread <= 0.05) return "regime_agnostic" as const;
   return "informational" as const;
 }
 
@@ -464,6 +538,28 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     };
   }
 
+  const regimeRows = extractRegimeRows(regimesRaw, envelopeByDiagnostic.regimes);
+  const regimeExpectancies = regimeRows
+    .map((row) => parseNumericText(row.expectancy))
+    .filter((value): value is number => value !== undefined);
+  const bestRegimeFromRows = regimeRows
+    .map((row) => ({ name: row.regime_name, expectancy: parseNumericText(row.expectancy) }))
+    .filter((row): row is { name: string; expectancy: number } => row.expectancy !== undefined)
+    .sort((a, b) => b.expectancy - a.expectancy)[0]?.name;
+  const worstRegimeFromRows = regimeRows
+    .map((row) => ({ name: row.regime_name, expectancy: parseNumericText(row.expectancy) }))
+    .filter((row): row is { name: string; expectancy: number } => row.expectancy !== undefined)
+    .sort((a, b) => a.expectancy - b.expectancy)[0]?.name;
+  const dominantRegimeFromRows = regimeRows
+    .map((row) => ({ name: row.regime_name, trades: parseNumericText(row.trade_count) ?? 0 }))
+    .sort((a, b) => b.trades - a.trades)[0]?.name;
+  const regimeDispersionFromRows = regimeExpectancies.length > 1
+    ? formatNumber(Math.max(...regimeExpectancies) - Math.min(...regimeExpectancies), 4)
+    : undefined;
+  const regimeThresholdsFromMetadata = Array.isArray(envelopeByDiagnostic.regimes?.metadata?.thresholds)
+    ? envelopeByDiagnostic.regimes.metadata.thresholds.filter((item): item is string => typeof item === "string")
+    : undefined;
+
   const record: AnalysisRecord = {
     analysis_id: analysisId,
     status: "completed",
@@ -694,18 +790,66 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         metrics: envelopeByDiagnostic.regimes?.summary_metrics.length
           ? envelopeByDiagnostic.regimes.summary_metrics.map(envelopeMetricToScore)
           : [score("Regime Diagnostic Status", statusByDiagnostic.get("regimes") ?? "unavailable", statusByDiagnostic.get("regimes") === "available" ? "moderate" : "informational")],
+        regime_metrics: regimeRows,
         figures: [
           mapFigure(regimesRaw?.regime_bar_figure ?? regimesRaw?.figure, {
-            title: "Regime Proxy Summary",
+            title: "Performance by Regime",
             type: "bar",
-            note: "Regime figures are shown as proxy summaries unless richer OHLCV regime context is supplied.",
+            note: "Regime performance chart is emitted only from available market context and is not backfilled with proxy calculations.",
           }),
           ...(envelopeByDiagnostic.regimes?.figures ?? []),
         ],
         interpretation: {
           title: "Regime interpretation",
-          summary: statusText(statusByDiagnostic.get("regimes"), "Regime-aware behavior is reported from available context.", "Regime analysis is intentionally limited without richer market-state context (e.g., OHLCV/regime labels)."),
+          summary: statusText(statusByDiagnostic.get("regimes"), "Regime-aware behavior is reported from emitted trend/volatility classifications.", "Regime analysis is intentionally limited without market context artifacts (OHLCV or explicit regime labels)."),
         },
+        assumptions: envelopeByDiagnostic.regimes?.assumptions.length ? envelopeByDiagnostic.regimes.assumptions : getStringArray(regimesRaw, ["assumptions", "methodology_assumptions"]),
+        limitations: envelopeByDiagnostic.regimes?.limitations.length
+          ? envelopeByDiagnostic.regimes.limitations
+          : getStringArray(regimesRaw, ["limitations", "warnings"]),
+        recommendations: envelopeByDiagnostic.regimes?.recommendations.length
+          ? envelopeByDiagnostic.regimes.recommendations
+          : getStringArray(regimesRaw, ["recommendations", "next_steps"]),
+        summary_metrics: {
+          best_regime:
+            getString(regimesRaw, ["best_regime", "best_bucket", "best_regime_name"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.best_regime === "string" ? envelopeByDiagnostic.regimes.metadata.best_regime : undefined)
+            ?? bestRegimeFromRows,
+          worst_regime:
+            getString(regimesRaw, ["worst_regime", "worst_bucket", "worst_regime_name"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.worst_regime === "string" ? envelopeByDiagnostic.regimes.metadata.worst_regime : undefined)
+            ?? worstRegimeFromRows,
+          regime_dispersion:
+            getString(regimesRaw, ["regime_dispersion", "expectancy_dispersion", "dispersion"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.regime_dispersion === "string" ? envelopeByDiagnostic.regimes.metadata.regime_dispersion : undefined)
+            ?? regimeDispersionFromRows,
+          dominant_regime:
+            getString(regimesRaw, ["dominant_regime", "dominant_bucket"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.dominant_regime === "string" ? envelopeByDiagnostic.regimes.metadata.dominant_regime : undefined)
+            ?? dominantRegimeFromRows,
+        },
+        definition: {
+          trend_method:
+            getString(regimesRaw, ["trend_method", "trend_model", "trend_definition"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.trend_method === "string" ? envelopeByDiagnostic.regimes.metadata.trend_method : undefined),
+          volatility_method:
+            getString(regimesRaw, ["volatility_method", "vol_method", "vol_definition"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.volatility_method === "string" ? envelopeByDiagnostic.regimes.metadata.volatility_method : undefined),
+          thresholds:
+            (() => {
+              const emitted = getStringArray(regimesRaw, ["thresholds", "regime_thresholds"]);
+              if (emitted.length) return emitted;
+              return regimeThresholdsFromMetadata;
+            })(),
+          notes:
+            getString(regimesRaw, ["regime_definition", "definition", "notes"])
+            ?? (typeof envelopeByDiagnostic.regimes?.metadata?.definition === "string" ? envelopeByDiagnostic.regimes.metadata.definition : undefined),
+        },
+        classification: classifyRegimeDependence(
+          regimesRaw,
+          envelopeByDiagnostic.regimes,
+          regimeRows,
+        ),
         locked: statusByDiagnostic.get("regimes") !== "available",
       },
       ruin: {

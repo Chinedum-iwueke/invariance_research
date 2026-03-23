@@ -1,7 +1,7 @@
 import type { DiagnosticAccessReason } from "../contracts/entitlements";
 
 export type DiagnosticLockState = Exclude<DiagnosticAccessReason, "enabled">;
-export type ArtifactRequirementProfile = "generic_context" | "parameter_sweep_bundle" | "execution_sensitivity";
+export type ArtifactRequirementProfile = "generic_context" | "parameter_sweep_bundle" | "execution_sensitivity" | "regime_analysis";
 
 export interface DiagnosticLockAction {
   label: string;
@@ -71,6 +71,27 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         ],
         footerNote:
           "This lock is due to artifact structure, not plan tier. OHLCV/regime context is optional for baseline Parameter Stability.",
+      };
+    }
+
+    if (input.artifactRequirementProfile === "regime_analysis") {
+      return {
+        diagnosticTitle: input.diagnosticTitle,
+        diagnosticPurpose: input.diagnosticPurpose,
+        state: input.state,
+        badgeLabel: "Artifact Limited",
+        primaryExplanation:
+          "Regime Analysis requires market context (OHLCV or equivalent) to classify market conditions such as trend and volatility.",
+        unlockRequirements: [
+          "Required: trade data.",
+          "Required: OHLCV market context.",
+          "Optional improvements: indicators, regime labels, and benchmark context.",
+        ],
+        actions: [
+          { label: "Upload trade + OHLCV bundle", href: "/app/new-analysis", emphasis: "primary" },
+          { label: "View supported bundle format", href: "/methodology", emphasis: "secondary" },
+        ],
+        footerNote: "No regime classifications or proxy regime results are generated when OHLCV context is missing.",
       };
     }
 

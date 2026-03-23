@@ -118,8 +118,37 @@ export const executionDiagnosticSchema = z.object({
 
 export const regimeDiagnosticSchema = z.object({
   metrics: z.array(scoreBandSchema),
+  regime_metrics: z.array(
+    z.object({
+      regime_name: z.string(),
+      trade_count: z.string().optional(),
+      expectancy: z.string().optional(),
+      win_rate: z.string().optional(),
+      drawdown: z.string().optional(),
+    }),
+  ),
   figures: z.array(figurePayloadSchema).optional(),
   interpretation: interpretationBlockPayloadSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  summary_metrics: z
+    .object({
+      best_regime: z.string().optional(),
+      worst_regime: z.string().optional(),
+      regime_dispersion: z.string().optional(),
+      dominant_regime: z.string().optional(),
+    })
+    .optional(),
+  definition: z
+    .object({
+      trend_method: z.string().optional(),
+      volatility_method: z.string().optional(),
+      thresholds: z.array(z.string()).optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+  classification: z.enum(["regime_dependent", "regime_agnostic", "fragile", "informational"]).optional(),
   locked: z.boolean().optional(),
 });
 
