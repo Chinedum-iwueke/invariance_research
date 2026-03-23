@@ -70,6 +70,16 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </ul>
       </WorkspaceCard>
 
+      <WorkspaceCard title="Limitations" subtitle="Honest boundaries from engine-native diagnostics">
+        <ul className="space-y-2 text-sm text-text-neutral">
+          {record.engine_payload.report_sections.limitations.length === 0 ? (
+            <li>• No explicit report limitations were emitted.</li>
+          ) : (
+            record.engine_payload.report_sections.limitations.map((item) => <li key={item}>• {item}</li>)
+          )}
+        </ul>
+      </WorkspaceCard>
+
       <InterpretationBlock {...toInterpretationBlockPayload({ title: "Final Recommendations", summary: "Actions persisted in the run report payload.", bullets: record.report.recommendations })} />
 
       <WorkspaceCard title="Export & Share" subtitle="Report artifact actions">

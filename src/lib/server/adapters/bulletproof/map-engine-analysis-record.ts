@@ -44,6 +44,49 @@ function getString(source: UnknownRecord | undefined, keys: string[]): string | 
   return undefined;
 }
 
+function getStringArray(source: UnknownRecord | undefined, keys: string[]): string[] {
+  if (!source) return [];
+  for (const key of keys) {
+    const value = source[key];
+    if (!Array.isArray(value)) continue;
+    const items = value
+      .map((item) => {
+        if (typeof item === "string") return item.trim();
+        const record = asRecord(item);
+        return getString(record, ["message", "text", "value", "label", "title"])?.trim();
+      })
+      .filter((item): item is string => Boolean(item));
+    if (items.length > 0) return items;
+  }
+  return [];
+}
+
+function normalizeText(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+function normalizeMetric(metric: unknown, index: number) {
+  const item = asRecord(metric);
+  if (!item) return undefined;
+  const label = getString(item, ["label", "name", "title", "metric"]) ?? `Metric ${index + 1}`;
+  const rawValue = item.value ?? item.formatted_value ?? item.display_value ?? item.metric_value;
+  const valueText = normalizeText(rawValue) ?? "Unavailable";
+  const numericValue = typeof rawValue === "number" && Number.isFinite(rawValue) ? rawValue : getNumber(item, ["numeric_value", "numericValue"]);
+  const band = getString(item, ["band", "severity"]);
+  const normalizedBand = band === "excellent" || band === "good" || band === "moderate" || band === "elevated" || band === "critical" || band === "informational"
+    ? band
+    : undefined;
+  return {
+    key: getString(item, ["key", "id", "slug"]) ?? `metric_${index + 1}`,
+    label,
+    value: valueText,
+    numeric_value: numericValue,
+    band: normalizedBand,
+  };
+}
+
 function formatPct(value: number | undefined): string {
   return value === undefined ? "Unavailable" : `${value.toFixed(1)}%`;
 }
@@ -180,7 +223,11 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
     figure_id: getString(figure, ["figure_id", "figureId"]) ?? randomUUID(),
     title: getString(figure, ["title"]) ?? fallback.title,
     subtitle: getString(figure, ["subtitle"]),
-    type: (getString(figure, ["type"]) as FigurePayload["type"] | undefined) ?? fallback.type,
+    type: (() => {
+      const rawType = getString(figure, ["type"]);
+      if (rawType === "line" || rawType === "area" || rawType === "bar" || rawType === "grouped_bar" || rawType === "histogram" || rawType === "scatter" || rawType === "fan" || rawType === "fan_chart" || rawType === "heatmap" || rawType === "table") return rawType;
+      return fallback.type;
+    })(),
     series: toFigureSeries(figure?.series),
     x_label: getString(figure, ["x_label", "xLabel"]),
     y_label: getString(figure, ["y_label", "yLabel"]),
@@ -196,6 +243,14 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
       : undefined,
     note: getString(figure, ["note"]) ?? fallback.note,
   };
+}
+
+function mapFigureList(payload: unknown, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload[] {
+  if (Array.isArray(payload)) {
+    return payload.map((entry) => mapFigure(entry, fallback)).filter((figure) => figure.series.length > 0 || Boolean(figure.note));
+  }
+  const single = mapFigure(payload, fallback);
+  return single.series.length > 0 ? [single] : [];
 }
 
 function statusText(status: FinalStatus | undefined, availableText: string, unavailableText: string): string {
@@ -219,6 +274,19 @@ function reconcileDiagnosticStatus(eligibility: UploadEligibilitySummary, capabi
   return base;
 }
 
+function pickDiagnosticEnvelope(raw: UnknownRecord | undefined): UnknownRecord | undefined {
+  if (!raw) return undefined;
+  return pickFirstRecord(raw, ["diagnostic_envelope", "envelope", "payload"]) ?? raw;
+}
+
+function envelopeMetricToScore(metric: NonNullable<ReturnType<typeof normalizeMetric>>): ScoreBand {
+  return {
+    label: metric.label,
+    value: metric.value,
+    band: metric.band ?? "informational",
+  };
+}
+
 export function mapEngineAnalysisResultToAnalysisRecord(params: {
   analysisId: string;
   parsedArtifact: ParsedArtifact;
@@ -234,13 +302,14 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const skippedNotes = engine.skipped_diagnostics?.map((item) => `${item.diagnostic}: ${item.reason}`) ?? [];
 
   const diagnostics = asRecord(engine.diagnostics);
-  const overviewRaw = pickFirstRecord(diagnostics, ["overview"]);
-  const distributionRaw = pickFirstRecord(diagnostics, ["distribution"]);
-  const monteCarloRaw = pickFirstRecord(diagnostics, ["monte_carlo", "monteCarlo"]);
-  const executionRaw = pickFirstRecord(diagnostics, ["execution"]);
-  const regimesRaw = pickFirstRecord(diagnostics, ["regimes"]);
-  const ruinRaw = pickFirstRecord(diagnostics, ["ruin"]);
-  const stabilityRaw = pickFirstRecord(diagnostics, ["stability"]);
+  const overviewRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["overview"]));
+  const distributionRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["distribution"]));
+  const monteCarloRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["monte_carlo", "monteCarlo"]));
+  const executionRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["execution"]));
+  const regimesRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["regimes"]));
+  const ruinRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["ruin"]));
+  const stabilityRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["stability"]));
+  const reportRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["report"]));
   const derivedStats = buildTradeDerivedStats(parsedArtifact);
 
   const warnings: WarningItem[] = [
@@ -275,7 +344,31 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const verdict = engine.summary?.verdict ?? (robustness !== undefined && robustness >= 70 ? "robust" : robustness !== undefined && robustness >= 50 ? "moderate" : "fragile");
 
   const reportDiagnosticRows = DIAGNOSTICS.map((name) => `${name}: ${statusByDiagnostic.get(name)}`);
-  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure, {
+  const globalSummaryMetrics = Array.isArray(engine.summary && (engine.summary as unknown as UnknownRecord).summary_metrics)
+    ? ((engine.summary as unknown as UnknownRecord).summary_metrics as unknown[]).map(normalizeMetric).filter((metric): metric is NonNullable<ReturnType<typeof normalizeMetric>> => Boolean(metric))
+    : [];
+
+  const envelopeByDiagnostic = Object.fromEntries(
+    DIAGNOSTICS.map((name) => {
+      const raw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, [name]));
+      const status = statusByDiagnostic.get(name);
+      const summaryMetrics = Array.isArray(raw?.summary_metrics) ? raw.summary_metrics.map(normalizeMetric).filter((metric): metric is NonNullable<ReturnType<typeof normalizeMetric>> => Boolean(metric)) : [];
+      const figures = mapFigureList(raw?.figures ?? raw?.figure, { title: `${name} figure`, type: "line", note: "Engine-native figure payload." });
+      const interpretation = getString(raw, ["interpretation", "summary", "narrative"]);
+      return [name, {
+        status,
+        summary_metrics: summaryMetrics,
+        figures,
+        interpretation,
+        assumptions: getStringArray(raw, ["assumptions"]),
+        warnings: getStringArray(raw, ["warnings"]),
+        recommendations: getStringArray(raw, ["recommendations"]),
+        limitations: getStringArray(raw, ["limitations"]),
+        metadata: asRecord(raw?.metadata),
+      }];
+    }),
+  ) as AnalysisRecord["engine_payload"]["diagnostics"];
+  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure ?? overviewRaw?.figures?.[0], {
     title: "Equity Comparison",
     type: "line",
     note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
@@ -285,7 +378,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ? mappedOverviewFigure
     : { ...mappedOverviewFigure, title: "Derived cumulative PnL", note: "Engine did not emit overview chart series; a cumulative PnL curve was reconstructed from persisted trade-level PnL.", series: derivedStats.equitySeries };
 
-  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram, {
+  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram ?? distributionRaw?.figures?.[0], {
     title: "Outcome Distribution",
     type: "histogram",
     note: "Distribution histogram shown when engine emits bin data.",
@@ -345,7 +438,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     },
     diagnostics: {
       overview: {
-        metrics: [
+        metrics: envelopeByDiagnostic.overview?.summary_metrics.length
+          ? envelopeByDiagnostic.overview.summary_metrics.map(envelopeMetricToScore)
+          : [
           score("Robustness Score", robustness !== undefined ? `${Math.round(robustness)} / 100` : "Unavailable", robustness !== undefined ? (robustness >= 70 ? "good" : "moderate") : "informational"),
           score("Overfitting Risk", overfit !== undefined ? `${Math.round(overfit)}%` : "Unavailable", pctBand(overfit, 30, 45)),
           score("Trade Count", `${parsedArtifact.trades.length}`, "informational"),
@@ -369,7 +464,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         verdict: { status: verdict, title: "Overview verdict", summary: engine.summary?.short_summary ?? "See report for current limitations and assumptions." },
       },
       distribution: {
-        metrics: [
+        metrics: envelopeByDiagnostic.distribution?.summary_metrics.length
+          ? envelopeByDiagnostic.distribution.summary_metrics.map(envelopeMetricToScore)
+          : [
           score("Expectancy", getString(distributionRaw, ["expectancy", "expectancy_r", "expectancyR"]) ?? formatNumber(derivedStats.expectancy, 4), "moderate"),
           score("Win Rate", formatPct(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"]) ?? derivedStats.winRatePct), pctBand(getNumber(distributionRaw, ["win_rate_pct", "winRatePct"]) ?? derivedStats.winRatePct, 45, 60)),
           score("Median Return", getString(distributionRaw, ["median_return", "median_r", "medianReturn"]) ?? formatNumber(derivedStats.medianPnl, 4), "informational"),
@@ -377,7 +474,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         ],
         figures: [
           distributionHistogram,
-          mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter, { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
+          mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter ?? distributionRaw?.figures?.[1], { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
+          ...(envelopeByDiagnostic.distribution?.figures ?? []).filter((figure) => ![distributionHistogram.figure_id].includes(figure.figure_id)),
         ],
         interpretation: {
           title: "Distribution interpretation",
@@ -386,15 +484,17 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         },
       },
       monte_carlo: {
-        metrics: [
+        metrics: envelopeByDiagnostic.monte_carlo?.summary_metrics.length
+          ? envelopeByDiagnostic.monte_carlo.summary_metrics.map(envelopeMetricToScore)
+          : [
           score("Worst Simulated Drawdown", formatPct(mcWorst), pctBand(Math.abs(mcWorst ?? 0), 25, 40)),
           score("95th Percentile Drawdown", formatPct(mcP95), pctBand(Math.abs(mcP95 ?? 0), 20, 35)),
           score("Median Drawdown", formatPct(mcMedian), pctBand(Math.abs(mcMedian ?? 0), 12, 25)),
           score("P(Ruin)", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
         ],
-        figure: mapFigure(monteCarloRaw?.fan_chart_figure ?? monteCarloRaw?.figure, {
+        figure: mapFigure(envelopeByDiagnostic.monte_carlo?.figures[0] ?? monteCarloRaw?.fan_chart_figure ?? monteCarloRaw?.figure, {
           title: "Monte Carlo Equity Fan",
-          type: "fan",
+          type: "fan_chart",
           note: statusText(statusByDiagnostic.get("monte_carlo"), "Fan-chart payload reflects engine-supplied simulation paths.", "Monte Carlo figure is constrained by simulation depth emitted by engine."),
         }),
         interpretation: {
@@ -409,7 +509,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         warnings,
       },
       stability: {
-        metrics: [score("Stability Coverage", statusByDiagnostic.get("stability") ?? "unavailable", statusByDiagnostic.get("stability") === "available" ? "moderate" : "informational")],
+        metrics: envelopeByDiagnostic.stability?.summary_metrics.length
+          ? envelopeByDiagnostic.stability.summary_metrics.map(envelopeMetricToScore)
+          : [score("Stability Coverage", statusByDiagnostic.get("stability") ?? "unavailable", statusByDiagnostic.get("stability") === "available" ? "moderate" : "informational")],
+        figure: envelopeByDiagnostic.stability?.figures[0],
         interpretation: {
           title: "Stability interpretation",
           summary: statusText(statusByDiagnostic.get("stability"), "Stability proxy is provided from available sensitivity outputs.", "Parameter-surface topology is not fully available for this run; interpretation remains limited."),
@@ -418,7 +521,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         locked: statusByDiagnostic.get("stability") !== "available",
       },
       execution: {
-        metrics: [
+        metrics: envelopeByDiagnostic.execution?.summary_metrics.length
+          ? envelopeByDiagnostic.execution.summary_metrics.map(envelopeMetricToScore)
+          : [
           score("Baseline Expectancy", getString(executionRaw, ["baseline_expectancy", "baselineExpectancy"]) ?? "Unavailable", "moderate"),
           score("Stressed Expectancy", getString(executionRaw, ["stressed_expectancy", "stressedExpectancy"]) ?? "Unavailable", "elevated"),
           score("Edge Decay", getString(executionRaw, ["edge_decay", "edgeDecay"]) ?? "Unavailable", "elevated"),
@@ -434,7 +539,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
               })
               .filter((item): item is { name: string; assumption: string; impact: string } => Boolean(item))
           : [],
-        figure: mapFigure(executionRaw?.scenario_figure ?? executionRaw?.figure, {
+        figure: mapFigure(envelopeByDiagnostic.execution?.figures[0] ?? executionRaw?.scenario_figure ?? executionRaw?.figure, {
           title: "Execution Friction Sensitivity",
           type: "line",
           note: "Execution scenario chart is shown when sufficient friction assumptions are available.",
@@ -445,13 +550,16 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         },
       },
       regimes: {
-        metrics: [score("Regime Diagnostic Status", statusByDiagnostic.get("regimes") ?? "unavailable", statusByDiagnostic.get("regimes") === "available" ? "moderate" : "informational")],
+        metrics: envelopeByDiagnostic.regimes?.summary_metrics.length
+          ? envelopeByDiagnostic.regimes.summary_metrics.map(envelopeMetricToScore)
+          : [score("Regime Diagnostic Status", statusByDiagnostic.get("regimes") ?? "unavailable", statusByDiagnostic.get("regimes") === "available" ? "moderate" : "informational")],
         figures: [
           mapFigure(regimesRaw?.regime_bar_figure ?? regimesRaw?.figure, {
             title: "Regime Proxy Summary",
             type: "bar",
             note: "Regime figures are shown as proxy summaries unless richer OHLCV regime context is supplied.",
           }),
+          ...(envelopeByDiagnostic.regimes?.figures ?? []),
         ],
         interpretation: {
           title: "Regime interpretation",
@@ -460,7 +568,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         locked: statusByDiagnostic.get("regimes") !== "available",
       },
       ruin: {
-        metrics: [
+        metrics: envelopeByDiagnostic.ruin?.summary_metrics.length
+          ? envelopeByDiagnostic.ruin.summary_metrics.map(envelopeMetricToScore)
+          : [
           score("Probability of Ruin", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
           score("Expected Stress Drawdown", formatPct(getNumber(ruinRaw, ["stress_drawdown_pct", "stressDrawdownPct"])), pctBand(Math.abs(getNumber(ruinRaw, ["stress_drawdown_pct", "stressDrawdownPct"]) ?? 0), 25, 40)),
         ],
@@ -468,7 +578,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           { name: "Artifact Richness", value: parsedArtifact.richness },
           { name: "Trade Count", value: `${parsedArtifact.trades.length}` },
         ],
-        figure: mapFigure(ruinRaw?.figure ?? ruinRaw?.capital_stress_figure, {
+        figure: mapFigure(envelopeByDiagnostic.ruin?.figures[0] ?? ruinRaw?.figure ?? ruinRaw?.capital_stress_figure, {
           title: "Capital Stress Profile",
           type: "bar",
           note: "Ruin visualization reflects available survivability assumptions and should be interpreted with position-sizing context.",
@@ -479,6 +589,16 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         },
       },
     },
+    engine_payload: {
+      summary_metrics: globalSummaryMetrics,
+      diagnostics: envelopeByDiagnostic,
+      report_sections: {
+        assumptions: getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
+        limitations: getStringArray(reportRaw, ["limitations"]),
+        recommendations: getStringArray(reportRaw, ["recommendations"]),
+      },
+      raw_result: engine as unknown as Record<string, unknown>,
+    },
     report: {
       report_id: `${analysisId}-report`,
       generated_at: now,
@@ -486,15 +606,16 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       diagnostics_summary: reportDiagnosticRows,
       methodology_assumptions: [
         ...(engine.report?.methodology_assumptions ?? []),
+        ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
         `engine=${engineContext.engine_name}`,
         `seam=${engineContext.seam}`,
         `artifact_richness=${parsedArtifact.richness}`,
         ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
       ],
-      recommendations: engine.report?.recommendations ?? [
+      recommendations: engine.report?.recommendations ?? getStringArray(reportRaw, ["recommendations", "next_steps"]).concat([
         "Review limited/skipped diagnostics before deployment decisions.",
         "Use tighter sizing policies when Monte Carlo tail or ruin estimates remain elevated.",
-      ],
+      ]),
       export_ready: Boolean(engine.report?.export_ready && statusByDiagnostic.get("report") === "available"),
     },
     access: {

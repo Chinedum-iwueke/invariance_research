@@ -115,6 +115,37 @@ export interface RuinDiagnostic {
   interpretation: InterpretationBlockPayload;
 }
 
+export interface EngineDiagnosticMetric {
+  key: string;
+  label: string;
+  value: string;
+  numeric_value?: number;
+  band?: ScoreBand["band"];
+}
+
+export interface EngineDiagnosticEnvelope {
+  status?: "available" | "limited" | "unavailable" | "skipped";
+  summary_metrics: EngineDiagnosticMetric[];
+  figures: FigurePayload[];
+  interpretation?: string;
+  assumptions: string[];
+  warnings: string[];
+  recommendations: string[];
+  limitations: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface EnginePayloadSnapshot {
+  summary_metrics: EngineDiagnosticMetric[];
+  diagnostics: Partial<Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", EngineDiagnosticEnvelope>>;
+  report_sections: {
+    assumptions: string[];
+    limitations: string[];
+    recommendations: string[];
+  };
+  raw_result: Record<string, unknown>;
+}
+
 export interface DiagnosticBundle {
   overview: OverviewDiagnostic;
   distribution: DistributionDiagnostic;
@@ -154,6 +185,7 @@ export interface AnalysisRecord {
   run_context: RunContext;
   summary: AnalysisSummary;
   diagnostics: DiagnosticBundle;
+  engine_payload: EnginePayloadSnapshot;
   report: ReportPayload;
   access: AccessFlags;
 }

@@ -51,6 +51,23 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <WorkspaceCard title="Methodology posture" subtitle="Validation sequence applied to this artifact">
         <p className="text-sm leading-relaxed text-text-neutral">{record.run_context.notes ?? "No additional methodology notes were persisted for this analysis."}</p>
       </WorkspaceCard>
+
+      <WorkspaceCard title="Diagnostic context" subtitle="Engine-native assumptions, warnings, and recommendations">
+        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
+          <div>
+            <p className="font-medium text-text-graphite">Assumptions</p>
+            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+          </div>
+          <div>
+            <p className="font-medium text-text-graphite">Limitations</p>
+            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.limitations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+          </div>
+          <div>
+            <p className="font-medium text-text-graphite">Recommendations</p>
+            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+          </div>
+        </div>
+      </WorkspaceCard>
     </AnalysisPageFrame>
   );
 }
