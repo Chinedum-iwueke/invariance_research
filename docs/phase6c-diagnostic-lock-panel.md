@@ -6,8 +6,9 @@ The lock panel is a product-trust component. It prevents the UI from collapsing 
 ## Three lock states (must remain distinct)
 1. **Artifact Limited**
    - Upload lacks required context.
-   - Explain required artifact enrichment.
-   - Primary actions: upload richer artifact, format guidance.
+   - Explain the specific missing contract evidence.
+   - For Parameter Stability this means a parameter sweep bundle (multi-run parameter combinations with run-to-parameter mapping).
+   - Primary actions: upload required artifact, format guidance.
    - No primary upgrade CTA.
 
 2. **Engine Limited**
@@ -43,3 +44,13 @@ Panel rendering is driven by `buildDiagnosticLockModel(...)` with structured dat
 
 This preserves the rule:
 **artifact limitation ≠ engine limitation ≠ plan restriction**.
+
+
+## Parameter Stability lock copy contract
+
+When `stability` is artifact-limited, the panel should explicitly state:
+
+- baseline unlock requires a parameter sweep bundle
+- multiple runs across parameter combinations are required
+- each run must be mapped to parameter values
+- OHLCV is optional for baseline stability and reserved for richer future variants

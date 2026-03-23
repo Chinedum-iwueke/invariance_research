@@ -17,7 +17,7 @@ test("artifact-limited model does not prioritize upgrade CTA", () => {
 
   assert.equal(model.badgeLabel, "Artifact Limited");
   assert.match(model.primaryExplanation, /trade-level results only/i);
-  assert.equal(model.actions[0]?.label, "Upload richer artifact");
+  assert.equal(model.actions[0]?.label, "Upload structured artifact");
   assert.equal(model.actions.some((action) => action.label.startsWith("Upgrade")), false);
   assert.equal(shouldShowDiagnosticUpgrade("artifact_unavailable"), false);
 });
@@ -76,4 +76,20 @@ test("quota, export, and upload gating triggers remain explicit", () => {
   assert.equal(isReportExportPlanRestricted(true), false);
   assert.equal(isUploadPlanRestricted("plan_upload_locked"), true);
   assert.equal(isUploadPlanRestricted("unsupported_artifact_structure"), false);
+});
+
+
+test("parameter stability artifact lock model points to parameter sweep bundle contract", () => {
+  const model = buildDiagnosticLockModel({
+    state: "artifact_unavailable",
+    diagnosticTitle: "Parameter Stability",
+    diagnosticPurpose: "Assess fragility across parameter sweeps.",
+    artifactRequirementProfile: "parameter_sweep_bundle",
+  });
+
+  assert.equal(model.badgeLabel, "Artifact Limited");
+  assert.match(model.primaryExplanation, /parameter sweep bundle/i);
+  assert.match(model.unlockRequirements.join(" "), /run_id|run mapping|parameter values/i);
+  assert.equal(model.actions[0]?.label, "Upload parameter sweep bundle");
+  assert.equal(model.footerNote.includes("OHLCV"), true);
 });
