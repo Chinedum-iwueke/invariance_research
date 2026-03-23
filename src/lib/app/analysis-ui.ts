@@ -78,6 +78,13 @@ const EXECUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["edge decay", "decay", "edge erosion"],
 ];
 
+const RUIN_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
+  ["probability of ruin", "risk of ruin", "p ruin", "p(ruin)"],
+  ["expected stress drawdown", "stress drawdown", "stress dd"],
+  ["survival probability", "probability of survival", "survivability"],
+  ["max tolerable risk per trade", "tolerable risk per trade", "max risk per trade", "risk per trade limit"],
+];
+
 function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 }
@@ -189,6 +196,35 @@ export function selectExecutionTopMetrics(metrics: ScoreBand[], limit = 3): Scor
   EXECUTION_METRIC_PRIORITY.forEach((aliases) => {
     if (selected.length >= limit) return;
     const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)));
+    if (preferred >= 0) pushMetric(metrics[preferred], preferred);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    if (!isUnavailableValue(metric.value)) pushMetric(metric, idx);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    pushMetric(metric, idx);
+  });
+
+  return selected;
+}
+
+export function selectRuinTopMetrics(metrics: ScoreBand[], limit = 4): ScoreBand[] {
+  const selected: ScoreBand[] = [];
+  const used = new Set<number>();
+
+  const pushMetric = (metric: ScoreBand, idx: number) => {
+    if (used.has(idx) || selected.length >= limit) return;
+    selected.push(metric);
+    used.add(idx);
+  };
+
+  RUIN_METRIC_PRIORITY.forEach((aliases) => {
+    if (selected.length >= limit) return;
+    const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
     if (preferred >= 0) pushMetric(metrics[preferred], preferred);
   });
 
