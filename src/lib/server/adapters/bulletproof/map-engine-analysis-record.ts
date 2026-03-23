@@ -103,6 +103,20 @@ function formatNumber(value: number | undefined, digits = 2): string {
   return value.toFixed(digits);
 }
 
+function classifyExecutionScenario(expectancy: number | undefined, edgeDecayPct: number | undefined) {
+  if (expectancy !== undefined && expectancy < 0) return "negative" as const;
+  if (edgeDecayPct !== undefined && edgeDecayPct >= 70) return "fragile" as const;
+  if (expectancy !== undefined && expectancy >= 0) return "survives" as const;
+  return "informational" as const;
+}
+
+function classifySensitivity(stressedExpectancy: number | undefined, edgeDecayPct: number | undefined) {
+  if (stressedExpectancy !== undefined && stressedExpectancy < 0) return "cost_killed" as const;
+  if (edgeDecayPct !== undefined && edgeDecayPct >= 70) return "fragile" as const;
+  if (stressedExpectancy !== undefined && stressedExpectancy >= 0) return "resilient" as const;
+  return "informational" as const;
+}
+
 function formatDuration(seconds: number | undefined): string {
   if (seconds === undefined || !Number.isFinite(seconds) || seconds <= 0) return "Unavailable";
   if (seconds >= 86_400) return `${(seconds / 86_400).toFixed(2)} days`;
@@ -347,6 +361,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const mcMedian = getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"]);
   const ruinProbability = getNumber(ruinRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin_pct"])
     ?? getNumber(monteCarloRaw, ["ruin_probability_pct", "ruinProbabilityPct"]);
+  const baselineExpectancyValue = getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
+  const stressedExpectancyValue = getNumber(executionRaw, ["stressed_expectancy", "stressedExpectancy"]);
+  const edgeDecayPctValue = getNumber(executionRaw, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
+  const executionAssumptions = getStringArray(executionRaw, ["assumptions", "cost_assumptions", "baseline_assumptions"]);
+  const executionLimitations = getStringArray(executionRaw, ["limitations", "model_limitations"]);
+  const executionRecommendations = getStringArray(executionRaw, ["recommendations", "next_steps"]);
+  const executionWarnings = getStringArray(executionRaw, ["warnings"]);
 
   const verdict = engine.summary?.verdict ?? (robustness !== undefined && robustness >= 70 ? "robust" : robustness !== undefined && robustness >= 50 ? "moderate" : "fragile");
 
@@ -598,30 +619,76 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         metrics: envelopeByDiagnostic.execution?.summary_metrics.length
           ? envelopeByDiagnostic.execution.summary_metrics.map(envelopeMetricToScore)
           : [
-          score("Baseline Expectancy", getString(executionRaw, ["baseline_expectancy", "baselineExpectancy"]) ?? "Unavailable", "moderate"),
-          score("Stressed Expectancy", getString(executionRaw, ["stressed_expectancy", "stressedExpectancy"]) ?? "Unavailable", "elevated"),
-          score("Edge Decay", getString(executionRaw, ["edge_decay", "edgeDecay"]) ?? "Unavailable", "elevated"),
+          score("Baseline Expectancy", getString(executionRaw, ["baseline_expectancy", "baselineExpectancy"]) ?? formatNumber(baselineExpectancyValue, 4), "moderate"),
+          score("Stressed Expectancy", getString(executionRaw, ["stressed_expectancy", "stressedExpectancy"]) ?? formatNumber(stressedExpectancyValue, 4), "elevated"),
+          score("Edge Decay", getString(executionRaw, ["edge_decay", "edgeDecay"]) ?? (edgeDecayPctValue === undefined ? "Unavailable" : `${edgeDecayPctValue.toFixed(1)}%`), "elevated"),
         ],
         scenarios: Array.isArray(executionRaw?.scenarios)
           ? executionRaw.scenarios
               .map((item) => {
                 const scenario = asRecord(item);
                 const name = getString(scenario, ["name"]);
-                const assumption = getString(scenario, ["assumption"]);
-                const impact = getString(scenario, ["impact"]);
-                return name && assumption && impact ? { name, assumption, impact } : undefined;
+                const spread = getString(scenario, ["spread", "spread_bps", "spread_assumption", "spreadAssumption"]);
+                const slippage = getString(scenario, ["slippage", "slippage_bps", "slippage_assumption", "slippageAssumption"]);
+                const fee = getString(scenario, ["fee", "fees", "fee_bps", "fee_assumption", "feeAssumption"]);
+                const expectancyValue = getNumber(scenario, ["expectancy", "expectancy_r", "expectancyR"]);
+                const edgeDecayValue = getNumber(scenario, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
+                const expectancy = getString(scenario, ["expectancy_text", "expectancy_display"]) ?? formatNumber(expectancyValue, 4);
+                const edgeDecayPct = getString(scenario, ["edge_decay_text", "edge_decay_display"]) ?? (edgeDecayValue === undefined ? undefined : `${edgeDecayValue.toFixed(1)}%`);
+                const assumption = getString(scenario, ["assumption", "cost_assumptions"])
+                  ?? [spread ? `spread ${spread}` : undefined, slippage ? `slippage ${slippage}` : undefined, fee ? `fee ${fee}` : undefined].filter(Boolean).join(", ");
+                const impact = getString(scenario, ["impact", "impact_summary"])
+                  ?? (expectancy !== "Unavailable" ? `Expectancy ${expectancy}` : edgeDecayPct ? `Edge decay ${edgeDecayPct}` : undefined);
+                if (!name) return undefined;
+                return {
+                  name,
+                  assumption: assumption || "Assumptions not emitted",
+                  impact: impact || "Impact not emitted",
+                  spread,
+                  slippage,
+                  fee,
+                  expectancy: expectancy === "Unavailable" ? undefined : expectancy,
+                  edge_decay_pct: edgeDecayPct,
+                  classification: classifyExecutionScenario(expectancyValue, edgeDecayValue),
+                };
               })
-              .filter((item): item is { name: string; assumption: string; impact: string } => Boolean(item))
+              .filter((item): item is NonNullable<typeof item> => Boolean(item))
           : [],
-        figure: mapFigure(envelopeByDiagnostic.execution?.figures[0] ?? executionRaw?.scenario_figure ?? executionRaw?.figure, {
+        figure: mapFigure(
+          envelopeByDiagnostic.execution?.figures.find((candidate) => candidate.series.length > 0)
+          ?? envelopeByDiagnostic.execution?.figures[0]
+          ?? executionRaw?.scenario_figure
+          ?? executionRaw?.figure,
+          {
           title: "Execution Friction Sensitivity",
           type: "line",
-          note: "Execution scenario chart is shown when sufficient friction assumptions are available.",
+          note: executionAssumptions.length
+            ? "Execution scenario chart reflects engine-emitted friction assumptions."
+            : "Execution scenario chart is unavailable because stress assumptions were not emitted in this run payload.",
         }),
         interpretation: {
           title: "Execution interpretation",
-          summary: statusText(statusByDiagnostic.get("execution"), "Execution sensitivity reflects expectancy decay under worsened friction assumptions.", "Execution diagnostic remains limited because richer slippage/cost assumptions are not fully available."),
+          summary: statusText(
+            statusByDiagnostic.get("execution"),
+            `Baseline expectancy ${formatNumber(baselineExpectancyValue, 4)} moved to ${formatNumber(stressedExpectancyValue, 4)} under stress, with edge decay ${edgeDecayPctValue === undefined ? "Unavailable" : `${edgeDecayPctValue.toFixed(1)}%`}.`,
+            "Execution diagnostic is limited because trade-level cost assumptions were incomplete for this run."
+          ),
+          bullets: [
+            `Survivability classification: ${classifySensitivity(stressedExpectancyValue, edgeDecayPctValue).replace("_", " ")}.`,
+            `Dominant cost driver: ${getString(executionRaw, ["dominant_cost_driver", "dominantCostDriver"]) ?? "not emitted by engine"}.`,
+          ],
         },
+        assumptions: envelopeByDiagnostic.execution?.assumptions.length ? envelopeByDiagnostic.execution.assumptions : executionAssumptions,
+        limitations: envelopeByDiagnostic.execution?.limitations.length
+          ? envelopeByDiagnostic.execution.limitations
+          : executionLimitations.length
+            ? executionLimitations
+            : executionWarnings,
+        recommendations: envelopeByDiagnostic.execution?.recommendations.length ? envelopeByDiagnostic.execution.recommendations : executionRecommendations,
+        execution_model: getString(executionRaw, ["execution_model", "model"]) ?? (statusByDiagnostic.get("execution") === "available" ? "baseline" : "proxy"),
+        stress_realism: getString(executionRaw, ["stress_realism", "realism_level"]) ?? (statusByDiagnostic.get("execution") === "available" ? "moderate" : "limited"),
+        artifact_completeness: getString(executionRaw, ["artifact_completeness", "artifact_quality"]) ?? parsedArtifact.richness,
+        sensitivity_classification: classifySensitivity(stressedExpectancyValue, edgeDecayPctValue),
       },
       regimes: {
         metrics: envelopeByDiagnostic.regimes?.summary_metrics.length
