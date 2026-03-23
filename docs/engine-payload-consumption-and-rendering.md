@@ -40,7 +40,7 @@ Pages now use richer persisted envelope content:
 - **Overview**: top-line equity chart with provenance metadata (engine-emitted vs reconstructed), dynamic best-available six metric selection, strengthened verdict rendering (confidence/rationale when present), structured methodology posture grid, and explicit assumptions/limitations/recommendations sections with empty-state safeguards
 - **Trade Distribution**: richer figure set + native interpretation/limitations text
 - **Monte Carlo**: percentile fan-chart-first rendering, survivability-priority metric row (worst/p95/median drawdown + ruin probability), simulation metadata panel, risk classification framing, and expanded methodology sections (assumptions/limitations/recommendations)
-- **Risk of Ruin**: survivability metrics/figure + limitations/recommendations section
+- **Risk of Ruin**: survivability-priority metric selection, model-status badges (artifact richness, sizing completeness, limited/full status, stress linkage), explicit unlock messaging (`account_size` + `risk_per_trade_pct`), richer assumptions panel, and figure empty-states tied to missing sizing/model output instead of generic chart absence
 - **Validation Report**: explicit limitations section sourced from engine-native report payload
 - **Stability/Regimes**: remain honest; show emitted limitations when present
 
@@ -96,3 +96,16 @@ Additional rendering posture:
 - simulation metadata is read from `engine_payload.diagnostics.monte_carlo.metadata` (paths, horizon, method, ruin threshold)
 - warnings are Monte Carlo-scoped and emphasize true baseline limitations (IID sequencing, no regime conditioning/serial dependence/liquidity amplification) instead of implying baseline invalidation
 - interpretation block consumes richer fields when emitted (`summary`, `positives`, `cautions`, `caveats`)
+
+## Risk of Ruin framing specifics
+
+The Risk of Ruin page now treats the diagnostic as a capital-survivability decision surface:
+
+1. **Metric priority** favors emitted `probability_of_ruin`, `expected_stress_drawdown`, `survival_probability`, and `max_tolerable_risk_per_trade` equivalents.
+2. **Figure selection** prefers `engine_payload.diagnostics.ruin.figures[0]` and falls back to `diagnostics.ruin.figure`; missing-output messaging is explicit about missing sizing assumptions vs missing engine-emitted figure payload.
+3. **Unlock conditions** are explicit:
+   - trade-only runs remain limited ruin context
+   - full ruin analysis requires `account_size` and `risk_per_trade_pct`
+   - Monte Carlo linkage (when emitted) increases stress-confidence context
+4. **Assumptions panel** calls out: account size, risk per trade, sizing model, artifact richness, trade count, and model method/linkage.
+5. **Optional sensitivity rendering**: if `engine_payload.diagnostics.ruin.metadata.risk_scenarios` is emitted, the page renders a risk-per-trade vs ruin-probability mini-table.
