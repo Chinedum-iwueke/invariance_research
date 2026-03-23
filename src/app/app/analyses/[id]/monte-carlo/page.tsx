@@ -5,7 +5,7 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
-import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { metricsFromScoreBands, selectMonteCarloTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -22,40 +22,119 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     );
   }
 
+  const monteCarloEnvelope = record.engine_payload.diagnostics.monte_carlo;
+  const metadata = monteCarloEnvelope?.metadata ?? {};
+  const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
+  const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
+  const simulations = typeof metadata.simulations === "number"
+    ? metadata.simulations.toLocaleString()
+    : typeof metadata.paths === "number"
+      ? metadata.paths.toLocaleString()
+      : typeof metadata.n_paths === "number"
+        ? metadata.n_paths.toLocaleString()
+        : "Not emitted";
+  const ruinThreshold = typeof metadata.ruin_threshold_pct === "number"
+    ? `${metadata.ruin_threshold_pct.toFixed(1)}%`
+    : typeof metadata.ruin_threshold === "string"
+      ? metadata.ruin_threshold
+      : "Not emitted";
+
+  const selectedMetrics = selectMonteCarloTopMetrics(record.diagnostics.monte_carlo.metrics, 4);
+  const metrics = metricsFromScoreBands(selectedMetrics, {
+    "P(Ruin)": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
+    "Probability of Ruin": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
+    "Risk-of-Ruin Probability": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
+  });
+  const hasRuinMetric = selectedMetrics.some((metric) => metric.label.toLowerCase().includes("ruin") && metric.value.toLowerCase() !== "unavailable");
+
+  const riskBand = (() => {
+    const critical = selectedMetrics.some((metric) => metric.band === "critical");
+    const elevated = selectedMetrics.some((metric) => metric.band === "elevated");
+    if (critical) return "Extreme";
+    if (elevated) return "High";
+    if (selectedMetrics.some((metric) => metric.band === "moderate")) return "Moderate";
+    return "Low";
+  })();
+
+  const emittedWarnings = record.diagnostics.monte_carlo.warnings.map((warning) => warning.message);
+  const monteCarloWarnings = [
+    ...(monteCarloEnvelope?.warnings ?? []),
+    ...(monteCarloEnvelope?.limitations ?? []),
+    ...emittedWarnings.filter((message) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(message)),
+  ].filter((warning, idx, arr) => warning.trim().length > 0 && arr.indexOf(warning) === idx);
+
+  const assumptions = monteCarloEnvelope?.assumptions ?? [];
+  const limitations = monteCarloEnvelope?.limitations ?? [];
+  const recommendations = monteCarloEnvelope?.recommendations ?? [];
+
   return (
     <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">
+      <div className="grid gap-4 md:grid-cols-3">
+        <WorkspaceCard title="Risk classification" subtitle="Crash-test status framing">
+          <div className="grid gap-3 text-sm text-text-neutral">
+            <p><span className="font-medium text-text-graphite">Tail risk:</span> {riskBand}</p>
+            <p><span className="font-medium text-text-graphite">Ruin signal:</span> {hasRuinMetric ? "Available" : "Unavailable in emitted metrics"}</p>
+            <p><span className="font-medium text-text-graphite">MC method:</span> {method}</p>
+          </div>
+        </WorkspaceCard>
+        <WorkspaceCard title="Simulation run metadata" subtitle="What was actually simulated">
+          <div className="grid gap-3 text-sm text-text-neutral">
+            <p><span className="font-medium text-text-graphite">Simulation paths:</span> {simulations}</p>
+            <p><span className="font-medium text-text-graphite">Horizon:</span> {horizon}</p>
+            <p><span className="font-medium text-text-graphite">Ruin threshold:</span> {ruinThreshold}</p>
+          </div>
+        </WorkspaceCard>
+        <WorkspaceCard title="Advanced scope not yet included" subtitle="Methodological boundaries">
+          <ul className="space-y-1.5 text-sm text-text-neutral">
+            <li>• No regime-conditioned sequencing.</li>
+            <li>• No volatility clustering process model.</li>
+            <li>• No liquidity/execution crash amplification.</li>
+            <li>• No serial-dependence (block bootstrap) model.</li>
+          </ul>
+        </WorkspaceCard>
+      </div>
+
       <FigureCard
-        title={record.diagnostics.monte_carlo.figure.title}
-        subtitle={record.diagnostics.monte_carlo.figure.subtitle}
-        figure={<DiagnosticFigure figure={record.diagnostics.monte_carlo.figure} />}
+        title={record.diagnostics.monte_carlo.figure.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}
+        subtitle={record.diagnostics.monte_carlo.figure.subtitle || "Percentile envelopes summarize how severe simulated equity drawdowns can become under sequence perturbation."}
+        figure={(
+          <DiagnosticFigure
+            figure={record.diagnostics.monte_carlo.figure}
+            emptyMessage="Monte Carlo fan chart is unavailable for this persisted run: the engine did not emit percentile path series (`diagnostics.monte_carlo.figures` or `fan_chart_figure`)."
+          />
+        )}
         note={record.diagnostics.monte_carlo.figure.note}
       />
 
-      <MetricRow metrics={metricsFromScoreBands(record.diagnostics.monte_carlo.metrics)} cols={4} />
+      <MetricRow metrics={metrics} cols={4} />
 
       <div className="grid gap-5 2xl:grid-cols-[1.25fr_0.95fr]">
         <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.monte_carlo.interpretation)} />
-        <WorkspaceCard title="Warnings" subtitle="Engine and eligibility notes">
-          {record.diagnostics.monte_carlo.warnings.length === 0 ? (
-            <p className="text-sm text-text-neutral">No warnings were emitted for this run.</p>
+        <WorkspaceCard title="Warnings & limitations" subtitle="Material constraints on this crash test">
+          {monteCarloWarnings.length === 0 ? (
+            <p className="text-sm text-text-neutral">No Monte Carlo-specific warnings were emitted for this run.</p>
           ) : (
             <ul className="space-y-2 text-sm text-text-neutral">
-              {record.diagnostics.monte_carlo.warnings.map((warning) => (
-                <li key={`${warning.code}-${warning.message}`}>• {warning.message}</li>
+              {monteCarloWarnings.map((warning) => (
+                <li key={warning}>• {warning}</li>
               ))}
             </ul>
           )}
         </WorkspaceCard>
       </div>
-      <WorkspaceCard title="Simulation assumptions & guidance" subtitle="Engine-native payload details">
-        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-2">
+      <WorkspaceCard title="Simulation assumptions, limitations & recommendations" subtitle="Engine-native methodology and guidance">
+        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
           <div>
             <p className="font-medium text-text-graphite">Assumptions</p>
-            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.monte_carlo?.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+            {assumptions.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No assumptions were explicitly emitted.</p> : <ul className="mt-1 space-y-1">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul>}
+          </div>
+          <div>
+            <p className="font-medium text-text-graphite">Limitations</p>
+            {limitations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No additional limitations were emitted.</p> : <ul className="mt-1 space-y-1">{limitations.map((item) => <li key={item}>• {item}</li>)}</ul>}
           </div>
           <div>
             <p className="font-medium text-text-graphite">Recommendations</p>
-            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.monte_carlo?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+            {recommendations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No recommendations were emitted.</p> : <ul className="mt-1 space-y-1">{recommendations.map((item) => <li key={item}>• {item}</li>)}</ul>}
           </div>
         </div>
       </WorkspaceCard>

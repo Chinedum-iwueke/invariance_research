@@ -39,7 +39,7 @@ Pages now use richer persisted envelope content:
 
 - **Overview**: top-line equity chart with provenance metadata (engine-emitted vs reconstructed), dynamic best-available six metric selection, strengthened verdict rendering (confidence/rationale when present), structured methodology posture grid, and explicit assumptions/limitations/recommendations sections with empty-state safeguards
 - **Trade Distribution**: richer figure set + native interpretation/limitations text
-- **Monte Carlo**: fan/line/scatter rendering + assumptions/recommendations section
+- **Monte Carlo**: percentile fan-chart-first rendering, survivability-priority metric row (worst/p95/median drawdown + ruin probability), simulation metadata panel, risk classification framing, and expanded methodology sections (assumptions/limitations/recommendations)
 - **Risk of Ruin**: survivability metrics/figure + limitations/recommendations section
 - **Validation Report**: explicit limitations section sourced from engine-native report payload
 - **Stability/Regimes**: remain honest; show emitted limitations when present
@@ -82,3 +82,17 @@ This keeps Overview rendering institutional and traceable without introducing be
 ## Remaining artifact-limited states
 
 If the engine marks diagnostics as limited/unavailable (e.g., missing richer artifact context such as OHLCV/regime labels), pages remain explicit about those constraints and do not fabricate missing series or claims.
+
+## Monte Carlo crash-test framing specifics
+
+The Monte Carlo page now prefers persisted engine envelope content in this order:
+
+1. `engine_payload.diagnostics.monte_carlo.figures` for fan chart data.
+2. `diagnostics.monte_carlo.figure` as page contract fallback.
+3. Explicit missing-output state that names the absent simulation payload path.
+
+Additional rendering posture:
+
+- simulation metadata is read from `engine_payload.diagnostics.monte_carlo.metadata` (paths, horizon, method, ruin threshold)
+- warnings are Monte Carlo-scoped and emphasize true baseline limitations (IID sequencing, no regime conditioning/serial dependence/liquidity amplification) instead of implying baseline invalidation
+- interpretation block consumes richer fields when emitted (`summary`, `positives`, `cautions`, `caveats`)
