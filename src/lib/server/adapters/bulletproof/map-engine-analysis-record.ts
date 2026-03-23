@@ -400,9 +400,25 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     type: "histogram",
     note: "Distribution histogram shown when engine emits bin data.",
   });
+  const distributionHistogramProvenance = mappedDistributionHistogram.series.length > 0 ? "engine_emitted" : "derived_from_persisted_trades";
   const distributionHistogram: FigurePayload = mappedDistributionHistogram.series.length > 0
     ? mappedDistributionHistogram
     : { ...mappedDistributionHistogram, title: "Trade PnL distribution (derived)", note: "Histogram bins were derived from persisted trade-level PnL because engine histogram bins were not emitted.", series: derivedStats.histogramSeries };
+
+  if (envelopeByDiagnostic.distribution) {
+    const hasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
+    const hasExcursion = parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number");
+    envelopeByDiagnostic.distribution.metadata = {
+      ...(envelopeByDiagnostic.distribution.metadata ?? {}),
+      histogram_provenance: distributionHistogramProvenance,
+      trade_count: parsedArtifact.trades.length,
+      coverage_start: firstTrade?.entry_time,
+      coverage_end: lastTrade?.exit_time,
+      has_duration: hasDuration,
+      has_excursion: hasExcursion,
+      has_win_loss_profile: parsedArtifact.trades.some((trade) => typeof trade.pnl === "number" && Number.isFinite(trade.pnl)),
+    };
+  }
 
   const record: AnalysisRecord = {
     analysis_id: analysisId,

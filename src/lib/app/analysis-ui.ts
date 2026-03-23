@@ -53,6 +53,18 @@ const OVERVIEW_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["overfitting risk", "overfitting"],
 ];
 
+const DISTRIBUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
+  ["expectancy", "expected value"],
+  ["win rate", "win-rate"],
+  ["median return", "median pnl", "median"],
+  ["mean return", "average return", "mean pnl", "average pnl"],
+  ["profit factor"],
+  ["payoff ratio", "payoff"],
+  ["trade count", "trades"],
+  ["std dev", "standard deviation", "dispersion", "volatility"],
+  ["duration", "holding period"],
+];
+
 function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 }
@@ -83,6 +95,35 @@ export function selectOverviewTopMetrics(metrics: ScoreBand[], limit = 6): Score
     if (!isUnavailableValue(metric.value)) {
       pushMetric(metric, idx);
     }
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    pushMetric(metric, idx);
+  });
+
+  return selected;
+}
+
+export function selectDistributionTopMetrics(metrics: ScoreBand[], limit = 4): ScoreBand[] {
+  const selected: ScoreBand[] = [];
+  const used = new Set<number>();
+
+  const pushMetric = (metric: ScoreBand, idx: number) => {
+    if (used.has(idx) || selected.length >= limit) return;
+    selected.push(metric);
+    used.add(idx);
+  };
+
+  DISTRIBUTION_METRIC_PRIORITY.forEach((aliases) => {
+    if (selected.length >= limit) return;
+    const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
+    if (preferred >= 0) pushMetric(metrics[preferred], preferred);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    if (!isUnavailableValue(metric.value)) pushMetric(metric, idx);
   });
 
   metrics.forEach((metric, idx) => {

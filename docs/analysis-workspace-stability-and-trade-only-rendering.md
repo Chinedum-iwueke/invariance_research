@@ -102,6 +102,16 @@ Because the runtime `bt` module is unavailable in this environment, audit was pe
    - Primary metrics now favor real emitted values and derived fallbacks
    - Derived histogram when engine histogram series absent
    - Trade-level summary card with persisted counts/window/findings
+   - Distribution completeness badges summarize trade count, coverage, and field availability (returns, win/loss profile, MAE/MFE, duration)
+   - Metric prioritization now prefers expectancy, win rate, median/mean return, payoff/profit factor, and trade count over unavailable duration placeholders
+   - Figures now render with hierarchy:
+     - primary: histogram + win/loss when present
+     - secondary: MAE/MFE and duration diagnostics only when chartable
+     - unavailable secondary diagnostics grouped into a dedicated “Unavailable diagnostics” card
+   - Histogram provenance is now explicit (“Engine-native histogram” vs “Reconstructed from persisted trades”)
+   - Added “Distribution shape insights” panel using engine interpretation bullets and run key findings
+   - Distribution context card now has structured assumptions/limitations/recommendations sections with honest empty states
+   - Added “What this page does not yet include” micro-panel for missing analytical scope (excursion decomposition, regime-conditioned split, parameter-conditioned split)
 
 3. **Monte Carlo Crash Test**
    - Continues to show emitted metrics and warnings
