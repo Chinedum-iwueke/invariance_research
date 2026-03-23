@@ -87,6 +87,12 @@ export interface ExecutionScenario {
   name: string;
   assumption: string;
   impact: string;
+  spread?: string;
+  slippage?: string;
+  fee?: string;
+  expectancy?: string;
+  edge_decay_pct?: string;
+  classification?: "survives" | "fragile" | "negative" | "informational";
 }
 
 export interface ExecutionDiagnostic {
@@ -94,6 +100,13 @@ export interface ExecutionDiagnostic {
   scenarios: ExecutionScenario[];
   figure?: FigurePayload;
   interpretation: InterpretationBlockPayload;
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
+  execution_model?: string;
+  stress_realism?: string;
+  artifact_completeness?: string;
+  sensitivity_classification?: "resilient" | "fragile" | "cost_killed" | "informational";
 }
 
 export interface RegimeDiagnostic {

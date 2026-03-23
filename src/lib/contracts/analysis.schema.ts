@@ -94,6 +94,12 @@ export const executionScenarioSchema = z.object({
   name: z.string(),
   assumption: z.string(),
   impact: z.string(),
+  spread: z.string().optional(),
+  slippage: z.string().optional(),
+  fee: z.string().optional(),
+  expectancy: z.string().optional(),
+  edge_decay_pct: z.string().optional(),
+  classification: z.enum(["survives", "fragile", "negative", "informational"]).optional(),
 });
 
 export const executionDiagnosticSchema = z.object({
@@ -101,6 +107,13 @@ export const executionDiagnosticSchema = z.object({
   scenarios: z.array(executionScenarioSchema),
   figure: figurePayloadSchema.optional(),
   interpretation: interpretationBlockPayloadSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  execution_model: z.string().optional(),
+  stress_realism: z.string().optional(),
+  artifact_completeness: z.string().optional(),
+  sensitivity_classification: z.enum(["resilient", "fragile", "cost_killed", "informational"]).optional(),
 });
 
 export const regimeDiagnosticSchema = z.object({

@@ -1,7 +1,7 @@
 import type { DiagnosticAccessReason } from "../contracts/entitlements";
 
 export type DiagnosticLockState = Exclude<DiagnosticAccessReason, "enabled">;
-export type ArtifactRequirementProfile = "generic_context" | "parameter_sweep_bundle";
+export type ArtifactRequirementProfile = "generic_context" | "parameter_sweep_bundle" | "execution_sensitivity";
 
 export interface DiagnosticLockAction {
   label: string;
@@ -31,6 +31,27 @@ interface BuildDiagnosticLockModelInput {
 
 export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): DiagnosticLockModel {
   if (input.state === "artifact_unavailable") {
+    if (input.artifactRequirementProfile === "execution_sensitivity") {
+      return {
+        diagnosticTitle: input.diagnosticTitle,
+        diagnosticPurpose: input.diagnosticPurpose,
+        state: input.state,
+        badgeLabel: "Artifact Limited",
+        primaryExplanation:
+          "Execution Sensitivity baseline requires trade data plus explicit execution/cost assumptions. This run only includes partial execution context.",
+        unlockRequirements: [
+          "Baseline requires trade data and explicit execution/cost assumptions.",
+          "Enhanced realism benefits from OHLCV, spread proxies, and execution metadata.",
+          "Include stress increments for spread, slippage, and fees to unlock full scenario coverage.",
+        ],
+        actions: [
+          { label: "Upload execution assumptions", href: "/app/new-analysis", emphasis: "primary" },
+          { label: "View supported bundle format", href: "/methodology", emphasis: "secondary" },
+        ],
+        footerNote: "OHLCV is optional for baseline execution sensitivity and improves realism when available.",
+      };
+    }
+
     if (input.artifactRequirementProfile === "parameter_sweep_bundle") {
       return {
         diagnosticTitle: input.diagnosticTitle,

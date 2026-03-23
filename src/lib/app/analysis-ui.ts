@@ -72,6 +72,12 @@ const MONTE_CARLO_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["probability of ruin", "risk of ruin", "p ruin", "p(ruin)"],
 ];
 
+const EXECUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
+  ["baseline expectancy", "baseline edge", "baseline"],
+  ["stressed expectancy", "stress expectancy", "stressed"],
+  ["edge decay", "decay", "edge erosion"],
+];
+
 function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 }
@@ -154,6 +160,35 @@ export function selectMonteCarloTopMetrics(metrics: ScoreBand[], limit = 4): Sco
   MONTE_CARLO_METRIC_PRIORITY.forEach((aliases) => {
     if (selected.length >= limit) return;
     const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
+    if (preferred >= 0) pushMetric(metrics[preferred], preferred);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    if (!isUnavailableValue(metric.value)) pushMetric(metric, idx);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    pushMetric(metric, idx);
+  });
+
+  return selected;
+}
+
+export function selectExecutionTopMetrics(metrics: ScoreBand[], limit = 3): ScoreBand[] {
+  const selected: ScoreBand[] = [];
+  const used = new Set<number>();
+
+  const pushMetric = (metric: ScoreBand, idx: number) => {
+    if (used.has(idx) || selected.length >= limit) return;
+    selected.push(metric);
+    used.add(idx);
+  };
+
+  EXECUTION_METRIC_PRIORITY.forEach((aliases) => {
+    if (selected.length >= limit) return;
+    const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)));
     if (preferred >= 0) pushMetric(metrics[preferred], preferred);
   });
 
