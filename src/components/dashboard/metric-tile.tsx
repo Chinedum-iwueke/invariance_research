@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { KeyMetric } from "@/lib/mock/analysis";
+import type { KeyMetric } from "@/lib/app/analysis-ui";
 
 const toneClasses = {
   neutral: "text-text-institutional",

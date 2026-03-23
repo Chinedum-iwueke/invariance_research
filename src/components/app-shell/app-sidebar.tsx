@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { analysisWorkflowItems, getAppSecondaryItems, type AppNavItem } from "@/lib/app/navigation";
+import { getAnalysisWorkflowItems, getAppSecondaryItems, type AppNavItem } from "@/lib/app/navigation";
 
 function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -45,7 +45,10 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
 
 export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutAction: (formData: FormData) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const appSecondaryItems = getAppSecondaryItems(isAdmin);
+  const activeAnalysisId = pathname.match(/^\/app\/analyses\/([^/]+)/)?.[1];
+  const analysisWorkflowItems = getAnalysisWorkflowItems(activeAnalysisId);
 
   return (
     <>

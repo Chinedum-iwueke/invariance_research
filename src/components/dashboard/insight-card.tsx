@@ -1,4 +1,4 @@
-import type { InsightPoint } from "@/lib/mock/analysis";
+import type { InsightPoint } from "@/lib/app/analysis-ui";
 import { cn } from "@/lib/utils";
 
 const toneMeta = {

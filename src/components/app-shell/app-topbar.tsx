@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AnalysisContext } from "@/lib/mock/analysis";
+import type { AnalysisContext } from "@/lib/app/analysis-ui";
 
 function MetaPill({ children }: { children: ReactNode }) {
   return <span className="rounded-sm border border-border-subtle bg-surface-panel px-2 py-1 text-xs text-text-graphite">{children}</span>;

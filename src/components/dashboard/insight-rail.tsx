@@ -1,7 +1,7 @@
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { InsightCard } from "@/components/dashboard/insight-card";
-import type { InsightPoint } from "@/lib/mock/analysis";
+import type { InsightPoint } from "@/lib/app/analysis-ui";
 
 interface InsightRailProps {
   title?: string;
