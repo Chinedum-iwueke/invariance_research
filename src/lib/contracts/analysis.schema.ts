@@ -55,6 +55,12 @@ export const interpretationBlockPayloadSchema = z.object({
   title: z.string(),
   summary: z.string(),
   bullets: z.array(z.string()).optional(),
+  positives: z.array(z.string()).optional(),
+  cautions: z.array(z.string()).optional(),
+  caveats: z.array(z.string()).optional(),
+  key_caveats: z.array(z.string()).optional(),
+  narrative: z.string().optional(),
+  interpretation: z.string().optional(),
 });
 
 export const overviewDiagnosticSchema = z.object({

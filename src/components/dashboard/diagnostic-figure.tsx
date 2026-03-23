@@ -1,8 +1,19 @@
 import type { FigurePayload } from "@/lib/contracts";
 
-export function DiagnosticFigure({ figure }: { figure?: FigurePayload }) {
+function parsePercentileToken(value: string): number | undefined {
+  const match = value.toLowerCase().match(/(?:^|[^0-9])(p?\s?(\d{1,2}|100))(?:[^0-9]|$)/);
+  if (!match?.[1]) return undefined;
+  const normalized = Number(match[1].replace("p", "").trim());
+  return Number.isFinite(normalized) && normalized >= 0 && normalized <= 100 ? normalized : undefined;
+}
+
+function buildLinePath(points: Array<{ x: number; y: number }>) {
+  return points.map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+}
+
+export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayload; emptyMessage?: string }) {
   if (!figure || figure.series.length === 0) {
-    return <p className="rounded-sm border border-dashed border-border-subtle p-4 text-sm text-text-neutral">No chart series were emitted for this diagnostic in the persisted run payload.</p>;
+    return <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">{emptyMessage ?? "No chart series were emitted for this diagnostic in the persisted run payload."}</p>;
   }
 
   const allPoints = figure.series.flatMap((series) => series.points);
@@ -26,15 +37,65 @@ export function DiagnosticFigure({ figure }: { figure?: FigurePayload }) {
   });
   const xFromPoint = (x: string | number) => typeof x === "number" ? xAt(x) : xAt(categoricalIndex.get(x) ?? 0);
 
+  const fanSeries = (figure.type === "fan" || figure.type === "fan_chart")
+    ? figure.series
+        .map((series) => ({ series, percentile: parsePercentileToken(`${series.label} ${series.key}`) }))
+        .filter((item) => item.percentile !== undefined)
+        .sort((a, b) => (a.percentile as number) - (b.percentile as number))
+    : [];
+  const percentileMap = new Map<number, FigurePayload["series"][number]>(fanSeries.map((item) => [item.percentile as number, item.series]));
+  const medianSeries = percentileMap.get(50);
+  const fanBandPairs = [5, 10, 25]
+    .map((lower) => {
+      const upper = 100 - lower;
+      const lowSeries = percentileMap.get(lower);
+      const highSeries = percentileMap.get(upper);
+      if (!lowSeries || !highSeries) return undefined;
+      const lowPoints = lowSeries.points.map((point) => ({ x: xFromPoint(point.x), y: yAt(point.y) }));
+      const highPoints = highSeries.points.map((point) => ({ x: xFromPoint(point.x), y: yAt(point.y) }));
+      if (lowPoints.length === 0 || highPoints.length === 0 || lowPoints.length !== highPoints.length) return undefined;
+      return { key: `${lower}-${upper}`, lower, upper, lowPoints, highPoints };
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value))
+    .sort((a, b) => a.lower - b.lower);
+
   return (
     <div className="space-y-3 rounded-sm border border-border-subtle p-3">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full rounded bg-surface-panel">
         <line x1={pad} x2={pad} y1={pad} y2={height - pad} stroke="#c8cfdb" />
         <line x1={pad} x2={width - pad} y1={height - pad} y2={height - pad} stroke="#c8cfdb" />
+        {(figure.type === "fan" || figure.type === "fan_chart") && fanBandPairs.length > 0 ? (
+          <g>
+            {fanBandPairs.map((band, idx) => {
+              const fillPalette = ["rgba(11,47,122,0.09)", "rgba(11,47,122,0.14)", "rgba(11,47,122,0.2)"];
+              const strokePalette = ["rgba(11,47,122,0.35)", "rgba(11,47,122,0.45)", "rgba(11,47,122,0.55)"];
+              const polygon = `${buildLinePath(band.lowPoints)} L ${band.highPoints[band.highPoints.length - 1]?.x ?? 0} ${band.highPoints[band.highPoints.length - 1]?.y ?? 0} ${band.highPoints
+                .slice(0, -1)
+                .reverse()
+                .map((point) => `L ${point.x} ${point.y}`)
+                .join(" ")} Z`;
+              return (
+                <g key={band.key}>
+                  <path d={polygon} fill={fillPalette[Math.min(idx, fillPalette.length - 1)]} />
+                  <path d={buildLinePath(band.lowPoints)} fill="none" stroke={strokePalette[Math.min(idx, strokePalette.length - 1)]} strokeWidth={1} />
+                  <path d={buildLinePath(band.highPoints)} fill="none" stroke={strokePalette[Math.min(idx, strokePalette.length - 1)]} strokeWidth={1} />
+                </g>
+              );
+            })}
+            {medianSeries ? (
+              <path
+                d={buildLinePath(medianSeries.points.map((point) => ({ x: xFromPoint(point.x), y: yAt(point.y) })))}
+                fill="none"
+                stroke="#0b2f7a"
+                strokeWidth={2.2}
+              />
+            ) : null}
+          </g>
+        ) : null}
         {figure.series.map((series, index) => {
           const color = colorForSeries(index);
           const points = series.points.map((point) => ({ x: xFromPoint(point.x), y: yAt(point.y) }));
-          const path = points.map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+          const path = buildLinePath(points);
           if (figure.type === "bar" || figure.type === "grouped_bar" || figure.type === "histogram") {
             const barWidth = Math.max(8, Math.floor((width - pad * 2) / Math.max(points.length * Math.max(figure.series.length, 1), 1)) - 2);
             return (
@@ -57,6 +118,7 @@ export function DiagnosticFigure({ figure }: { figure?: FigurePayload }) {
               </g>
             );
           }
+          if ((figure.type === "fan" || figure.type === "fan_chart") && fanBandPairs.length > 0 && parsePercentileToken(`${series.label} ${series.key}`) !== undefined) return null;
           return (
             <g key={series.key}>
               {(figure.type === "area" || figure.type === "fan" || figure.type === "fan_chart") ? <path d={`${path} L ${points[points.length - 1]?.x ?? 0} ${height - pad} L ${points[0]?.x ?? 0} ${height - pad} Z`} fill={color} opacity={figure.type === "fan" || figure.type === "fan_chart" ? 0.12 : 0.2} /> : null}

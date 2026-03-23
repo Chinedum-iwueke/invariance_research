@@ -332,6 +332,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       message: note,
     })),
   ];
+  const monteCarloScopedWarnings = [
+    ...getStringArray(monteCarloRaw, ["warnings"]),
+    ...getStringArray(monteCarloRaw, ["limitations"]),
+    ...warnings
+      .map((warning) => warning.message)
+      .filter((message) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(message)),
+  ].filter((warning, idx, arr) => warning.length > 0 && arr.indexOf(warning) === idx);
 
   const robustness = engine.summary?.robustness_score ?? getNumber(overviewRaw, ["robustness_score", "robustnessScore", "score"]);
   const overfit = engine.summary?.overfitting_risk_pct ?? getNumber(overviewRaw, ["overfitting_risk_pct", "overfittingRiskPct"]);
@@ -417,6 +424,22 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       has_duration: hasDuration,
       has_excursion: hasExcursion,
       has_win_loss_profile: parsedArtifact.trades.some((trade) => typeof trade.pnl === "number" && Number.isFinite(trade.pnl)),
+    };
+  }
+
+  if (envelopeByDiagnostic.monte_carlo) {
+    const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
+    const horizonDays = getNumber(monteCarloRaw, ["horizon_days", "horizonDays", "horizon"]);
+    const method = getString(monteCarloRaw, ["method", "sampling_method", "bootstrap_method"]) ?? "bootstrap_iid";
+    const ruinThreshold = getNumber(monteCarloRaw, ["ruin_threshold_pct", "ruinThresholdPct", "ruin_threshold"]);
+    envelopeByDiagnostic.monte_carlo.metadata = {
+      ...(envelopeByDiagnostic.monte_carlo.metadata ?? {}),
+      simulations: simulationCount,
+      horizon_days: horizonDays,
+      method,
+      ruin_threshold_pct: ruinThreshold,
+      figure_series_count: envelopeByDiagnostic.monte_carlo.figures?.[0]?.series.length ?? 0,
+      has_fan_chart: (envelopeByDiagnostic.monte_carlo.figures?.[0]?.type === "fan" || envelopeByDiagnostic.monte_carlo.figures?.[0]?.type === "fan_chart"),
     };
   }
 
@@ -536,14 +559,28 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         }),
         interpretation: {
           title: "Monte Carlo interpretation",
-          summary: statusText(statusByDiagnostic.get("monte_carlo"), "Simulation outputs provide tail-risk and survivability context under sequence perturbation.", "Monte Carlo diagnostics are available with bounded confidence due to limited assumptions/capability."),
+          summary: getString(monteCarloRaw, ["summary", "interpretation", "narrative"]) ?? statusText(
+            statusByDiagnostic.get("monte_carlo"),
+            "Simulation outputs provide tail-risk and survivability context under sequence perturbation.",
+            "Monte Carlo diagnostics are available with bounded confidence due to limited assumptions/capability.",
+          ),
+          positives: getStringArray(monteCarloRaw, ["positives", "strengths"]),
+          cautions: getStringArray(monteCarloRaw, ["cautions", "risks", "warning_points"]),
+          caveats: getStringArray(monteCarloRaw, ["key_caveats", "caveats", "limitations"]),
           bullets: [
             `Worst drawdown estimate: ${formatPct(mcWorst)}.`,
             `95th percentile drawdown: ${formatPct(mcP95)}.`,
-            `Ruin probability estimate: ${formatPct(ruinProbability)}.`,
+            ruinProbability === undefined ? "Ruin probability estimate was not emitted by the engine for this run." : `Ruin probability estimate: ${formatPct(ruinProbability)}.`,
           ],
         },
-        warnings,
+        warnings: monteCarloScopedWarnings.length
+          ? monteCarloScopedWarnings.map((message, idx) => ({
+              code: `MC_NOTE_${idx + 1}`,
+              severity: "warning",
+              title: "Monte Carlo note",
+              message,
+            }))
+          : warnings.filter((warning) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(warning.message)),
       },
       stability: {
         metrics: envelopeByDiagnostic.stability?.summary_metrics.length

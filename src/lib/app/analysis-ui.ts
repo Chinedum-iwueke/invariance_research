@@ -65,6 +65,13 @@ const DISTRIBUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["duration", "holding period"],
 ];
 
+const MONTE_CARLO_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
+  ["worst simulated drawdown", "worst monte carlo drawdown", "max drawdown", "maximum drawdown"],
+  ["95th percentile drawdown", "p95 drawdown", "drawdown p95", "95 percentile"],
+  ["median drawdown", "drawdown median", "p50 drawdown"],
+  ["probability of ruin", "risk of ruin", "p ruin", "p(ruin)"],
+];
+
 function normalizeLabel(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 }
@@ -116,6 +123,35 @@ export function selectDistributionTopMetrics(metrics: ScoreBand[], limit = 4): S
   };
 
   DISTRIBUTION_METRIC_PRIORITY.forEach((aliases) => {
+    if (selected.length >= limit) return;
+    const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
+    if (preferred >= 0) pushMetric(metrics[preferred], preferred);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    if (!isUnavailableValue(metric.value)) pushMetric(metric, idx);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    pushMetric(metric, idx);
+  });
+
+  return selected;
+}
+
+export function selectMonteCarloTopMetrics(metrics: ScoreBand[], limit = 4): ScoreBand[] {
+  const selected: ScoreBand[] = [];
+  const used = new Set<number>();
+
+  const pushMetric = (metric: ScoreBand, idx: number) => {
+    if (used.has(idx) || selected.length >= limit) return;
+    selected.push(metric);
+    used.add(idx);
+  };
+
+  MONTE_CARLO_METRIC_PRIORITY.forEach((aliases) => {
     if (selected.length >= limit) return;
     const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
     if (preferred >= 0) pushMetric(metrics[preferred], preferred);
