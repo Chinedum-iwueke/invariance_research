@@ -21,7 +21,7 @@ export const figurePayloadSchema = z.object({
   figure_id: z.string(),
   title: z.string(),
   subtitle: z.string().optional(),
-  type: z.enum(["line", "area", "bar", "histogram", "scatter", "fan", "table"]),
+  type: z.enum(["line", "area", "bar", "grouped_bar", "histogram", "scatter", "fan", "fan_chart", "heatmap", "table"]),
   series: z.array(figureSeriesSchema),
   x_label: z.string().optional(),
   y_label: z.string().optional(),

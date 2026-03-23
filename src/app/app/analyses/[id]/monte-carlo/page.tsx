@@ -47,6 +47,18 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
           )}
         </WorkspaceCard>
       </div>
+      <WorkspaceCard title="Simulation assumptions & guidance" subtitle="Engine-native payload details">
+        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-2">
+          <div>
+            <p className="font-medium text-text-graphite">Assumptions</p>
+            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.monte_carlo?.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+          </div>
+          <div>
+            <p className="font-medium text-text-graphite">Recommendations</p>
+            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.monte_carlo?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+          </div>
+        </div>
+      </WorkspaceCard>
     </AnalysisPageFrame>
   );
 }

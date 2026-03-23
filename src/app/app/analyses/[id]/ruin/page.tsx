@@ -62,6 +62,16 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
           </ul>
         )}
       </WorkspaceCard>
+      <WorkspaceCard title="Survivability guidance" subtitle="Engine-native limitations and recommendations">
+        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-2">
+          <ul className="space-y-1">
+            {(record.engine_payload.diagnostics.ruin?.limitations ?? []).map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+          <ul className="space-y-1">
+            {(record.engine_payload.diagnostics.ruin?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+        </div>
+      </WorkspaceCard>
       <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.ruin.interpretation)} />
     </AnalysisPageFrame>
   );

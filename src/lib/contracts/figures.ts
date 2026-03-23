@@ -1,4 +1,4 @@
-export type FigureType = "line" | "area" | "bar" | "histogram" | "scatter" | "fan" | "table";
+export type FigureType = "line" | "area" | "bar" | "grouped_bar" | "histogram" | "scatter" | "fan" | "fan_chart" | "heatmap" | "table";
 
 export interface FigurePoint {
   x: string | number;

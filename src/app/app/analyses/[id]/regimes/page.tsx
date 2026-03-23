@@ -55,6 +55,9 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         ))}
       </div>
       <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.regimes.interpretation)} />
+      {record.engine_payload.diagnostics.regimes?.limitations?.length ? (
+        <p className="text-sm text-text-neutral">{record.engine_payload.diagnostics.regimes.limitations.join(" • ")}</p>
+      ) : null}
     </AnalysisPageFrame>
   );
 }

@@ -116,6 +116,48 @@ export const ruinDiagnosticSchema = z.object({
   interpretation: interpretationBlockPayloadSchema,
 });
 
+export const engineDiagnosticMetricSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  value: z.string(),
+  numeric_value: z.number().optional(),
+  band: z.enum(["excellent", "good", "moderate", "elevated", "critical", "informational"]).optional(),
+});
+
+export const engineDiagnosticEnvelopeSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
+  summary_metrics: z.array(engineDiagnosticMetricSchema),
+  figures: z.array(figurePayloadSchema),
+  interpretation: z.string().optional(),
+  assumptions: z.array(z.string()),
+  warnings: z.array(z.string()),
+  recommendations: z.array(z.string()),
+  limitations: z.array(z.string()),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const enginePayloadSnapshotSchema = z.object({
+  summary_metrics: z.array(engineDiagnosticMetricSchema),
+  diagnostics: z
+    .object({
+      overview: engineDiagnosticEnvelopeSchema.optional(),
+      distribution: engineDiagnosticEnvelopeSchema.optional(),
+      monte_carlo: engineDiagnosticEnvelopeSchema.optional(),
+      stability: engineDiagnosticEnvelopeSchema.optional(),
+      execution: engineDiagnosticEnvelopeSchema.optional(),
+      regimes: engineDiagnosticEnvelopeSchema.optional(),
+      ruin: engineDiagnosticEnvelopeSchema.optional(),
+      report: engineDiagnosticEnvelopeSchema.optional(),
+    })
+    .partial(),
+  report_sections: z.object({
+    assumptions: z.array(z.string()),
+    limitations: z.array(z.string()),
+    recommendations: z.array(z.string()),
+  }),
+  raw_result: z.record(z.string(), z.unknown()),
+});
+
 export const diagnosticBundleSchema = z.object({
   overview: overviewDiagnosticSchema,
   distribution: distributionDiagnosticSchema,
@@ -155,6 +197,7 @@ export const analysisRecordSchema = z.object({
   run_context: runContextSchema,
   summary: analysisSummarySchema,
   diagnostics: diagnosticBundleSchema,
+  engine_payload: enginePayloadSnapshotSchema,
   report: reportPayloadSchema,
   access: accessFlagsSchema,
 });

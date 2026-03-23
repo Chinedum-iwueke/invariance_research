@@ -37,6 +37,12 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
           <li>• Key findings available: <span className="font-medium text-text-graphite">{record.summary.key_findings.length}</span></li>
         </ul>
       </WorkspaceCard>
+      <WorkspaceCard title="Distribution context" subtitle="Engine-native interpretation and limitations">
+        <p className="text-sm text-text-neutral">{record.engine_payload.diagnostics.distribution?.interpretation ?? "No additional interpretation text was emitted for this run."}</p>
+        <ul className="mt-2 space-y-1 text-sm text-text-neutral">
+          {(record.engine_payload.diagnostics.distribution?.limitations ?? []).map((item) => <li key={item}>• {item}</li>)}
+        </ul>
+      </WorkspaceCard>
       <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.distribution.interpretation)} />
     </AnalysisPageFrame>
   );
