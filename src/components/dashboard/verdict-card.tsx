@@ -1,7 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export function VerdictCard({ title, summary, posture }: { title: string; summary: string; posture: "robust" | "moderate" | "fragile" }) {
+export function VerdictCard({
+  title,
+  summary,
+  posture,
+  confidence,
+  rationale,
+}: {
+  title: string;
+  summary: string;
+  posture: "robust" | "moderate" | "fragile";
+  confidence?: string;
+  rationale?: string[];
+}) {
   return (
     <Card
       className={cn(
@@ -14,6 +26,14 @@ export function VerdictCard({ title, summary, posture }: { title: string; summar
       <p className="eyebrow">Validation posture</p>
       <h3 className="mt-2 text-lg font-semibold">{title}</h3>
       <p className="mt-2 text-sm text-text-neutral">{summary}</p>
+      {confidence ? <p className="mt-3 text-xs font-medium uppercase tracking-wide text-text-graphite">Confidence: {confidence}</p> : null}
+      {rationale?.length ? (
+        <ul className="mt-3 space-y-1.5 text-sm text-text-neutral">
+          {rationale.slice(0, 4).map((item) => (
+            <li key={item}>• {item}</li>
+          ))}
+        </ul>
+      ) : null}
     </Card>
   );
 }

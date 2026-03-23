@@ -374,9 +374,26 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
   });
 
+  const overviewFigureProvenance = mappedOverviewFigure.series.length > 0 ? "engine_emitted" : "reconstructed_from_trades";
   const overviewFigure: FigurePayload = mappedOverviewFigure.series.length > 0
-    ? mappedOverviewFigure
-    : { ...mappedOverviewFigure, title: "Derived cumulative PnL", note: "Engine did not emit overview chart series; a cumulative PnL curve was reconstructed from persisted trade-level PnL.", series: derivedStats.equitySeries };
+    ? { ...mappedOverviewFigure, title: "Top-line equity view", note: "Engine-emitted overview equity series for top-line review." }
+    : {
+        ...mappedOverviewFigure,
+        title: "Top-line equity view",
+        note: "Engine overview series unavailable; cumulative PnL was reconstructed from persisted trade-level PnL.",
+        series: derivedStats.equitySeries,
+      };
+
+  if (envelopeByDiagnostic.overview) {
+    envelopeByDiagnostic.overview.metadata = {
+      ...(envelopeByDiagnostic.overview.metadata ?? {}),
+      overview_figure_provenance: overviewFigureProvenance,
+      benchmark_status: parsedArtifact.benchmark_present ? "available" : "pending",
+      artifact_richness: parsedArtifact.richness,
+      execution_context_level: statusByDiagnostic.get("execution") ?? "limited",
+      figure_series_count: overviewFigure.series.length,
+    };
+  }
 
   const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram ?? distributionRaw?.figures?.[0], {
     title: "Outcome Distribution",
@@ -451,7 +468,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         figure: overviewFigure,
         interpretation: {
           title: "Overview interpretation",
-          summary: statusText(
+          summary: envelopeByDiagnostic.overview?.interpretation ?? statusText(
             statusByDiagnostic.get("overview"),
             "Top-line diagnostics combine robustness, overfitting, Monte Carlo tail stress, and ruin sensitivity.",
             "Overview is available with bounded depth due to upload richness and engine capability limits.",
@@ -461,7 +478,11 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
             ...warnings.slice(0, 2).map((warning) => warning.message),
           ].slice(0, 4),
         },
-        verdict: { status: verdict, title: "Overview verdict", summary: engine.summary?.short_summary ?? "See report for current limitations and assumptions." },
+        verdict: {
+          status: verdict,
+          title: verdict === "robust" ? "Robust profile under current assumptions" : verdict === "moderate" ? "Moderate profile with bounded fragility" : "Fragile profile under stress assumptions",
+          summary: engine.summary?.short_summary ?? eligibility.summary_text,
+        },
       },
       distribution: {
         metrics: envelopeByDiagnostic.distribution?.summary_metrics.length
