@@ -45,7 +45,7 @@ export function NewAnalysisIntake() {
     setApiErrorCode(null);
     const extension = fileToInspect.name.split(".").pop()?.toLowerCase();
     if (!extension || !["csv", "zip"].includes(extension)) {
-      setClientError("Unsupported file type. Please upload a trade CSV or bundle ZIP.");
+      setClientError("Unsupported file type. Please upload a trade CSV or structured bundle ZIP.");
       return;
     }
     if (fileToInspect.size <= 0) {
@@ -142,7 +142,7 @@ export function NewAnalysisIntake() {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-      <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
+      <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV, structured bundle, or parameter sweep bundle ZIP">
         <div
           className={cn(
             "rounded-md border border-dashed bg-surface-panel/60 p-8 text-center",
@@ -160,7 +160,7 @@ export function NewAnalysisIntake() {
           }}
         >
           <p className="text-sm font-medium">Submit artifact into validation intake</p>
-          <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1)</p>
+          <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1 / parameter sweep bundle)</p>
           <input
             className="mt-4 block w-full text-xs"
             type="file"
@@ -175,11 +175,19 @@ export function NewAnalysisIntake() {
       </WorkspaceCard>
 
       <div className="space-y-4">
-        <WorkspaceCard title="Intake guidance" subtitle="Clinical validation posture">
+        <WorkspaceCard title="Intake guidance" subtitle="What to upload for each analysis path">
           <ul className="space-y-2 text-sm text-text-neutral">
-            <li>• Include complete closed-trade history.</li>
-            <li>• Bundle assumptions and context for richer diagnostics.</li>
-            <li>• Eligibility is determined by backend parser evidence only.</li>
+            <li>• Trade-only upload: a closed-trades CSV for baseline diagnostics.</li>
+            <li>• Structured bundle upload: manifest + trades + optional assumptions/context files.</li>
+            <li>• Parameter sweep bundle (required for baseline Parameter Stability): multi-run results across parameter combinations with run-to-parameter metadata.</li>
+          </ul>
+        </WorkspaceCard>
+
+        <WorkspaceCard title="Supported sweep formats" subtitle="Operator-friendly bundle contract">
+          <ul className="space-y-2 text-sm text-text-neutral">
+            <li>• Preferred: one ZIP bundle with <code>manifest.json</code> plus per-run trade/result files and explicit run_id → parameter values mapping.</li>
+            <li>• Advanced: one combined table that includes <code>run_id</code>, parameter columns, and trade/result fields for each run.</li>
+            <li>• OHLCV/regime files are optional for baseline Parameter Stability and may support richer future variants.</li>
           </ul>
         </WorkspaceCard>
 

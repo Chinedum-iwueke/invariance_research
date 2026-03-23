@@ -1,6 +1,7 @@
 import type { DiagnosticAccessReason } from "../contracts/entitlements";
 
 export type DiagnosticLockState = Exclude<DiagnosticAccessReason, "enabled">;
+export type ArtifactRequirementProfile = "generic_context" | "parameter_sweep_bundle";
 
 export interface DiagnosticLockAction {
   label: string;
@@ -25,24 +26,47 @@ interface BuildDiagnosticLockModelInput {
   diagnosticPurpose: string;
   currentPlan?: string;
   requiredPlan?: string;
+  artifactRequirementProfile?: ArtifactRequirementProfile;
 }
 
 export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): DiagnosticLockModel {
   if (input.state === "artifact_unavailable") {
+    if (input.artifactRequirementProfile === "parameter_sweep_bundle") {
+      return {
+        diagnosticTitle: input.diagnosticTitle,
+        diagnosticPurpose: input.diagnosticPurpose,
+        state: input.state,
+        badgeLabel: "Artifact Limited",
+        primaryExplanation:
+          "Parameter Stability requires a parameter sweep bundle: multiple runs across parameter combinations with explicit run-to-parameter mapping.",
+        unlockRequirements: [
+          "Upload one structured bundle/ZIP covering multiple strategy runs.",
+          "Include parameter metadata that maps each run_id to its parameter values.",
+          "Include per-run trade history/results files (or one combined table with run_id + parameter columns).",
+        ],
+        actions: [
+          { label: "Upload parameter sweep bundle", href: "/app/new-analysis", emphasis: "primary" },
+          { label: "View supported sweep format", href: "/methodology", emphasis: "secondary" },
+        ],
+        footerNote:
+          "This lock is due to artifact structure, not plan tier. OHLCV/regime context is optional for baseline Parameter Stability.",
+      };
+    }
+
     return {
       diagnosticTitle: input.diagnosticTitle,
       diagnosticPurpose: input.diagnosticPurpose,
       state: input.state,
       badgeLabel: "Artifact Limited",
       primaryExplanation:
-        "Your current upload includes trade-level results only. This diagnostic requires richer market or parameter context.",
+        "Your current upload includes trade-level results only. This diagnostic requires additional structured context.",
       unlockRequirements: [
         "Upload a structured bundle that includes trade history.",
-        "Include OHLCV or market-context series where available.",
-        "Include parameter metadata and assumptions context.",
+        "Include supporting metadata and assumptions context where available.",
+        "Use manifest-backed bundle files so intake can verify artifact capability.",
       ],
       actions: [
-        { label: "Upload richer artifact", href: "/app/new-analysis", emphasis: "primary" },
+        { label: "Upload structured artifact", href: "/app/new-analysis", emphasis: "primary" },
         { label: "View supported bundle format", href: "/methodology", emphasis: "secondary" },
       ],
       footerNote: "This limitation is artifact-based and not related to plan access.",

@@ -65,6 +65,8 @@ Optional:
 - `ohlcv.parquet`
 - `benchmark.csv`
 
+For **Parameter Stability** unlock, the baseline contract is a **parameter sweep bundle**: multi-run results across parameter combinations where each run is mapped to explicit parameter values.
+
 Manifest fields:
 
 - `schema_version` (`1.0`)
@@ -112,7 +114,7 @@ Baseline expectations are implemented for:
 Reason strings explain limited/unavailable diagnostics, e.g.:
 
 - requires market-context artifact
-- requires parameter metadata
+- requires parameter sweep bundle (multi-run parameter combinations with run mapping)
 - requires richer execution assumptions
 - requires OHLCV or regime-labeled context
 
@@ -164,3 +166,20 @@ This layer is orchestration-ready for upload/job workflows:
 - clean handoff point for later analytics execution
 
 It also preserves separation from `Bulletproof_bt`: this phase builds ingestion and eligibility contracts, not engine logic.
+
+
+## Parameter Stability supported formats
+
+The product should guide users to one of these two accepted structures for stability unlock:
+
+1. **Preferred parameter sweep bundle (ZIP)**
+   - `manifest.json`
+   - per-run trade/result files (for example `runs/<run_id>/trades.csv`)
+   - run/parameter mapping metadata (for example `params.json` or `run_manifest.csv`)
+
+2. **Advanced combined-table format**
+   - single table containing `run_id`
+   - explicit parameter columns for each run
+   - trade/result rows keyed to each run
+
+OHLCV/regime files are optional for baseline Parameter Stability and reserved for richer future variants.

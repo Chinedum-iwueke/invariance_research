@@ -27,9 +27,10 @@ export default async function StabilityPage({ params }: { params: Promise<{ id: 
     const model = buildDiagnosticLockModel({
       state: access.reason,
       diagnosticTitle: "Parameter Stability",
-      diagnosticPurpose: "Assess fragility across parameter surfaces and perturbation ranges.",
+      diagnosticPurpose: "Assess fragility across parameter sweeps and perturbation ranges.",
       currentPlan: state?.account.plan_id,
       requiredPlan: "Research Lab",
+      artifactRequirementProfile: "parameter_sweep_bundle",
     });
     return (
       <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
