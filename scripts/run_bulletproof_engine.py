@@ -8,6 +8,7 @@ import dataclasses
 import inspect
 import json
 import sys
+from enum import Enum
 from types import ModuleType
 from typing import Any, Literal, get_args, get_origin
 
@@ -24,8 +25,53 @@ def _read_payload(stdin: str) -> dict[str, Any]:
     return payload
 
 
+def _to_json_compatible(value: Any) -> Any:
+    """Best-effort conversion of runtime objects into JSON-safe values."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, Enum):
+        return _to_json_compatible(value.value)
+
+    if dataclasses.is_dataclass(value):
+        return _to_json_compatible(dataclasses.asdict(value))
+
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        try:
+            return _to_json_compatible(model_dump(mode="json"))
+        except TypeError:
+            try:
+                return _to_json_compatible(model_dump())
+            except Exception:  # noqa: BLE001
+                pass
+        except Exception:  # noqa: BLE001
+            pass
+
+    dict_method = getattr(value, "dict", None)
+    if callable(dict_method):
+        try:
+            return _to_json_compatible(dict_method())
+        except Exception:  # noqa: BLE001
+            pass
+
+    if isinstance(value, dict):
+        return {str(key): _to_json_compatible(item) for key, item in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_to_json_compatible(item) for item in value]
+
+    if hasattr(value, "__dict__") and isinstance(value.__dict__, dict):
+        return _to_json_compatible(value.__dict__)
+
+    return str(value)
+
+
 def _emit_json(data: dict[str, Any]) -> None:
-    sys.stdout.write(json.dumps(data, separators=(",", ":"), default=str))
+    payload = _to_json_compatible(data)
+    if not isinstance(payload, dict):
+        payload = {"ok": False, "error": "bridge_payload_non_object"}
+    sys.stdout.write(json.dumps(payload, separators=(",", ":")))
     sys.stdout.write("\n")
     sys.stdout.flush()
 
