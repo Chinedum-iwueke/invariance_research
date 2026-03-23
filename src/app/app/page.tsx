@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AnalysisTable } from "@/components/dashboard/analysis-table";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -23,6 +24,10 @@ export default async function AppHomePage() {
   const usage = accountService.getUsage(session.account_id);
   const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const analyses = listAnalyses(session.account_id);
+
+  if (analyses.length === 0) {
+    redirect("/app/new-analysis");
+  }
 
   const completed = analyses.filter((item) => item.status === "completed").length;
   const processing = analyses.filter((item) => item.status === "processing" || item.status === "queued").length;

@@ -37,6 +37,7 @@ export function resolveDiagnosticAccess(input: {
   account_id: string;
   diagnostic: DiagnosticKey;
   parsed_artifact?: ParsedArtifact;
+  is_admin?: boolean;
 }): { allowed: boolean; reason: DiagnosticAccessReason; message: string } {
   if (!artifactSupports(input.parsed_artifact, input.diagnostic)) {
     return { allowed: false, reason: "artifact_unavailable", message: "This diagnostic requires richer artifact context." };
@@ -46,7 +47,7 @@ export function resolveDiagnosticAccess(input: {
     return { allowed: false, reason: "engine_unavailable", message: "The current engine cannot compute this diagnostic credibly." };
   }
 
-  if (!isPlanEntitled(input.account_id, input.diagnostic)) {
+  if (!input.is_admin && !isPlanEntitled(input.account_id, input.diagnostic)) {
     return { allowed: false, reason: "plan_locked", message: "Available on a higher plan." };
   }
 
@@ -63,7 +64,8 @@ export function assertUploadAllowed(accountId: string, artifactClass: "trade_csv
 }
 
 
-export function assertExportAllowed(accountId: string) {
+export function assertExportAllowed(accountId: string, isAdmin = false) {
+  if (isAdmin) return;
   const state = accountService.getAccountState(accountId);
   if (!state) throw new Error("account_not_found");
   if (!state.entitlements.can_export_report) {

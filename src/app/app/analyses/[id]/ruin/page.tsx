@@ -10,6 +10,7 @@ import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -17,10 +18,11 @@ import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-se
 export default async function RuinPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
   const artifact = artifactRepository.findById(analysis.artifact_id);
-  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "ruin", parsed_artifact: artifact?.parsed_artifact });
+  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "ruin", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
 
   if (!access.allowed && access.reason !== "enabled") {
     const model = buildDiagnosticLockModel({
@@ -50,11 +52,15 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
       <MetricRow metrics={metricsFromScoreBands(record.diagnostics.ruin.metrics)} cols={4} />
       <FigureCard title={record.diagnostics.ruin.figure?.title ?? "Capital Stress Profile"} subtitle={record.diagnostics.ruin.figure?.subtitle} figure={<DiagnosticFigure figure={record.diagnostics.ruin.figure} />} note={record.diagnostics.ruin.figure?.note} />
       <WorkspaceCard title="Ruin assumptions" subtitle="Persisted assumptions from this run">
-        <ul className="space-y-2 text-sm text-text-neutral">
-          {record.diagnostics.ruin.assumptions.map((assumption) => (
-            <li key={`${assumption.name}-${assumption.value}`}>• {assumption.name}: {assumption.value}</li>
-          ))}
-        </ul>
+        {record.diagnostics.ruin.assumptions.length === 0 ? (
+          <p className="text-sm text-text-neutral">No explicit ruin assumptions were emitted; rely on metric values and run context notes.</p>
+        ) : (
+          <ul className="space-y-2 text-sm text-text-neutral">
+            {record.diagnostics.ruin.assumptions.map((assumption) => (
+              <li key={`${assumption.name}-${assumption.value}`}>• {assumption.name}: {assumption.value}</li>
+            ))}
+          </ul>
+        )}
       </WorkspaceCard>
       <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.ruin.interpretation)} />
     </AnalysisPageFrame>

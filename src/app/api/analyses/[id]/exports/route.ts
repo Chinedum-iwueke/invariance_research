@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { listExportsForAnalysis, requestExport } from "@/lib/server/exports/export-service";
 
@@ -15,11 +16,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };
 
   try {
-    const created = requestExport({ analysis_id: id, account_id: session.account_id, user_id: session.user_id, format: body.format });
+    const created = requestExport({ analysis_id: id, account_id: session.account_id, user_id: session.user_id, format: body.format, is_admin: isAdmin });
     return NextResponse.json(created, { status: 202 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "export_request_failed";

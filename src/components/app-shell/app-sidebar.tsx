@@ -20,7 +20,7 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
           const Icon = item.icon;
 
           return (
-            <li key={item.href}>
+            <li key={item.key}>
               <Link
                 href={item.href}
                 onClick={onNavigate}
@@ -71,7 +71,7 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
             Strategy Robustness Lab
           </Link>
           <div className="space-y-7 overflow-y-auto pb-4">
-            <NavGroup title="Validation Workflow" items={analysisWorkflowItems} />
+            {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} /> : null}
             <NavGroup title="Workspace" items={appSecondaryItems} />
           </div>
           <form action={logoutAction} className="mt-auto px-3 pt-3">
@@ -89,7 +89,7 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
               Strategy Robustness Lab
             </Link>
             <div className="space-y-6">
-              <NavGroup title="Validation Workflow" items={analysisWorkflowItems} onNavigate={() => setOpen(false)} />
+              {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} onNavigate={() => setOpen(false)} /> : null}
               <NavGroup title="Workspace" items={appSecondaryItems} onNavigate={() => setOpen(false)} />
               <form action={logoutAction} className="px-3 pt-2">
                 <button type="submit" className="w-full rounded-sm border border-border-subtle px-3 py-2 text-left text-sm text-text-neutral hover:bg-surface-panel">

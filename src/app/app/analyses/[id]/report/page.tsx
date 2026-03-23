@@ -11,16 +11,18 @@ import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { isReportExportPlanRestricted } from "@/lib/app/upgrade-visibility";
 import { accountService } from "@/lib/server/accounts/service";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const state = accountService.getAccountState(session.account_id);
   const { id } = await params;
   const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
-  const canExport = state?.entitlements.can_export_report ?? false;
-  const canViewFull = state?.entitlements.can_view_full_report ?? false;
+  const canExport = isAdmin || (state?.entitlements.can_export_report ?? false);
+  const canViewFull = isAdmin || (state?.entitlements.can_view_full_report ?? false);
 
   if (!record) {
     return (
