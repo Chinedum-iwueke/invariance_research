@@ -111,9 +111,38 @@ export interface ExecutionDiagnostic {
 
 export interface RegimeDiagnostic {
   metrics: ScoreBand[];
+  regime_metrics: RegimeMetricRow[];
   figures?: FigurePayload[];
   interpretation: InterpretationBlockPayload;
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
+  summary_metrics?: RegimeSummaryMetrics;
+  definition?: RegimeDefinition;
+  classification?: "regime_dependent" | "regime_agnostic" | "fragile" | "informational";
   locked?: boolean;
+}
+
+export interface RegimeMetricRow {
+  regime_name: string;
+  trade_count?: string;
+  expectancy?: string;
+  win_rate?: string;
+  drawdown?: string;
+}
+
+export interface RegimeSummaryMetrics {
+  best_regime?: string;
+  worst_regime?: string;
+  regime_dispersion?: string;
+  dominant_regime?: string;
+}
+
+export interface RegimeDefinition {
+  trend_method?: string;
+  volatility_method?: string;
+  thresholds?: string[];
+  notes?: string;
 }
 
 export interface RuinAssumption {
