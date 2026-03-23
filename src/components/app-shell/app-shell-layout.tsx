@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { AppTopbar } from "@/components/app-shell/app-topbar";
 import { InstitutionalHeader } from "@/components/navigation/institutional-header";
-import type { AnalysisContext } from "@/lib/mock/analysis";
+import type { AnalysisContext } from "@/lib/app/analysis-ui";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { signOut } from "@/lib/server/auth/auth";

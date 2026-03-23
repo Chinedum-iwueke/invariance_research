@@ -1,29 +1,25 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
+import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
-import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
-import { MockMultiMetricPanel } from "@/components/charts/chart-mocks";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
-import { regimeStats } from "@/lib/mock/analysis";
+import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
-import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
+import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 export default async function RegimesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const state = accountService.getAccountState(session.account_id);
   const { id } = await params;
-  const analysis = analysisRepository.findById(id);
-  const artifact = analysis ? artifactRepository.findById(analysis.artifact_id) : undefined;
-  const access = resolveDiagnosticAccess({
-    account_id: session.account_id,
-    diagnostic: "regimes",
-    parsed_artifact: artifact?.parsed_artifact,
-  });
+  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const artifact = artifactRepository.findById(analysis.artifact_id);
+  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "regimes", parsed_artifact: artifact?.parsed_artifact });
 
   if (!access.allowed && access.reason !== "enabled") {
     const model = buildDiagnosticLockModel({
@@ -40,25 +36,23 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
     );
   }
 
+  if (!record) {
+    return (
+      <AnalysisPageFrame title="Regime Analysis" description="Performance decomposition by volatility and trend structure.">
+        <AnalysisRunState analysis={analysis} />
+      </AnalysisPageFrame>
+    );
+  }
+
   return (
     <AnalysisPageFrame title="Regime Analysis" description="Performance decomposition by volatility and trend structure.">
-      <MetricRow metrics={regimeStats} cols={4} />
+      <MetricRow metrics={metricsFromScoreBands(record.diagnostics.regimes.metrics)} cols={4} />
       <div className="grid gap-4 xl:grid-cols-2">
-        <FigureCard title="Performance by Volatility Regime" subtitle="Low/medium/high-vol behavior" figure={<MockMultiMetricPanel />} />
-        <FigureCard title="Performance by Trend Strength" subtitle="Trend/chop segmentation" figure={<MockMultiMetricPanel />} />
+        {(record.diagnostics.regimes.figures ?? []).map((figure) => (
+          <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+        ))}
       </div>
-      <InterpretationBlock
-        body="Strategy efficacy clusters in high-volatility trend environments and degrades in choppy, low-volatility states. Regime filters are recommended."
-        bullets={[
-          "Avoid deployment during low-volatility chop states.",
-          "Scale exposure only when trend-strength criteria are met.",
-        ]}
-      />
-      <UpgradePanel
-        title="Institutional escalation"
-        explanation="When regime fragility drives allocation decisions, involve an expert-led audit for deployment controls."
-        planHint="Request strategy audit for mandate-level governance."
-      />
+      <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.regimes.interpretation)} />
     </AnalysisPageFrame>
   );
 }

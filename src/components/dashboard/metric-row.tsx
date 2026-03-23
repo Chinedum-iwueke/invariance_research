@@ -1,4 +1,4 @@
-import type { KeyMetric } from "@/lib/mock/analysis";
+import type { KeyMetric } from "@/lib/app/analysis-ui";
 import { MetricTile } from "@/components/dashboard/metric-tile";
 
 export function MetricRow({ metrics, cols = 4 }: { metrics: KeyMetric[]; cols?: 3 | 4 | 6 }) {

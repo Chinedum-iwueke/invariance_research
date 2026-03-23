@@ -2,7 +2,7 @@
 
 import { useSelectedLayoutSegment } from "next/navigation";
 import { InsightRail } from "@/components/dashboard/insight-rail";
-import type { InsightPoint } from "@/lib/mock/analysis";
+import type { InsightPoint } from "@/lib/app/analysis-ui";
 
 const insightBySegment: Record<string, InsightPoint[]> = {
   overview: [
