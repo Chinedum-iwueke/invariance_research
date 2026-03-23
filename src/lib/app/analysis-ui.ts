@@ -42,6 +42,57 @@ export function metricsFromScoreBands(metrics: ScoreBand[], helperMap?: Record<s
   }));
 }
 
+const OVERVIEW_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
+  ["robustness score", "robustness"],
+  ["trade count", "trades"],
+  ["win rate", "win-rate"],
+  ["expectancy", "expected value"],
+  ["profit factor", "payoff ratio", "payoff"],
+  ["worst monte carlo drawdown", "worst simulated drawdown", "max drawdown", "maximum drawdown", "drawdown"],
+  ["risk of ruin", "probability of ruin", "p(ruin)"],
+  ["overfitting risk", "overfitting"],
+];
+
+function normalizeLabel(label: string): string {
+  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+}
+
+function isUnavailableValue(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.length === 0 || ["unavailable", "n/a", "na", "unknown", "not available", "-"].includes(normalized);
+}
+
+export function selectOverviewTopMetrics(metrics: ScoreBand[], limit = 6): ScoreBand[] {
+  const selected: ScoreBand[] = [];
+  const used = new Set<number>();
+
+  const pushMetric = (metric: ScoreBand, idx: number) => {
+    if (used.has(idx) || selected.length >= limit) return;
+    selected.push(metric);
+    used.add(idx);
+  };
+
+  OVERVIEW_METRIC_PRIORITY.forEach((aliases) => {
+    if (selected.length >= limit) return;
+    const preferred = metrics.findIndex((metric, idx) => !used.has(idx) && aliases.some((alias) => normalizeLabel(metric.label).includes(alias)) && !isUnavailableValue(metric.value));
+    if (preferred >= 0) pushMetric(metrics[preferred], preferred);
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    if (!isUnavailableValue(metric.value)) {
+      pushMetric(metric, idx);
+    }
+  });
+
+  metrics.forEach((metric, idx) => {
+    if (selected.length >= limit || used.has(idx)) return;
+    pushMetric(metric, idx);
+  });
+
+  return selected;
+}
+
 export function buildAnalysisContext(analysis: AnalysisListItem, record?: AnalysisRecord): AnalysisContext {
   return {
     analysis_id: analysis.analysis_id,
@@ -56,6 +107,23 @@ export function buildAnalysisContext(analysis: AnalysisListItem, record?: Analys
 }
 
 
-export function toInterpretationBlockPayload(payload: { title: string; summary: string; bullets?: string[] }) {
-  return { title: payload.title, body: payload.summary, bullets: payload.bullets };
+export function toInterpretationBlockPayload(payload: {
+  title: string;
+  summary?: string;
+  narrative?: string;
+  interpretation?: string;
+  bullets?: string[];
+  positives?: string[];
+  cautions?: string[];
+  key_caveats?: string[];
+  caveats?: string[];
+}) {
+  return {
+    title: payload.title,
+    body: payload.summary ?? payload.narrative ?? payload.interpretation ?? "No interpretation summary was emitted for this run.",
+    bullets: payload.bullets,
+    positives: payload.positives,
+    cautions: payload.cautions,
+    caveats: payload.key_caveats ?? payload.caveats,
+  };
 }

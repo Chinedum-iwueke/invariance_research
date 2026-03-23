@@ -6,9 +6,95 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
-import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import type { AnalysisRecord } from "@/lib/contracts";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+
+function StatusPill({ label, value, tone = "neutral" }: { label?: string; value: string; tone?: "neutral" | "positive" | "warning" }) {
+  const toneClass = tone === "positive"
+    ? "border-chart-positive/20 bg-chart-positive/10 text-chart-positive"
+    : tone === "warning"
+      ? "border-amber-500/25 bg-amber-500/10 text-amber-700"
+      : "border-border-subtle bg-surface-muted text-text-neutral";
+
+  return <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}>{label ? `${label}: ` : ""}{value}</span>;
+}
+
+function toTitleCase(value: string): string {
+  return value.split("_").map((token) => token.charAt(0).toUpperCase() + token.slice(1)).join(" ");
+}
+
+function verdictConfidence(record: AnalysisRecord): string | undefined {
+  const rawSummary = record.engine_payload.raw_result.summary;
+  if (!rawSummary || typeof rawSummary !== "object") return undefined;
+  const candidate = (rawSummary as Record<string, unknown>).confidence;
+  if (typeof candidate === "number" && Number.isFinite(candidate)) return `${Math.round(candidate * (candidate <= 1 ? 100 : 1))}%`;
+  if (typeof candidate === "string" && candidate.trim().length) return candidate;
+  return undefined;
+}
+
+function verdictRationale(record: AnalysisRecord): string[] {
+  const rawSummary = record.engine_payload.raw_result.summary;
+  if (rawSummary && typeof rawSummary === "object") {
+    const rationale = (rawSummary as Record<string, unknown>).rationale;
+    if (Array.isArray(rationale)) {
+      const rows = rationale.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+      if (rows.length) return rows.slice(0, 4);
+    }
+  }
+
+  if (record.summary.key_findings.length) return record.summary.key_findings.slice(0, 4);
+  return [record.diagnostics.overview.interpretation.summary];
+}
+
+function overviewInterpretation(record: AnalysisRecord) {
+  const overviewEnvelope = record.engine_payload.diagnostics.overview;
+  const rawOverview = record.engine_payload.raw_result.diagnostics;
+  const rawOverviewRecord = rawOverview && typeof rawOverview === "object"
+    ? (rawOverview as Record<string, unknown>).overview
+    : undefined;
+
+  const pickArray = (value: unknown): string[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const rows = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+    return rows.length ? rows : undefined;
+  };
+
+  const engineSections = rawOverviewRecord && typeof rawOverviewRecord === "object"
+    ? (rawOverviewRecord as Record<string, unknown>)
+    : undefined;
+
+  return {
+    ...toInterpretationBlockPayload({
+      ...record.diagnostics.overview.interpretation,
+      summary: overviewEnvelope?.interpretation ?? record.diagnostics.overview.interpretation.summary,
+      positives: pickArray(engineSections?.positives),
+      cautions: pickArray(engineSections?.cautions),
+      key_caveats: pickArray(engineSections?.key_caveats ?? engineSections?.caveats),
+    }),
+  };
+}
+
+function diagnosticRows(record: AnalysisRecord) {
+  const diagnostics = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "report"] as const;
+  return diagnostics.map((name) => ({
+    name,
+    status: record.engine_payload.diagnostics[name]?.status ?? "unavailable",
+  }));
+}
+
+function sectionList(items: string[] | undefined, emptyState: string) {
+  if (!items?.length) {
+    return <p className="mt-1 text-xs text-text-neutral">{emptyState}</p>;
+  }
+
+  return (
+    <ul className="mt-1 space-y-1">
+      {items.map((item) => <li key={item}>• {item}</li>)}
+    </ul>
+  );
+}
 
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
@@ -23,50 +109,128 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  const overviewEnvelope = record.engine_payload.diagnostics.overview;
+  const figureMetadata = overviewEnvelope?.metadata && typeof overviewEnvelope.metadata === "object" ? overviewEnvelope.metadata as Record<string, unknown> : undefined;
+  const provenance = typeof figureMetadata?.overview_figure_provenance === "string" ? figureMetadata.overview_figure_provenance : "unknown";
+  const artifactRichness = typeof figureMetadata?.artifact_richness === "string" ? figureMetadata.artifact_richness : analysis.eligibility_snapshot?.detected_richness ?? "unknown";
+  const benchmarkStatus = typeof figureMetadata?.benchmark_status === "string" ? figureMetadata.benchmark_status : "pending";
+  const executionContextLevel = typeof figureMetadata?.execution_context_level === "string" ? figureMetadata.execution_context_level : record.engine_payload.diagnostics.execution?.status ?? "limited";
+  const completeness = diagnosticRows(record).filter((row) => row.status === "available").length;
+
+  const selectedMetrics = selectOverviewTopMetrics(record.diagnostics.overview.metrics, 6);
+  const assumptions = overviewEnvelope?.assumptions?.length ? overviewEnvelope.assumptions : record.engine_payload.report_sections.assumptions;
+  const limitations = overviewEnvelope?.limitations?.length ? overviewEnvelope.limitations : record.engine_payload.report_sections.limitations;
+  const recommendations = overviewEnvelope?.recommendations?.length ? overviewEnvelope.recommendations : record.engine_payload.report_sections.recommendations;
+
+  const parserNotes = [
+    ...(analysis.eligibility_snapshot?.parser_notes ?? []),
+    ...(record.run_context.notes ?? "").split("|").map((item) => item.trim()).filter(Boolean),
+  ];
+
+  const omittedDimensions = [
+    benchmarkStatus !== "available" ? "No benchmark-relative comparison is included in this run." : undefined,
+    record.engine_payload.diagnostics.stability?.status !== "available" ? "No parameter-surface fragility assessment is available in this run context." : undefined,
+    record.engine_payload.diagnostics.regimes?.status !== "available" ? "No market-regime decomposition is available for this artifact." : undefined,
+  ].filter((item): item is string => Boolean(item));
+
   return (
     <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
-      <FigureCard
-        title={record.diagnostics.overview.figure.title}
-        subtitle={record.diagnostics.overview.figure.subtitle}
-        figure={<DiagnosticFigure figure={record.diagnostics.overview.figure} />}
-        note={record.diagnostics.overview.figure.note}
-      />
-
-      <MetricRow metrics={metricsFromScoreBands(record.diagnostics.overview.metrics)} />
-
-      <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
-        <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.overview.interpretation)} />
-        <VerdictCard title={record.diagnostics.overview.verdict.title} summary={record.diagnostics.overview.verdict.summary} posture={record.diagnostics.overview.verdict.status} />
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusPill label="Artifact" value={toTitleCase(artifactRichness)} tone="neutral" />
+        <StatusPill label="Benchmark" value={benchmarkStatus === "available" ? "Present" : "Absent/Pending"} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
+        <StatusPill label="Execution context" value={toTitleCase(executionContextLevel)} tone={executionContextLevel === "available" ? "positive" : "warning"} />
+        <StatusPill label="Diagnostics" value={`${completeness}/8 available`} tone={completeness >= 5 ? "positive" : "warning"} />
       </div>
 
-      <WorkspaceCard title="Operational summary" subtitle="Persisted run-level context">
+      <FigureCard
+        title="Top-line equity view"
+        subtitle="Primary strategy equity path for initial decisioning"
+        figure={<DiagnosticFigure figure={{ ...record.diagnostics.overview.figure, title: "Top-line equity view" }} />}
+        note={record.diagnostics.overview.figure.note}
+        metadata={(
+          <>
+            <StatusPill label="Provenance" value={provenance === "engine_emitted" ? "Engine-emitted" : provenance === "reconstructed_from_trades" ? "Reconstructed from trades" : "Unknown"} tone={provenance === "engine_emitted" ? "positive" : "warning"} />
+            <StatusPill label="Artifact richness" value={toTitleCase(artifactRichness)} />
+            <StatusPill label="Benchmark" value={benchmarkStatus === "available" ? "Present" : "Absent/Pending"} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
+            <StatusPill label="Execution context" value={toTitleCase(executionContextLevel)} tone={executionContextLevel === "available" ? "positive" : "warning"} />
+          </>
+        )}
+      />
+
+      <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
+
+      <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
+        <InterpretationBlock {...overviewInterpretation(record)} />
+        <VerdictCard
+          title={record.summary.headline_verdict.title}
+          summary={record.summary.headline_verdict.summary}
+          posture={record.summary.headline_verdict.status}
+          confidence={verdictConfidence(record)}
+          rationale={verdictRationale(record)}
+        />
+      </div>
+
+      <WorkspaceCard title="Operational summary" subtitle="What exactly was analyzed in this run">
         <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2">
-          <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count}</p>
-          <p><span className="font-medium text-text-graphite">Window:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
-          <p><span className="font-medium text-text-graphite">Execution model:</span> {record.run_context.execution_model}</p>
+          <p><span className="font-medium text-text-graphite">Trade count:</span> {record.dataset.trade_count}</p>
+          <p><span className="font-medium text-text-graphite">Date window:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Asset/Symbols:</span> {record.strategy.symbols.length ? record.strategy.symbols.join(", ") : "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Execution context level:</span> {toTitleCase(executionContextLevel)}</p>
+          <p><span className="font-medium text-text-graphite">Artifact richness:</span> {toTitleCase(artifactRichness)}</p>
           <p><span className="font-medium text-text-graphite">Risk model:</span> {record.run_context.risk_model}</p>
+          <p><span className="font-medium text-text-graphite">Parser/adapter:</span> {analysis.engine_context?.engine_name ?? "N/A"} / {analysis.engine_context?.seam ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Benchmark status:</span> {benchmarkStatus === "available" ? "Present" : "Absent/Pending"}</p>
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Methodology posture" subtitle="Validation sequence applied to this artifact">
-        <p className="text-sm leading-relaxed text-text-neutral">{record.run_context.notes ?? "No additional methodology notes were persisted for this analysis."}</p>
+      <WorkspaceCard title="Methodology posture" subtitle="Diagnostic availability for this artifact and runtime">
+        <div className="grid gap-2 md:grid-cols-2">
+          {diagnosticRows(record).map((row) => (
+            <div key={row.name} className="flex items-center justify-between rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-sm">
+              <span className="font-medium text-text-graphite">{toTitleCase(row.name)}</span>
+              <StatusPill
+                label=""
+                value={toTitleCase(row.status)}
+                tone={row.status === "available" ? "positive" : row.status === "limited" ? "warning" : "neutral"}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 border-t pt-3 text-sm text-text-neutral">
+          <p className="font-medium text-text-graphite">Parser/runtime notes</p>
+          {parserNotes.length ? (
+            <ul className="mt-1 space-y-1">
+              {parserNotes.slice(0, 6).map((note) => <li key={note}>• {note}</li>)}
+            </ul>
+          ) : (
+            <p className="mt-1 text-xs">No additional parser/runtime notes were persisted for this run.</p>
+          )}
+        </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Diagnostic context" subtitle="Engine-native assumptions, warnings, and recommendations">
+      <WorkspaceCard title="Diagnostic context" subtitle="Engine-native assumptions, limitations, and recommendations">
         <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
           <div>
             <p className="font-medium text-text-graphite">Assumptions</p>
-            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+            {sectionList(assumptions, "No assumptions were emitted for this run.")}
           </div>
           <div>
             <p className="font-medium text-text-graphite">Limitations</p>
-            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.limitations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+            {sectionList(limitations, "No explicit limitations were emitted for this run.")}
           </div>
           <div>
             <p className="font-medium text-text-graphite">Recommendations</p>
-            <ul className="mt-1 space-y-1">{(record.engine_payload.diagnostics.overview?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}</ul>
+            {sectionList(recommendations, "No recommendations were emitted for this run.")}
           </div>
         </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="What this page does not yet include" subtitle="Scope boundaries for this current run context">
+        <ul className="space-y-1 text-sm text-text-neutral">
+          {omittedDimensions.length
+            ? omittedDimensions.map((item) => <li key={item}>• {item}</li>)
+            : <li>• This overview reflects the currently available diagnostics for this run.</li>}
+        </ul>
       </WorkspaceCard>
     </AnalysisPageFrame>
   );

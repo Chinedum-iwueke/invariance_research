@@ -37,7 +37,7 @@ Engine output path:
 
 Pages now use richer persisted envelope content:
 
-- **Overview**: top-line chart/metrics + assumptions/limitations/recommendations panel
+- **Overview**: top-line equity chart with provenance metadata (engine-emitted vs reconstructed), dynamic best-available six metric selection, strengthened verdict rendering (confidence/rationale when present), structured methodology posture grid, and explicit assumptions/limitations/recommendations sections with empty-state safeguards
 - **Trade Distribution**: richer figure set + native interpretation/limitations text
 - **Monte Carlo**: fan/line/scatter rendering + assumptions/recommendations section
 - **Risk of Ruin**: survivability metrics/figure + limitations/recommendations section
@@ -62,10 +62,22 @@ Frontend figure schema/rendering now supports:
 
 For trade-only runs with richer engine emissions, users should now see:
 
-- real top-line overview metrics and equity chart (engine-first, derived fallback only when missing)
+- real top-line overview metrics and equity chart (engine-first, derived fallback only when missing) with explicit provenance badges
 - distribution metrics with at least one chart if engine figures were emitted
 - Monte Carlo and ruin summaries/charts when emitted
 - report narrative with assumptions/recommendations and explicit limitations
+
+## Overview-specific adapter additions
+
+`mapEngineAnalysisResultToAnalysisRecord(...)` now enriches `engine_payload.diagnostics.overview.metadata` with:
+
+- `overview_figure_provenance`
+- `benchmark_status` (future-friendly: currently `available` or `pending`)
+- `artifact_richness`
+- `execution_context_level`
+- `figure_series_count`
+
+This keeps Overview rendering institutional and traceable without introducing benchmark-comparison logic ahead of readiness.
 
 ## Remaining artifact-limited states
 
