@@ -27,4 +27,5 @@ export interface FigurePayload {
   y_label?: string;
   legend?: FigureLegendItem[];
   note?: string;
+  provenance?: "engine_native" | "adapter_normalized" | "synthesized_fallback" | "reconstructed_from_trades";
 }

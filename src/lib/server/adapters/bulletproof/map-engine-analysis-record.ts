@@ -61,13 +61,19 @@ function getStringArray(source: UnknownRecord | undefined, keys: string[]): stri
   return [];
 }
 
+function getArrayItem(source: UnknownRecord | undefined, key: string, index: number): unknown {
+  if (!source) return undefined;
+  const value = source[key];
+  return Array.isArray(value) ? value[index] : undefined;
+}
+
 function normalizeText(value: unknown): string | undefined {
   if (typeof value === "string" && value.trim().length > 0) return value.trim();
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return undefined;
 }
 
-function normalizeMetric(metric: unknown, index: number) {
+function normalizeMetric(metric: unknown, index: number): AnalysisRecord["engine_payload"]["summary_metrics"][number] | undefined {
   const item = asRecord(metric);
   if (!item) return undefined;
   const label = getString(item, ["label", "name", "title", "metric"]) ?? `Metric ${index + 1}`;
@@ -330,6 +336,7 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
           .filter((item): item is { key: string; label: string } => Boolean(item))
       : undefined,
     note: getString(figure, ["note"]) ?? fallback.note,
+    provenance: "engine_native",
   };
 }
 
@@ -368,11 +375,21 @@ function pickDiagnosticEnvelope(raw: UnknownRecord | undefined): UnknownRecord |
 }
 
 function envelopeMetricToScore(metric: NonNullable<ReturnType<typeof normalizeMetric>>): ScoreBand {
+  const band = metric.band;
   return {
     label: metric.label,
     value: metric.value,
-    band: metric.band ?? "informational",
+    band: band === "excellent" || band === "good" || band === "moderate" || band === "elevated" || band === "critical" || band === "informational"
+      ? band
+      : "informational",
   };
+}
+
+function extractReportConfidence(report: UnknownRecord | undefined, summary: UnknownRecord | undefined): string | undefined {
+  const numeric = getNumber(report, ["confidence", "confidence_pct", "confidencePercent"])
+    ?? getNumber(summary, ["confidence", "confidence_pct", "confidencePercent"]);
+  if (numeric !== undefined) return `${Math.round(numeric <= 1 ? numeric * 100 : numeric)}%`;
+  return getString(report, ["confidence_label", "confidence"]) ?? getString(summary, ["confidence_label", "confidence"]);
 }
 
 export function mapEngineAnalysisResultToAnalysisRecord(params: {
@@ -398,6 +415,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["ruin"]));
   const stabilityRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["stability"]));
   const reportRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["report"]));
+  const summaryRaw = asRecord(engine.summary);
+  const topLevelReportAlias = asRecord((engine as unknown as UnknownRecord).report_payload) ?? asRecord((engine as unknown as UnknownRecord).report);
+  const canonicalReport = asRecord(engine.report) ?? reportRaw ?? topLevelReportAlias;
+  const reportConfidence = extractReportConfidence(canonicalReport, summaryRaw);
   const derivedStats = buildTradeDerivedStats(parsedArtifact);
 
   const warnings: WarningItem[] = [
@@ -446,6 +467,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const verdict = engine.summary?.verdict ?? (robustness !== undefined && robustness >= 70 ? "robust" : robustness !== undefined && robustness >= 50 ? "moderate" : "fragile");
 
   const reportDiagnosticRows = DIAGNOSTICS.map((name) => `${name}: ${statusByDiagnostic.get(name)}`);
+  const statusReasonByDiagnostic = new Map((engine.skipped_diagnostics ?? []).map((item) => [item.diagnostic as DiagnosticName, item.reason]));
   const globalSummaryMetrics = Array.isArray(engine.summary && (engine.summary as unknown as UnknownRecord).summary_metrics)
     ? ((engine.summary as unknown as UnknownRecord).summary_metrics as unknown[]).map(normalizeMetric).filter((metric): metric is NonNullable<ReturnType<typeof normalizeMetric>> => Boolean(metric))
     : [];
@@ -470,7 +492,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       }];
     }),
   ) as AnalysisRecord["engine_payload"]["diagnostics"];
-  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure ?? overviewRaw?.figures?.[0], {
+  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure ?? getArrayItem(overviewRaw, "figures", 0), {
     title: "Equity Comparison",
     type: "line",
     note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
@@ -478,12 +500,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
 
   const overviewFigureProvenance = mappedOverviewFigure.series.length > 0 ? "engine_emitted" : "reconstructed_from_trades";
   const overviewFigure: FigurePayload = mappedOverviewFigure.series.length > 0
-    ? { ...mappedOverviewFigure, title: "Top-line equity view", note: "Engine-emitted overview equity series for top-line review." }
+    ? { ...mappedOverviewFigure, title: "Top-line equity view", note: "Engine-emitted overview equity series for top-line review.", provenance: "engine_native" }
     : {
         ...mappedOverviewFigure,
         title: "Top-line equity view",
         note: "Engine overview series unavailable; cumulative PnL was reconstructed from persisted trade-level PnL.",
         series: derivedStats.equitySeries,
+        provenance: "reconstructed_from_trades",
       };
 
   if (envelopeByDiagnostic.overview) {
@@ -497,15 +520,15 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     };
   }
 
-  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram ?? distributionRaw?.figures?.[0], {
+  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram ?? getArrayItem(distributionRaw, "figures", 0), {
     title: "Outcome Distribution",
     type: "histogram",
     note: "Distribution histogram shown when engine emits bin data.",
   });
   const distributionHistogramProvenance = mappedDistributionHistogram.series.length > 0 ? "engine_emitted" : "derived_from_persisted_trades";
   const distributionHistogram: FigurePayload = mappedDistributionHistogram.series.length > 0
-    ? mappedDistributionHistogram
-    : { ...mappedDistributionHistogram, title: "Trade PnL distribution (derived)", note: "Histogram bins were derived from persisted trade-level PnL because engine histogram bins were not emitted.", series: derivedStats.histogramSeries };
+    ? { ...mappedDistributionHistogram, provenance: "engine_native" }
+    : { ...mappedDistributionHistogram, title: "Trade PnL distribution (derived)", note: "Histogram bins were derived from persisted trade-level PnL because engine histogram bins were not emitted.", series: derivedStats.histogramSeries, provenance: "synthesized_fallback" };
 
   if (envelopeByDiagnostic.distribution) {
     const hasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
@@ -611,6 +634,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     },
     diagnostics: {
       overview: {
+        status: statusByDiagnostic.get("overview"),
         metrics: envelopeByDiagnostic.overview?.summary_metrics.length
           ? envelopeByDiagnostic.overview.summary_metrics.map(envelopeMetricToScore)
           : [
@@ -639,8 +663,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           title: verdict === "robust" ? "Robust profile under current assumptions" : verdict === "moderate" ? "Moderate profile with bounded fragility" : "Fragile profile under stress assumptions",
           summary: engine.summary?.short_summary ?? eligibility.summary_text,
         },
+        assumptions: envelopeByDiagnostic.overview?.assumptions ?? [],
+        limitations: envelopeByDiagnostic.overview?.limitations ?? [],
+        recommendations: envelopeByDiagnostic.overview?.recommendations ?? [],
       },
       distribution: {
+        status: statusByDiagnostic.get("distribution"),
         metrics: envelopeByDiagnostic.distribution?.summary_metrics.length
           ? envelopeByDiagnostic.distribution.summary_metrics.map(envelopeMetricToScore)
           : [
@@ -651,7 +679,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         ],
         figures: [
           distributionHistogram,
-          mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter ?? distributionRaw?.figures?.[1], { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
+          mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter ?? getArrayItem(distributionRaw, "figures", 1), { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
           ...(envelopeByDiagnostic.distribution?.figures ?? []).filter((figure) => ![distributionHistogram.figure_id].includes(figure.figure_id)),
         ],
         interpretation: {
@@ -659,8 +687,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           summary: statusText(statusByDiagnostic.get("distribution"), "Distribution metrics describe trade behavior, expectancy shape, and duration structure.", "Distribution view is limited by available artifact fields."),
           bullets: statusByDiagnostic.get("distribution") === "available" ? ["Expectancy and win-rate are engine-derived.", "Duration and dispersion are presented without overclaiming missing MAE/MFE fields."] : ["Upload lacked richer excursion context for full behavior decomposition."],
         },
+        assumptions: envelopeByDiagnostic.distribution?.assumptions ?? [],
+        limitations: envelopeByDiagnostic.distribution?.limitations ?? [],
+        recommendations: envelopeByDiagnostic.distribution?.recommendations ?? [],
+        metadata: envelopeByDiagnostic.distribution?.metadata,
       },
       monte_carlo: {
+        status: statusByDiagnostic.get("monte_carlo"),
         metrics: envelopeByDiagnostic.monte_carlo?.summary_metrics.length
           ? envelopeByDiagnostic.monte_carlo.summary_metrics.map(envelopeMetricToScore)
           : [
@@ -698,8 +731,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
               message,
             }))
           : warnings.filter((warning) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(warning.message)),
+        assumptions: envelopeByDiagnostic.monte_carlo?.assumptions ?? [],
+        limitations: envelopeByDiagnostic.monte_carlo?.limitations ?? [],
+        recommendations: envelopeByDiagnostic.monte_carlo?.recommendations ?? [],
+        metadata: envelopeByDiagnostic.monte_carlo?.metadata,
       },
       stability: {
+        status: statusByDiagnostic.get("stability"),
         metrics: envelopeByDiagnostic.stability?.summary_metrics.length
           ? envelopeByDiagnostic.stability.summary_metrics.map(envelopeMetricToScore)
           : [score("Stability Coverage", statusByDiagnostic.get("stability") ?? "unavailable", statusByDiagnostic.get("stability") === "available" ? "moderate" : "informational")],
@@ -709,9 +747,14 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           summary: statusText(statusByDiagnostic.get("stability"), "Stability proxy is provided from available sensitivity outputs.", "Parameter-surface topology is not fully available for this run; interpretation remains limited."),
           bullets: getString(stabilityRaw, ["limitation_note", "note"]) ? [getString(stabilityRaw, ["limitation_note", "note"]) as string] : undefined,
         },
+        assumptions: envelopeByDiagnostic.stability?.assumptions ?? [],
+        limitations: envelopeByDiagnostic.stability?.limitations ?? [],
+        recommendations: envelopeByDiagnostic.stability?.recommendations ?? [],
+        metadata: envelopeByDiagnostic.stability?.metadata,
         locked: statusByDiagnostic.get("stability") !== "available",
       },
       execution: {
+        status: statusByDiagnostic.get("execution"),
         metrics: envelopeByDiagnostic.execution?.summary_metrics.length
           ? envelopeByDiagnostic.execution.summary_metrics.map(envelopeMetricToScore)
           : [
@@ -787,6 +830,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         sensitivity_classification: classifySensitivity(stressedExpectancyValue, edgeDecayPctValue),
       },
       regimes: {
+        status: statusByDiagnostic.get("regimes"),
         metrics: envelopeByDiagnostic.regimes?.summary_metrics.length
           ? envelopeByDiagnostic.regimes.summary_metrics.map(envelopeMetricToScore)
           : [score("Regime Diagnostic Status", statusByDiagnostic.get("regimes") ?? "unavailable", statusByDiagnostic.get("regimes") === "available" ? "moderate" : "informational")],
@@ -853,6 +897,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         locked: statusByDiagnostic.get("regimes") !== "available",
       },
       ruin: {
+        status: statusByDiagnostic.get("ruin"),
         metrics: envelopeByDiagnostic.ruin?.summary_metrics.length
           ? envelopeByDiagnostic.ruin.summary_metrics.map(envelopeMetricToScore)
           : [
@@ -872,6 +917,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           title: "Ruin interpretation",
           summary: statusText(statusByDiagnostic.get("ruin"), "Ruin diagnostics estimate survivability under current risk assumptions.", "Ruin diagnostics are limited; assumptions remain thin and should not be over-interpreted."),
         },
+        limitations: envelopeByDiagnostic.ruin?.limitations ?? [],
+        recommendations: envelopeByDiagnostic.ruin?.recommendations ?? [],
+        metadata: envelopeByDiagnostic.ruin?.metadata,
       },
     },
     engine_payload: {
@@ -887,28 +935,49 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     report: {
       report_id: `${analysisId}-report`,
       generated_at: now,
-      executive_summary: engine.report?.executive_summary ?? engine.summary?.short_summary ?? eligibility.summary_text,
+      executive_summary: getString(canonicalReport, ["executive_summary", "summary"]) ?? engine.summary?.short_summary ?? eligibility.summary_text,
       diagnostics_summary: reportDiagnosticRows,
       methodology_assumptions: [
-        ...(engine.report?.methodology_assumptions ?? []),
+        ...getStringArray(canonicalReport, ["methodology_assumptions", "assumptions"]),
         ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
         `engine=${engineContext.engine_name}`,
         `seam=${engineContext.seam}`,
         `artifact_richness=${parsedArtifact.richness}`,
         ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
       ],
-      recommendations: engine.report?.recommendations ?? getStringArray(reportRaw, ["recommendations", "next_steps"]).concat([
+      limitations: getStringArray(canonicalReport, ["limitations"]).concat(getStringArray(reportRaw, ["limitations"])),
+      recommendations: getStringArray(canonicalReport, ["recommendations", "next_steps"]).length
+        ? getStringArray(canonicalReport, ["recommendations", "next_steps"])
+        : getStringArray(reportRaw, ["recommendations", "next_steps"]).concat([
         "Review limited/skipped diagnostics before deployment decisions.",
         "Use tighter sizing policies when Monte Carlo tail or ruin estimates remain elevated.",
       ]),
-      export_ready: Boolean(engine.report?.export_ready && statusByDiagnostic.get("report") === "available"),
+      confidence: reportConfidence,
+      verdict,
+      deployment_guidance: getStringArray(canonicalReport, ["deployment_guidance", "deployment_recommendations", "deployment_conditions"]),
+      figures: mapFigureList(canonicalReport?.figures, { title: "Report figure", type: "line", note: "Engine-native report figure payload." }),
+      source: asRecord(engine.report) ? "engine_report" : reportRaw ? "report_diagnostic_alias" : "summary_fallback",
+      export_ready: Boolean(canonicalReport?.export_ready === true || getString(canonicalReport, ["export_ready"]) === "true") && statusByDiagnostic.get("report") === "available",
     },
     access: {
       can_view_stability: statusByDiagnostic.get("stability") === "available",
       can_view_regimes: statusByDiagnostic.get("regimes") === "available",
       can_view_ruin: statusByDiagnostic.get("ruin") !== "unavailable" && statusByDiagnostic.get("ruin") !== "skipped",
-      can_export_report: Boolean(engine.report?.export_ready && statusByDiagnostic.get("report") === "available"),
+      can_export_report: Boolean(canonicalReport?.export_ready === true && statusByDiagnostic.get("report") === "available"),
     },
+    diagnostic_statuses: Object.fromEntries(
+      DIAGNOSTICS.map((name) => {
+        const status = statusByDiagnostic.get(name) ?? "unavailable";
+        return [name, {
+          status,
+          available: status === "available",
+          limited: status === "limited",
+          unavailable: status === "unavailable",
+          skipped: status === "skipped",
+          reason: statusReasonByDiagnostic.get(name),
+        }];
+      }),
+    ) as AnalysisRecord["diagnostic_statuses"],
   };
 
   return analysisRecordSchema.parse(record);

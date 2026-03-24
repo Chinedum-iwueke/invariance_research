@@ -22,8 +22,8 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const monteCarloEnvelope = record.engine_payload.diagnostics.monte_carlo;
-  const metadata = monteCarloEnvelope?.metadata ?? {};
+  const monteCarlo = record.diagnostics.monte_carlo;
+  const metadata = monteCarlo.metadata ?? {};
   const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
   const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
   const simulations = typeof metadata.simulations === "number"
@@ -58,14 +58,13 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
   const emittedWarnings = record.diagnostics.monte_carlo.warnings.map((warning) => warning.message);
   const monteCarloWarnings = [
-    ...(monteCarloEnvelope?.warnings ?? []),
-    ...(monteCarloEnvelope?.limitations ?? []),
+    ...(monteCarlo.limitations ?? []),
     ...emittedWarnings.filter((message) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(message)),
   ].filter((warning, idx, arr) => warning.trim().length > 0 && arr.indexOf(warning) === idx);
 
-  const assumptions = monteCarloEnvelope?.assumptions ?? [];
-  const limitations = monteCarloEnvelope?.limitations ?? [];
-  const recommendations = monteCarloEnvelope?.recommendations ?? [];
+  const assumptions = monteCarlo.assumptions ?? [];
+  const limitations = monteCarlo.limitations ?? [];
+  const recommendations = monteCarlo.recommendations ?? [];
 
   return (
     <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">

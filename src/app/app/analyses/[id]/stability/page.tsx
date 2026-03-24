@@ -52,8 +52,8 @@ export default async function StabilityPage({ params }: { params: Promise<{ id: 
       <MetricRow metrics={metricsFromScoreBands(record.diagnostics.stability.metrics)} cols={3} />
       <FigureCard title={record.diagnostics.stability.figure?.title ?? "Stability Surface"} subtitle={record.diagnostics.stability.figure?.subtitle} figure={<DiagnosticFigure figure={record.diagnostics.stability.figure} />} note={record.diagnostics.stability.figure?.note} />
       <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.stability.interpretation)} />
-      {record.engine_payload.diagnostics.stability?.limitations?.length ? (
-        <p className="text-sm text-text-neutral">{record.engine_payload.diagnostics.stability.limitations.join(" • ")}</p>
+      {record.diagnostics.stability.limitations?.length ? (
+        <p className="text-sm text-text-neutral">{record.diagnostics.stability.limitations.join(" • ")}</p>
       ) : null}
     </AnalysisPageFrame>
   );

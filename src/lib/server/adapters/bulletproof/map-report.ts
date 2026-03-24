@@ -8,7 +8,11 @@ export function mapRawReportToReportPayload(raw: RawReportResult | undefined, re
     executive_summary: raw?.executiveSummary ?? "Report pending backend integration.",
     diagnostics_summary: ["Overview", "Distribution", "Monte Carlo", "Execution", "Regimes", "Ruin"],
     methodology_assumptions: raw?.assumptions ?? ["Assumptions pending backend integration"],
+    limitations: [],
     recommendations: raw?.recommendations ?? ["Recommendations pending backend integration"],
+    deployment_guidance: [],
+    figures: [],
+    source: "summary_fallback",
     export_ready: false,
   };
 }

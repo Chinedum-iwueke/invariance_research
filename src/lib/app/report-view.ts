@@ -81,22 +81,10 @@ export function deriveReportVerdict(record: AnalysisRecord): ReportVerdictModel 
   };
 }
 
-function extractRawConfidence(record: AnalysisRecord): string | undefined {
-  const rawSummary = record.engine_payload.raw_result.summary;
-  if (!rawSummary || typeof rawSummary !== "object") return undefined;
-  const candidate = (rawSummary as Record<string, unknown>).confidence;
-  if (typeof candidate === "number" && Number.isFinite(candidate)) {
-    const asPct = candidate <= 1 ? candidate * 100 : candidate;
-    return `${Math.round(asPct)}%`;
-  }
-  if (typeof candidate === "string" && candidate.trim().length > 0) return candidate.trim();
-  return undefined;
-}
-
 export function deriveConfidenceModel(record: AnalysisRecord): ConfidenceModel {
   const totalDiagnostics = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "report"] as const;
-  const availableCount = totalDiagnostics.filter((key) => record.engine_payload.diagnostics[key]?.status === "available").length;
-  const richArtifact = record.engine_payload.report_sections.assumptions.some((item) => /artifact_richness=(institutional|high)/i.test(item));
+  const availableCount = totalDiagnostics.filter((key) => record.diagnostic_statuses[key].status === "available").length;
+  const richArtifact = record.report.methodology_assumptions.some((item) => /artifact_richness=(institutional|high)/i.test(item));
 
   const level = availableCount >= 6 && richArtifact
     ? "high"
@@ -105,7 +93,7 @@ export function deriveConfidenceModel(record: AnalysisRecord): ConfidenceModel {
       : "low";
 
   const label = level === "high" ? "High" : level === "medium" ? "Medium" : "Low";
-  const value = extractRawConfidence(record);
+  const value = record.report.confidence;
   const explanation = level === "high"
     ? "Most diagnostics are available with richer artifacts, supporting high-confidence interpretation."
     : level === "medium"
@@ -139,13 +127,12 @@ function preferredMetrics(record: AnalysisRecord): ScoreBand[] {
 function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdictModel): DeploymentGuidanceModel {
   const recommendationRows = uniqueRows([
     ...record.report.recommendations,
-    ...record.engine_payload.report_sections.recommendations,
     ...record.diagnostics.execution.recommendations ?? [],
     ...record.diagnostics.regimes.recommendations ?? [],
   ], 12);
 
   const limitationRows = uniqueRows([
-    ...record.engine_payload.report_sections.limitations,
+    ...record.report.limitations,
     ...record.diagnostics.execution.limitations ?? [],
     ...record.diagnostics.regimes.limitations ?? [],
   ], 10);
@@ -165,7 +152,7 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
   const blockers = uniqueRows([
     ...limitationRows.filter((item) => /missing|limited|unavailable|thin|not available|insufficient|absent/i.test(item)),
     verdict.statusLabel === "Not deployment-ready" ? "Current survivability profile indicates elevated ruin risk under stress." : "",
-    record.engine_payload.diagnostics.report?.status !== "available" ? "Report diagnostic envelope is not fully available." : "",
+    record.diagnostic_statuses.report.status !== "available" ? "Report diagnostic envelope is not fully available." : "",
   ], 4);
 
   const advisable = verdict.posture === "robust" && blockers.length === 0;
@@ -184,6 +171,7 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
 
 function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
   const candidates: Array<FigurePayload | undefined> = [
+    record.report.figures[0],
     record.diagnostics.overview.figure,
     record.diagnostics.distribution.figures[0],
     record.diagnostics.monte_carlo.figure,
@@ -201,7 +189,7 @@ export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
     keyMetrics: preferredMetrics(record),
     diagnosticsSummary: uniqueRows(record.report.diagnostics_summary, 8),
     methodology: uniqueRows(record.report.methodology_assumptions, 8),
-    limitations: uniqueRows(record.engine_payload.report_sections.limitations, 8),
+    limitations: uniqueRows(record.report.limitations, 8),
     recommendations: uniqueRows(record.report.recommendations, 8),
     deploymentGuidance: deriveDeploymentGuidance(record, verdict),
     charts: deriveCuratedCharts(record),

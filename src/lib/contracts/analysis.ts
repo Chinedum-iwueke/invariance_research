@@ -54,32 +54,57 @@ export interface InterpretationBlockPayload {
   title: string;
   summary: string;
   bullets?: string[];
+  positives?: string[];
+  cautions?: string[];
+  caveats?: string[];
+  key_caveats?: string[];
+  narrative?: string;
+  interpretation?: string;
 }
 
 export interface OverviewDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figure: FigurePayload;
   interpretation: InterpretationBlockPayload;
   verdict: Verdict;
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
 }
 
 export interface DistributionDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figures: FigurePayload[];
   interpretation: InterpretationBlockPayload;
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface MonteCarloDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figure: FigurePayload;
   interpretation: InterpretationBlockPayload;
   warnings: WarningItem[];
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface StabilityDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figure?: FigurePayload;
   interpretation: InterpretationBlockPayload;
+  limitations?: string[];
+  assumptions?: string[];
+  recommendations?: string[];
+  metadata?: Record<string, unknown>;
   locked?: boolean;
 }
 
@@ -96,6 +121,7 @@ export interface ExecutionScenario {
 }
 
 export interface ExecutionDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   scenarios: ExecutionScenario[];
   figure?: FigurePayload;
@@ -110,6 +136,7 @@ export interface ExecutionDiagnostic {
 }
 
 export interface RegimeDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   regime_metrics: RegimeMetricRow[];
   figures?: FigurePayload[];
@@ -151,10 +178,14 @@ export interface RuinAssumption {
 }
 
 export interface RuinDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   assumptions: RuinAssumption[];
   figure?: FigurePayload;
   interpretation: InterpretationBlockPayload;
+  limitations?: string[];
+  recommendations?: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface EngineDiagnosticMetric {
@@ -205,6 +236,15 @@ export interface AccessFlags {
   can_export_report: boolean;
 }
 
+export interface NormalizedDiagnosticStatus {
+  status: "available" | "limited" | "unavailable" | "skipped";
+  available: boolean;
+  limited: boolean;
+  unavailable: boolean;
+  skipped: boolean;
+  reason?: string;
+}
+
 export interface AnalysisSummary {
   robustness_score?: ScoreBand;
   overfitting_risk?: ScoreBand;
@@ -230,4 +270,5 @@ export interface AnalysisRecord {
   engine_payload: EnginePayloadSnapshot;
   report: ReportPayload;
   access: AccessFlags;
+  diagnostic_statuses: Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", NormalizedDiagnosticStatus>;
 }

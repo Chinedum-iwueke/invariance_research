@@ -64,29 +64,48 @@ export const interpretationBlockPayloadSchema = z.object({
 });
 
 export const overviewDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   figure: figurePayloadSchema,
   interpretation: interpretationBlockPayloadSchema,
   verdict: verdictSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
 });
 
 export const distributionDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   figures: z.array(figurePayloadSchema),
   interpretation: interpretationBlockPayloadSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const monteCarloDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   figure: figurePayloadSchema,
   interpretation: interpretationBlockPayloadSchema,
   warnings: z.array(warningItemSchema),
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const stabilityDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   figure: figurePayloadSchema.optional(),
   interpretation: interpretationBlockPayloadSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   locked: z.boolean().optional(),
 });
 
@@ -103,6 +122,7 @@ export const executionScenarioSchema = z.object({
 });
 
 export const executionDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   scenarios: z.array(executionScenarioSchema),
   figure: figurePayloadSchema.optional(),
@@ -117,6 +137,7 @@ export const executionDiagnosticSchema = z.object({
 });
 
 export const regimeDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   regime_metrics: z.array(
     z.object({
@@ -158,10 +179,14 @@ export const ruinAssumptionSchema = z.object({
 });
 
 export const ruinDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   metrics: z.array(scoreBandSchema),
   assumptions: z.array(ruinAssumptionSchema),
   figure: figurePayloadSchema.optional(),
   interpretation: interpretationBlockPayloadSchema,
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const engineDiagnosticMetricSchema = z.object({
@@ -223,6 +248,15 @@ export const accessFlagsSchema = z.object({
   can_export_report: z.boolean(),
 });
 
+export const normalizedDiagnosticStatusSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]),
+  available: z.boolean(),
+  limited: z.boolean(),
+  unavailable: z.boolean(),
+  skipped: z.boolean(),
+  reason: z.string().optional(),
+});
+
 export const analysisSummarySchema = z.object({
   robustness_score: scoreBandSchema.optional(),
   overfitting_risk: scoreBandSchema.optional(),
@@ -248,4 +282,14 @@ export const analysisRecordSchema = z.object({
   engine_payload: enginePayloadSnapshotSchema,
   report: reportPayloadSchema,
   access: accessFlagsSchema,
+  diagnostic_statuses: z.object({
+    overview: normalizedDiagnosticStatusSchema,
+    distribution: normalizedDiagnosticStatusSchema,
+    monte_carlo: normalizedDiagnosticStatusSchema,
+    stability: normalizedDiagnosticStatusSchema,
+    execution: normalizedDiagnosticStatusSchema,
+    regimes: normalizedDiagnosticStatusSchema,
+    ruin: normalizedDiagnosticStatusSchema,
+    report: normalizedDiagnosticStatusSchema,
+  }),
 });
