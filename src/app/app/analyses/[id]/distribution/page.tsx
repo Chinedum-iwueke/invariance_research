@@ -59,12 +59,12 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
     );
   }
 
-  const distributionEnvelope = record.engine_payload.diagnostics.distribution;
+  const distribution = record.diagnostics.distribution;
   const metrics = selectDistributionTopMetrics(record.diagnostics.distribution.metrics, 4);
   const availableMetrics = metrics.filter((metric) => !isUnavailable(metric.value));
   const renderedMetrics = availableMetrics.length >= 3 ? availableMetrics : metrics;
 
-  const figures = record.diagnostics.distribution.figures;
+  const figures = distribution.figures;
   const histogram = figures.find((figure) => isHistogramFigure(figure));
   const winLoss = figures.find((figure) => isWinLossFigure(figure) && figure.figure_id !== histogram?.figure_id);
   const remainingFigures = figures.filter((figure) => ![histogram?.figure_id, winLoss?.figure_id].includes(figure.figure_id));
@@ -73,15 +73,15 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const unavailableDiagnostics = remainingFigures.filter((figure) => !hasData(figure));
 
   const primaryFigures = [histogram, winLoss].filter((figure): figure is FigurePayload => Boolean(figure && hasData(figure)));
-  const engineHistogramProvenance = asString(distributionEnvelope?.metadata?.histogram_provenance) ?? (histogram?.note?.toLowerCase().includes("derived") ? "derived_from_persisted_trades" : "engine_emitted");
-  const hasExcursion = toBoolean(distributionEnvelope?.metadata?.has_excursion) ?? figures.some((figure) => figure.title.toLowerCase().includes("mae") || figure.title.toLowerCase().includes("mfe"));
-  const hasDuration = toBoolean(distributionEnvelope?.metadata?.has_duration) ?? record.diagnostics.distribution.metrics.some((metric) => metric.label.toLowerCase().includes("duration") && !isUnavailable(metric.value));
+  const engineHistogramProvenance = asString(distribution.metadata?.histogram_provenance) ?? (histogram?.note?.toLowerCase().includes("derived") ? "derived_from_persisted_trades" : "engine_emitted");
+  const hasExcursion = toBoolean(distribution.metadata?.has_excursion) ?? figures.some((figure) => figure.title.toLowerCase().includes("mae") || figure.title.toLowerCase().includes("mfe"));
+  const hasDuration = toBoolean(distribution.metadata?.has_duration) ?? distribution.metrics.some((metric) => metric.label.toLowerCase().includes("duration") && !isUnavailable(metric.value));
 
-  const assumptions = distributionEnvelope?.assumptions ?? [];
-  const limitations = distributionEnvelope?.limitations ?? [];
-  const recommendations = distributionEnvelope?.recommendations ?? [];
+  const assumptions = distribution.assumptions ?? [];
+  const limitations = distribution.limitations ?? [];
+  const recommendations = distribution.recommendations ?? [];
   const keyShapeFindings = Array.from(new Set([
-    ...(record.diagnostics.distribution.interpretation.bullets ?? []),
+    ...(distribution.interpretation.bullets ?? []),
     ...record.summary.key_findings.filter((item) => /win|loss|tail|skew|expectancy|distribution|payoff/i.test(item)),
   ])).slice(0, 5);
 
@@ -192,7 +192,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
       <InterpretationBlock
         {...toInterpretationBlockPayload({
           ...record.diagnostics.distribution.interpretation,
-          summary: distributionEnvelope?.interpretation ?? record.diagnostics.distribution.interpretation.summary,
+          summary: distribution.interpretation.summary,
           positives: keyShapeFindings.slice(0, 2),
           cautions: limitations.slice(0, 3),
           caveats: [

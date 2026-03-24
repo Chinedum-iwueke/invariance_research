@@ -57,7 +57,6 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
   }
 
   const regimes = record.diagnostics.regimes;
-  const envelope = record.engine_payload.diagnostics.regimes;
   const classification = regimeBadge(regimes.classification);
   const summaryMetrics = [
     { label: "Best regime", value: regimes.summary_metrics?.best_regime ?? "Unavailable" },
@@ -161,23 +160,23 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
           `Deployment posture should be aligned to ${classification.text.toLowerCase()} behavior.`,
           ...(regimes.recommendations ?? []),
         ]}
-        caveats={regimes.limitations ?? envelope?.limitations ?? []}
+        caveats={regimes.limitations ?? []}
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <WorkspaceCard title="Assumptions" subtitle="Engine-emitted regime assumptions">
-          {(regimes.assumptions ?? envelope?.assumptions ?? []).length ? (
+          {(regimes.assumptions ?? []).length ? (
             <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.assumptions ?? envelope?.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}
+              {(regimes.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}
             </ul>
           ) : (
             <p className="text-sm text-text-neutral">No explicit regime assumptions were emitted for this run.</p>
           )}
         </WorkspaceCard>
         <WorkspaceCard title="Recommendations" subtitle="Engine-emitted deployment guidance">
-          {(regimes.recommendations ?? envelope?.recommendations ?? []).length ? (
+          {(regimes.recommendations ?? []).length ? (
             <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.recommendations ?? envelope?.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}
+              {(regimes.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}
             </ul>
           ) : (
             <p className="text-sm text-text-neutral">No regime-specific recommendations were emitted for this run.</p>

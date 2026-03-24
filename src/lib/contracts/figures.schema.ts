@@ -27,4 +27,5 @@ export const figurePayloadSchema = z.object({
   y_label: z.string().optional(),
   legend: z.array(figureLegendItemSchema).optional(),
   note: z.string().optional(),
+  provenance: z.enum(["engine_native", "adapter_normalized", "synthesized_fallback", "reconstructed_from_trades"]).optional(),
 });

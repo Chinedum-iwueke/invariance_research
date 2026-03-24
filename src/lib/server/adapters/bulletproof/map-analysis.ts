@@ -57,6 +57,7 @@ export function mapRawAnalysisToProductAnalysis(raw: RawEngineAnalysisResult): A
       },
       regimes: {
         metrics: [],
+        regime_metrics: [],
         interpretation: { title: "Regime Interpretation", summary: "Regime mapping not yet connected." },
         locked: true,
       },
@@ -67,11 +68,27 @@ export function mapRawAnalysisToProductAnalysis(raw: RawEngineAnalysisResult): A
       },
     },
     report: mapRawReportToReportPayload(raw.report, `${raw.runId}-report`),
+    engine_payload: {
+      summary_metrics: [],
+      diagnostics: {},
+      report_sections: { assumptions: [], limitations: [], recommendations: [] },
+      raw_result: {},
+    },
     access: {
       can_view_stability: false,
       can_view_regimes: false,
       can_view_ruin: true,
       can_export_report: false,
+    },
+    diagnostic_statuses: {
+      overview: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+      distribution: { status: "unavailable", available: false, limited: false, unavailable: true, skipped: false },
+      monte_carlo: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+      stability: { status: "skipped", available: false, limited: false, unavailable: false, skipped: true },
+      execution: { status: "unavailable", available: false, limited: false, unavailable: true, skipped: false },
+      regimes: { status: "skipped", available: false, limited: false, unavailable: false, skipped: true },
+      ruin: { status: "limited", available: false, limited: true, unavailable: false, skipped: false },
+      report: { status: "limited", available: false, limited: true, unavailable: false, skipped: false },
     },
   };
 }

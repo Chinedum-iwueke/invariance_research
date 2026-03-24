@@ -69,12 +69,12 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const ruinEnvelope = record.engine_payload.diagnostics.ruin;
-  const envelopeStatus = ruinEnvelope?.status ?? "limited";
+  const ruin = record.diagnostics.ruin;
+  const envelopeStatus = ruin.status ?? "limited";
   const assumptions = record.diagnostics.ruin.assumptions;
-  const limitations = ruinEnvelope?.limitations ?? [];
-  const recommendations = ruinEnvelope?.recommendations ?? [];
-  const metadata = ruinEnvelope?.metadata ?? {};
+  const limitations = ruin.limitations ?? [];
+  const recommendations = ruin.recommendations ?? [];
+  const metadata = ruin.metadata ?? {};
   const selectedMetrics = selectRuinTopMetrics(record.diagnostics.ruin.metrics, 4);
   const metrics = metricsFromScoreBands(selectedMetrics, {
     "Probability of Ruin": "Unavailable when explicit capital+sizing assumptions were not emitted.",
@@ -94,7 +94,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     ?? "Not emitted";
   const tradeCount = readAssumptionValue(assumptions, ["trade count", "trade_count"])
     ?? (typeof metadata.trade_count === "number" ? `${metadata.trade_count}` : undefined)
-    ?? `${analysis.trade_count}`;
+    ?? `${record.dataset.trade_count}`;
   const assumptionsCompleteness = classifyAssumptionCompleteness(accountSize, riskPerTrade);
   const stressLinkage = Boolean(metadata.monte_carlo_linked || metadata.monte_carlo_reference || metadata.simulation_paths || metadata.n_paths)
     ? "Monte-Carlo-linked"
@@ -104,7 +104,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     ?? (typeof metadata.method === "string" ? metadata.method : undefined)
     ?? (stressLinkage === "Monte-Carlo-linked" ? "Monte Carlo-linked" : "Proxy/standalone");
 
-  const figure = ruinEnvelope?.figures?.[0] ?? record.diagnostics.ruin.figure;
+  const figure = ruin.figure;
   const figureEmptyMessage = assumptionsCompleteness === "missing"
     ? "Risk of Ruin requires explicit capital and sizing assumptions (for example account size and risk per trade). This run is trade-only, so a full ruin/survival surface was not emitted."
     : "A ruin/survivability figure was not emitted for this run (`diagnostics.ruin.figures` missing or empty), so this page can only show metric/assumption context.";

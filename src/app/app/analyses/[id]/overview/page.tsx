@@ -7,7 +7,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
-import type { AnalysisRecord } from "@/lib/contracts";
+import type { AnalysisRecord, InterpretationBlockPayload } from "@/lib/contracts";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -25,53 +25,15 @@ function toTitleCase(value: string): string {
   return value.split("_").map((token) => token.charAt(0).toUpperCase() + token.slice(1)).join(" ");
 }
 
-function verdictConfidence(record: AnalysisRecord): string | undefined {
-  const rawSummary = record.engine_payload.raw_result.summary;
-  if (!rawSummary || typeof rawSummary !== "object") return undefined;
-  const candidate = (rawSummary as Record<string, unknown>).confidence;
-  if (typeof candidate === "number" && Number.isFinite(candidate)) return `${Math.round(candidate * (candidate <= 1 ? 100 : 1))}%`;
-  if (typeof candidate === "string" && candidate.trim().length) return candidate;
-  return undefined;
-}
-
 function verdictRationale(record: AnalysisRecord): string[] {
-  const rawSummary = record.engine_payload.raw_result.summary;
-  if (rawSummary && typeof rawSummary === "object") {
-    const rationale = (rawSummary as Record<string, unknown>).rationale;
-    if (Array.isArray(rationale)) {
-      const rows = rationale.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-      if (rows.length) return rows.slice(0, 4);
-    }
-  }
-
   if (record.summary.key_findings.length) return record.summary.key_findings.slice(0, 4);
   return [record.diagnostics.overview.interpretation.summary];
 }
 
-function overviewInterpretation(record: AnalysisRecord) {
-  const overviewEnvelope = record.engine_payload.diagnostics.overview;
-  const rawOverview = record.engine_payload.raw_result.diagnostics;
-  const rawOverviewRecord = rawOverview && typeof rawOverview === "object"
-    ? (rawOverview as Record<string, unknown>).overview
-    : undefined;
-
-  const pickArray = (value: unknown): string[] | undefined => {
-    if (!Array.isArray(value)) return undefined;
-    const rows = value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-    return rows.length ? rows : undefined;
-  };
-
-  const engineSections = rawOverviewRecord && typeof rawOverviewRecord === "object"
-    ? (rawOverviewRecord as Record<string, unknown>)
-    : undefined;
-
+function overviewInterpretation(interpretation: InterpretationBlockPayload) {
   return {
     ...toInterpretationBlockPayload({
-      ...record.diagnostics.overview.interpretation,
-      summary: overviewEnvelope?.interpretation ?? record.diagnostics.overview.interpretation.summary,
-      positives: pickArray(engineSections?.positives),
-      cautions: pickArray(engineSections?.cautions),
-      key_caveats: pickArray(engineSections?.key_caveats ?? engineSections?.caveats),
+      ...interpretation,
     }),
   };
 }
@@ -80,7 +42,7 @@ function diagnosticRows(record: AnalysisRecord) {
   const diagnostics = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "report"] as const;
   return diagnostics.map((name) => ({
     name,
-    status: record.engine_payload.diagnostics[name]?.status ?? "unavailable",
+    status: record.diagnostic_statuses[name]?.status ?? "unavailable",
   }));
 }
 
@@ -118,9 +80,9 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const completeness = diagnosticRows(record).filter((row) => row.status === "available").length;
 
   const selectedMetrics = selectOverviewTopMetrics(record.diagnostics.overview.metrics, 6);
-  const assumptions = overviewEnvelope?.assumptions?.length ? overviewEnvelope.assumptions : record.engine_payload.report_sections.assumptions;
-  const limitations = overviewEnvelope?.limitations?.length ? overviewEnvelope.limitations : record.engine_payload.report_sections.limitations;
-  const recommendations = overviewEnvelope?.recommendations?.length ? overviewEnvelope.recommendations : record.engine_payload.report_sections.recommendations;
+  const assumptions = record.diagnostics.overview.assumptions?.length ? record.diagnostics.overview.assumptions : record.report.methodology_assumptions;
+  const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
+  const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;
 
   const parserNotes = [
     ...(analysis.eligibility_snapshot?.parser_notes ?? []),
@@ -129,8 +91,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
   const omittedDimensions = [
     benchmarkStatus !== "available" ? "No benchmark-relative comparison is included in this run." : undefined,
-    record.engine_payload.diagnostics.stability?.status !== "available" ? "No parameter-surface fragility assessment is available in this run context." : undefined,
-    record.engine_payload.diagnostics.regimes?.status !== "available" ? "No market-regime decomposition is available for this artifact." : undefined,
+    record.diagnostic_statuses.stability.status !== "available" ? "No parameter-surface fragility assessment is available in this run context." : undefined,
+    record.diagnostic_statuses.regimes.status !== "available" ? "No market-regime decomposition is available for this artifact." : undefined,
   ].filter((item): item is string => Boolean(item));
 
   return (
@@ -160,12 +122,12 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
 
       <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
-        <InterpretationBlock {...overviewInterpretation(record)} />
+        <InterpretationBlock {...overviewInterpretation(record.diagnostics.overview.interpretation)} />
         <VerdictCard
           title={record.summary.headline_verdict.title}
           summary={record.summary.headline_verdict.summary}
           posture={record.summary.headline_verdict.status}
-          confidence={verdictConfidence(record)}
+          confidence={record.report.confidence}
           rationale={verdictRationale(record)}
         />
       </div>
