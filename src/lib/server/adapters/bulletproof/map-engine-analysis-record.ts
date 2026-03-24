@@ -288,27 +288,59 @@ function toFigureSeries(items: unknown): FigurePayload["series"] {
       const entry = asRecord(item);
       const points = Array.isArray(entry?.points)
         ? entry.points
-            .map((point) => {
+            .map((point, index) => {
+              if (Array.isArray(point) && point.length >= 2) {
+                const [xRaw, yRaw] = point;
+                if ((typeof xRaw !== "number" && typeof xRaw !== "string") || typeof yRaw !== "number" || !Number.isFinite(yRaw)) return undefined;
+                return { x: xRaw, y: yRaw };
+              }
+
               const p = asRecord(point);
-              const y = p?.y;
-              if ((typeof p?.x !== "number" && typeof p?.x !== "string") || typeof y !== "number" || !Number.isFinite(y)) return undefined;
-              return { x: p.x, y };
+              const y = typeof p?.y === "number" && Number.isFinite(p.y)
+                ? p.y
+                : typeof p?.value === "number" && Number.isFinite(p.value)
+                  ? p.value
+                  : undefined;
+              const x = (typeof p?.x === "number" || typeof p?.x === "string")
+                ? p.x
+                : (typeof p?.label === "string" && p.label.trim().length > 0)
+                    ? p.label
+                    : index + 1;
+              if (y === undefined) return undefined;
+              return { x, y };
             })
             .filter((point): point is { x: string | number; y: number } => Boolean(point))
         : [];
 
-      if (!entry?.key || !entry?.label || !points.length) return undefined;
+      const key = getString(entry, ["key", "id", "series_id", "name"]) ?? `series_${randomUUID()}`;
+      const label = getString(entry, ["label", "name", "title"]) ?? key;
+      if (!points.length) return undefined;
 
-      const seriesType = entry.series_type;
+      const seriesType = getString(entry, ["series_type", "type"]);
       const normalizedType = seriesType === "line" || seriesType === "area" || seriesType === "bar" || seriesType === "scatter" ? seriesType : "line";
       return {
-        key: String(entry.key),
-        label: String(entry.label),
+        key,
+        label,
         series_type: normalizedType,
         points,
       };
     })
     .filter((entry): entry is FigurePayload["series"][number] => Boolean(entry));
+}
+
+function normalizeFigureType(value: string | undefined, fallback: FigurePayload["type"]): FigurePayload["type"] {
+  if (!value) return fallback;
+  const normalized = value.toLowerCase().trim().replace(/[-\s]+/g, "_");
+  if (normalized === "line" || normalized === "line_series") return "line";
+  if (normalized === "area" || normalized === "area_series") return "area";
+  if (normalized === "bar" || normalized === "bar_chart") return "bar";
+  if (normalized === "grouped_bar" || normalized === "bar_groups") return "grouped_bar";
+  if (normalized === "histogram") return "histogram";
+  if (normalized === "scatter" || normalized === "scatter_plot") return "scatter";
+  if (normalized === "fan" || normalized === "fan_chart" || normalized === "fanchart") return "fan_chart";
+  if (normalized === "heatmap") return "heatmap";
+  if (normalized === "table") return "table";
+  return fallback;
 }
 
 function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload {
@@ -317,11 +349,7 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
     figure_id: getString(figure, ["figure_id", "figureId"]) ?? randomUUID(),
     title: getString(figure, ["title"]) ?? fallback.title,
     subtitle: getString(figure, ["subtitle"]),
-    type: (() => {
-      const rawType = getString(figure, ["type"]);
-      if (rawType === "line" || rawType === "area" || rawType === "bar" || rawType === "grouped_bar" || rawType === "histogram" || rawType === "scatter" || rawType === "fan" || rawType === "fan_chart" || rawType === "heatmap" || rawType === "table") return rawType;
-      return fallback.type;
-    })(),
+    type: normalizeFigureType(getString(figure, ["type", "figure_type", "figureType"]), fallback.type),
     series: toFigureSeries(figure?.series),
     x_label: getString(figure, ["x_label", "xLabel"]),
     y_label: getString(figure, ["y_label", "yLabel"]),
@@ -492,7 +520,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       }];
     }),
   ) as AnalysisRecord["engine_payload"]["diagnostics"];
-  const mappedOverviewFigure = mapFigure(overviewRaw?.figure ?? overviewRaw?.equity_comparison_figure ?? getArrayItem(overviewRaw, "figures", 0), {
+  const mappedOverviewFigure = mapFigure(
+    envelopeByDiagnostic.overview?.figures.find((candidate) => candidate.series.length > 0)
+    ?? envelopeByDiagnostic.overview?.figures[0]
+    ?? overviewRaw?.figure
+    ?? overviewRaw?.equity_comparison_figure
+    ?? getArrayItem(overviewRaw, "figures", 0),
+    {
     title: "Equity Comparison",
     type: "line",
     note: statusText(statusByDiagnostic.get("overview"), "Engine-backed series supplied where available.", "Figure is bounded by current artifact richness/capability."),
@@ -520,7 +554,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     };
   }
 
-  const mappedDistributionHistogram = mapFigure(distributionRaw?.histogram_figure ?? distributionRaw?.histogram ?? getArrayItem(distributionRaw, "figures", 0), {
+  const emittedDistributionFigures = (envelopeByDiagnostic.distribution?.figures ?? []).filter((figure) => figure.series.length > 0);
+  const mappedDistributionHistogram = mapFigure(
+    emittedDistributionFigures.find((figure) => figure.type === "histogram")
+    ?? distributionRaw?.histogram_figure
+    ?? distributionRaw?.histogram
+    ?? getArrayItem(distributionRaw, "figures", 0),
+    {
     title: "Outcome Distribution",
     type: "histogram",
     note: "Distribution histogram shown when engine emits bin data.",
@@ -529,6 +569,16 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const distributionHistogram: FigurePayload = mappedDistributionHistogram.series.length > 0
     ? { ...mappedDistributionHistogram, provenance: "engine_native" }
     : { ...mappedDistributionHistogram, title: "Trade PnL distribution (derived)", note: "Histogram bins were derived from persisted trade-level PnL because engine histogram bins were not emitted.", series: derivedStats.histogramSeries, provenance: "synthesized_fallback" };
+  const distributionFigures: FigurePayload[] = emittedDistributionFigures.length > 0
+    ? emittedDistributionFigures
+    : [
+        distributionHistogram,
+        mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter ?? getArrayItem(distributionRaw, "figures", 1), {
+          title: "MAE / MFE Behavior",
+          type: "scatter",
+          note: "Scatter requires excursion fields; absent fields remain intentionally limited.",
+        }),
+      ].filter((figure) => figure.series.length > 0);
 
   if (envelopeByDiagnostic.distribution) {
     const hasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
@@ -677,11 +727,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           score("Median Return", getString(distributionRaw, ["median_return", "median_r", "medianReturn"]) ?? formatNumber(derivedStats.medianPnl, 4), "informational"),
           score("Mean Duration", getString(distributionRaw, ["mean_duration", "meanDuration", "avg_duration"]) ?? formatDuration(derivedStats.avgDurationSeconds), "informational"),
         ],
-        figures: [
-          distributionHistogram,
-          mapFigure(distributionRaw?.scatter_figure ?? distributionRaw?.scatter ?? getArrayItem(distributionRaw, "figures", 1), { title: "MAE / MFE Behavior", type: "scatter", note: "Scatter requires excursion fields; absent fields remain intentionally limited." }),
-          ...(envelopeByDiagnostic.distribution?.figures ?? []).filter((figure) => ![distributionHistogram.figure_id].includes(figure.figure_id)),
-        ],
+        figures: distributionFigures,
         interpretation: {
           title: "Distribution interpretation",
           summary: statusText(statusByDiagnostic.get("distribution"), "Distribution metrics describe trade behavior, expectancy shape, and duration structure.", "Distribution view is limited by available artifact fields."),
@@ -702,7 +748,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           score("Median Drawdown", formatPct(mcMedian), pctBand(Math.abs(mcMedian ?? 0), 12, 25)),
           score("P(Ruin)", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
         ],
-        figure: mapFigure(envelopeByDiagnostic.monte_carlo?.figures[0] ?? monteCarloRaw?.fan_chart_figure ?? monteCarloRaw?.figure, {
+        figure: mapFigure(
+          envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.type === "fan" || candidate.type === "fan_chart")
+          ?? envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.series.length > 0)
+          ?? envelopeByDiagnostic.monte_carlo?.figures[0]
+          ?? monteCarloRaw?.fan_chart_figure
+          ?? monteCarloRaw?.figure,
+          {
           title: "Monte Carlo Equity Fan",
           type: "fan_chart",
           note: statusText(statusByDiagnostic.get("monte_carlo"), "Fan-chart payload reflects engine-supplied simulation paths.", "Monte Carlo figure is constrained by simulation depth emitted by engine."),

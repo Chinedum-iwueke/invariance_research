@@ -61,6 +61,9 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   }
 
   const execution = record.diagnostics.execution;
+  const emittedExecutionFigure = record.engine_payload.diagnostics.execution?.figures.find((figure) => figure.series.some((series) => series.points.length > 0))
+    ?? record.engine_payload.diagnostics.execution?.figures[0];
+  const executionFigure = emittedExecutionFigure ?? execution.figure;
   const topMetrics = selectExecutionTopMetrics(execution.metrics, 3);
   const metricHelpers = {
     "Baseline Expectancy": "Expected edge under baseline execution costs.",
@@ -109,10 +112,10 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
       </Card>
 
       <FigureCard
-        title={execution.figure?.title ?? "Execution Cost Sensitivity"}
-        subtitle={execution.figure?.subtitle ?? "Expectancy response across higher execution friction assumptions."}
-        figure={<DiagnosticFigure figure={execution.figure} emptyMessage={figureMissingReason} />}
-        note={execution.figure?.note}
+        title={executionFigure?.title ?? "Execution Cost Sensitivity"}
+        subtitle={executionFigure?.subtitle ?? "Expectancy response across higher execution friction assumptions."}
+        figure={<DiagnosticFigure figure={executionFigure} emptyMessage={figureMissingReason} />}
+        note={executionFigure?.note}
       />
       <MetricRow metrics={metricsFromScoreBands(topMetrics, metricHelpers)} cols={3} />
 

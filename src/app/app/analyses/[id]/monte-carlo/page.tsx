@@ -23,6 +23,8 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
   }
 
   const monteCarlo = record.diagnostics.monte_carlo;
+  const emittedMonteCarloFigures = record.engine_payload.diagnostics.monte_carlo?.figures ?? [];
+  const secondaryFigures = emittedMonteCarloFigures.filter((figure) => figure.figure_id !== monteCarlo.figure.figure_id && figure.series.some((series) => series.points.length > 0));
   const metadata = monteCarlo.metadata ?? {};
   const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
   const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
@@ -104,6 +106,13 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
         )}
         note={record.diagnostics.monte_carlo.figure.note}
       />
+      {secondaryFigures.length ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {secondaryFigures.map((figure) => (
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+          ))}
+        </div>
+      ) : null}
 
       <MetricRow metrics={metrics} cols={4} />
 

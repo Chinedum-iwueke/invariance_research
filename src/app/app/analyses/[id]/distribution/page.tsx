@@ -23,27 +23,7 @@ function isUnavailable(value: string): boolean {
 }
 
 function toBoolean(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") return value;
-  return undefined;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
-}
-
-function isHistogramFigure(figure: FigurePayload): boolean {
-  const label = `${figure.title} ${figure.subtitle ?? ""} ${figure.note ?? ""}`.toLowerCase();
-  return figure.type === "histogram" || label.includes("histogram") || label.includes("distribution");
-}
-
-function isWinLossFigure(figure: FigurePayload): boolean {
-  const text = `${figure.title} ${figure.subtitle ?? ""} ${figure.note ?? ""} ${figure.series.map((series) => series.label).join(" ")}`.toLowerCase();
-  return text.includes("win/loss") || text.includes("win loss") || text.includes("wins") || text.includes("losses");
-}
-
-function isSecondaryFigure(figure: FigurePayload): boolean {
-  const text = `${figure.title} ${figure.subtitle ?? ""} ${figure.note ?? ""}`.toLowerCase();
-  return figure.type === "scatter" || text.includes("mae") || text.includes("mfe") || text.includes("duration");
+  return typeof value === "boolean" ? value : undefined;
 }
 
 export default async function DistributionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -65,15 +45,12 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const renderedMetrics = availableMetrics.length >= 3 ? availableMetrics : metrics;
 
   const figures = distribution.figures;
-  const histogram = figures.find((figure) => isHistogramFigure(figure));
-  const winLoss = figures.find((figure) => isWinLossFigure(figure) && figure.figure_id !== histogram?.figure_id);
-  const remainingFigures = figures.filter((figure) => ![histogram?.figure_id, winLoss?.figure_id].includes(figure.figure_id));
-  const secondaryAvailable = remainingFigures.filter((figure) => isSecondaryFigure(figure) && hasData(figure));
-  const additionalAvailable = remainingFigures.filter((figure) => !isSecondaryFigure(figure) && hasData(figure));
-  const unavailableDiagnostics = remainingFigures.filter((figure) => !hasData(figure));
-
-  const primaryFigures = [histogram, winLoss].filter((figure): figure is FigurePayload => Boolean(figure && hasData(figure)));
-  const engineHistogramProvenance = asString(distribution.metadata?.histogram_provenance) ?? (histogram?.note?.toLowerCase().includes("derived") ? "derived_from_persisted_trades" : "engine_emitted");
+  const visibleFigures = figures.filter((figure) => hasData(figure));
+  const unavailableDiagnostics = figures.filter((figure) => !hasData(figure));
+  const histogram = visibleFigures.find((figure) => figure.type === "histogram");
+  const engineHistogramProvenance = typeof distribution.metadata?.histogram_provenance === "string"
+    ? distribution.metadata.histogram_provenance
+    : (histogram?.provenance === "synthesized_fallback" ? "derived_from_persisted_trades" : "engine_emitted");
   const hasExcursion = toBoolean(distribution.metadata?.has_excursion) ?? figures.some((figure) => figure.title.toLowerCase().includes("mae") || figure.title.toLowerCase().includes("mfe"));
   const hasDuration = toBoolean(distribution.metadata?.has_duration) ?? distribution.metrics.some((metric) => metric.label.toLowerCase().includes("duration") && !isUnavailable(metric.value));
 
@@ -91,8 +68,8 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         {[
           { label: "Trade count", value: String(record.dataset.trade_count) },
           { label: "Coverage", value: `${record.dataset.start_date ?? "N/A"} → ${record.dataset.end_date ?? "N/A"}` },
+          { label: "Figures", value: `${visibleFigures.length}/${figures.length} chartable` },
           { label: "Returns", value: histogram ? "available" : "unavailable" },
-          { label: "Win/loss profile", value: winLoss ? "available" : "limited" },
           { label: "MAE/MFE", value: hasExcursion ? "available" : "unavailable" },
           { label: "Duration", value: hasDuration ? "available" : "unavailable" },
         ].map((item) => (
@@ -105,32 +82,22 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
       <MetricRow metrics={metricsFromScoreBands(renderedMetrics)} cols={4} />
 
       <div className="space-y-4">
-        {primaryFigures.length ? (
+        {visibleFigures.length ? (
           <div className="grid gap-4 xl:grid-cols-2">
-            {primaryFigures.map((figure) => (
+            {visibleFigures.map((figure) => (
               <FigureCard
                 key={figure.figure_id}
                 title={figure.title}
                 subtitle={figure.subtitle}
                 figure={<DiagnosticFigure figure={figure} />}
                 note={figure.note}
-                metadata={
-                  figure.figure_id === histogram?.figure_id
-                    ? <span className="rounded-full border border-border-subtle px-2 py-0.5">{engineHistogramProvenance === "engine_emitted" ? "Engine-native histogram" : "Reconstructed from persisted trades"}</span>
-                    : undefined
-                }
+                metadata={figure.figure_id === histogram?.figure_id
+                  ? <span className="rounded-full border border-border-subtle px-2 py-0.5">{engineHistogramProvenance === "engine_emitted" ? "Engine-native histogram" : "Reconstructed from persisted trades"}</span>
+                  : undefined}
               />
             ))}
           </div>
-        ) : null}
-
-        {(secondaryAvailable.length || additionalAvailable.length) ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {[...secondaryAvailable, ...additionalAvailable].map((figure) => (
-              <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
-            ))}
-          </div>
-        ) : null}
+        ) : <DiagnosticFigure figure={undefined} emptyMessage="No chart series were emitted for distribution in this persisted run payload." />}
 
         {unavailableDiagnostics.length ? (
           <WorkspaceCard title="Unavailable diagnostics" subtitle="These secondary views were not emitted with chartable series for this run.">

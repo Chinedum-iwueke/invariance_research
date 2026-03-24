@@ -84,10 +84,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
   const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;
 
-  const parserNotes = [
+  const parserNotes = Array.from(new Set([
     ...(analysis.eligibility_snapshot?.parser_notes ?? []),
     ...(record.run_context.notes ?? "").split("|").map((item) => item.trim()).filter(Boolean),
-  ];
+  ]));
 
   const omittedDimensions = [
     benchmarkStatus !== "available" ? "No benchmark-relative comparison is included in this run." : undefined,
@@ -162,7 +162,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <p className="font-medium text-text-graphite">Parser/runtime notes</p>
           {parserNotes.length ? (
             <ul className="mt-1 space-y-1">
-              {parserNotes.slice(0, 6).map((note) => <li key={note}>• {note}</li>)}
+              {parserNotes.slice(0, 6).map((note, index) => <li key={`parser-note-${index}-${note.slice(0, 32)}`}>• {note}</li>)}
             </ul>
           ) : (
             <p className="mt-1 text-xs">No additional parser/runtime notes were persisted for this run.</p>
