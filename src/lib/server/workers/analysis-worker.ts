@@ -71,7 +71,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
     await moveToStep(analysisId, STEPS.loading);
 
     await moveToStep(analysisId, STEPS.engine);
-    const engineRun = await runBulletproofAnalysisFromParsedArtifact({ parsedArtifact: artifact.parsed_artifact, eligibility });
+    const engineRun = await runBulletproofAnalysisFromParsedArtifact({ analysis, parsedArtifact: artifact.parsed_artifact, eligibility });
 
     if (engineRun.result.status === "failed") {
       return markFailed(analysisId, "engine_execution_failed", "The analysis engine reported a failed run.");

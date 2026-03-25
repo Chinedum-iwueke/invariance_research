@@ -1,18 +1,18 @@
+import { buildAnalysisEngineDispatchPayload } from "@/lib/analyses/analysis-engine-dispatch";
 import { runBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
 import type { BulletproofRunResponse, RunBulletproofAnalysisParams } from "@/lib/server/engine/engine-types";
 
 export async function runBulletproofAnalysisFromParsedArtifact(params: RunBulletproofAnalysisParams): Promise<BulletproofRunResponse> {
-  const { parsedArtifact, eligibility } = params;
+  const { analysis, parsedArtifact, eligibility } = params;
   const startedAt = Date.now();
 
-  const config = {
-    requested_diagnostics: eligibility.diagnostics_available,
-  };
+  const dispatch = await buildAnalysisEngineDispatchPayload({ analysis, parsedArtifact, eligibility });
 
-  const engineResponse = await runBulletproofEngine(parsedArtifact, config);
+  const engineResponse = await runBulletproofEngine(parsedArtifact, dispatch.config);
   const result = engineResponse.result;
   const degradationReasons = [
     ...(result.skipped_diagnostics?.map((item) => `${item.diagnostic}: ${item.reason}`) ?? []),
+    ...dispatch.warnings,
   ];
 
   return {

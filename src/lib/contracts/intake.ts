@@ -1,4 +1,5 @@
 import type { AnalysisRecord, AnalysisStatus } from "@/lib/contracts/analysis";
+import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 import type {
   ArtifactKind,
   ArtifactRichness,
@@ -28,6 +29,10 @@ export type UploadInspectionResponse = {
 export type CreateAnalysisRequest = {
   artifact_id: string;
   strategy_name?: string;
+  benchmark?: {
+    mode: "auto" | "none" | "manual";
+    requested_id: BenchmarkId | null;
+  };
 };
 
 export type CreateAnalysisResponse = {

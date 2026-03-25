@@ -12,10 +12,11 @@ import { analysisRepository } from "@/lib/server/repositories/analysis-repositor
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
 import { scheduleAnalysisJob } from "@/lib/server/services/analysis-job-runner";
+import { buildPersistedBenchmarkConfig, parseBenchmarkSelectionFromRequest } from "@/lib/analyses/create-analysis";
 
-export function createAnalysisFromArtifact(
+export async function createAnalysisFromArtifact(
   payload: CreateAnalysisRequest & { owner_user_id: string; account_id: string },
-): CreateAnalysisResponse {
+): Promise<CreateAnalysisResponse> {
   const artifact = artifactRepository.findById(payload.artifact_id);
   if (!artifact || !artifact.eligibility_summary.accepted) {
     throw new Error("artifact_not_eligible");
@@ -30,6 +31,11 @@ export function createAnalysisFromArtifact(
   const timestamp = new Date().toISOString();
   const analysisId = randomUUID();
   const jobId = randomUUID();
+  const benchmarkSelection = parseBenchmarkSelectionFromRequest(payload);
+  const benchmark = await buildPersistedBenchmarkConfig({
+    selection: benchmarkSelection,
+    parsedArtifact: artifact.parsed_artifact,
+  });
 
   analysisRepository.save({
     analysis_id: analysisId,
@@ -41,6 +47,7 @@ export function createAnalysisFromArtifact(
     created_at: timestamp,
     updated_at: timestamp,
     eligibility_snapshot: artifact.eligibility_summary,
+    benchmark,
   });
 
   artifactRepository.attachAnalysis(artifact.artifact_id, analysisId);

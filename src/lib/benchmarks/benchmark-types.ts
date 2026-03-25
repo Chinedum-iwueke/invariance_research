@@ -4,6 +4,28 @@ export type BenchmarkFrequency = "1d";
 export type BenchmarkSource = "platform_managed";
 export type BenchmarkLibraryHealthStatus = "healthy" | "degraded" | "unhealthy";
 
+
+export type BenchmarkSelectionMode = "auto" | "manual" | "none";
+
+export type DetectedAssetClass = "crypto" | "equities" | "metals" | "macro" | "fx" | "unknown";
+
+export type BenchmarkResolutionReason =
+  | "user_selected_none"
+  | "user_selected_manual"
+  | "detected_asset_class_crypto"
+  | "detected_asset_class_equities"
+  | "detected_asset_class_metals"
+  | "detected_asset_class_macro"
+  | "low_confidence_unknown";
+
+export type ResolvedBenchmark = {
+  enabled: boolean;
+  mode: BenchmarkSelectionMode;
+  requestedId: BenchmarkId | null;
+  resolvedId: BenchmarkId | null;
+  resolutionReason: BenchmarkResolutionReason;
+};
+
 export interface BenchmarkManifestEntry {
   id: BenchmarkId;
   file: string;

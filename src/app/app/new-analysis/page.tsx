@@ -11,7 +11,7 @@ export default function NewAnalysisPage() {
   return (
     <AnalysisPageFrame
       title="New Analysis"
-      description="Submit a research artifact into validation intake. Eligibility, queue status, and completion routing are backend-orchestrated."
+      description="Submit a research artifact into validation intake. Eligibility, benchmark selection, queue status, and completion routing are backend-orchestrated."
     >
       <NewAnalysisIntake />
     </AnalysisPageFrame>

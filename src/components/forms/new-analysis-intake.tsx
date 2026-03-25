@@ -10,10 +10,13 @@ import type {
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { BenchmarkSelector, type BenchmarkSelectionValue } from "@/components/analysis/BenchmarkSelector";
+import { BenchmarkSuggestion } from "@/components/analysis/BenchmarkSuggestion";
 import { buttonVariants } from "@/components/ui/button";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { isQuotaExceeded, isUploadPlanRestricted } from "@/lib/app/upgrade-visibility";
 import { cn } from "@/lib/utils";
+import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 
 type IntakeState =
   | "idle"
@@ -35,6 +38,7 @@ export function NewAnalysisIntake() {
   const [status, setStatus] = useState<AnalysisStatusResponse | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [benchmarkSelection, setBenchmarkSelection] = useState<BenchmarkSelectionValue>({ mode: "auto", requested_id: null });
   const [apiErrorCode, setApiErrorCode] = useState<string | null>(null);
   const router = useRouter();
 
@@ -69,7 +73,7 @@ export function NewAnalysisIntake() {
 
     if (!response.ok || !payload.accepted) {
       setState("failed");
-      if (payload.validation_errors?.some((error) => error.code === "plan_upload_locked")) {
+      if (payload.validation_errors?.some((error) => `${error.code}` === "plan_upload_locked")) {
         setApiErrorCode("plan_upload_locked");
       }
       return;
@@ -85,7 +89,7 @@ export function NewAnalysisIntake() {
     const response = await fetch("/api/analyses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artifact_id: inspection.artifact_id }),
+      body: JSON.stringify({ artifact_id: inspection.artifact_id, benchmark: benchmarkSelection }),
     });
 
     if (!response.ok) {
@@ -128,6 +132,8 @@ export function NewAnalysisIntake() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
+
+  const suggestion = useMemo(() => suggestBenchmarkFromInspection(inspection), [inspection]);
 
   async function retry() {
     if (!analysisId) return;
@@ -218,6 +224,10 @@ export function NewAnalysisIntake() {
         </WorkspaceCard>
 
         <WorkspaceCard title="Analysis orchestration" subtitle="Queued and processing states">
+          <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
+          {benchmarkSelection.mode === "auto" && (
+            <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
+          )}
           <p className="text-sm text-text-neutral">State: {state.replaceAll("_", " ")}</p>
           {file && <p className="text-xs text-text-neutral">Artifact: {file.name}</p>}
           {status && (
@@ -271,3 +281,24 @@ export function NewAnalysisIntake() {
     </div>
   );
 }
+
+function suggestBenchmarkFromInspection(inspection: UploadInspectionResponse | null): { id: BenchmarkId | null; reason: string } {
+  if (!inspection) return { id: null, reason: "Upload an artifact to receive a deterministic benchmark suggestion." };
+
+  const text = [inspection.upload_summary_text, ...inspection.parser_notes, ...inspection.limitation_reasons].join(" ").toLowerCase();
+
+  if (text.includes("crypto") || text.includes("btc") || text.includes("eth")) {
+    return { id: "BTC", reason: "Detected crypto strategy context." };
+  }
+  if (text.includes("equit") || text.includes("stock") || text.includes("spy")) {
+    return { id: "SPY", reason: "Detected equities strategy context." };
+  }
+  if (text.includes("metal") || text.includes("gold") || text.includes("xau")) {
+    return { id: "XAUUSD", reason: "Detected metals strategy context." };
+  }
+  if (text.includes("macro") || text.includes("fx") || text.includes("forex") || text.includes("dxy")) {
+    return { id: "DXY", reason: "Detected macro/fx strategy context." };
+  }
+  return { id: null, reason: "Low confidence detection; benchmark will remain disabled unless manually selected." };
+}
+

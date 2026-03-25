@@ -179,4 +179,11 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_type_last_seen ON worker_heartbeats(worker_type, last_seen_at);
     `,
   },
+  {
+    version: 4,
+    name: "analysis_benchmark_persistence",
+    sql: `
+      ALTER TABLE analyses ADD COLUMN benchmark_json TEXT;
+    `,
+  },
 ];

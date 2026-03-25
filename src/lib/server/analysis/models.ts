@@ -1,4 +1,5 @@
 import type { AnalysisRecord, AnalysisStatus } from "@/lib/contracts";
+import type { AnalysisBenchmarkConfig } from "@/lib/analyses/analysis-types";
 import type { ArtifactKind, ArtifactRichness, ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
 export type UploadArtifact = {
@@ -38,6 +39,7 @@ export type AnalysisEntity = {
   result?: AnalysisRecord;
   eligibility_snapshot?: UploadEligibilitySummary;
   engine_context?: AnalysisEngineContext;
+  benchmark?: AnalysisBenchmarkConfig;
   failure_code?: string;
   failure_message?: string;
 };
