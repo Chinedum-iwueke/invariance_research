@@ -345,24 +345,28 @@ function normalizeFigureType(value: string | undefined, fallback: FigurePayload[
 
 function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload {
   const figure = asRecord(payload);
+  const nativeSeries = Array.isArray(figure?.series) ? [...figure.series] : [];
+  const nativeLegend = Array.isArray(figure?.legend)
+    ? figure.legend
+        .map((item) => {
+          const legend = asRecord(item);
+          const key = getString(legend, ["key"]);
+          const label = getString(legend, ["label"]);
+          return key && label ? { key, label } : undefined;
+        })
+        .filter((item): item is { key: string; label: string } => Boolean(item))
+    : undefined;
+
   return {
+    ...(figure ?? {}),
     figure_id: getString(figure, ["figure_id", "figureId"]) ?? randomUUID(),
     title: getString(figure, ["title"]) ?? fallback.title,
     subtitle: getString(figure, ["subtitle"]),
     type: normalizeFigureType(getString(figure, ["type", "figure_type", "figureType"]), fallback.type),
-    series: toFigureSeries(figure?.series),
+    series: nativeSeries.length > 0 ? nativeSeries : toFigureSeries(figure?.series),
     x_label: getString(figure, ["x_label", "xLabel"]),
     y_label: getString(figure, ["y_label", "yLabel"]),
-    legend: Array.isArray(figure?.legend)
-      ? figure.legend
-          .map((item) => {
-            const legend = asRecord(item);
-            const key = getString(legend, ["key"]);
-            const label = getString(legend, ["label"]);
-            return key && label ? { key, label } : undefined;
-          })
-          .filter((item): item is { key: string; label: string } => Boolean(item))
-      : undefined,
+    legend: nativeLegend,
     note: getString(figure, ["note"]) ?? fallback.note,
     provenance: "engine_native",
   };
@@ -370,10 +374,10 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
 
 function mapFigureList(payload: unknown, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload[] {
   if (Array.isArray(payload)) {
-    return payload.map((entry) => mapFigure(entry, fallback)).filter((figure) => figure.series.length > 0 || Boolean(figure.note));
+    return payload.map((entry) => mapFigure(entry, fallback));
   }
   const single = mapFigure(payload, fallback);
-  return single.series.length > 0 ? [single] : [];
+  return [single];
 }
 
 function uniqueFigureList(figures: FigurePayload[]): FigurePayload[] {

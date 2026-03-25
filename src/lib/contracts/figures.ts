@@ -22,10 +22,11 @@ export interface FigurePayload {
   title: string;
   subtitle?: string;
   type: FigureType;
-  series: FigureSeries[];
+  series: unknown[];
   x_label?: string;
   y_label?: string;
   legend?: FigureLegendItem[];
   note?: string;
   provenance?: "engine_native" | "adapter_normalized" | "synthesized_fallback" | "reconstructed_from_trades";
+  [key: string]: unknown;
 }
