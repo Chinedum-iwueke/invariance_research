@@ -1,4 +1,5 @@
 import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
+import { isFigureRenderable } from "@/lib/app/figure-rendering";
 import { selectExecutionTopMetrics, selectMonteCarloTopMetrics, selectOverviewTopMetrics, selectRuinTopMetrics } from "@/lib/app/analysis-ui";
 
 export type VerdictPosture = "robust" | "moderate" | "fragile";
@@ -186,7 +187,7 @@ function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
   let filteredEmptySeries = 0;
   let filteredDuplicate = 0;
   for (const figure of candidates) {
-    if (!figure || figure.series.length === 0) {
+    if (!figure || !isFigureRenderable(figure)) {
       filteredEmptySeries += 1;
       continue;
     }
