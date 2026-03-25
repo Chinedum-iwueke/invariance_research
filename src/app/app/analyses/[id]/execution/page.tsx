@@ -61,9 +61,10 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   }
 
   const execution = record.diagnostics.execution;
-  const emittedExecutionFigure = record.engine_payload.diagnostics.execution?.figures.find((figure) => figure.series.some((series) => series.points.length > 0))
-    ?? record.engine_payload.diagnostics.execution?.figures[0];
-  const executionFigure = emittedExecutionFigure ?? execution.figure;
+  const executionFigures = execution.figures ?? [];
+  const executionFigure = executionFigures.find((figure) => figure.series.length > 0)
+    ?? executionFigures[0]
+    ?? execution.figure;
   const topMetrics = selectExecutionTopMetrics(execution.metrics, 3);
   const metricHelpers = {
     "Baseline Expectancy": "Expected edge under baseline execution costs.",
@@ -73,9 +74,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   const noScenarioReason = execution.assumptions?.length
     ? "The engine did not emit structured per-scenario rows for this run despite having cost assumptions."
     : "The engine did not emit execution cost assumptions, so a scenario matrix could not be constructed.";
-  const figureMissingReason = execution.assumptions?.length
-    ? "The engine emitted assumptions but no chart series for execution sensitivity in this run."
-    : "No chart was rendered because stress assumptions were missing, so expectancy-vs-stress series were not generated.";
+  const figureMissingReason = "No persisted execution sensitivity figure is currently available for this run.";
   const assumptionRows = execution.assumptions?.length
     ? execution.assumptions
     : ["No baseline cost assumptions were emitted by the engine payload for this run."];
