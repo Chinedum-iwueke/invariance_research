@@ -22,10 +22,10 @@ export const figurePayloadSchema = z.object({
   title: z.string(),
   subtitle: z.string().optional(),
   type: z.enum(["line", "area", "bar", "grouped_bar", "histogram", "scatter", "fan", "fan_chart", "heatmap", "table"]),
-  series: z.array(figureSeriesSchema),
+  series: z.array(z.unknown()),
   x_label: z.string().optional(),
   y_label: z.string().optional(),
   legend: z.array(figureLegendItemSchema).optional(),
   note: z.string().optional(),
   provenance: z.enum(["engine_native", "adapter_normalized", "synthesized_fallback", "reconstructed_from_trades"]).optional(),
-});
+}).passthrough();
