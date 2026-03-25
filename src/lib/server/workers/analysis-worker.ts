@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
@@ -16,6 +18,17 @@ const STEPS = {
   engine: { step: "Running bt engine seam", progress: 70 },
   normalizing: { step: "Normalizing AnalysisRecord output", progress: 90 },
 } as const;
+
+
+function writeDebugSnapshot(name: string, analysisId: string, payload: unknown) {
+  const dir = path.join(process.cwd(), ".debug-analysis");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, `${analysisId}__${name}.json`),
+    JSON.stringify(payload, null, 2),
+    "utf8",
+  );
+}
 
 export function startAnalysisWorker() {
   if (loopActive) return;
@@ -64,6 +77,8 @@ export async function processNextAnalysisJob(): Promise<boolean> {
       return markFailed(analysisId, "engine_execution_failed", "The analysis engine reported a failed run.");
     }
 
+    writeDebugSnapshot("01_engine_raw_result", analysisId, engineRun.result);
+
     await moveToStep(analysisId, STEPS.normalizing);
     const record = normalizeEngineResultToAnalysisRecord({
       analysisId,
@@ -72,6 +87,8 @@ export async function processNextAnalysisJob(): Promise<boolean> {
       engineResult: engineRun.result,
       engineContext: engineRun.context,
     });
+
+    writeDebugSnapshot("02_normalized_record_pre_persist", analysisId, record);
 
     analysisRepository.update(analysisId, (current) => ({
       ...current,
