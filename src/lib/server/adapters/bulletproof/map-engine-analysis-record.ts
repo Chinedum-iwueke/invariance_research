@@ -553,7 +553,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         provenance: "reconstructed_from_trades",
       };
   const overviewFigures = uniqueFigureList(
-    [overviewFigure, ...(envelopeByDiagnostic.overview?.figures ?? [])].filter((figure) => figure.series.length > 0),
+    [overviewFigure, ...(envelopeByDiagnostic.overview?.figures ?? [])],
   );
 
   if (envelopeByDiagnostic.overview) {
@@ -567,7 +567,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     };
   }
 
-  const emittedDistributionFigures = (envelopeByDiagnostic.distribution?.figures ?? []).filter((figure) => figure.series.length > 0);
+  const emittedDistributionFigures = envelopeByDiagnostic.distribution?.figures ?? [];
   const mappedDistributionHistogram = mapFigure(
     emittedDistributionFigures.find((figure) => figure.type === "histogram")
     ?? distributionRaw?.histogram_figure
@@ -605,7 +605,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     },
   );
   const monteCarloFigures = uniqueFigureList(
-    [monteCarloPrimaryFigure, ...(envelopeByDiagnostic.monte_carlo?.figures ?? [])].filter((figure) => figure.series.length > 0),
+    [monteCarloPrimaryFigure, ...(envelopeByDiagnostic.monte_carlo?.figures ?? [])],
   );
   const executionPrimaryFigure = mapFigure(
     envelopeByDiagnostic.execution?.figures.find((candidate) => candidate.series.length > 0)
@@ -621,7 +621,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     },
   );
   const executionFigures = uniqueFigureList(
-    [executionPrimaryFigure, ...(envelopeByDiagnostic.execution?.figures ?? [])].filter((figure) => figure.series.length > 0),
+    [executionPrimaryFigure, ...(envelopeByDiagnostic.execution?.figures ?? [])],
   );
   const richDiagnosticsAvailability = [
     `overview=${overviewFigures.length}`,
@@ -667,7 +667,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       ...distributionFigures,
       ...monteCarloFigures,
       ...executionFigures,
-    ].filter((figure) => figure.series.length > 0),
+    ],
   );
 
   if (envelopeByDiagnostic.distribution) {
