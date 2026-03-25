@@ -23,9 +23,10 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
   }
 
   const monteCarlo = record.diagnostics.monte_carlo;
-  const monteCarloFigures = monteCarlo.figures?.length ? monteCarlo.figures : [monteCarlo.figure];
-  const primaryFigure = monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan") ?? monteCarloFigures[0];
-  const secondaryFigures = monteCarloFigures.filter((figure) => figure.figure_id !== primaryFigure?.figure_id);
+  const monteCarloFigures = monteCarlo.figures ?? [];
+  const primaryFigure = monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan")
+    ?? monteCarlo.figure;
+  const secondaryFigures = monteCarloFigures.filter((figure) => figure.figure_id !== primaryFigure.figure_id);
   const metadata = monteCarlo.metadata ?? {};
   const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
   const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
@@ -97,15 +98,15 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
       </div>
 
       <FigureCard
-        title={primaryFigure?.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}
-        subtitle={primaryFigure?.subtitle || "Percentile envelopes summarize how severe simulated equity drawdowns can become under sequence perturbation."}
+        title={primaryFigure.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}
+        subtitle={primaryFigure.subtitle || "Percentile envelopes summarize how severe simulated equity drawdowns can become under sequence perturbation."}
         figure={(
           <DiagnosticFigure
             figure={primaryFigure}
-            emptyMessage="No persisted Monte Carlo figures are available for this run."
+            emptyMessage="No persisted Monte Carlo fan chart is currently available for this run."
           />
         )}
-        note={primaryFigure?.note}
+        note={primaryFigure.note}
       />
       {secondaryFigures.length ? (
         <div className="grid gap-4 xl:grid-cols-2">

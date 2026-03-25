@@ -90,7 +90,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
               />
             ))}
           </div>
-        ) : <DiagnosticFigure figure={undefined} emptyMessage="No persisted distribution figures are available for this run." />}
+        ) : <DiagnosticFigure figure={undefined} emptyMessage="No persisted distribution figures are currently available for this run." />}
       </div>
 
       <WorkspaceCard title="Distribution shape insights" subtitle="How outcomes cluster and where asymmetry appears in this run.">

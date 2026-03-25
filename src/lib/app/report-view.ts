@@ -170,22 +170,28 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
 }
 
 function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
-  const candidates: FigurePayload[] = [
+  const candidates: Array<FigurePayload | undefined> = [
     ...record.report.figures,
-    ...(record.diagnostics.overview.figures?.length ? record.diagnostics.overview.figures : [record.diagnostics.overview.figure]),
+    ...(record.diagnostics.overview.figures ?? [record.diagnostics.overview.figure]),
     ...record.diagnostics.distribution.figures,
-    ...(record.diagnostics.monte_carlo.figures?.length ? record.diagnostics.monte_carlo.figures : [record.diagnostics.monte_carlo.figure]),
-    ...(record.diagnostics.execution.figures ?? (record.diagnostics.execution.figure ? [record.diagnostics.execution.figure] : [])),
-    ...(record.diagnostics.ruin.figure ? [record.diagnostics.ruin.figure] : []),
+    ...(record.diagnostics.monte_carlo.figures ?? [record.diagnostics.monte_carlo.figure]),
+    ...(record.diagnostics.execution.figures ?? [record.diagnostics.execution.figure]).filter(Boolean),
+    record.diagnostics.stability.figure,
+    ...(record.diagnostics.regimes.figures ?? []),
+    record.diagnostics.ruin.figure,
   ];
+
+  const deduped: FigurePayload[] = [];
   const seen = new Set<string>();
-  return candidates.filter((figure) => {
-    if (!figure) return false;
-    const key = figure.figure_id || `${figure.title}-${figure.type}`;
-    if (seen.has(key)) return false;
+  for (const figure of candidates) {
+    if (!figure || figure.series.length === 0) continue;
+    const key = figure.figure_id.trim().toLowerCase();
+    if (seen.has(key)) continue;
     seen.add(key);
-    return true;
-  }).slice(0, 8);
+    deduped.push(figure);
+  }
+
+  return deduped.slice(0, 8);
 }
 
 export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
