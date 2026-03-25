@@ -10,6 +10,7 @@ import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildReportViewModel } from "@/lib/app/report-view";
 import { metricsFromScoreBands } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
@@ -82,6 +83,21 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
 
   const view = buildReportViewModel(record);
+  const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
+  logAnalysisPageDebug({
+    analysis_id: record.analysis_id,
+    page: "report",
+    input_figure_count: record.report.figures.length,
+    input_figure_types: record.report.figures.map((figure) => figure.type),
+    singular_figure_present: false,
+    fallback_figure_source_available: false,
+    selected_figure_count: view.charts.length,
+    selected_figure_types: view.charts.map((figure) => figure.type),
+    branch: reportBranch,
+    empty_state_reason: reportBranch === "empty_state_branch"
+      ? "curated chart selection returned no non-empty figures (empty series or de-duplication filtered all candidates)"
+      : undefined,
+  });
 
   return (
     <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, decision metrics, diagnostic evidence, and exportable reporting.">

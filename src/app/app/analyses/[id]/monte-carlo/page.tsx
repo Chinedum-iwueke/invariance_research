@@ -5,6 +5,7 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectMonteCarloTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -27,6 +28,29 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
   const primaryFigure = monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan")
     ?? monteCarlo.figure;
   const secondaryFigures = monteCarloFigures.filter((figure) => figure.figure_id !== primaryFigure.figure_id);
+  const selectedFigures = primaryFigure ? [primaryFigure, ...secondaryFigures] : secondaryFigures;
+  const monteCarloBranch = monteCarloFigures.length > 0
+    ? "native_figures_branch"
+    : primaryFigure
+      ? (primaryFigure.provenance === "reconstructed_from_trades" || primaryFigure.provenance === "synthesized_fallback"
+          ? "fallback_reconstructed_branch"
+          : "singular_figure_branch")
+      : "empty_state_branch";
+  const monteCarloEmptyReason = monteCarloBranch === "empty_state_branch"
+    ? "no figures on record (diagnostics.monte_carlo.figures empty and diagnostics.monte_carlo.figure missing)"
+    : undefined;
+  logAnalysisPageDebug({
+    analysis_id: record.analysis_id,
+    page: "monte_carlo",
+    input_figure_count: monteCarloFigures.length,
+    input_figure_types: figureTypes(monteCarloFigures),
+    singular_figure_present: Boolean(monteCarlo.figure),
+    fallback_figure_source_available: Boolean(monteCarlo.figure) || monteCarloFigures.some((figure) => figure.provenance === "reconstructed_from_trades" || figure.provenance === "synthesized_fallback"),
+    selected_figure_count: selectedFigures.length,
+    selected_figure_types: figureTypes(selectedFigures),
+    branch: monteCarloBranch,
+    empty_state_reason: monteCarloEmptyReason,
+  });
   const metadata = monteCarlo.metadata ?? {};
   const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
   const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
