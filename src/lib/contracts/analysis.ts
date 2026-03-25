@@ -66,6 +66,7 @@ export interface OverviewDiagnostic {
   status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figure: FigurePayload;
+  figures?: FigurePayload[];
   interpretation: InterpretationBlockPayload;
   verdict: Verdict;
   assumptions?: string[];
@@ -88,6 +89,7 @@ export interface MonteCarloDiagnostic {
   status?: "available" | "limited" | "unavailable" | "skipped";
   metrics: ScoreBand[];
   figure: FigurePayload;
+  figures?: FigurePayload[];
   interpretation: InterpretationBlockPayload;
   warnings: WarningItem[];
   assumptions?: string[];
@@ -125,6 +127,7 @@ export interface ExecutionDiagnostic {
   metrics: ScoreBand[];
   scenarios: ExecutionScenario[];
   figure?: FigurePayload;
+  figures?: FigurePayload[];
   interpretation: InterpretationBlockPayload;
   assumptions?: string[];
   limitations?: string[];

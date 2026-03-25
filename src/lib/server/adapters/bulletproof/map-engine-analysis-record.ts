@@ -376,6 +376,16 @@ function mapFigureList(payload: unknown, fallback: { title: string; type: Figure
   return single.series.length > 0 ? [single] : [];
 }
 
+function uniqueFigureList(figures: FigurePayload[]): FigurePayload[] {
+  const seen = new Set<string>();
+  return figures.filter((figure) => {
+    const key = figure.figure_id || `${figure.title}-${figure.type}-${figure.series.length}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function statusText(status: FinalStatus | undefined, availableText: string, unavailableText: string): string {
   return status === "available" ? availableText : unavailableText;
 }
@@ -542,6 +552,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         series: derivedStats.equitySeries,
         provenance: "reconstructed_from_trades",
       };
+  const overviewFigures = uniqueFigureList(
+    [overviewFigure, ...(envelopeByDiagnostic.overview?.figures ?? [])].filter((figure) => figure.series.length > 0),
+  );
 
   if (envelopeByDiagnostic.overview) {
     envelopeByDiagnostic.overview.metadata = {
@@ -579,6 +592,83 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           note: "Scatter requires excursion fields; absent fields remain intentionally limited.",
         }),
       ].filter((figure) => figure.series.length > 0);
+  const monteCarloPrimaryFigure = mapFigure(
+    envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.type === "fan" || candidate.type === "fan_chart")
+    ?? envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.series.length > 0)
+    ?? envelopeByDiagnostic.monte_carlo?.figures[0]
+    ?? monteCarloRaw?.fan_chart_figure
+    ?? monteCarloRaw?.figure,
+    {
+      title: "Monte Carlo Equity Fan",
+      type: "fan_chart",
+      note: statusText(statusByDiagnostic.get("monte_carlo"), "Fan-chart payload reflects engine-supplied simulation paths.", "Monte Carlo figure is constrained by simulation depth emitted by engine."),
+    },
+  );
+  const monteCarloFigures = uniqueFigureList(
+    [monteCarloPrimaryFigure, ...(envelopeByDiagnostic.monte_carlo?.figures ?? [])].filter((figure) => figure.series.length > 0),
+  );
+  const executionPrimaryFigure = mapFigure(
+    envelopeByDiagnostic.execution?.figures.find((candidate) => candidate.series.length > 0)
+    ?? envelopeByDiagnostic.execution?.figures[0]
+    ?? executionRaw?.scenario_figure
+    ?? executionRaw?.figure,
+    {
+      title: "Execution Friction Sensitivity",
+      type: "line",
+      note: executionAssumptions.length
+        ? "Execution scenario chart reflects engine-emitted friction assumptions."
+        : "Execution scenario chart is unavailable because stress assumptions were not emitted in this run payload.",
+    },
+  );
+  const executionFigures = uniqueFigureList(
+    [executionPrimaryFigure, ...(envelopeByDiagnostic.execution?.figures ?? [])].filter((figure) => figure.series.length > 0),
+  );
+  const richDiagnosticsAvailability = [
+    `overview=${overviewFigures.length}`,
+    `distribution=${distributionFigures.length}`,
+    `monte_carlo=${monteCarloFigures.length}`,
+    `execution=${executionFigures.length}`,
+  ];
+  const reportMethodologyAssumptions = [
+    ...getStringArray(canonicalReport, ["methodology_assumptions", "assumptions"]),
+    ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
+    ...(envelopeByDiagnostic.report?.assumptions ?? []),
+    `engine=${engineContext.engine_name}`,
+    `seam=${engineContext.seam}`,
+    `artifact_richness=${parsedArtifact.richness}`,
+    ...richDiagnosticsAvailability,
+    ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
+  ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+  const reportLimitations = [
+    ...getStringArray(canonicalReport, ["limitations"]),
+    ...getStringArray(reportRaw, ["limitations"]),
+    ...(envelopeByDiagnostic.report?.limitations ?? []),
+  ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+  const reportRecommendationsCandidate = [
+    ...getStringArray(canonicalReport, ["recommendations", "next_steps"]),
+    ...getStringArray(reportRaw, ["recommendations", "next_steps"]),
+    ...(envelopeByDiagnostic.report?.recommendations ?? []),
+  ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+  const reportRecommendations = reportRecommendationsCandidate.length
+    ? reportRecommendationsCandidate
+    : [
+        "Review limited/skipped diagnostics before deployment decisions.",
+        "Use tighter sizing policies when Monte Carlo tail or ruin estimates remain elevated.",
+      ];
+  const reportDiagnosticsSummary = [
+    ...reportDiagnosticRows,
+    ...richDiagnosticsAvailability,
+  ];
+  const reportFigures = uniqueFigureList(
+    [
+      ...mapFigureList(canonicalReport?.figures, { title: "Report figure", type: "line", note: "Engine-native report figure payload." }),
+      ...(envelopeByDiagnostic.report?.figures ?? []),
+      ...overviewFigures,
+      ...distributionFigures,
+      ...monteCarloFigures,
+      ...executionFigures,
+    ].filter((figure) => figure.series.length > 0),
+  );
 
   if (envelopeByDiagnostic.distribution) {
     const hasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
@@ -696,6 +786,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           score("Risk-of-Ruin Probability", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
         ],
         figure: overviewFigure,
+        figures: overviewFigures,
         interpretation: {
           title: "Overview interpretation",
           summary: envelopeByDiagnostic.overview?.interpretation ?? statusText(
@@ -748,17 +839,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           score("Median Drawdown", formatPct(mcMedian), pctBand(Math.abs(mcMedian ?? 0), 12, 25)),
           score("P(Ruin)", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
         ],
-        figure: mapFigure(
-          envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.type === "fan" || candidate.type === "fan_chart")
-          ?? envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.series.length > 0)
-          ?? envelopeByDiagnostic.monte_carlo?.figures[0]
-          ?? monteCarloRaw?.fan_chart_figure
-          ?? monteCarloRaw?.figure,
-          {
-          title: "Monte Carlo Equity Fan",
-          type: "fan_chart",
-          note: statusText(statusByDiagnostic.get("monte_carlo"), "Fan-chart payload reflects engine-supplied simulation paths.", "Monte Carlo figure is constrained by simulation depth emitted by engine."),
-        }),
+        figure: monteCarloPrimaryFigure,
+        figures: monteCarloFigures,
         interpretation: {
           title: "Monte Carlo interpretation",
           summary: getString(monteCarloRaw, ["summary", "interpretation", "narrative"]) ?? statusText(
@@ -845,18 +927,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
               })
               .filter((item): item is NonNullable<typeof item> => Boolean(item))
           : [],
-        figure: mapFigure(
-          envelopeByDiagnostic.execution?.figures.find((candidate) => candidate.series.length > 0)
-          ?? envelopeByDiagnostic.execution?.figures[0]
-          ?? executionRaw?.scenario_figure
-          ?? executionRaw?.figure,
-          {
-          title: "Execution Friction Sensitivity",
-          type: "line",
-          note: executionAssumptions.length
-            ? "Execution scenario chart reflects engine-emitted friction assumptions."
-            : "Execution scenario chart is unavailable because stress assumptions were not emitted in this run payload.",
-        }),
+        figure: executionPrimaryFigure,
+        figures: executionFigures,
         interpretation: {
           title: "Execution interpretation",
           summary: statusText(
@@ -987,27 +1059,22 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     report: {
       report_id: `${analysisId}-report`,
       generated_at: now,
-      executive_summary: getString(canonicalReport, ["executive_summary", "summary"]) ?? engine.summary?.short_summary ?? eligibility.summary_text,
-      diagnostics_summary: reportDiagnosticRows,
-      methodology_assumptions: [
-        ...getStringArray(canonicalReport, ["methodology_assumptions", "assumptions"]),
-        ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
-        `engine=${engineContext.engine_name}`,
-        `seam=${engineContext.seam}`,
-        `artifact_richness=${parsedArtifact.richness}`,
-        ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
-      ],
-      limitations: getStringArray(canonicalReport, ["limitations"]).concat(getStringArray(reportRaw, ["limitations"])),
-      recommendations: getStringArray(canonicalReport, ["recommendations", "next_steps"]).length
-        ? getStringArray(canonicalReport, ["recommendations", "next_steps"])
-        : getStringArray(reportRaw, ["recommendations", "next_steps"]).concat([
-        "Review limited/skipped diagnostics before deployment decisions.",
-        "Use tighter sizing policies when Monte Carlo tail or ruin estimates remain elevated.",
-      ]),
+      executive_summary: getString(canonicalReport, ["executive_summary", "summary"])
+        ?? getString(reportRaw, ["executive_summary", "summary", "interpretation", "narrative"])
+        ?? envelopeByDiagnostic.report?.interpretation
+        ?? engine.summary?.short_summary
+        ?? eligibility.summary_text,
+      diagnostics_summary: reportDiagnosticsSummary,
+      methodology_assumptions: reportMethodologyAssumptions,
+      limitations: reportLimitations,
+      recommendations: reportRecommendations,
       confidence: reportConfidence,
       verdict,
-      deployment_guidance: getStringArray(canonicalReport, ["deployment_guidance", "deployment_recommendations", "deployment_conditions"]),
-      figures: mapFigureList(canonicalReport?.figures, { title: "Report figure", type: "line", note: "Engine-native report figure payload." }),
+      deployment_guidance: [
+        ...getStringArray(canonicalReport, ["deployment_guidance", "deployment_recommendations", "deployment_conditions"]),
+        ...getStringArray(reportRaw, ["deployment_guidance", "deployment_recommendations", "deployment_conditions"]),
+      ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx),
+      figures: reportFigures,
       source: asRecord(engine.report) ? "engine_report" : reportRaw ? "report_diagnostic_alias" : "summary_fallback",
       export_ready: Boolean(canonicalReport?.export_ready === true || getString(canonicalReport, ["export_ready"]) === "true") && statusByDiagnostic.get("report") === "available",
     },
