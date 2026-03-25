@@ -1,4 +1,5 @@
 import type { FigurePayload } from "@/lib/contracts";
+import { getRenderableSeries } from "@/lib/app/figure-rendering";
 
 function parsePercentileToken(value: string): number | undefined {
   const match = value.toLowerCase().match(/(?:^|[^0-9])(p?\s?(\d{1,2}|100))(?:[^0-9]|$)/);
@@ -12,25 +13,23 @@ function buildLinePath(points: Array<{ x: number; y: number }>) {
 }
 
 export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayload; emptyMessage?: string }) {
-  if (!figure || figure.series.length === 0) {
+  const { series: renderSeries, rendererSupported, emptyReason } = getRenderableSeries(figure);
+
+  if (!figure || renderSeries.length === 0) {
     console.log("[analysis-page-debug]", {
       scope: "analysis-page-debug",
       component: "DiagnosticFigure",
       branch: "empty_state_branch",
-      renderer_supported: false,
+      renderer_supported: Boolean(figure) ? rendererSupported : false,
       visible_render_path: false,
       fallback_to_placeholder: true,
       figure_type: figure?.type ?? null,
-      empty_state_reason: !figure
-        ? "renderer received undefined figure"
-        : "renderer received figure with zero series",
+      empty_state_reason: emptyReason ?? (!figure ? "renderer received undefined figure" : "renderer received figure with zero series"),
     });
     return <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">{emptyMessage ?? "No chart series were emitted for this diagnostic in the persisted run payload."}</p>;
   }
 
-  const allPoints = figure.series.flatMap((series) => series.points);
-  const supportedTypes = new Set(["line", "area", "bar", "grouped_bar", "histogram", "heatmap", "scatter", "fan", "fan_chart"]);
-  const rendererSupported = supportedTypes.has(figure.type);
+  const allPoints = renderSeries.flatMap((series) => series.points);
   const hasAnyPoints = allPoints.length > 0;
   const hasNumericY = allPoints.some((point) => Number.isFinite(point.y));
   const visibleRenderPath = hasAnyPoints && hasNumericY;
@@ -43,7 +42,7 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
     renderer_supported: rendererSupported,
     visible_render_path: visibleRenderPath,
     fallback_to_placeholder: false,
-    series_count: figure.series.length,
+    series_count: renderSeries.length,
     point_count: allPoints.length,
     empty_state_reason: visibleRenderPath
       ? undefined
@@ -70,7 +69,7 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
   const xFromPoint = (x: string | number) => typeof x === "number" ? xAt(x) : xAt(categoricalIndex.get(x) ?? 0);
 
   const fanSeries = (figure.type === "fan" || figure.type === "fan_chart")
-    ? figure.series
+    ? renderSeries
         .map((series) => ({ series, percentile: parsePercentileToken(`${series.label} ${series.key}`) }))
         .filter((item) => item.percentile !== undefined)
         .sort((a, b) => (a.percentile as number) - (b.percentile as number))
@@ -124,12 +123,12 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
             ) : null}
           </g>
         ) : null}
-        {figure.series.map((series, index) => {
+        {renderSeries.map((series, index) => {
           const color = colorForSeries(index);
           const points = series.points.map((point) => ({ x: xFromPoint(point.x), y: yAt(point.y) }));
           const path = buildLinePath(points);
           if (figure.type === "bar" || figure.type === "grouped_bar" || figure.type === "histogram") {
-            const barWidth = Math.max(8, Math.floor((width - pad * 2) / Math.max(points.length * Math.max(figure.series.length, 1), 1)) - 2);
+            const barWidth = Math.max(8, Math.floor((width - pad * 2) / Math.max(points.length * Math.max(renderSeries.length, 1), 1)) - 2);
             return (
               <g key={series.key}>
                 {points.map((point, pointIndex) => {
@@ -161,7 +160,7 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
         })}
       </svg>
       <div className="grid gap-2 text-xs text-text-neutral md:grid-cols-2">
-        {figure.series.map((series) => (
+        {renderSeries.map((series) => (
           <p key={series.key}><span className="font-medium text-text-graphite">{series.label}:</span> {series.points.length} points</p>
         ))}
       </div>
