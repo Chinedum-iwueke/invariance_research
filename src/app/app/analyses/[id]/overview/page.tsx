@@ -84,6 +84,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const completeness = diagnosticRows(record).filter((row) => row.status === "available").length;
 
   const selectedMetrics = selectOverviewTopMetrics(record.diagnostics.overview.metrics, 6);
+  const overviewFigures = record.diagnostics.overview.figures?.length
+    ? record.diagnostics.overview.figures
+    : [record.diagnostics.overview.figure];
+  const primaryOverviewFigure = overviewFigures[0] ?? record.diagnostics.overview.figure;
   const assumptions = record.diagnostics.overview.assumptions?.length ? record.diagnostics.overview.assumptions : record.report.methodology_assumptions;
   const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
   const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;
@@ -122,6 +126,19 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           </>
         )}
       />
+      {overviewFigures.length > 1 ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {overviewFigures.slice(1).map((figure) => (
+            <FigureCard
+              key={figure.figure_id}
+              title={figure.title}
+              subtitle={figure.subtitle}
+              figure={<DiagnosticFigure figure={figure} />}
+              note={figure.note}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
 

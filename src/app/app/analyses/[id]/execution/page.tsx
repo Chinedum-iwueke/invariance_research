@@ -116,6 +116,13 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         figure={<DiagnosticFigure figure={executionFigure} emptyMessage={figureMissingReason} />}
         note={executionFigure?.note}
       />
+      {executionFigures.length > 1 ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {executionFigures.slice(1).map((figure) => (
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+          ))}
+        </div>
+      ) : null}
       <MetricRow metrics={metricsFromScoreBands(topMetrics, metricHelpers)} cols={3} />
 
       <WorkspaceCard title="Scenario matrix" subtitle="Stress cases ranked by execution survivability">
