@@ -6,6 +6,7 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import type { AnalysisRecord, InterpretationBlockPayload } from "@/lib/contracts";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -87,7 +88,28 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const overviewFigures = record.diagnostics.overview.figures?.length
     ? record.diagnostics.overview.figures
     : [record.diagnostics.overview.figure];
-  const primaryOverviewFigure = overviewFigures[0] ?? record.diagnostics.overview.figure;
+  const overviewInputFigureTypes = figureTypes(persistedOverviewFigures);
+  const overviewSelectedFigureTypes = figureTypes(overviewFigures);
+  const overviewBranch = persistedOverviewFigures.length > 0
+    ? "native_figures_branch"
+    : record.diagnostics.overview.figure
+      ? "singular_figure_branch"
+      : "empty_state_branch";
+  const overviewEmptyReason = overviewBranch === "empty_state_branch"
+    ? "no figures on record (both diagnostics.overview.figures and diagnostics.overview.figure are missing)"
+    : undefined;
+  logAnalysisPageDebug({
+    analysis_id: record.analysis_id,
+    page: "overview",
+    input_figure_count: persistedOverviewFigures.length,
+    input_figure_types: overviewInputFigureTypes,
+    singular_figure_present: Boolean(record.diagnostics.overview.figure),
+    fallback_figure_source_available: provenance === "reconstructed_from_trades" || persistedOverviewFigures.some((figure) => figure.provenance === "reconstructed_from_trades" || figure.provenance === "synthesized_fallback"),
+    selected_figure_count: overviewFigures.length,
+    selected_figure_types: overviewSelectedFigureTypes,
+    branch: overviewBranch,
+    empty_state_reason: overviewEmptyReason,
+  });
   const assumptions = record.diagnostics.overview.assumptions?.length ? record.diagnostics.overview.assumptions : record.report.methodology_assumptions;
   const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
   const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;

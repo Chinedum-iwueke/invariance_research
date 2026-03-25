@@ -5,6 +5,7 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectDistributionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -40,6 +41,30 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const renderedMetrics = availableMetrics.length >= 3 ? availableMetrics : metrics;
 
   const figures = distribution.figures;
+  const fallbackDistributionFigure = distribution.figure;
+  const selectedFigures = figures.length ? figures : (fallbackDistributionFigure ? [fallbackDistributionFigure] : []);
+  const distributionBranch = figures.length
+    ? "native_figures_branch"
+    : fallbackDistributionFigure
+      ? (fallbackDistributionFigure.provenance === "reconstructed_from_trades" || fallbackDistributionFigure.provenance === "synthesized_fallback"
+          ? "fallback_reconstructed_branch"
+          : "singular_figure_branch")
+      : "empty_state_branch";
+  const distributionEmptyReason = distributionBranch === "empty_state_branch"
+    ? "no figures on record (diagnostics.distribution.figures empty and diagnostics.distribution.figure missing)"
+    : undefined;
+  logAnalysisPageDebug({
+    analysis_id: record.analysis_id,
+    page: "distribution",
+    input_figure_count: figures.length,
+    input_figure_types: figureTypes(figures),
+    singular_figure_present: Boolean(fallbackDistributionFigure),
+    fallback_figure_source_available: Boolean(fallbackDistributionFigure) || figures.some((figure) => figure.provenance === "reconstructed_from_trades" || figure.provenance === "synthesized_fallback"),
+    selected_figure_count: selectedFigures.length,
+    selected_figure_types: figureTypes(selectedFigures),
+    branch: distributionBranch,
+    empty_state_reason: distributionEmptyReason,
+  });
   const histogram = figures.find((figure) => figure.type === "histogram");
   const engineHistogramProvenance = typeof distribution.metadata?.histogram_provenance === "string"
     ? distribution.metadata.histogram_provenance

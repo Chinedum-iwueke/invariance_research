@@ -183,15 +183,38 @@ function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
 
   const deduped: FigurePayload[] = [];
   const seen = new Set<string>();
+  let filteredEmptySeries = 0;
+  let filteredDuplicate = 0;
   for (const figure of candidates) {
-    if (!figure || figure.series.length === 0) continue;
+    if (!figure || figure.series.length === 0) {
+      filteredEmptySeries += 1;
+      continue;
+    }
     const key = figure.figure_id.trim().toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      filteredDuplicate += 1;
+      continue;
+    }
     seen.add(key);
     deduped.push(figure);
   }
 
-  return deduped.slice(0, 8);
+  const curated = deduped.slice(0, 8);
+  const filteredByCap = Math.max(deduped.length - curated.length, 0);
+  console.log("[analysis-page-debug]", {
+    scope: "analysis-page-debug",
+    analysis_id: record.analysis_id,
+    page: "report",
+    stage: "derive_curated_charts",
+    candidate_count: candidates.length,
+    candidate_types: candidates.filter(Boolean).map((figure) => figure?.type ?? "unknown"),
+    selected_figure_count: curated.length,
+    selected_figure_types: curated.map((figure) => figure.type),
+    filtered_empty_or_missing_series_count: filteredEmptySeries,
+    filtered_duplicate_count: filteredDuplicate,
+    filtered_by_cap_count: filteredByCap,
+  });
+  return curated;
 }
 
 export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {

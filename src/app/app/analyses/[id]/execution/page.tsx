@@ -7,6 +7,7 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { Card } from "@/components/ui/card";
+import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { metricsFromScoreBands, selectExecutionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
@@ -65,6 +66,31 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   const executionFigure = executionFigures.find((figure) => figure.series.length > 0)
     ?? executionFigures[0]
     ?? execution.figure;
+  const selectedFigures = executionFigure
+    ? [executionFigure, ...executionFigures.filter((figure) => figure.figure_id !== executionFigure.figure_id)]
+    : executionFigures;
+  const executionBranch = executionFigures.length > 0
+    ? "native_figures_branch"
+    : executionFigure
+      ? (executionFigure.provenance === "reconstructed_from_trades" || executionFigure.provenance === "synthesized_fallback"
+          ? "fallback_reconstructed_branch"
+          : "singular_figure_branch")
+      : "empty_state_branch";
+  const executionEmptyReason = executionBranch === "empty_state_branch"
+    ? "no figures on record (diagnostics.execution.figures empty and diagnostics.execution.figure missing)"
+    : undefined;
+  logAnalysisPageDebug({
+    analysis_id: record.analysis_id,
+    page: "execution",
+    input_figure_count: executionFigures.length,
+    input_figure_types: figureTypes(executionFigures),
+    singular_figure_present: Boolean(execution.figure),
+    fallback_figure_source_available: Boolean(execution.figure) || executionFigures.some((figure) => figure.provenance === "reconstructed_from_trades" || figure.provenance === "synthesized_fallback"),
+    selected_figure_count: selectedFigures.length,
+    selected_figure_types: figureTypes(selectedFigures),
+    branch: executionBranch,
+    empty_state_reason: executionEmptyReason,
+  });
   const topMetrics = selectExecutionTopMetrics(execution.metrics, 3);
   const metricHelpers = {
     "Baseline Expectancy": "Expected edge under baseline execution costs.",

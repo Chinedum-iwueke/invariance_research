@@ -13,10 +13,42 @@ function buildLinePath(points: Array<{ x: number; y: number }>) {
 
 export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayload; emptyMessage?: string }) {
   if (!figure || figure.series.length === 0) {
+    console.log("[analysis-page-debug]", {
+      scope: "analysis-page-debug",
+      component: "DiagnosticFigure",
+      branch: "empty_state_branch",
+      renderer_supported: false,
+      visible_render_path: false,
+      fallback_to_placeholder: true,
+      figure_type: figure?.type ?? null,
+      empty_state_reason: !figure
+        ? "renderer received undefined figure"
+        : "renderer received figure with zero series",
+    });
     return <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">{emptyMessage ?? "No chart series were emitted for this diagnostic in the persisted run payload."}</p>;
   }
 
   const allPoints = figure.series.flatMap((series) => series.points);
+  const supportedTypes = new Set(["line", "area", "bar", "grouped_bar", "histogram", "heatmap", "scatter", "fan", "fan_chart"]);
+  const rendererSupported = supportedTypes.has(figure.type);
+  const hasAnyPoints = allPoints.length > 0;
+  const hasNumericY = allPoints.some((point) => Number.isFinite(point.y));
+  const visibleRenderPath = hasAnyPoints && hasNumericY;
+  console.log("[analysis-page-debug]", {
+    scope: "analysis-page-debug",
+    component: "DiagnosticFigure",
+    branch: visibleRenderPath ? "render_chart_branch" : "empty_like_chart_branch",
+    figure_id: figure.figure_id,
+    figure_type: figure.type,
+    renderer_supported: rendererSupported,
+    visible_render_path: visibleRenderPath,
+    fallback_to_placeholder: false,
+    series_count: figure.series.length,
+    point_count: allPoints.length,
+    empty_state_reason: visibleRenderPath
+      ? undefined
+      : (hasAnyPoints ? "renderer rejected data: no numeric y-values detected" : "renderer rejected data: no points in any series"),
+  });
   const numericX = allPoints.map((point) => (typeof point.x === "number" ? point.x : undefined)).filter((value): value is number => typeof value === "number");
   const yValues = allPoints.map((point) => point.y).filter((value) => Number.isFinite(value));
   const minX = numericX.length ? Math.min(...numericX) : 0;
