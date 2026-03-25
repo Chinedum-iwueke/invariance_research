@@ -1,3 +1,4 @@
+import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
 export type EngineDiagnosticStatus = "available" | "limited" | "unavailable" | "skipped";
@@ -38,6 +39,7 @@ export type EngineAnalysisResult = {
 };
 
 export type RunBulletproofAnalysisParams = {
+  analysis: AnalysisEntity;
   parsedArtifact: ParsedArtifact;
   eligibility: UploadEligibilitySummary;
 };
