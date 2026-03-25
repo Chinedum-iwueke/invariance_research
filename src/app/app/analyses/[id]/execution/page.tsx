@@ -61,9 +61,12 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   }
 
   const execution = record.diagnostics.execution;
-  const emittedExecutionFigure = record.engine_payload.diagnostics.execution?.figures.find((figure) => figure.series.some((series) => series.points.length > 0))
-    ?? record.engine_payload.diagnostics.execution?.figures[0];
-  const executionFigure = emittedExecutionFigure ?? execution.figure;
+  const executionFigures = execution.figures?.length
+    ? execution.figures
+    : execution.figure
+      ? [execution.figure]
+      : [];
+  const executionFigure = executionFigures[0];
   const topMetrics = selectExecutionTopMetrics(execution.metrics, 3);
   const metricHelpers = {
     "Baseline Expectancy": "Expected edge under baseline execution costs.",
@@ -73,9 +76,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
   const noScenarioReason = execution.assumptions?.length
     ? "The engine did not emit structured per-scenario rows for this run despite having cost assumptions."
     : "The engine did not emit execution cost assumptions, so a scenario matrix could not be constructed.";
-  const figureMissingReason = execution.assumptions?.length
-    ? "The engine emitted assumptions but no chart series for execution sensitivity in this run."
-    : "No chart was rendered because stress assumptions were missing, so expectancy-vs-stress series were not generated.";
+  const figureMissingReason = "No persisted execution figures are available for this run.";
   const assumptionRows = execution.assumptions?.length
     ? execution.assumptions
     : ["No baseline cost assumptions were emitted by the engine payload for this run."];
@@ -117,6 +118,13 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         figure={<DiagnosticFigure figure={executionFigure} emptyMessage={figureMissingReason} />}
         note={executionFigure?.note}
       />
+      {executionFigures.length > 1 ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {executionFigures.slice(1).map((figure) => (
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+          ))}
+        </div>
+      ) : null}
       <MetricRow metrics={metricsFromScoreBands(topMetrics, metricHelpers)} cols={3} />
 
       <WorkspaceCard title="Scenario matrix" subtitle="Stress cases ranked by execution survivability">
