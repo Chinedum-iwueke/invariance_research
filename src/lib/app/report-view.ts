@@ -171,14 +171,27 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
 
 function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
   const candidates: Array<FigurePayload | undefined> = [
-    record.report.figures[0],
-    record.diagnostics.overview.figure,
-    record.diagnostics.distribution.figures[0],
-    record.diagnostics.monte_carlo.figure,
+    ...record.report.figures,
+    ...(record.diagnostics.overview.figures ?? [record.diagnostics.overview.figure]),
+    ...record.diagnostics.distribution.figures,
+    ...(record.diagnostics.monte_carlo.figures ?? [record.diagnostics.monte_carlo.figure]),
+    ...(record.diagnostics.execution.figures ?? [record.diagnostics.execution.figure]).filter(Boolean),
+    record.diagnostics.stability.figure,
+    ...(record.diagnostics.regimes.figures ?? []),
     record.diagnostics.ruin.figure,
   ];
 
-  return candidates.filter((figure): figure is FigurePayload => Boolean(figure && figure.series.length > 0)).slice(0, 4);
+  const deduped: FigurePayload[] = [];
+  const seen = new Set<string>();
+  for (const figure of candidates) {
+    if (!figure || figure.series.length === 0) continue;
+    const key = figure.figure_id.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(figure);
+  }
+
+  return deduped.slice(0, 8);
 }
 
 export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {

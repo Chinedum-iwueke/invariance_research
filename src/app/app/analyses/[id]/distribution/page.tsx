@@ -5,17 +5,12 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
-import type { FigurePayload } from "@/lib/contracts";
 import { metricsFromScoreBands, selectDistributionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 function normalizeText(value: string): string {
   return value.trim().toLowerCase();
-}
-
-function hasData(figure: FigurePayload): boolean {
-  return figure.series.some((series) => series.points.length > 0);
 }
 
 function isUnavailable(value: string): boolean {
@@ -45,9 +40,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const renderedMetrics = availableMetrics.length >= 3 ? availableMetrics : metrics;
 
   const figures = distribution.figures;
-  const visibleFigures = figures.filter((figure) => hasData(figure));
-  const unavailableDiagnostics = figures.filter((figure) => !hasData(figure));
-  const histogram = visibleFigures.find((figure) => figure.type === "histogram");
+  const histogram = figures.find((figure) => figure.type === "histogram");
   const engineHistogramProvenance = typeof distribution.metadata?.histogram_provenance === "string"
     ? distribution.metadata.histogram_provenance
     : (histogram?.provenance === "synthesized_fallback" ? "derived_from_persisted_trades" : "engine_emitted");
@@ -68,7 +61,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         {[
           { label: "Trade count", value: String(record.dataset.trade_count) },
           { label: "Coverage", value: `${record.dataset.start_date ?? "N/A"} → ${record.dataset.end_date ?? "N/A"}` },
-          { label: "Figures", value: `${visibleFigures.length}/${figures.length} chartable` },
+          { label: "Figures", value: `${figures.length} persisted` },
           { label: "Returns", value: histogram ? "available" : "unavailable" },
           { label: "MAE/MFE", value: hasExcursion ? "available" : "unavailable" },
           { label: "Duration", value: hasDuration ? "available" : "unavailable" },
@@ -82,9 +75,9 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
       <MetricRow metrics={metricsFromScoreBands(renderedMetrics)} cols={4} />
 
       <div className="space-y-4">
-        {visibleFigures.length ? (
+        {figures.length ? (
           <div className="grid gap-4 xl:grid-cols-2">
-            {visibleFigures.map((figure) => (
+            {figures.map((figure) => (
               <FigureCard
                 key={figure.figure_id}
                 title={figure.title}
@@ -97,17 +90,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
               />
             ))}
           </div>
-        ) : <DiagnosticFigure figure={undefined} emptyMessage="No chart series were emitted for distribution in this persisted run payload." />}
-
-        {unavailableDiagnostics.length ? (
-          <WorkspaceCard title="Unavailable diagnostics" subtitle="These secondary views were not emitted with chartable series for this run.">
-            <ul className="space-y-1 text-sm text-text-neutral">
-              {unavailableDiagnostics.map((figure) => (
-                <li key={figure.figure_id}>• <span className="font-medium text-text-graphite">{figure.title}</span>{figure.note ? ` — ${figure.note}` : ""}</li>
-              ))}
-            </ul>
-          </WorkspaceCard>
-        ) : null}
+        ) : <DiagnosticFigure figure={undefined} emptyMessage="No persisted distribution figures are currently available for this run." />}
       </div>
 
       <WorkspaceCard title="Distribution shape insights" subtitle="How outcomes cluster and where asymmetry appears in this run.">

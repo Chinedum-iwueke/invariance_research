@@ -72,6 +72,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   }
 
   const overviewEnvelope = record.engine_payload.diagnostics.overview;
+  const persistedOverviewFigures = record.diagnostics.overview.figures ?? [];
+  const overviewFigure = persistedOverviewFigures.find((figure) => figure.series.length > 0)
+    ?? persistedOverviewFigures[0]
+    ?? record.diagnostics.overview.figure;
   const figureMetadata = overviewEnvelope?.metadata && typeof overviewEnvelope.metadata === "object" ? overviewEnvelope.metadata as Record<string, unknown> : undefined;
   const provenance = typeof figureMetadata?.overview_figure_provenance === "string" ? figureMetadata.overview_figure_provenance : "unknown";
   const artifactRichness = typeof figureMetadata?.artifact_richness === "string" ? figureMetadata.artifact_richness : analysis.eligibility_snapshot?.detected_richness ?? "unknown";
@@ -105,10 +109,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       </div>
 
       <FigureCard
-        title="Top-line equity view"
-        subtitle="Primary strategy equity path for initial decisioning"
-        figure={<DiagnosticFigure figure={{ ...record.diagnostics.overview.figure, title: "Top-line equity view" }} />}
-        note={record.diagnostics.overview.figure.note}
+        title={overviewFigure.title || "Top-line equity view"}
+        subtitle={overviewFigure.subtitle || "Primary strategy equity path for initial decisioning"}
+        figure={<DiagnosticFigure figure={overviewFigure} emptyMessage="No persisted overview figure is currently available for this run." />}
+        note={overviewFigure.note}
         metadata={(
           <>
             <StatusPill label="Provenance" value={provenance === "engine_emitted" ? "Engine-emitted" : provenance === "reconstructed_from_trades" ? "Reconstructed from trades" : "Unknown"} tone={provenance === "engine_emitted" ? "positive" : "warning"} />
