@@ -23,8 +23,9 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
   }
 
   const monteCarlo = record.diagnostics.monte_carlo;
-  const emittedMonteCarloFigures = record.engine_payload.diagnostics.monte_carlo?.figures ?? [];
-  const secondaryFigures = emittedMonteCarloFigures.filter((figure) => figure.figure_id !== monteCarlo.figure.figure_id && figure.series.some((series) => series.points.length > 0));
+  const monteCarloFigures = monteCarlo.figures?.length ? monteCarlo.figures : [monteCarlo.figure];
+  const primaryFigure = monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan") ?? monteCarloFigures[0];
+  const secondaryFigures = monteCarloFigures.filter((figure) => figure.figure_id !== primaryFigure?.figure_id);
   const metadata = monteCarlo.metadata ?? {};
   const method = typeof metadata.method === "string" ? metadata.method : "Bootstrap IID";
   const horizon = typeof metadata.horizon === "string" ? metadata.horizon : typeof metadata.horizon_days === "number" ? `${metadata.horizon_days} trading days` : "Not emitted";
@@ -96,15 +97,15 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
       </div>
 
       <FigureCard
-        title={record.diagnostics.monte_carlo.figure.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}
-        subtitle={record.diagnostics.monte_carlo.figure.subtitle || "Percentile envelopes summarize how severe simulated equity drawdowns can become under sequence perturbation."}
+        title={primaryFigure?.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}
+        subtitle={primaryFigure?.subtitle || "Percentile envelopes summarize how severe simulated equity drawdowns can become under sequence perturbation."}
         figure={(
           <DiagnosticFigure
-            figure={record.diagnostics.monte_carlo.figure}
-            emptyMessage="Monte Carlo fan chart is unavailable for this persisted run: the engine did not emit percentile path series (`diagnostics.monte_carlo.figures` or `fan_chart_figure`)."
+            figure={primaryFigure}
+            emptyMessage="No persisted Monte Carlo figures are available for this run."
           />
         )}
-        note={record.diagnostics.monte_carlo.figure.note}
+        note={primaryFigure?.note}
       />
       {secondaryFigures.length ? (
         <div className="grid gap-4 xl:grid-cols-2">

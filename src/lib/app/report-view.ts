@@ -170,15 +170,22 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
 }
 
 function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
-  const candidates: Array<FigurePayload | undefined> = [
-    record.report.figures[0],
-    record.diagnostics.overview.figure,
-    record.diagnostics.distribution.figures[0],
-    record.diagnostics.monte_carlo.figure,
-    record.diagnostics.ruin.figure,
+  const candidates: FigurePayload[] = [
+    ...record.report.figures,
+    ...(record.diagnostics.overview.figures?.length ? record.diagnostics.overview.figures : [record.diagnostics.overview.figure]),
+    ...record.diagnostics.distribution.figures,
+    ...(record.diagnostics.monte_carlo.figures?.length ? record.diagnostics.monte_carlo.figures : [record.diagnostics.monte_carlo.figure]),
+    ...(record.diagnostics.execution.figures ?? (record.diagnostics.execution.figure ? [record.diagnostics.execution.figure] : [])),
+    ...(record.diagnostics.ruin.figure ? [record.diagnostics.ruin.figure] : []),
   ];
-
-  return candidates.filter((figure): figure is FigurePayload => Boolean(figure && figure.series.length > 0)).slice(0, 4);
+  const seen = new Set<string>();
+  return candidates.filter((figure) => {
+    if (!figure) return false;
+    const key = figure.figure_id || `${figure.title}-${figure.type}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
 }
 
 export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
