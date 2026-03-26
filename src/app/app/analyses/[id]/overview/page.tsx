@@ -6,9 +6,11 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import type { AnalysisRecord, InterpretationBlockPayload } from "@/lib/contracts";
+import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -113,6 +115,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const assumptions = record.diagnostics.overview.assumptions?.length ? record.diagnostics.overview.assumptions : record.report.methodology_assumptions;
   const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
   const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;
+  const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
 
   const parserNotes = Array.from(new Set([
     ...(analysis.eligibility_snapshot?.parser_notes ?? []),
@@ -163,6 +166,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       ) : null}
 
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
+      <OverviewBenchmarkSection benchmark={benchmarkComparison} />
 
       <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
         <InterpretationBlock {...overviewInterpretation(record.diagnostics.overview.interpretation)} />
