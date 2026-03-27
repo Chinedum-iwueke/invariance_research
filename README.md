@@ -10,7 +10,6 @@ The repository currently contains:
 - a Python bridge into the `bulletproof_bt` engine seam (`bt.run_analysis_from_parsed_artifact`),
 - plan/entitlement gating, Stripe billing integration, and an internal admin/ops console.
 
-This README describes the system **as implemented today**.
 
 ---
 
