@@ -42,6 +42,19 @@ export async function POST(request: Request) {
   } catch (error) {
     const code = error instanceof Error ? error.message : "artifact_not_eligible";
     const status = code === "monthly_analysis_limit_reached" ? 429 : code === "artifact_access_denied" ? 403 : 422;
-    return NextResponse.json({ error: { code, message: "Analysis cannot be started for this account." } }, { status });
+    const messageByCode: Record<string, string> = {
+      artifact_not_eligible: "Artifact is not eligible for analysis. Re-run upload inspection for validation details.",
+      artifact_access_denied: "Artifact access denied for the current account.",
+      monthly_analysis_limit_reached: "Monthly analysis limit reached for this account.",
+    };
+    const message = messageByCode[code] ?? "Analysis cannot be started for this account.";
+    console.error("[api/analyses] create failed", {
+      account_id: session.account_id,
+      user_id: session.user_id,
+      artifact_id: body.artifact_id,
+      code,
+      status,
+    });
+    return NextResponse.json({ error: { code, message } }, { status });
   }
 }
