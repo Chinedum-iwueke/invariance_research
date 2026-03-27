@@ -1,3 +1,4 @@
+import React from "react";
 import { BenchmarkMetadataPanel } from "@/components/analysis/BenchmarkMetadataPanel";
 import { StrategyVsBenchmarkChart } from "@/components/analysis/StrategyVsBenchmarkChart";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
