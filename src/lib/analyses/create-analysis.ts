@@ -22,18 +22,44 @@ export async function buildPersistedBenchmarkConfig(input: {
     requestedId: input.selection.requested_id,
     detectedAssetClass,
   });
-  const manifest = await getBenchmarkManifest();
+  if (!resolved.enabled) {
+    return {
+      mode: resolved.mode,
+      requested_id: resolved.requestedId,
+      resolved_id: resolved.resolvedId,
+      resolution_reason: resolved.resolutionReason,
+      source: null,
+      frequency: null,
+      library_revision: null,
+      enabled: false,
+    };
+  }
 
-  return {
-    mode: resolved.mode,
-    requested_id: resolved.requestedId,
-    resolved_id: resolved.resolvedId,
-    resolution_reason: resolved.resolutionReason,
-    source: resolved.enabled ? "platform_managed" : null,
-    frequency: resolved.enabled ? "1d" : null,
-    library_revision: resolved.enabled ? manifest.revision : null,
-    enabled: resolved.enabled,
-  };
+  try {
+    const manifest = await getBenchmarkManifest();
+
+    return {
+      mode: resolved.mode,
+      requested_id: resolved.requestedId,
+      resolved_id: resolved.resolvedId,
+      resolution_reason: resolved.resolutionReason,
+      source: "platform_managed",
+      frequency: "1d",
+      library_revision: manifest.revision,
+      enabled: true,
+    };
+  } catch {
+    return {
+      mode: "none",
+      requested_id: resolved.requestedId,
+      resolved_id: null,
+      resolution_reason: "benchmark_library_unavailable",
+      source: null,
+      frequency: null,
+      library_revision: null,
+      enabled: false,
+    };
+  }
 }
 
 function detectAssetClass(parsedArtifact: ParsedArtifact): DetectedAssetClass {

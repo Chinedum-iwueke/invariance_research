@@ -16,7 +16,8 @@ export type BenchmarkResolutionReason =
   | "detected_asset_class_equities"
   | "detected_asset_class_metals"
   | "detected_asset_class_macro"
-  | "low_confidence_unknown";
+  | "low_confidence_unknown"
+  | "benchmark_library_unavailable";
 
 export type ResolvedBenchmark = {
   enabled: boolean;

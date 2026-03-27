@@ -94,9 +94,9 @@ export function NewAnalysisIntake() {
 
     if (!response.ok) {
       setState("failed");
-      const payload = (await response.json()) as { error?: { code?: string } };
+      const payload = (await response.json()) as { error?: { code?: string; message?: string } };
       setApiErrorCode(payload.error?.code ?? "analysis_start_failed");
-      setClientError("Unable to create analysis job.");
+      setClientError(payload.error?.message ?? "Unable to create analysis job.");
       return;
     }
 
@@ -301,4 +301,3 @@ function suggestBenchmarkFromInspection(inspection: UploadInspectionResponse | n
   }
   return { id: null, reason: "Low confidence detection; benchmark will remain disabled unless manually selected." };
 }
-

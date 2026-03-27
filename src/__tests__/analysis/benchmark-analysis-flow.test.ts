@@ -157,6 +157,27 @@ test("buildPersistedBenchmarkConfig resolves detected benchmark and sets persist
   assert.equal(typeof benchmark.library_revision, "string");
 });
 
+test("buildPersistedBenchmarkConfig fails safe when benchmark library is unavailable", async () => {
+  process.env.INVARIANCE_BENCHMARK_LIBRARY_ROOT = path.join(tempDir, "missing-library-root");
+  const parsedArtifact = {
+    strategy_metadata: { description: "equity mean reversion" },
+    trades: [{ market: "equities", symbol: "SPY" }],
+  } as unknown as ParsedArtifact;
+
+  const benchmark = await buildPersistedBenchmarkConfig({
+    selection: { mode: "auto", requested_id: null },
+    parsedArtifact,
+  });
+
+  assert.equal(benchmark.enabled, false);
+  assert.equal(benchmark.mode, "none");
+  assert.equal(benchmark.resolved_id, null);
+  assert.equal(benchmark.resolution_reason, "benchmark_library_unavailable");
+  assert.equal(benchmark.source, null);
+  assert.equal(benchmark.frequency, null);
+  assert.equal(benchmark.library_revision, null);
+});
+
 test("analysis creation persists benchmark config and dispatch sends explicit enabled contract", async () => {
   const { user, account } = accountService.ensureUserAndAccount({ email: "benchmark-flow@example.com" });
   seedArtifact(account.account_id, user.user_id, "artifact-flow-1");
