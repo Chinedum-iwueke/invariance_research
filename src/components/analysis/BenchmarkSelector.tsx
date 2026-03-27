@@ -1,3 +1,4 @@
+import React from "react";
 import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 
 export type BenchmarkSelectionValue = {
