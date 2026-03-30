@@ -32,6 +32,15 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
     );
   }
 
+  console.log("[analysis-page-debug]", {
+    scope: "analysis-page-debug",
+    component: "DiagnosticFigure",
+    branch: "rendered",
+    figure_id: figure.figure_id,
+    figure_type: figure.type,
+    series_count: adapted.summary.length,
+  });
+
   return (
     <div className="space-y-3 rounded-sm border border-border-subtle p-3">
       <EChartsHost option={adapted.option} height={336} />

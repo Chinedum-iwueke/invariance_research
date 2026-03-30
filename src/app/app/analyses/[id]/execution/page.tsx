@@ -63,7 +63,8 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
 
   const execution = record.diagnostics.execution;
   const executionFigures = execution.figures ?? [];
-  const executionFigure = executionFigures.find((figure) => figure.series.length > 0)
+  const executionFigure = executionFigures.find((figure) => figure.figure_id === "execution_expectancy_decay")
+    ?? executionFigures.find((figure) => figure.series.length > 0)
     ?? executionFigures[0]
     ?? execution.figure;
   const selectedFigures = executionFigure

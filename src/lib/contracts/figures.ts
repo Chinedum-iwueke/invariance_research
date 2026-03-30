@@ -23,6 +23,12 @@ export interface FigurePayload {
   subtitle?: string;
   type: FigureType;
   series: unknown[];
+  x?: Array<string | number>;
+  bins?: Array<Record<string, unknown>>;
+  groups?: Array<Record<string, unknown>>;
+  points?: Array<Record<string, unknown> | [string | number, number]>;
+  bands?: Array<Record<string, unknown>>;
+  metadata?: Record<string, unknown>;
   x_label?: string;
   y_label?: string;
   legend?: FigureLegendItem[];

@@ -64,9 +64,36 @@ export function seriesFromPoints(seriesLike: unknown, keyFallback: string): Figu
 }
 
 export function normalizeStandardSeries(figure: FigurePayload): FigureSeries[] {
-  return figure.series
+  const normalized = figure.series
     .map((series, index) => seriesFromPoints(series as unknown, `${figure.figure_id || "series"}-${index}`))
     .filter((series): series is FigureSeries => Boolean(series));
+  if (normalized.length) return normalized;
+
+  const raw = figure as FigurePayload & LooseRecord;
+  const x = Array.isArray(raw.x) ? raw.x : undefined;
+  const source = Array.isArray(raw.series) ? raw.series : [];
+  if (!x || !source.length) return [];
+
+  return source
+    .map((entry, seriesIndex) => {
+      const item = asRecord(entry);
+      if (!item) return undefined;
+      const values = Array.isArray(item.values) ? item.values : Array.isArray(item.data) ? item.data : [];
+      if (!values.length) return undefined;
+      const points = values
+        .map((value, valueIndex) => {
+          const y = toNumber(value);
+          const xValue = x[valueIndex];
+          if (y === undefined || (typeof xValue !== "number" && typeof xValue !== "string")) return undefined;
+          return { x: xValue, y };
+        })
+        .filter((point): point is FigurePoint => Boolean(point));
+      if (!points.length) return undefined;
+      const key = typeof item.key === "string" ? item.key : `series_${seriesIndex + 1}`;
+      const label = typeof item.label === "string" ? item.label : typeof item.name === "string" ? item.name : key;
+      return { key, label, series_type: "line" as const, points };
+    })
+    .filter((entry): entry is FigureSeries => Boolean(entry));
 }
 
 export function normalizeHistogramSeries(figure: FigurePayload, fallback: FigureSeries[]): FigureSeries[] {
@@ -113,22 +140,25 @@ export function normalizeHistogramSeries(figure: FigurePayload, fallback: Figure
 export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: FigureSeries[]): FigureSeries[] {
   if (fallback.length) return fallback;
   const raw = figure as FigurePayload & LooseRecord;
-  const categories = Array.isArray(raw.categories) ? raw.categories : undefined;
+  const categories = Array.isArray(raw.categories) ? raw.categories : Array.isArray(raw.x) ? raw.x : undefined;
   const groups = Array.isArray(raw.groups) ? raw.groups : undefined;
 
-  if (categories && groups) {
+  if (groups) {
     const mapped = groups
       .map((group, groupIndex) => {
         const entry = asRecord(group);
         if (!entry) return undefined;
         const values = Array.isArray(entry.values) ? entry.values : Array.isArray(entry.data) ? entry.data : undefined;
-        if (!values) return undefined;
-        const points = values.map((value, valueIndex) => {
-          const y = toNumber(value);
-          const x = categories[valueIndex];
-          if (y === undefined || (typeof x !== "string" && typeof x !== "number")) return undefined;
-          return { x, y };
-        }).filter((point): point is FigurePoint => Boolean(point));
+        const points = values
+          ? values.map((value, valueIndex) => {
+              const y = toNumber(value);
+              const x = categories?.[valueIndex];
+              if (y === undefined || (typeof x !== "string" && typeof x !== "number")) return undefined;
+              return { x, y };
+            }).filter((point): point is FigurePoint => Boolean(point))
+          : Array.isArray(entry.points)
+            ? entry.points.map((point, pointIndex) => toPoint(point, pointIndex)).filter((point): point is FigurePoint => Boolean(point))
+            : [];
 
         if (!points.length) return undefined;
         const key = typeof entry.key === "string" ? entry.key : `group_${groupIndex}`;
@@ -146,6 +176,7 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
 export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries[]): FigureSeries[] {
   if (fallback.length) return fallback;
   const raw = figure as FigurePayload & LooseRecord;
+  const x = Array.isArray(raw.x) ? raw.x : undefined;
   const percentileSource = Array.isArray(raw.percentile_bands)
     ? raw.percentile_bands
     : Array.isArray(raw.percentiles)
@@ -165,7 +196,15 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
       const label = percentile !== undefined ? `P${percentile}` : (typeof entry.label === "string" ? entry.label : key);
       const values = Array.isArray(entry.points) ? entry.points : Array.isArray(entry.path) ? entry.path : Array.isArray(entry.values) ? entry.values : undefined;
       if (!values) return undefined;
-      const points = values.map((value, pointIndex) => toPoint(value, pointIndex)).filter((point): point is FigurePoint => Boolean(point));
+      const points = values.map((value, pointIndex) => {
+        if (typeof value === "number" || typeof value === "string") {
+          const y = toNumber(value);
+          const xValue = x?.[pointIndex];
+          if (y === undefined || (typeof xValue !== "number" && typeof xValue !== "string")) return undefined;
+          return { x: xValue, y };
+        }
+        return toPoint(value, pointIndex);
+      }).filter((point): point is FigurePoint => Boolean(point));
       if (!points.length) return undefined;
       return { key, label, series_type: "line" as const, points };
     })
@@ -176,6 +215,14 @@ export function normalizeFigureSeries(figure: FigurePayload): FigureSeries[] {
   const base = normalizeStandardSeries(figure);
   if (figure.type === "histogram") return normalizeHistogramSeries(figure, base);
   if (figure.type === "grouped_bar") return normalizeGroupedBarSeries(figure, base);
+  if (figure.type === "scatter") {
+    const raw = figure as FigurePayload & LooseRecord;
+    if (base.length) return base;
+    const pointsSource = Array.isArray(raw.points) ? raw.points : undefined;
+    if (!pointsSource) return [];
+    const points = pointsSource.map((point, index) => toPoint(point, index)).filter((point): point is FigurePoint => Boolean(point));
+    return points.length ? [{ key: "scatter", label: "Points", series_type: "scatter", points }] : [];
+  }
   if (figure.type === "fan" || figure.type === "fan_chart") return normalizeFanSeries(figure, base);
   return base;
 }

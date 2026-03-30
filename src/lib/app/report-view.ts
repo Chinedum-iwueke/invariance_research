@@ -1,5 +1,6 @@
 import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
 import { isFigureRenderable } from "@/lib/app/figure-rendering";
+import { adaptFigureToECharts } from "@/lib/charts/adapters";
 import { selectExecutionTopMetrics, selectMonteCarloTopMetrics, selectOverviewTopMetrics, selectRuinTopMetrics } from "@/lib/app/analysis-ui";
 
 export type VerdictPosture = "robust" | "moderate" | "fragile";
@@ -187,13 +188,45 @@ function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
   let filteredEmptySeries = 0;
   let filteredDuplicate = 0;
   for (const figure of candidates) {
-    if (!figure || !isFigureRenderable(figure)) {
+    if (!figure) {
       filteredEmptySeries += 1;
+      console.log("[analysis-page-debug]", {
+        scope: "analysis-page-debug",
+        analysis_id: record.analysis_id,
+        page: "report",
+        stage: "figure_dropped",
+        figure_id: null,
+        reason: "missing_figure",
+      });
+      continue;
+    }
+    const adaptation = adaptFigureToECharts(figure);
+    if (!isFigureRenderable(figure)) {
+      filteredEmptySeries += 1;
+      console.log("[analysis-page-debug]", {
+        scope: "analysis-page-debug",
+        analysis_id: record.analysis_id,
+        page: "report",
+        stage: "figure_dropped",
+        figure_id: figure.figure_id,
+        figure_type: figure.type,
+        renderer_supported: adaptation.rendererSupported,
+        reason: adaptation.emptyReason ?? "not_renderable",
+      });
       continue;
     }
     const key = figure.figure_id.trim().toLowerCase();
     if (seen.has(key)) {
       filteredDuplicate += 1;
+      console.log("[analysis-page-debug]", {
+        scope: "analysis-page-debug",
+        analysis_id: record.analysis_id,
+        page: "report",
+        stage: "figure_dropped",
+        figure_id: figure.figure_id,
+        figure_type: figure.type,
+        reason: "duplicate_figure_id",
+      });
       continue;
     }
     seen.add(key);
@@ -211,6 +244,7 @@ function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
     candidate_types: candidates.filter(Boolean).map((figure) => figure?.type ?? "unknown"),
     selected_figure_count: curated.length,
     selected_figure_types: curated.map((figure) => figure.type),
+    selected_figure_ids: curated.map((figure) => figure.figure_id),
     filtered_empty_or_missing_series_count: filteredEmptySeries,
     filtered_duplicate_count: filteredDuplicate,
     filtered_by_cap_count: filteredByCap,

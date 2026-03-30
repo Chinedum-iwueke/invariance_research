@@ -25,7 +25,8 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
   const monteCarlo = record.diagnostics.monte_carlo;
   const monteCarloFigures = monteCarlo.figures ?? [];
-  const primaryFigure = monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan")
+  const primaryFigure = monteCarloFigures.find((figure) => figure.figure_id === "equity_fan_chart")
+    ?? monteCarloFigures.find((figure) => figure.type === "fan_chart" || figure.type === "fan")
     ?? monteCarlo.figure;
   const secondaryFigures = monteCarloFigures.filter((figure) => figure.figure_id !== primaryFigure.figure_id);
   const selectedFigures = primaryFigure ? [primaryFigure, ...secondaryFigures] : secondaryFigures;

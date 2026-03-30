@@ -1,6 +1,56 @@
 import type { FigurePayload } from "../../src/lib/contracts";
 
 export const chartFixtures: Record<string, FigurePayload> = {
+  audited_overview_equity_curve: {
+    figure_id: "equity_curve",
+    title: "Equity Curve",
+    subtitle: "Audited contract line_series shape",
+    type: "line",
+    x_label: "Trade index",
+    y_label: "Equity",
+    series: [
+      { key: "strategy", label: "Strategy", values: [100, 105, 103, 110] },
+      { key: "benchmark", label: "Benchmark", values: [100, 101, 102, 104] },
+    ] as unknown as FigurePayload["series"],
+    x: [1, 2, 3, 4],
+  },
+  audited_distribution_win_loss: {
+    figure_id: "win_loss_distribution",
+    title: "Win/Loss Distribution",
+    type: "grouped_bar",
+    x_label: "Bucket",
+    y_label: "Count",
+    series: [],
+    groups: [
+      { key: "wins", label: "Wins", points: [{ x: "Win", y: 62 }, { x: "Loss", y: 0 }] },
+      { key: "losses", label: "Losses", points: [{ x: "Win", y: 0 }, { x: "Loss", y: 38 }] },
+    ],
+  },
+  audited_distribution_scatter: {
+    figure_id: "mae_mfe_scatter",
+    title: "MAE vs MFE",
+    type: "scatter",
+    x_label: "MAE",
+    y_label: "MFE",
+    series: [],
+    points: [{ x: -1.2, y: 2.5 }, { x: -0.8, y: 1.3 }, { x: -2.4, y: 3.4 }],
+  },
+  audited_monte_carlo_fan: {
+    figure_id: "equity_fan_chart",
+    title: "Equity Fan Chart",
+    type: "fan_chart",
+    x_label: "Step",
+    y_label: "Equity",
+    series: [],
+    x: [1, 2, 3],
+    bands: [
+      { percentile: 5, values: [80, 78, 74] },
+      { percentile: 25, values: [92, 90, 88] },
+      { percentile: 50, values: [100, 101, 103] },
+      { percentile: 75, values: [108, 111, 114] },
+      { percentile: 95, values: [120, 126, 132] },
+    ],
+  },
   overview_line: {
     figure_id: "overview-equity-line",
     title: "Equity curve",

@@ -390,6 +390,11 @@ function uniqueFigureList(figures: FigurePayload[]): FigurePayload[] {
   });
 }
 
+function pickFigureById(figures: FigurePayload[] | undefined, figureId: string): FigurePayload | undefined {
+  if (!figures?.length) return undefined;
+  return figures.find((figure) => figure.figure_id.trim().toLowerCase() === figureId.trim().toLowerCase());
+}
+
 function statusText(status: FinalStatus | undefined, availableText: string, unavailableText: string): string {
   return status === "available" ? availableText : unavailableText;
 }
@@ -542,7 +547,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     }),
   ) as AnalysisRecord["engine_payload"]["diagnostics"];
   const mappedOverviewFigure = mapFigure(
-    envelopeByDiagnostic.overview?.figures.find((candidate) => candidate.series.length > 0)
+    pickFigureById(envelopeByDiagnostic.overview?.figures, "equity_curve")
     ?? envelopeByDiagnostic.overview?.figures[0]
     ?? overviewRaw?.figure
     ?? overviewRaw?.equity_comparison_figure
@@ -581,7 +586,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
 
   const emittedDistributionFigures = envelopeByDiagnostic.distribution?.figures ?? [];
   const mappedDistributionHistogram = mapFigure(
-    emittedDistributionFigures.find((figure) => figure.type === "histogram")
+    pickFigureById(emittedDistributionFigures, "trade_return_histogram")
+    ?? emittedDistributionFigures.find((figure) => figure.type === "histogram")
     ?? distributionRaw?.histogram_figure
     ?? distributionRaw?.histogram
     ?? getArrayItem(distributionRaw, "figures", 0),
@@ -605,8 +611,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         }),
       ].filter((figure) => figure.series.length > 0);
   const monteCarloPrimaryFigure = mapFigure(
-    envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.type === "fan" || candidate.type === "fan_chart")
-    ?? envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.series.length > 0)
+    pickFigureById(envelopeByDiagnostic.monte_carlo?.figures, "equity_fan_chart")
+    ?? envelopeByDiagnostic.monte_carlo?.figures.find((candidate) => candidate.type === "fan" || candidate.type === "fan_chart")
     ?? envelopeByDiagnostic.monte_carlo?.figures[0]
     ?? monteCarloRaw?.fan_chart_figure
     ?? monteCarloRaw?.figure,
@@ -620,7 +626,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     [monteCarloPrimaryFigure, ...(envelopeByDiagnostic.monte_carlo?.figures ?? [])],
   );
   const executionPrimaryFigure = mapFigure(
-    envelopeByDiagnostic.execution?.figures.find((candidate) => candidate.series.length > 0)
+    pickFigureById(envelopeByDiagnostic.execution?.figures, "execution_expectancy_decay")
     ?? envelopeByDiagnostic.execution?.figures[0]
     ?? executionRaw?.scenario_figure
     ?? executionRaw?.figure,
@@ -1044,7 +1050,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           { name: "Artifact Richness", value: parsedArtifact.richness },
           { name: "Trade Count", value: `${parsedArtifact.trades.length}` },
         ],
-        figure: mapFigure(envelopeByDiagnostic.ruin?.figures[0] ?? ruinRaw?.figure ?? ruinRaw?.capital_stress_figure, {
+        figure: mapFigure(
+          pickFigureById(envelopeByDiagnostic.ruin?.figures, "ruin_probability_curve")
+          ?? envelopeByDiagnostic.ruin?.figures?.[0]
+          ?? ruinRaw?.figure
+          ?? ruinRaw?.capital_stress_figure,
+          {
           title: "Capital Stress Profile",
           type: "bar",
           note: "Ruin visualization reflects available survivability assumptions and should be interpreted with position-sizing context.",

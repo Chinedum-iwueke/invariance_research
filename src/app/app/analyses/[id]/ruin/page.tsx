@@ -70,6 +70,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   }
 
   const ruin = record.diagnostics.ruin;
+  const ruinFigures = record.engine_payload.diagnostics.ruin?.figures ?? [];
   const envelopeStatus = ruin.status ?? "limited";
   const assumptions = record.diagnostics.ruin.assumptions;
   const limitations = ruin.limitations ?? [];
@@ -104,7 +105,8 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     ?? (typeof metadata.method === "string" ? metadata.method : undefined)
     ?? (stressLinkage === "Monte-Carlo-linked" ? "Monte Carlo-linked" : "Proxy/standalone");
 
-  const figure = ruin.figure;
+  const figure = ruin.figure ?? ruinFigures.find((item) => item.figure_id === "ruin_probability_curve") ?? ruinFigures[0];
+  const riskSensitivityFigure = ruinFigures.find((item) => item.figure_id === "risk_per_trade_sensitivity");
   const figureEmptyMessage = assumptionsCompleteness === "missing"
     ? "Risk of Ruin requires explicit capital and sizing assumptions (for example account size and risk per trade). This run is trade-only, so a full ruin/survival surface was not emitted."
     : "A ruin/survivability figure was not emitted for this run (`diagnostics.ruin.figures` missing or empty), so this page can only show metric/assumption context.";
@@ -142,6 +144,14 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         figure={<DiagnosticFigure figure={figure} emptyMessage={figureEmptyMessage} />}
         note={figure?.note}
       />
+      {riskSensitivityFigure ? (
+        <FigureCard
+          title={riskSensitivityFigure.title || "Risk per Trade Sensitivity"}
+          subtitle={riskSensitivityFigure.subtitle || "Ruin response as risk-per-trade changes."}
+          figure={<DiagnosticFigure figure={riskSensitivityFigure} />}
+          note={riskSensitivityFigure.note}
+        />
+      ) : null}
       <WorkspaceCard title="Ruin assumptions" subtitle="Core inputs driving survivability estimates">
         <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-2">
           <ul className="space-y-2">
