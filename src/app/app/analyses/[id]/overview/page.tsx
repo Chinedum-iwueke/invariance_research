@@ -28,6 +28,13 @@ function toTitleCase(value: string): string {
   return value.split("_").map((token) => token.charAt(0).toUpperCase() + token.slice(1)).join(" ");
 }
 
+function benchmarkStatusLabel(status: string): string {
+  if (status === "available") return "Present";
+  if (status === "unavailable") return "Unavailable";
+  if (status === "absent") return "Absent";
+  return "Pending";
+}
+
 function verdictRationale(record: AnalysisRecord): string[] {
   if (record.summary.key_findings.length) return record.summary.key_findings.slice(0, 4);
   return [record.diagnostics.overview.interpretation.summary];
@@ -132,7 +139,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
     <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill label="Artifact" value={toTitleCase(artifactRichness)} tone="neutral" />
-        <StatusPill label="Benchmark" value={benchmarkStatus === "available" ? "Present" : "Absent/Pending"} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
+        <StatusPill label="Benchmark" value={benchmarkStatusLabel(benchmarkStatus)} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
         <StatusPill label="Execution context" value={toTitleCase(executionContextLevel)} tone={executionContextLevel === "available" ? "positive" : "warning"} />
         <StatusPill label="Diagnostics" value={`${completeness}/8 available`} tone={completeness >= 5 ? "positive" : "warning"} />
       </div>
@@ -146,7 +153,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <>
             <StatusPill label="Provenance" value={provenance === "engine_emitted" ? "Engine-emitted" : provenance === "reconstructed_from_trades" ? "Reconstructed from trades" : "Unknown"} tone={provenance === "engine_emitted" ? "positive" : "warning"} />
             <StatusPill label="Artifact richness" value={toTitleCase(artifactRichness)} />
-            <StatusPill label="Benchmark" value={benchmarkStatus === "available" ? "Present" : "Absent/Pending"} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
+            <StatusPill label="Benchmark" value={benchmarkStatusLabel(benchmarkStatus)} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
             <StatusPill label="Execution context" value={toTitleCase(executionContextLevel)} tone={executionContextLevel === "available" ? "positive" : "warning"} />
           </>
         )}
@@ -188,7 +195,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <p><span className="font-medium text-text-graphite">Artifact richness:</span> {toTitleCase(artifactRichness)}</p>
           <p><span className="font-medium text-text-graphite">Risk model:</span> {record.run_context.risk_model}</p>
           <p><span className="font-medium text-text-graphite">Parser/adapter:</span> {analysis.engine_context?.engine_name ?? "N/A"} / {analysis.engine_context?.seam ?? "N/A"}</p>
-          <p><span className="font-medium text-text-graphite">Benchmark status:</span> {benchmarkStatus === "available" ? "Present" : "Absent/Pending"}</p>
+          <p><span className="font-medium text-text-graphite">Benchmark status:</span> {benchmarkStatusLabel(benchmarkStatus)}</p>
         </div>
       </WorkspaceCard>
 

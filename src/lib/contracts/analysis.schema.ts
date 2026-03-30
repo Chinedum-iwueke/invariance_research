@@ -204,6 +204,7 @@ export const engineDiagnosticEnvelopeSchema = z.object({
   status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
   summary_metrics: z.array(engineDiagnosticMetricSchema),
   figures: z.array(figurePayloadSchema),
+  benchmark_comparison: z.record(z.string(), z.unknown()).optional(),
   interpretation: z.string().optional(),
   assumptions: z.array(z.string()),
   warnings: z.array(z.string()),

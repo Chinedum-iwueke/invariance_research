@@ -148,53 +148,37 @@ export function NewAnalysisIntake() {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-      <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV, structured bundle, or parameter sweep bundle ZIP">
-        <div
-          className={cn(
-            "rounded-md border border-dashed bg-surface-panel/60 p-8 text-center",
-            state === "drag_over" ? "border-brand" : "border-border",
-          )}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setState("drag_over");
-          }}
-          onDragLeave={() => setState("idle")}
-          onDrop={(event) => {
-            event.preventDefault();
-            const dropped = event.dataTransfer.files.item(0);
-            if (dropped) void onInspect(dropped);
-          }}
-        >
-          <p className="text-sm font-medium">Submit artifact into validation intake</p>
-          <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1 / parameter sweep bundle)</p>
-          <input
-            className="mt-4 block w-full text-xs"
-            type="file"
-            accept=".csv,.zip"
-            onChange={(event) => {
-              const selected = event.target.files?.item(0);
-              if (selected) void onInspect(selected);
-            }}
-          />
-        </div>
-        <p className="mt-3 text-xs text-text-neutral">Files are processed server-side. The frontend does not parse raw artifact contents.</p>
-      </WorkspaceCard>
-
       <div className="space-y-4">
-        <WorkspaceCard title="Intake guidance" subtitle="What to upload for each analysis path">
-          <ul className="space-y-2 text-sm text-text-neutral">
-            <li>• Trade-only upload: a closed-trades CSV for baseline diagnostics.</li>
-            <li>• Structured bundle upload: manifest + trades + optional assumptions/context files.</li>
-            <li>• Parameter sweep bundle (required for baseline Parameter Stability): multi-run results across parameter combinations with run-to-parameter metadata.</li>
-          </ul>
-        </WorkspaceCard>
-
-        <WorkspaceCard title="Supported sweep formats" subtitle="Operator-friendly bundle contract">
-          <ul className="space-y-2 text-sm text-text-neutral">
-            <li>• Preferred: one ZIP bundle with <code>manifest.json</code> plus per-run trade/result files and explicit run_id → parameter values mapping.</li>
-            <li>• Advanced: one combined table that includes <code>run_id</code>, parameter columns, and trade/result fields for each run.</li>
-            <li>• OHLCV/regime files are optional for baseline Parameter Stability and may support richer future variants.</li>
-          </ul>
+        <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV, structured bundle, or parameter sweep bundle ZIP">
+          <div
+            className={cn(
+              "rounded-md border border-dashed bg-surface-panel/60 p-8 text-center",
+              state === "drag_over" ? "border-brand" : "border-border",
+            )}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setState("drag_over");
+            }}
+            onDragLeave={() => setState("idle")}
+            onDrop={(event) => {
+              event.preventDefault();
+              const dropped = event.dataTransfer.files.item(0);
+              if (dropped) void onInspect(dropped);
+            }}
+          >
+            <p className="text-sm font-medium">Submit artifact into validation intake</p>
+            <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1 / parameter sweep bundle)</p>
+            <input
+              className="mt-4 block w-full text-xs"
+              type="file"
+              accept=".csv,.zip"
+              onChange={(event) => {
+                const selected = event.target.files?.item(0);
+                if (selected) void onInspect(selected);
+              }}
+            />
+          </div>
+          <p className="mt-3 text-xs text-text-neutral">Files are processed server-side. The frontend does not parse raw artifact contents.</p>
         </WorkspaceCard>
 
         <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth">
@@ -223,7 +207,7 @@ export function NewAnalysisIntake() {
           )}
         </WorkspaceCard>
 
-        <WorkspaceCard title="Analysis orchestration" subtitle="Queued and processing states">
+        <WorkspaceCard title="Analysis orchestration" subtitle="Step 3: choose runtime options, then run analysis">
           <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
           {benchmarkSelection.mode === "auto" && (
             <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
@@ -276,6 +260,24 @@ export function NewAnalysisIntake() {
 
         <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
           <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>
+        </WorkspaceCard>
+      </div>
+
+      <div className="space-y-4">
+        <WorkspaceCard title="Intake guidance" subtitle="What to upload for each analysis path">
+          <ul className="space-y-2 text-sm text-text-neutral">
+            <li>• Trade-only upload: a closed-trades CSV for baseline diagnostics.</li>
+            <li>• Structured bundle upload: manifest + trades + optional assumptions/context files.</li>
+            <li>• Parameter sweep bundle (required for baseline Parameter Stability): multi-run results across parameter combinations with run-to-parameter metadata.</li>
+          </ul>
+        </WorkspaceCard>
+
+        <WorkspaceCard title="Supported sweep formats" subtitle="Operator-friendly bundle contract">
+          <ul className="space-y-2 text-sm text-text-neutral">
+            <li>• Preferred: one ZIP bundle with <code>manifest.json</code> plus per-run trade/result files and explicit run_id → parameter values mapping.</li>
+            <li>• Advanced: one combined table that includes <code>run_id</code>, parameter columns, and trade/result fields for each run.</li>
+            <li>• OHLCV/regime files are optional for baseline Parameter Stability and may support richer future variants.</li>
+          </ul>
         </WorkspaceCard>
       </div>
     </div>
