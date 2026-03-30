@@ -4,6 +4,7 @@ import { resolveBenchmark } from "@/lib/benchmarks/benchmark-resolver";
 import type { DetectedAssetClass } from "@/lib/benchmarks/benchmark-types";
 import type { AnalysisBenchmarkConfig, AnalysisBenchmarkSelectionInput } from "@/lib/analyses/analysis-types";
 import type { ParsedArtifact } from "@/lib/server/ingestion";
+import { getBenchmarkLibraryRoot } from "@/server/benchmark-library/paths";
 
 export function parseBenchmarkSelectionFromRequest(payload: CreateAnalysisRequest): AnalysisBenchmarkSelectionInput {
   return {
@@ -22,6 +23,7 @@ export async function buildPersistedBenchmarkConfig(input: {
     requestedId: input.selection.requested_id,
     detectedAssetClass,
   });
+  const libraryRoot = getBenchmarkLibraryRoot();
   if (!resolved.enabled) {
     return {
       mode: resolved.mode,
@@ -32,6 +34,7 @@ export async function buildPersistedBenchmarkConfig(input: {
       frequency: null,
       library_revision: null,
       enabled: false,
+      library_root: libraryRoot,
     };
   }
 
@@ -47,6 +50,7 @@ export async function buildPersistedBenchmarkConfig(input: {
       frequency: "1d",
       library_revision: manifest.revision,
       enabled: true,
+      library_root: libraryRoot,
     };
   } catch {
     return {
@@ -58,6 +62,7 @@ export async function buildPersistedBenchmarkConfig(input: {
       frequency: "1d",
       library_revision: null,
       enabled: true,
+      library_root: libraryRoot,
     };
   }
 }

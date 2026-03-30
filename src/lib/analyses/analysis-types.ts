@@ -14,5 +14,6 @@ export type AnalysisBenchmarkConfig = {
   source: "platform_managed" | null;
   frequency: "1d" | null;
   library_revision: string | null;
+  library_root?: string | null;
   enabled: boolean;
 };
