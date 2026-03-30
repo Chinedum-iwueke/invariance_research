@@ -416,6 +416,12 @@ function pickDiagnosticEnvelope(raw: UnknownRecord | undefined): UnknownRecord |
   return pickFirstRecord(raw, ["diagnostic_envelope", "envelope", "payload"]) ?? raw;
 }
 
+function deriveBenchmarkStatus(overviewEnvelope: UnknownRecord | undefined): "available" | "unavailable" | "absent" {
+  const comparison = asRecord(overviewEnvelope?.benchmark_comparison);
+  if (!comparison) return "absent";
+  return comparison.available === true ? "available" : "unavailable";
+}
+
 function envelopeMetricToScore(metric: NonNullable<ReturnType<typeof normalizeMetric>>): ScoreBand {
   const band = metric.band;
   return {
@@ -525,6 +531,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         status,
         summary_metrics: summaryMetrics,
         figures,
+        benchmark_comparison: asRecord(raw?.benchmark_comparison),
         interpretation,
         assumptions: getStringArray(raw, ["assumptions"]),
         warnings: getStringArray(raw, ["warnings"]),
@@ -561,10 +568,11 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   );
 
   if (envelopeByDiagnostic.overview) {
+    const benchmarkStatus = deriveBenchmarkStatus(envelopeByDiagnostic.overview as unknown as UnknownRecord);
     envelopeByDiagnostic.overview.metadata = {
       ...(envelopeByDiagnostic.overview.metadata ?? {}),
       overview_figure_provenance: overviewFigureProvenance,
-      benchmark_status: parsedArtifact.benchmark_present ? "available" : "pending",
+      benchmark_status: benchmarkStatus,
       artifact_richness: parsedArtifact.richness,
       execution_context_level: statusByDiagnostic.get("execution") ?? "limited",
       figure_series_count: overviewFigure.series.length,

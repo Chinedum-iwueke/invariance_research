@@ -203,6 +203,7 @@ export interface EngineDiagnosticEnvelope {
   status?: "available" | "limited" | "unavailable" | "skipped";
   summary_metrics: EngineDiagnosticMetric[];
   figures: FigurePayload[];
+  benchmark_comparison?: Record<string, unknown>;
   interpretation?: string;
   assumptions: string[];
   warnings: string[];

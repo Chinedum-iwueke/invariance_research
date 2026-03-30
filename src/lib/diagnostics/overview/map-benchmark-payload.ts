@@ -102,17 +102,25 @@ function toSeries(rawSeries: unknown): FigurePayload["series"] {
     .filter((series): series is NonNullable<typeof series> => Boolean(series));
 }
 
-function toFigure(rawFigure: unknown, metadata?: BenchmarkMetadata): FigurePayload | undefined {
+function toFigure(rawFigure: unknown, metadata?: BenchmarkMetadata, comparison?: LooseRecord): FigurePayload | undefined {
   const figure = asRecord(rawFigure);
-  if (!figure) return undefined;
+  const figureSeries = figure ? toSeries(figure.series) : [];
+  const directSeries = comparison ? toSeries(comparison.series) : [];
+  const strategySeries = comparison
+    ? toSeries([{ id: "strategy", label: "Strategy", points: comparison.strategy_series ?? comparison.strategy }])
+    : [];
+  const benchmarkSeries = comparison
+    ? toSeries([{ id: "benchmark", label: "Benchmark", points: comparison.benchmark_series ?? comparison.benchmark }])
+    : [];
+  const overlaySeries = comparison ? toSeries(comparison.overlay) : [];
+  const series = [figureSeries, directSeries, strategySeries, benchmarkSeries, overlaySeries].find((candidate) => candidate.length > 0) ?? [];
 
-  const type = asString(figure.type) ?? "timeseries_overlay";
-  const series = toSeries(figure.series);
   if (!series.length) return undefined;
+  const type = asString(figure?.type) ?? "timeseries_overlay";
 
   return {
     figure_id: "overview-benchmark-comparison",
-    title: asString(figure.title) ?? "Strategy vs Benchmark",
+    title: asString(figure?.title) ?? "Strategy vs Benchmark",
     subtitle: "Daily normalized comparison (100 at first common timestamp)",
     type: "line",
     series,
@@ -182,6 +190,6 @@ export function mapOverviewBenchmarkPayload(overviewPayload: unknown): OverviewB
     metadata,
     assumptions: asStringArray(comparison.assumptions),
     limitations: asStringArray(comparison.limitations),
-    figure: toFigure(comparison.figure, metadata),
+    figure: toFigure(comparison.figure, metadata, comparison),
   };
 }
