@@ -43,7 +43,7 @@ export function DiagnosticFigure({ figure, emptyMessage }: { figure?: FigurePayl
 
   return (
     <div className="space-y-3 rounded-sm border border-border-subtle p-3">
-      <EChartsHost option={adapted.option} height={336} />
+      <EChartsHost option={adapted.option} height={420} />
 
       <div className="grid gap-2 text-xs text-text-neutral md:grid-cols-2">
         <p><span className="font-medium text-text-graphite">X-axis:</span> {figure.x_label ?? "Not emitted"}</p>

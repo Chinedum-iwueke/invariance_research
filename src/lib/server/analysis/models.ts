@@ -25,6 +25,14 @@ export type AnalysisEngineContext = {
   seam?: string;
   degraded?: boolean;
   degradation_reasons?: string[];
+  benchmark_config?: Record<string, unknown>;
+  account_size?: number;
+  risk_per_trade_pct?: number;
+};
+
+export type AnalysisRuntimeConfig = {
+  account_size?: number;
+  risk_per_trade_pct?: number;
 };
 
 export type AnalysisEntity = {
@@ -40,6 +48,7 @@ export type AnalysisEntity = {
   eligibility_snapshot?: UploadEligibilitySummary;
   engine_context?: AnalysisEngineContext;
   benchmark?: AnalysisBenchmarkConfig;
+  runtime_config?: AnalysisRuntimeConfig;
   failure_code?: string;
   failure_message?: string;
 };

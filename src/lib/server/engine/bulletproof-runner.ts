@@ -21,6 +21,9 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
       engine_name: "bt",
       engine_version: result.run_context?.engine_version ?? engineResponse.engine_version,
       seam: "run_analysis_from_parsed_artifact",
+      benchmark_config: dispatch.config.benchmark,
+      account_size: dispatch.config.account_size,
+      risk_per_trade_pct: dispatch.config.risk_per_trade_pct,
       degraded: degradationReasons.length > 0,
       degradation_reasons: [
         ...degradationReasons,

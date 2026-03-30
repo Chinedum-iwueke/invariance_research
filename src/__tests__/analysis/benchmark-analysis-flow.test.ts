@@ -169,16 +169,15 @@ test("buildPersistedBenchmarkConfig fails safe when benchmark library is unavail
     parsedArtifact,
   });
 
-  assert.equal(benchmark.enabled, false);
-  assert.equal(benchmark.mode, "none");
-  assert.equal(benchmark.resolved_id, null);
-  assert.equal(benchmark.resolution_reason, "benchmark_library_unavailable");
-  assert.equal(benchmark.source, null);
-  assert.equal(benchmark.frequency, null);
+  assert.equal(benchmark.enabled, true);
+  assert.equal(benchmark.mode, "auto");
+  assert.equal(benchmark.resolved_id, "SPY");
+  assert.equal(benchmark.source, "platform_managed");
+  assert.equal(benchmark.frequency, "1d");
   assert.equal(benchmark.library_revision, null);
 });
 
-test("analysis creation persists benchmark config and dispatch sends explicit enabled contract", async () => {
+test("analysis creation persists benchmark + runtime config and dispatch sends explicit engine contract", async () => {
   const { user, account } = accountService.ensureUserAndAccount({ email: "benchmark-flow@example.com" });
   seedArtifact(account.account_id, user.user_id, "artifact-flow-1");
 
@@ -187,12 +186,15 @@ test("analysis creation persists benchmark config and dispatch sends explicit en
     owner_user_id: user.user_id,
     account_id: account.account_id,
     benchmark: { mode: "manual", requested_id: "DXY" },
+    runtime_config: { account_size: 250000, risk_per_trade_pct: 1.25 },
   });
 
   const analysis = analysisRepository.findById(created.analysis_id);
   assert.ok(analysis?.benchmark);
   assert.equal(analysis?.benchmark?.enabled, true);
   assert.equal(analysis?.benchmark?.resolved_id, "DXY");
+  assert.equal(analysis?.runtime_config?.account_size, 250000);
+  assert.equal(analysis?.runtime_config?.risk_per_trade_pct, 1.25);
 
   const dispatch = await buildAnalysisEngineDispatchPayload({
     analysis: analysis!,
@@ -208,6 +210,8 @@ test("analysis creation persists benchmark config and dispatch sends explicit en
     assert.equal(dispatch.config.benchmark.comparison_frequency, "1d");
     assert.equal(dispatch.config.benchmark.normalization_basis, "100_at_first_common_timestamp");
   }
+  assert.equal(dispatch.config.account_size, 250000);
+  assert.equal(dispatch.config.risk_per_trade_pct, 1.25);
   assert.deepEqual(dispatch.warnings, []);
 });
 

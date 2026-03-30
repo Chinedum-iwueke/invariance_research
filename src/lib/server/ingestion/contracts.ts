@@ -81,6 +81,11 @@ export type CanonicalTradeRecord = {
   pnl_pct?: number;
   mae?: number;
   mfe?: number;
+  r_multiple?: number;
+  r_multiple_net?: number;
+  r_multiple_gross?: number;
+  risk_amount?: number;
+  stop_distance?: number;
   duration_seconds?: number;
   strategy_name?: string;
   timeframe?: string;

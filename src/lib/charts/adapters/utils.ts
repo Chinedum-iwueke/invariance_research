@@ -170,6 +170,25 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
     if (mapped.length) return mapped;
   }
 
+  if (groups && categories?.length) {
+    const mapped = groups
+      .map((group, groupIndex) => {
+        const entry = asRecord(group);
+        if (!entry) return undefined;
+        const key = typeof entry.key === "string" ? entry.key : `group_${groupIndex}`;
+        const label = typeof entry.label === "string" ? entry.label : typeof entry.name === "string" ? entry.name : key;
+        const points = categories
+          .map((category) => {
+            const value = toNumber(entry[`${category}`]) ?? toNumber(entry[String(category)]);
+            return value === undefined ? undefined : { x: category, y: value };
+          })
+          .filter((point): point is FigurePoint => Boolean(point));
+        return points.length ? { key, label, series_type: "bar" as const, points } : undefined;
+      })
+      .filter((entry): entry is FigureSeries => Boolean(entry));
+    if (mapped.length) return mapped;
+  }
+
   return [];
 }
 
@@ -194,7 +213,7 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
       const percentile = toNumber(entry.percentile) ?? toNumber(entry.p);
       const key = percentile !== undefined ? `p${percentile}` : `band_${index}`;
       const label = percentile !== undefined ? `P${percentile}` : (typeof entry.label === "string" ? entry.label : key);
-      const values = Array.isArray(entry.points) ? entry.points : Array.isArray(entry.path) ? entry.path : Array.isArray(entry.values) ? entry.values : undefined;
+      const values = Array.isArray(entry.points) ? entry.points : Array.isArray(entry.path) ? entry.path : Array.isArray(entry.values) ? entry.values : Array.isArray(entry.data) ? entry.data : undefined;
       if (!values) return undefined;
       const points = values.map((value, pointIndex) => {
         if (typeof value === "number" || typeof value === "string") {

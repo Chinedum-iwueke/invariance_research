@@ -15,6 +15,7 @@ function mapRow(row: Record<string, unknown>): AnalysisEntity {
     eligibility_snapshot: row.eligibility_snapshot_json ? JSON.parse(String(row.eligibility_snapshot_json)) : undefined,
     engine_context: row.engine_context_json ? JSON.parse(String(row.engine_context_json)) : undefined,
     benchmark: row.benchmark_json ? JSON.parse(String(row.benchmark_json)) : undefined,
+    runtime_config: row.runtime_config_json ? JSON.parse(String(row.runtime_config_json)) : undefined,
     failure_code: row.failure_code ? String(row.failure_code) : undefined,
     failure_message: row.failure_message ? String(row.failure_message) : undefined,
   };
@@ -24,8 +25,8 @@ export const analysisRepository = {
   save(analysis: AnalysisEntity): AnalysisEntity {
     getDb()
       .prepare(
-        `INSERT INTO analyses (analysis_id, owner_user_id, account_id, status, strategy_name, artifact_id, created_at, updated_at, result_json, eligibility_snapshot_json, engine_context_json, benchmark_json, failure_code, failure_message)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO analyses (analysis_id, owner_user_id, account_id, status, strategy_name, artifact_id, created_at, updated_at, result_json, eligibility_snapshot_json, engine_context_json, benchmark_json, runtime_config_json, failure_code, failure_message)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         analysis.analysis_id,
@@ -40,6 +41,7 @@ export const analysisRepository = {
         analysis.eligibility_snapshot ? JSON.stringify(analysis.eligibility_snapshot) : null,
         analysis.engine_context ? JSON.stringify(analysis.engine_context) : null,
         analysis.benchmark ? JSON.stringify(analysis.benchmark) : null,
+        analysis.runtime_config ? JSON.stringify(analysis.runtime_config) : null,
         analysis.failure_code ?? null,
         analysis.failure_message ?? null,
       );
@@ -51,7 +53,7 @@ export const analysisRepository = {
     const next = updater(current);
     getDb()
       .prepare(
-        `UPDATE analyses SET status=?, strategy_name=?, updated_at=?, result_json=?, eligibility_snapshot_json=?, engine_context_json=?, benchmark_json=?, failure_code=?, failure_message=? WHERE analysis_id=?`,
+        `UPDATE analyses SET status=?, strategy_name=?, updated_at=?, result_json=?, eligibility_snapshot_json=?, engine_context_json=?, benchmark_json=?, runtime_config_json=?, failure_code=?, failure_message=? WHERE analysis_id=?`,
       )
       .run(
         next.status,
@@ -61,6 +63,7 @@ export const analysisRepository = {
         next.eligibility_snapshot ? JSON.stringify(next.eligibility_snapshot) : null,
         next.engine_context ? JSON.stringify(next.engine_context) : null,
         next.benchmark ? JSON.stringify(next.benchmark) : null,
+        next.runtime_config ? JSON.stringify(next.runtime_config) : null,
         next.failure_code ?? null,
         next.failure_message ?? null,
         analysisId,
