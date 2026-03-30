@@ -33,6 +33,10 @@ export type CreateAnalysisRequest = {
     mode: "auto" | "none" | "manual";
     requested_id: BenchmarkId | null;
   };
+  runtime_config?: {
+    account_size?: number;
+    risk_per_trade_pct?: number;
+  };
 };
 
 export type CreateAnalysisResponse = {

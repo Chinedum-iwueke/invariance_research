@@ -48,6 +48,7 @@ export async function createAnalysisFromArtifact(
     updated_at: timestamp,
     eligibility_snapshot: artifact.eligibility_summary,
     benchmark,
+    runtime_config: payload.runtime_config,
   });
 
   artifactRepository.attachAnalysis(artifact.artifact_id, analysisId);

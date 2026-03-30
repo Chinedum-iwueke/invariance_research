@@ -186,4 +186,11 @@ export const migrations = [
       ALTER TABLE analyses ADD COLUMN benchmark_json TEXT;
     `,
   },
+  {
+    version: 5,
+    name: "analysis_runtime_config_persistence",
+    sql: `
+      ALTER TABLE analyses ADD COLUMN runtime_config_json TEXT;
+    `,
+  },
 ];

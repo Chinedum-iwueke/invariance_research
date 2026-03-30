@@ -39,6 +39,8 @@ export function NewAnalysisIntake() {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const [benchmarkSelection, setBenchmarkSelection] = useState<BenchmarkSelectionValue>({ mode: "auto", requested_id: null });
+  const [accountSize, setAccountSize] = useState<string>("100000");
+  const [riskPerTradePct, setRiskPerTradePct] = useState<string>("1");
   const [apiErrorCode, setApiErrorCode] = useState<string | null>(null);
   const router = useRouter();
 
@@ -89,7 +91,14 @@ export function NewAnalysisIntake() {
     const response = await fetch("/api/analyses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artifact_id: inspection.artifact_id, benchmark: benchmarkSelection }),
+      body: JSON.stringify({
+        artifact_id: inspection.artifact_id,
+        benchmark: benchmarkSelection,
+        runtime_config: {
+          account_size: parsePositiveNumber(accountSize),
+          risk_per_trade_pct: parsePositiveNumber(riskPerTradePct),
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -147,7 +156,7 @@ export function NewAnalysisIntake() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+    <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
       <div className="space-y-4">
         <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV, structured bundle, or parameter sweep bundle ZIP">
           <div
@@ -183,6 +192,30 @@ export function NewAnalysisIntake() {
 
         <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
           <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-text-institutional">Account size</span>
+              <input
+                className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                type="number"
+                min={1}
+                step="any"
+                value={accountSize}
+                onChange={(event) => setAccountSize(event.target.value)}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-text-institutional">Risk per trade (%)</span>
+              <input
+                className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                type="number"
+                min={0.01}
+                step="0.01"
+                value={riskPerTradePct}
+                onChange={(event) => setRiskPerTradePct(event.target.value)}
+              />
+            </label>
+          </div>
           {benchmarkSelection.mode === "auto" && (
             <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
           )}
@@ -302,4 +335,9 @@ function suggestBenchmarkFromInspection(inspection: UploadInspectionResponse | n
     return { id: "DXY", reason: "Detected macro/fx strategy context." };
   }
   return { id: null, reason: "Low confidence detection; benchmark will remain disabled unless manually selected." };
+}
+
+function parsePositiveNumber(value: string): number | undefined {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }

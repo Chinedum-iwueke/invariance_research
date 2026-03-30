@@ -137,7 +137,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Diagnostic Evidence" subtitle="Curated figures supporting the verdict and deployment posture">
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {view.charts.map((figure) => (
             <FigureCard
               key={figure.figure_id}

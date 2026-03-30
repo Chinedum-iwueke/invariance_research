@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     artifact_id?: string;
     strategy_name?: string;
     benchmark?: { mode?: "auto" | "none" | "manual"; requested_id?: string | null };
+    runtime_config?: { account_size?: number; risk_per_trade_pct?: number };
   };
   if (!body.artifact_id) {
     return NextResponse.json({ error: { code: "invalid_payload", message: "artifact_id is required" } }, { status: 400 });
@@ -29,6 +30,12 @@ export async function POST(request: Request) {
     mode: benchmarkMode,
     requested_id: benchmarkMode === "manual" ? requestedId : null,
   } as const;
+  const accountSize = typeof body.runtime_config?.account_size === "number" && Number.isFinite(body.runtime_config.account_size) && body.runtime_config.account_size > 0
+    ? body.runtime_config.account_size
+    : undefined;
+  const riskPerTradePct = typeof body.runtime_config?.risk_per_trade_pct === "number" && Number.isFinite(body.runtime_config.risk_per_trade_pct) && body.runtime_config.risk_per_trade_pct > 0
+    ? body.runtime_config.risk_per_trade_pct
+    : undefined;
 
   try {
     const response = await createAnalysisFromArtifact({
@@ -37,6 +44,10 @@ export async function POST(request: Request) {
       owner_user_id: session.user_id,
       account_id: session.account_id,
       benchmark,
+      runtime_config: {
+        account_size: accountSize,
+        risk_per_trade_pct: riskPerTradePct,
+      },
     });
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

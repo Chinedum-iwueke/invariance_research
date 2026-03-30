@@ -30,6 +30,11 @@ export const OPTIONAL_TRADE_CSV_NUMERIC_FIELDS = [
   "pnl_pct",
   "mae",
   "mfe",
+  "r_multiple",
+  "r_multiple_net",
+  "r_multiple_gross",
+  "risk_amount",
+  "stop_distance",
   "duration_seconds",
   "risk_r",
 ] as const;

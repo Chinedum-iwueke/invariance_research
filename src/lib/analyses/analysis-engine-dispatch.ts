@@ -6,6 +6,8 @@ import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/inge
 export type AnalysisEngineDispatchPayload = {
   requested_diagnostics: UploadEligibilitySummary["diagnostics_available"];
   benchmark: EngineBenchmarkConfig;
+  account_size?: number;
+  risk_per_trade_pct?: number;
 };
 
 export async function buildAnalysisEngineDispatchPayload(input: {
@@ -21,6 +23,8 @@ export async function buildAnalysisEngineDispatchPayload(input: {
       config: {
         requested_diagnostics: input.eligibility.diagnostics_available,
         benchmark: defaultBenchmarkPayload,
+        account_size: input.analysis.runtime_config?.account_size,
+        risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
       },
       warnings,
     };
@@ -36,6 +40,8 @@ export async function buildAnalysisEngineDispatchPayload(input: {
           enabled: false,
           mode: "none",
         },
+        account_size: input.analysis.runtime_config?.account_size,
+        risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
       },
       warnings,
     };
@@ -45,6 +51,8 @@ export async function buildAnalysisEngineDispatchPayload(input: {
     config: {
       requested_diagnostics: input.eligibility.diagnostics_available,
       benchmark: defaultBenchmarkPayload,
+      account_size: input.analysis.runtime_config?.account_size,
+      risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
     },
     warnings,
   };

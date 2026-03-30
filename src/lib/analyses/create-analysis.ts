@@ -50,14 +50,14 @@ export async function buildPersistedBenchmarkConfig(input: {
     };
   } catch {
     return {
-      mode: "none",
+      mode: resolved.mode,
       requested_id: resolved.requestedId,
-      resolved_id: null,
-      resolution_reason: "benchmark_library_unavailable",
-      source: null,
-      frequency: null,
+      resolved_id: resolved.resolvedId,
+      resolution_reason: resolved.resolutionReason,
+      source: "platform_managed",
+      frequency: "1d",
       library_revision: null,
-      enabled: false,
+      enabled: true,
     };
   }
 }
