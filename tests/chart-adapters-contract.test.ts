@@ -22,6 +22,13 @@ test("overview line fixture adapts with visible axis names", () => {
   assert.equal(option.yAxis?.name, "Equity");
 });
 
+test("audited line_series shape (x + series) adapts for overview equity curve", () => {
+  const adapted = assertAdapted("audited_overview_equity_curve");
+  const option = adapted.option as { series?: Array<{ type?: string }>; legend?: { show?: boolean } };
+  assert.equal(option.series?.[0]?.type, "line");
+  assert.equal(option.legend?.show, true);
+});
+
 test("distribution fixtures adapt for histogram and grouped bar", () => {
   const histogram = assertAdapted("distribution_histogram");
   const grouped = assertAdapted("distribution_grouped_bar");
@@ -30,6 +37,15 @@ test("distribution fixtures adapt for histogram and grouped bar", () => {
 
   assert.equal(histogramOption.series?.[0]?.type, "bar");
   assert.equal(groupedOption.legend?.show, true);
+});
+
+test("audited bar_groups and scatter points shapes adapt", () => {
+  const grouped = assertAdapted("audited_distribution_win_loss");
+  const scatter = assertAdapted("audited_distribution_scatter");
+  const groupedOption = grouped.option as { series?: Array<{ type?: string }> };
+  const scatterOption = scatter.option as { series?: Array<{ type?: string }> };
+  assert.equal(groupedOption.series?.[0]?.type, "bar");
+  assert.equal(scatterOption.series?.[0]?.type, "scatter");
 });
 
 test("monte-carlo fixtures adapt for fan chart and histogram", () => {
@@ -42,6 +58,12 @@ test("monte-carlo fixtures adapt for fan chart and histogram", () => {
   assert.equal(Boolean(fanOption.series?.length && fanOption.series.length >= 2), true);
   assert.equal(fanOption.legend?.show, true);
   assert.equal(histOption.series?.[0]?.type, "bar");
+});
+
+test("audited fan_chart shape (x + bands) adapts", () => {
+  const fan = assertAdapted("audited_monte_carlo_fan");
+  const option = fan.option as { series?: Array<{ type?: string }> };
+  assert.ok((option.series?.length ?? 0) >= 2);
 });
 
 test("execution and ruin fixtures adapt to line/bar options", () => {

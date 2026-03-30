@@ -83,7 +83,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
   const overviewEnvelope = record.engine_payload.diagnostics.overview;
   const persistedOverviewFigures = record.diagnostics.overview.figures ?? [];
-  const overviewFigure = persistedOverviewFigures.find((figure) => figure.series.length > 0)
+  const overviewFigure = persistedOverviewFigures.find((figure) => figure.figure_id === "equity_curve")
+    ?? persistedOverviewFigures.find((figure) => figure.series.length > 0)
     ?? persistedOverviewFigures[0]
     ?? record.diagnostics.overview.figure;
   const figureMetadata = overviewEnvelope?.metadata && typeof overviewEnvelope.metadata === "object" ? overviewEnvelope.metadata as Record<string, unknown> : undefined;

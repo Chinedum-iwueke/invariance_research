@@ -181,33 +181,7 @@ export function NewAnalysisIntake() {
           <p className="mt-3 text-xs text-text-neutral">Files are processed server-side. The frontend does not parse raw artifact contents.</p>
         </WorkspaceCard>
 
-        <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth">
-          {!inspection && <p className="text-sm text-text-neutral">Upload an artifact to generate eligibility output.</p>}
-          {inspection && (
-            <div className="space-y-2 text-sm text-text-neutral">
-              <p>{inspection.upload_summary_text}</p>
-              <p className="text-xs">Available: {inspection.diagnostics_available.join(", ") || "None"}</p>
-              <p className="text-xs">Limited: {inspection.diagnostics_limited.join(", ") || "None"}</p>
-              <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
-              {limitationList.length > 0 && (
-                <ul className="list-disc pl-5 text-xs">
-                  {limitationList.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )}
-              {inspection.validation_errors.length > 0 && (
-                <ul className="list-disc pl-5 text-xs text-red-600">
-                  {inspection.validation_errors.map((error) => (
-                    <li key={`${error.code}-${error.message}`}>{error.message}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </WorkspaceCard>
-
-        <WorkspaceCard title="Analysis orchestration" subtitle="Step 3: choose runtime options, then run analysis">
+        <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
           <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
           {benchmarkSelection.mode === "auto" && (
             <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
@@ -256,6 +230,32 @@ export function NewAnalysisIntake() {
             </button>
             <button className={buttonVariants({ variant: "tertiary" })} onClick={() => router.push("/app/analyses")}>Return to Analyses</button>
           </div>
+        </WorkspaceCard>
+
+        <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth">
+          {!inspection && <p className="text-sm text-text-neutral">Upload an artifact to generate eligibility output.</p>}
+          {inspection && (
+            <div className="space-y-2 text-sm text-text-neutral">
+              <p>{inspection.upload_summary_text}</p>
+              <p className="text-xs">Available: {inspection.diagnostics_available.join(", ") || "None"}</p>
+              <p className="text-xs">Limited: {inspection.diagnostics_limited.join(", ") || "None"}</p>
+              <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
+              {limitationList.length > 0 && (
+                <ul className="list-disc pl-5 text-xs">
+                  {limitationList.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+              {inspection.validation_errors.length > 0 && (
+                <ul className="list-disc pl-5 text-xs text-red-600">
+                  {inspection.validation_errors.map((error) => (
+                    <li key={`${error.code}-${error.message}`}>{error.message}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </WorkspaceCard>
 
         <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
