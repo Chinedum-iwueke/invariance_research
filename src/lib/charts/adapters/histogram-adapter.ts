@@ -1,6 +1,6 @@
 import type { FigureTypeAdapter } from "./types";
 import { buildBaseOption } from "./base-option";
-import { formatValue, resolveAxisMeta } from "./utils";
+import { denseCategoryAxisLabel, formatValue, resolveAxisMeta } from "./utils";
 
 type HistogramBinDatum = {
   start?: number;
@@ -60,20 +60,15 @@ export const histogramAdapter: FigureTypeAdapter = ({ figure, series }) => {
   const axisMeta = resolveAxisMeta([histogram]);
   const option = buildBaseOption(figure);
   const categories = bins.length ? bins.map((bin) => bin.axisLabel) : axisMeta.categories;
+  const maxHistogramTicks = categories.length > 60 ? 8 : categories.length > 36 ? 10 : 12;
 
   option.legend = { show: false };
   option.xAxis = {
     type: "category",
     name: figure.x_label ?? "Bucket range",
     nameLocation: "middle",
-    nameGap: 48,
-    axisLabel: {
-      color: "#475569",
-      hideOverlap: true,
-      interval: categories.length > 18 ? "auto" : 0,
-      rotate: categories.length > 20 ? 45 : categories.length > 12 ? 25 : 0,
-      formatter: (value: string) => value.length > 20 ? `${value.slice(0, 19)}…` : value,
-    },
+    nameGap: 58,
+    axisLabel: denseCategoryAxisLabel(categories.length, maxHistogramTicks),
     data: categories,
   };
   option.yAxis = {
@@ -81,7 +76,7 @@ export const histogramAdapter: FigureTypeAdapter = ({ figure, series }) => {
     name: figure.y_label ?? "Frequency",
     nameLocation: "middle",
     nameGap: 52,
-    axisLabel: { color: "#475569" },
+    axisLabel: { color: "#475569", margin: 12 },
     splitLine: { lineStyle: { color: "rgba(148,163,184,0.25)" } },
   };
   option.series = [{

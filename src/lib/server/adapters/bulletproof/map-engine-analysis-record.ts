@@ -280,6 +280,81 @@ function buildTradeDerivedStats(parsedArtifact: ParsedArtifact) {
   };
 }
 
+function quantile(values: number[], q: number): number | undefined {
+  if (!values.length) return undefined;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.max(0, Math.min(sorted.length - 1, (sorted.length - 1) * q));
+  const low = Math.floor(idx);
+  const high = Math.ceil(idx);
+  if (low === high) return sorted[low];
+  const weight = idx - low;
+  return sorted[low] * (1 - weight) + sorted[high] * weight;
+}
+
+function toDrawdownFraction(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  let normalized = value;
+  if (Math.abs(normalized) > 1) normalized /= 100;
+  if (normalized > 0) normalized *= -1;
+  return normalized;
+}
+
+function normalizePercentValue(value: number | undefined): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return Math.abs(value) <= 1 ? value * 100 : value;
+}
+
+function extractDrawdownFractions(monteCarloRaw: UnknownRecord | undefined): number[] {
+  if (!monteCarloRaw) return [];
+
+  const candidates: unknown[] = [
+    monteCarloRaw.simulated_drawdowns,
+    monteCarloRaw.simulatedDrawdowns,
+    monteCarloRaw.drawdowns,
+    monteCarloRaw.max_drawdowns,
+    monteCarloRaw.maxDrawdowns,
+    monteCarloRaw.path_drawdowns,
+    monteCarloRaw.pathDrawdowns,
+    monteCarloRaw.drawdown_samples,
+    monteCarloRaw.drawdownSamples,
+  ];
+  const metadata = asRecord(monteCarloRaw.metadata);
+  if (metadata) {
+    candidates.push(
+      metadata.simulated_drawdowns,
+      metadata.simulatedDrawdowns,
+      metadata.drawdowns,
+      metadata.max_drawdowns,
+      metadata.maxDrawdowns,
+    );
+  }
+
+  const firstArray = candidates.find((entry) => Array.isArray(entry));
+  if (!Array.isArray(firstArray)) return [];
+  return firstArray
+    .map((value) => toDrawdownFraction(value))
+    .filter((value): value is number => value !== undefined);
+}
+
+function extractInitialEquityFromFanFigure(figure: FigurePayload | undefined): number | undefined {
+  if (!figure) return undefined;
+  const raw = figure as FigurePayload & UnknownRecord;
+
+  const bands = asRecord(raw.bands);
+  if (bands) {
+    for (const key of ["p50", "p25", "p75", "p5", "p95"] as const) {
+      const values = bands[key];
+      if (!Array.isArray(values) || values.length === 0) continue;
+      const first = values[0];
+      if (typeof first === "number" && Number.isFinite(first)) return first;
+    }
+  }
+
+  const firstSeriesPoint = figure.series?.[0]?.points?.[0]?.y;
+  if (typeof firstSeriesPoint === "number" && Number.isFinite(firstSeriesPoint)) return firstSeriesPoint;
+  return undefined;
+}
+
 function toFigureSeries(items: unknown): FigurePayload["series"] {
   if (!Array.isArray(items)) return [];
 
@@ -518,11 +593,28 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
 
   const robustness = engine.summary?.robustness_score ?? getNumber(overviewRaw, ["robustness_score", "robustnessScore", "score"]);
   const overfit = engine.summary?.overfitting_risk_pct ?? getNumber(overviewRaw, ["overfitting_risk_pct", "overfittingRiskPct"]);
-  const mcWorst = getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"]);
-  const mcP95 = getNumber(monteCarloRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"]);
-  const mcMedian = getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"]);
-  const ruinProbability = getNumber(ruinRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin_pct"])
-    ?? getNumber(monteCarloRaw, ["ruin_probability_pct", "ruinProbabilityPct"]);
+  const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
+  const inferredDrawdownFractions = extractDrawdownFractions(monteCarloRaw);
+  const inferredDrawdownPcts = inferredDrawdownFractions.map((value) => value * 100);
+  const mcWorst = normalizePercentValue(getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"]))
+    ?? (inferredDrawdownPcts.length ? Math.min(...inferredDrawdownPcts) : undefined);
+  const mcP95 = normalizePercentValue(getNumber(monteCarloRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"]))
+    ?? quantile(inferredDrawdownPcts, 0.95);
+  const mcMedian = normalizePercentValue(getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"]))
+    ?? quantile(inferredDrawdownPcts, 0.5);
+  const explicitRuinThresholdFraction = getNumber(monteCarloRaw, ["ruin_threshold_fraction", "ruinThresholdFraction"]);
+  const explicitRuinThresholdPct = getNumber(monteCarloRaw, ["ruin_threshold_pct", "ruinThresholdPct", "ruin_threshold"]);
+  const ruinThresholdFraction = explicitRuinThresholdFraction
+    ?? (explicitRuinThresholdPct !== undefined ? explicitRuinThresholdPct / 100 : 0.5);
+  const ruinThresholdSource = explicitRuinThresholdFraction !== undefined || explicitRuinThresholdPct !== undefined
+    ? "engine_emitted"
+    : "default_assumption";
+  const derivedRuinProbabilityPct = inferredDrawdownFractions.length
+    ? (inferredDrawdownFractions.filter((drawdown) => drawdown <= -ruinThresholdFraction).length / inferredDrawdownFractions.length) * 100
+    : undefined;
+  const ruinProbability = normalizePercentValue(getNumber(ruinRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin_pct", "probability_of_ruin", "probabilityOfRuin"]))
+    ?? normalizePercentValue(getNumber(monteCarloRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin", "probabilityOfRuin"]))
+    ?? derivedRuinProbabilityPct;
   const baselineExpectancyValue = getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
   const stressedExpectancyValue = getNumber(executionRaw, ["stressed_expectancy", "stressedExpectancy"]);
   const edgeDecayPctValue = getNumber(executionRaw, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
@@ -718,20 +810,47 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   }
 
   if (envelopeByDiagnostic.monte_carlo) {
-    const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
     const horizonDays = getNumber(monteCarloRaw, ["horizon_days", "horizonDays", "horizon"]);
     const method = getString(monteCarloRaw, ["method", "sampling_method", "bootstrap_method"]) ?? "bootstrap_iid";
-    const ruinThreshold = getNumber(monteCarloRaw, ["ruin_threshold_pct", "ruinThresholdPct", "ruin_threshold"]);
+    const ruinThresholdPct = ruinThresholdFraction * 100;
+    const initialEquity = extractInitialEquityFromFanFigure(monteCarloPrimaryFigure);
+    const ruinThresholdEquity = initialEquity !== undefined ? initialEquity * (1 - ruinThresholdFraction) : undefined;
+    const monteCarloAssumptions = envelopeByDiagnostic.monte_carlo.assumptions ?? [];
+    if (ruinThresholdSource === "default_assumption") {
+      const explicitAssumption = `Default ruin threshold applied at ${(ruinThresholdFraction * 100).toFixed(0)}% drawdown (ruin_threshold_fraction=${ruinThresholdFraction.toFixed(2)}) because no threshold was emitted.`;
+      if (!monteCarloAssumptions.includes(explicitAssumption)) {
+        envelopeByDiagnostic.monte_carlo.assumptions = [...monteCarloAssumptions, explicitAssumption];
+      }
+    }
     envelopeByDiagnostic.monte_carlo.metadata = {
       ...(envelopeByDiagnostic.monte_carlo.metadata ?? {}),
       simulations: simulationCount,
       horizon_days: horizonDays,
       method,
-      ruin_threshold_pct: ruinThreshold,
+      ruin_threshold_pct: ruinThresholdPct,
+      ruin_threshold_fraction: ruinThresholdFraction,
+      ruin_threshold_equity: ruinThresholdEquity,
+      ruin_threshold_source: ruinThresholdSource,
+      probability_of_ruin: ruinProbability,
+      drawdown_95_pct: mcP95,
+      median_drawdown_pct: mcMedian,
+      worst_drawdown_pct: mcWorst,
       figure_series_count: envelopeByDiagnostic.monte_carlo.figures?.[0]?.series.length ?? 0,
       has_fan_chart: (envelopeByDiagnostic.monte_carlo.figures?.[0]?.type === "fan" || envelopeByDiagnostic.monte_carlo.figures?.[0]?.type === "fan_chart"),
     };
   }
+
+  const monteCarloRequiredMetrics: ScoreBand[] = [
+    score("Worst Simulated Drawdown", formatPct(mcWorst), pctBand(Math.abs(mcWorst ?? 0), 25, 40)),
+    score("95th Percentile Drawdown", formatPct(mcP95), pctBand(Math.abs(mcP95 ?? 0), 20, 35)),
+    score("Median Drawdown", formatPct(mcMedian), pctBand(Math.abs(mcMedian ?? 0), 12, 25)),
+    score("P(Ruin)", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
+  ];
+  const monteCarloEngineMetrics = (envelopeByDiagnostic.monte_carlo?.summary_metrics ?? []).map(envelopeMetricToScore);
+  const monteCarloMetrics = [
+    ...monteCarloRequiredMetrics,
+    ...monteCarloEngineMetrics.filter((metric) => !monteCarloRequiredMetrics.some((required) => required.label.toLowerCase() === metric.label.toLowerCase())),
+  ];
 
   const regimeRows = extractRegimeRows(regimesRaw, envelopeByDiagnostic.regimes);
   const regimeExpectancies = regimeRows
@@ -864,14 +983,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       },
       monte_carlo: {
         status: statusByDiagnostic.get("monte_carlo"),
-        metrics: envelopeByDiagnostic.monte_carlo?.summary_metrics.length
-          ? envelopeByDiagnostic.monte_carlo.summary_metrics.map(envelopeMetricToScore)
-          : [
-          score("Worst Simulated Drawdown", formatPct(mcWorst), pctBand(Math.abs(mcWorst ?? 0), 25, 40)),
-          score("95th Percentile Drawdown", formatPct(mcP95), pctBand(Math.abs(mcP95 ?? 0), 20, 35)),
-          score("Median Drawdown", formatPct(mcMedian), pctBand(Math.abs(mcMedian ?? 0), 12, 25)),
-          score("P(Ruin)", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
-        ],
+        metrics: monteCarloMetrics,
         figure: monteCarloPrimaryFigure,
         figures: monteCarloFigures,
         interpretation: {

@@ -1,6 +1,6 @@
 import type { FigureTypeAdapter } from "./types";
 import { buildBaseOption } from "./base-option";
-import { resolveAxisMeta } from "./utils";
+import { denseCategoryAxisLabel, resolveAxisMeta } from "./utils";
 
 const PALETTE = ["#356ae6", "#009966", "#9747ff", "#e45c34", "#0087a3"];
 
@@ -20,8 +20,8 @@ export const barAdapter: FigureTypeAdapter = ({ figure, series }) => {
     type: "category",
     name: figure.x_label ?? "Category",
     nameLocation: "middle",
-    nameGap: 44,
-    axisLabel: { color: "#475569", hideOverlap: true },
+    nameGap: 52,
+    axisLabel: denseCategoryAxisLabel(axisMeta.categories.length),
     data: axisMeta.categories,
   };
   option.yAxis = {
@@ -29,7 +29,7 @@ export const barAdapter: FigureTypeAdapter = ({ figure, series }) => {
     name: figure.y_label ?? "Value",
     nameLocation: "middle",
     nameGap: 52,
-    axisLabel: { color: "#475569" },
+    axisLabel: { color: "#475569", margin: 12 },
     splitLine: { lineStyle: { color: "rgba(148,163,184,0.25)" } },
   };
   option.series = series.map((item, index) => ({

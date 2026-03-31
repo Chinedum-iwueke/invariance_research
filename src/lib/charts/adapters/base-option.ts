@@ -5,7 +5,7 @@ import { tooltipRows } from "./utils";
 export function buildBaseOption(figure: FigurePayload): EChartsOption {
   return {
     animationDuration: 350,
-    grid: { left: 68, right: 24, top: 80, bottom: 64, containLabel: true },
+    grid: { left: 78, right: 34, top: 74, bottom: 92, containLabel: true },
     title: {
       text: figure.title,
       subtext: figure.subtitle,
@@ -32,7 +32,7 @@ export function buildBaseOption(figure: FigurePayload): EChartsOption {
     },
     dataZoom: [
       { type: "inside", xAxisIndex: 0, filterMode: "none" },
-      { type: "slider", xAxisIndex: 0, height: 18, bottom: 12 },
+      { type: "slider", xAxisIndex: 0, height: 16, bottom: 14 },
     ],
     textStyle: { fontFamily: "Inter, ui-sans-serif, system-ui" },
   };
