@@ -32,7 +32,7 @@ export function buildBenchmarkEnginePayload(analysis: AnalysisEntity): EngineBen
     mode: analysis.benchmark.mode === "none" ? "auto" : analysis.benchmark.mode,
     id: analysis.benchmark.resolved_id,
     source: analysis.benchmark.source,
-    library_root: getBenchmarkLibraryRoot(),
+    library_root: analysis.benchmark.library_root ?? getBenchmarkLibraryRoot(),
     library_revision: analysis.benchmark.library_revision,
     frequency: analysis.benchmark.frequency,
     alignment_policy: "window_intersection",
