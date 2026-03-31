@@ -68,6 +68,7 @@ export const overviewDiagnosticSchema = z.object({
   metrics: z.array(scoreBandSchema),
   figure: figurePayloadSchema,
   figures: z.array(figurePayloadSchema).optional(),
+  benchmark_comparison: z.record(z.string(), z.unknown()).optional(),
   interpretation: interpretationBlockPayloadSchema,
   verdict: verdictSchema,
   assumptions: z.array(z.string()).optional(),

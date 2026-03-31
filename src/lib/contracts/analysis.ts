@@ -67,6 +67,7 @@ export interface OverviewDiagnostic {
   metrics: ScoreBand[];
   figure: FigurePayload;
   figures?: FigurePayload[];
+  benchmark_comparison?: Record<string, unknown>;
   interpretation: InterpretationBlockPayload;
   verdict: Verdict;
   assumptions?: string[];
