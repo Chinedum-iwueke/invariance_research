@@ -427,6 +427,20 @@ function deriveBenchmarkStatus(overviewEnvelope: UnknownRecord | undefined): "av
   return comparison.available === true ? "available" : "unavailable";
 }
 
+function normalizeOverviewBenchmarkComparison(raw: unknown): Record<string, unknown> | undefined {
+  const comparison = asRecord(raw);
+  if (!comparison) return undefined;
+
+  const available = comparison.available === true;
+  const limited = comparison.limited === true;
+  const status = available ? "available" : limited ? "limited" : "unavailable";
+
+  return {
+    ...comparison,
+    status,
+  };
+}
+
 function envelopeMetricToScore(metric: NonNullable<ReturnType<typeof normalizeMetric>>): ScoreBand {
   const band = metric.band;
   return {
@@ -805,6 +819,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         ],
         figure: overviewFigure,
         figures: overviewFigures,
+        benchmark_comparison: normalizeOverviewBenchmarkComparison(envelopeByDiagnostic.overview?.benchmark_comparison),
         interpretation: {
           title: "Overview interpretation",
           summary: envelopeByDiagnostic.overview?.interpretation ?? statusText(
