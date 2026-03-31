@@ -21,6 +21,14 @@ const ADAPTERS: Partial<Record<FigurePayload["type"], FigureTypeAdapter>> = {
   heatmap: heatmapAdapter,
 };
 
+function hasRenderableFanBands(figure: FigurePayload): boolean {
+  const raw = figure as FigurePayload & Record<string, unknown>;
+  const x = Array.isArray(raw.x) ? raw.x : undefined;
+  const bands = raw.bands;
+  if (!x?.length || !bands || typeof bands !== "object" || Array.isArray(bands)) return false;
+  return ["p5", "p25", "p50", "p75", "p95"].some((key) => Array.isArray((bands as Record<string, unknown>)[key]) && ((bands as Record<string, unknown>)[key] as unknown[]).length > 0);
+}
+
 export function adaptFigureToECharts(figure?: FigurePayload): { adapted?: AdaptedChart; emptyReason?: string; rendererSupported: boolean } {
   if (!figure) return { rendererSupported: false, emptyReason: "renderer received undefined figure" };
 
@@ -33,7 +41,8 @@ export function adaptFigureToECharts(figure?: FigurePayload): { adapted?: Adapte
   }
 
   const series = normalizeFigureSeries(figure);
-  if (!series.length) {
+  const fanChartWithBands = (figure.type === "fan" || figure.type === "fan_chart") && hasRenderableFanBands(figure);
+  if (!series.length && !fanChartWithBands) {
     return {
       rendererSupported: true,
       emptyReason: `renderer found no renderable series for ${figure.type}`,

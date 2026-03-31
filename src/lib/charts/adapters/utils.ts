@@ -222,6 +222,29 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
   if (fallback.length) return fallback;
   const raw = figure as FigurePayload & LooseRecord;
   const x = Array.isArray(raw.x) ? raw.x : undefined;
+  const supportedPercentiles = [5, 25, 50, 75, 95] as const;
+
+  const objectBands = asRecord(raw.bands);
+  if (x?.length && objectBands) {
+    const normalizedFromObject = supportedPercentiles
+      .map((percentile) => {
+        const values = Array.isArray(objectBands[`p${percentile}`]) ? objectBands[`p${percentile}`] : undefined;
+        if (!values?.length) return undefined;
+        const points = x
+          .map((xValue, index) => {
+            const y = toNumber(values[index]);
+            if (y === undefined || (typeof xValue !== "number" && typeof xValue !== "string")) return undefined;
+            return { x: xValue, y };
+          })
+          .filter((point): point is FigurePoint => Boolean(point));
+        if (!points.length) return undefined;
+        return { key: `p${percentile}`, label: `P${percentile}`, series_type: "line" as const, points };
+      })
+      .filter((entry): entry is FigureSeries => Boolean(entry));
+
+    if (normalizedFromObject.length) return normalizedFromObject;
+  }
+
   const percentileSource = Array.isArray(raw.percentile_bands)
     ? raw.percentile_bands
     : Array.isArray(raw.percentiles)
@@ -308,6 +331,24 @@ export function formatValue(value: number): string {
   if (Math.abs(value) >= 1000) return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
   if (Math.abs(value) >= 1) return new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 }).format(value);
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 5 }).format(value);
+}
+
+export function denseCategoryAxisLabel(categoryCount: number, maxVisible = 12): Record<string, unknown> {
+  const step = categoryCount > maxVisible ? Math.ceil(categoryCount / maxVisible) : 1;
+  return {
+    color: "#475569",
+    hideOverlap: true,
+    margin: 14,
+    interval: step > 1 ? step - 1 : 0,
+    rotate: categoryCount >= 28 ? 55 : categoryCount >= 16 ? 35 : 0,
+    overflow: "truncate",
+    width: categoryCount >= 28 ? 56 : categoryCount >= 16 ? 74 : 110,
+    formatter: (value: string | number) => {
+      const text = String(value ?? "");
+      if (text.length <= 24) return text;
+      return `${text.slice(0, 23)}…`;
+    },
+  };
 }
 
 export function tooltipRows(params: TooltipComponentFormatterCallbackParams | TooltipComponentFormatterCallbackParams[]): string {

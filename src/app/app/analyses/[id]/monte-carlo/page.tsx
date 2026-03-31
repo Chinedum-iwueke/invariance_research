@@ -134,7 +134,7 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
         note={primaryFigure.note}
       />
       {secondaryFigures.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-5 2xl:grid-cols-2">
           {secondaryFigures.map((figure) => (
             <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
           ))}
