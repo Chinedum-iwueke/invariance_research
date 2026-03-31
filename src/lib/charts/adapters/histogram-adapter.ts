@@ -18,18 +18,17 @@ function toNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-function compactBoundaryLabel(value: number): string {
-  if (Math.abs(value) >= 1000) return value.toFixed(2);
-  if (Math.abs(value) >= 10) return value.toFixed(2);
-  if (Math.abs(value) >= 1) return value.toFixed(3);
-  return value.toFixed(4);
+function shortAxisNumber(value: number): string {
+  if (Math.abs(value) >= 100) return `${Math.round(value)}`;
+  if (Math.abs(value) >= 10) return value.toFixed(1);
+  return value.toFixed(2);
 }
 
-function bucketLabel(start?: number, end?: number): string {
-  if (start === undefined && end === undefined) return "Unlabeled bucket";
-  if (start === undefined) return `≤${compactBoundaryLabel(end as number)}`;
-  if (end === undefined) return `≥${compactBoundaryLabel(start)}`;
-  return `${compactBoundaryLabel(start)}–${compactBoundaryLabel(end)}`;
+function bucketAxisLabel(start?: number, end?: number): string {
+  if (start === undefined && end === undefined) return "Bucket";
+  if (start === undefined) return `≤${shortAxisNumber(end as number)}`;
+  if (end === undefined) return `≥${shortAxisNumber(start)}`;
+  return shortAxisNumber((start + end) / 2);
 }
 
 function toHistogramBins(figure: Parameters<FigureTypeAdapter>[0]["figure"]): HistogramBinDatum[] {
@@ -46,17 +45,19 @@ function toHistogramBins(figure: Parameters<FigureTypeAdapter>[0]["figure"]): Hi
         start,
         end,
         count,
-        axisLabel: bucketLabel(start, end),
+        axisLabel: bucketAxisLabel(start, end),
       });
       return acc;
     }, []);
 }
 
 export const histogramAdapter: FigureTypeAdapter = ({ figure, series }) => {
-  const histogram = series[0];
+  const bins = toHistogramBins(figure);
+  const histogram = series[0] ?? (bins.length
+    ? { key: "histogram", label: figure.title ?? "Histogram", series_type: "bar" as const, points: bins.map((bin, index) => ({ x: bin.axisLabel || index + 1, y: bin.count })) }
+    : undefined);
   if (!histogram) return undefined;
 
-  const bins = toHistogramBins(figure);
   const axisMeta = resolveAxisMeta([histogram]);
   const option = buildBaseOption(figure);
   const categories = bins.length ? bins.map((bin) => bin.axisLabel) : axisMeta.categories;
@@ -68,7 +69,11 @@ export const histogramAdapter: FigureTypeAdapter = ({ figure, series }) => {
     name: figure.x_label ?? "Bucket range",
     nameLocation: "middle",
     nameGap: 58,
-    axisLabel: denseCategoryAxisLabel(categories.length, maxHistogramTicks),
+    axisLabel: {
+      ...denseCategoryAxisLabel(categories.length, maxHistogramTicks),
+      rotate: categories.length >= 24 ? 35 : 0,
+      width: categories.length >= 24 ? 44 : 66,
+    },
     data: categories,
   };
   option.yAxis = {
@@ -108,5 +113,14 @@ export const histogramAdapter: FigureTypeAdapter = ({ figure, series }) => {
     },
   };
 
-  return { option, summary: series, note: figure.note, supportsLegend: false };
+  const summary = series.length
+    ? series
+    : [{
+        key: "histogram",
+        label: figure.title ?? "Histogram",
+        series_type: "bar" as const,
+        points: [],
+      }];
+
+  return { option, summary, note: figure.note, supportsLegend: false };
 };

@@ -129,6 +129,7 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
           <DiagnosticFigure
             figure={primaryFigure}
             emptyMessage="No persisted Monte Carlo fan chart is currently available for this run."
+            height={620}
           />
         )}
         note={primaryFigure.note}
@@ -136,7 +137,13 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
       {secondaryFigures.length ? (
         <div className="grid gap-5 2xl:grid-cols-2">
           {secondaryFigures.map((figure) => (
-            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+            <FigureCard
+              key={figure.figure_id}
+              title={figure.title}
+              subtitle={figure.subtitle}
+              figure={<DiagnosticFigure figure={figure} height={figure.type === "histogram" ? 520 : 500} />}
+              note={figure.note}
+            />
           ))}
         </div>
       ) : null}
