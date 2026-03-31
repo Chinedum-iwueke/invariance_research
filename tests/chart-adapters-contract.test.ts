@@ -42,10 +42,23 @@ test("distribution fixtures adapt for histogram and grouped bar", () => {
 test("audited bar_groups and scatter points shapes adapt", () => {
   const grouped = assertAdapted("audited_distribution_win_loss");
   const scatter = assertAdapted("audited_distribution_scatter");
-  const groupedOption = grouped.option as { series?: Array<{ type?: string }> };
+  const groupedOption = grouped.option as { series?: Array<{ type?: string; data?: Array<{ value?: number }> }>; xAxis?: { data?: string[] } };
   const scatterOption = scatter.option as { series?: Array<{ type?: string }> };
   assert.equal(groupedOption.series?.[0]?.type, "bar");
+  assert.deepEqual(groupedOption.xAxis?.data, ["Wins", "Losses"]);
+  assert.deepEqual(groupedOption.series?.[0]?.data?.map((item) => item.value), [62, 38]);
   assert.equal(scatterOption.series?.[0]?.type, "scatter");
+});
+
+test("histogram bins use compact axis labels while retaining detailed tooltip data", () => {
+  const histogram = assertAdapted("distribution_histogram");
+  const option = histogram.option as { xAxis?: { data?: string[] }; series?: Array<{ data?: Array<{ start?: number; end?: number; count?: number }> }> };
+
+  assert.equal(option.xAxis?.data?.[0], "-1963.69–-1758.52");
+  assert.equal(option.xAxis?.data?.[1], "-12.48–-10.67");
+  assert.equal(option.series?.[0]?.data?.[0]?.start, -1963.68794);
+  assert.equal(option.series?.[0]?.data?.[0]?.end, -1758.52311);
+  assert.equal(option.series?.[0]?.data?.[0]?.count, 5);
 });
 
 test("monte-carlo fixtures adapt for fan chart and histogram", () => {

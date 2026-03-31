@@ -144,6 +144,32 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
   const groups = Array.isArray(raw.groups) ? raw.groups : undefined;
 
   if (groups) {
+    const directPoints = groups
+      .map((group, groupIndex) => {
+        const entry = asRecord(group);
+        if (!entry) return undefined;
+        const label = typeof entry.label === "string"
+          ? entry.label
+          : typeof entry.name === "string"
+            ? entry.name
+            : undefined;
+        const count = toNumber(entry.count) ?? toNumber(entry.value) ?? toNumber(entry.y);
+        if (!label || count === undefined) return undefined;
+        return { x: label, y: count, key: typeof entry.key === "string" ? entry.key : `group_${groupIndex}` };
+      })
+      .filter((point): point is { x: string; y: number; key: string } => Boolean(point));
+
+    if (directPoints.length) {
+      return [{
+        key: "groups",
+        label: "Count",
+        series_type: "bar",
+        points: directPoints.map(({ x, y }) => ({ x, y })),
+      }];
+    }
+  }
+
+  if (groups) {
     const mapped = groups
       .map((group, groupIndex) => {
         const entry = asRecord(group);

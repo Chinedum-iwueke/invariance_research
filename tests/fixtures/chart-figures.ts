@@ -22,8 +22,8 @@ export const chartFixtures: Record<string, FigurePayload> = {
     y_label: "Count",
     series: [],
     groups: [
-      { key: "wins", label: "Wins", points: [{ x: "Win", y: 62 }, { x: "Loss", y: 0 }] },
-      { key: "losses", label: "Losses", points: [{ x: "Win", y: 0 }, { x: "Loss", y: 38 }] },
+      { label: "Wins", count: 62, pct: 0.62 },
+      { label: "Losses", count: 38, pct: 0.38 },
     ],
   },
   audited_distribution_scatter: {
@@ -72,9 +72,9 @@ export const chartFixtures: Record<string, FigurePayload> = {
     y_label: "Frequency",
     series: [],
     bins: [
-      { low: -2, high: -1, count: 5 },
-      { low: -1, high: 0, count: 12 },
-      { low: 0, high: 1, count: 9 },
+      { start: -1963.68794, end: -1758.52311, count: 5 },
+      { start: -12.4768, end: -10.6672, count: 12 },
+      { start: 0.12, end: 1.04, count: 9 },
     ],
   },
   distribution_grouped_bar: {
