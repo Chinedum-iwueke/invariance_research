@@ -30,14 +30,22 @@ function normalizeGroupData(figure: Parameters<FigureTypeAdapter>[0]["figure"]):
 }
 
 export const groupedBarAdapter: FigureTypeAdapter = ({ figure, series }) => {
-  if (!series.length) return undefined;
-
   const groupedData = normalizeGroupData(figure);
-  const axisMeta = resolveAxisMeta(series);
+  if (!series.length && !groupedData.length) return undefined;
+
+  const renderSeries = series.length
+    ? series
+    : [{
+        key: "group_values",
+        label: figure.y_label ?? "Count",
+        series_type: "bar" as const,
+        points: groupedData.map((entry) => ({ x: entry.label, y: entry.count })),
+      }];
+  const axisMeta = resolveAxisMeta(renderSeries);
   const option = buildBaseOption(figure);
 
   option.legend = {
-    show: series.length > 1,
+    show: renderSeries.length > 1,
     top: 44,
     itemWidth: 10,
     textStyle: { color: "#475569", fontSize: 11 },
@@ -58,7 +66,7 @@ export const groupedBarAdapter: FigureTypeAdapter = ({ figure, series }) => {
     axisLabel: { color: "#475569", margin: 12 },
     splitLine: { lineStyle: { color: "rgba(148,163,184,0.25)" } },
   };
-  option.series = series.map((item, index) => ({
+  option.series = renderSeries.map((item, index) => ({
     name: item.label,
     type: "bar",
     itemStyle: { color: PALETTE[index % PALETTE.length], borderRadius: [2, 2, 0, 0] },
@@ -84,5 +92,14 @@ export const groupedBarAdapter: FigureTypeAdapter = ({ figure, series }) => {
     };
   }
 
-  return { option, summary: series, note: figure.note, supportsLegend: series.length > 1 };
+  const summary = series.length
+    ? series
+    : [{
+        key: "group_count",
+        label: figure.title ?? "Grouped bars",
+        series_type: "bar" as const,
+        points: [],
+      }];
+
+  return { option, summary, note: figure.note, supportsLegend: renderSeries.length > 1 };
 };
