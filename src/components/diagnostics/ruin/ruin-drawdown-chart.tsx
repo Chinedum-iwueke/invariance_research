@@ -3,6 +3,7 @@
 import type { EChartsOption } from "echarts";
 import type { FigurePayload } from "@/lib/contracts";
 import { EChartsHost } from "@/components/charts/echarts-host";
+import { normalizeFigureSeries } from "@/lib/charts/adapters/utils";
 
 interface RuinCurveSeries {
   label: string;
@@ -20,7 +21,36 @@ function normalizePct(value: number): number {
 }
 
 function parseCurveSeries(figure?: FigurePayload): RuinCurveSeries[] {
-  if (!figure || !Array.isArray(figure.series)) return [];
+  if (!figure) return [];
+
+  const normalizedFigureSeries = normalizeFigureSeries(figure);
+  if (normalizedFigureSeries.length) {
+    return normalizedFigureSeries
+      .map((series, idx) => {
+        const normalizedPoints = series.points
+          .map((point) => {
+            const drawdownRaw = asFiniteNumber(point.x);
+            const probabilityRaw = asFiniteNumber(point.y);
+            if (drawdownRaw === undefined || probabilityRaw === undefined) return undefined;
+            return {
+              drawdownPct: Math.abs(normalizePct(drawdownRaw)),
+              probabilityPct: normalizePct(probabilityRaw),
+            };
+          })
+          .filter((point): point is { drawdownPct: number; probabilityPct: number } => Boolean(point))
+          .sort((a, b) => a.drawdownPct - b.drawdownPct);
+
+        if (!normalizedPoints.length) return undefined;
+        const label = typeof series.label === "string" && series.label.trim().length > 0
+          ? series.label
+          : `Scenario ${idx + 1}`;
+
+        return { label, points: normalizedPoints };
+      })
+      .filter((series): series is RuinCurveSeries => Boolean(series));
+  }
+
+  if (!Array.isArray(figure.series)) return [];
 
   return figure.series
     .map((series, idx) => {
