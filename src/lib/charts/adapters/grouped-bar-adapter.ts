@@ -6,6 +6,13 @@ const PALETTE = ["#356ae6", "#009966", "#9747ff", "#e45c34", "#0087a3"];
 
 type GroupDatum = { label: string; count: number; pct?: number };
 
+function normalizePct(value: unknown): number | undefined {
+  const parsed = toNumber(value);
+  if (parsed === undefined) return undefined;
+  if (Math.abs(parsed) > 1) return parsed / 100;
+  return parsed;
+}
+
 function toNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {
@@ -24,7 +31,7 @@ function normalizeGroupData(figure: Parameters<FigureTypeAdapter>[0]["figure"]):
       const label = typeof entry.label === "string" ? entry.label : typeof entry.name === "string" ? entry.name : undefined;
       const count = toNumber(entry.count) ?? toNumber(entry.value) ?? toNumber(entry.y);
       if (!label || count === undefined) return acc;
-      acc.push({ label, count, pct: toNumber(entry.pct) });
+      acc.push({ label, count, pct: normalizePct(entry.pct) });
       return acc;
     }, []);
 }

@@ -14,6 +14,8 @@ function provenanceLabel(value: FigurePayload["provenance"] | undefined): string
 
 export function DiagnosticFigure({ figure, emptyMessage, height = 500 }: { figure?: FigurePayload; emptyMessage?: string; height?: number }) {
   const { adapted, rendererSupported, emptyReason } = adaptFigureToECharts(figure);
+  const hasSeries = Array.isArray(figure?.series) && figure.series.length > 0;
+  const hasGroups = Array.isArray(figure?.groups) && figure.groups.length > 0;
 
   if (!figure || !adapted) {
     console.log("[analysis-page-debug]", {
@@ -25,10 +27,24 @@ export function DiagnosticFigure({ figure, emptyMessage, height = 500 }: { figur
       empty_state_reason: emptyReason,
     });
 
+    if (!figure) {
+      return (
+        <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">
+          {emptyMessage ?? "No chart series were emitted for this diagnostic in the persisted run payload."}
+        </p>
+      );
+    }
+
     return (
-      <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">
-        {emptyMessage ?? "No chart series were emitted for this diagnostic in the persisted run payload."}
-      </p>
+      <div className="space-y-2 rounded-sm border border-dashed border-border-subtle bg-surface-panel p-3 text-xs text-text-neutral">
+        <p className="font-medium text-text-graphite">Chart unavailable for this figure payload.</p>
+        <p><span className="font-medium text-text-graphite">Figure ID:</span> {figure.figure_id || "Unavailable"}</p>
+        <p><span className="font-medium text-text-graphite">Figure type:</span> {figure.type || "Unavailable"}</p>
+        <p><span className="font-medium text-text-graphite">Series empty:</span> {hasSeries ? "No" : "Yes"}</p>
+        <p><span className="font-medium text-text-graphite">Groups empty:</span> {hasGroups ? "No" : "Yes"}</p>
+        <p><span className="font-medium text-text-graphite">Renderer supported:</span> {rendererSupported ? "Yes" : "No"}</p>
+        <p><span className="font-medium text-text-graphite">Reason:</span> {emptyReason ?? "Adapter did not return chart options."}</p>
+      </div>
     );
   }
 

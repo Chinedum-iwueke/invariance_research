@@ -42,7 +42,8 @@ export function adaptFigureToECharts(figure?: FigurePayload): { adapted?: Adapte
 
   const series = normalizeFigureSeries(figure);
   const fanChartWithBands = (figure.type === "fan" || figure.type === "fan_chart") && hasRenderableFanBands(figure);
-  if (!series.length && !fanChartWithBands) {
+  const groupedBarWithGroups = figure.type === "grouped_bar" && Array.isArray(figure.groups) && figure.groups.length > 0;
+  if (!series.length && !fanChartWithBands && !groupedBarWithGroups) {
     return {
       rendererSupported: true,
       emptyReason: `renderer found no renderable series for ${figure.type}`,
