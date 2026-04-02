@@ -594,13 +594,17 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const robustness = engine.summary?.robustness_score ?? getNumber(overviewRaw, ["robustness_score", "robustnessScore", "score"]);
   const overfit = engine.summary?.overfitting_risk_pct ?? getNumber(overviewRaw, ["overfitting_risk_pct", "overfittingRiskPct"]);
   const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
+  const monteCarloSummaryMetrics = asRecord(monteCarloRaw?.summary_metrics);
   const inferredDrawdownFractions = extractDrawdownFractions(monteCarloRaw);
   const inferredDrawdownPcts = inferredDrawdownFractions.map((value) => value * 100);
-  const mcWorst = normalizePercentValue(getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"]))
+  const mcWorst = getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"])
+    ?? getNumber(monteCarloSummaryMetrics, ["worst_drawdown", "worst_drawdown_pct", "worst_simulated_drawdown_pct", "worstDrawdownPct"])
     ?? (inferredDrawdownPcts.length ? Math.min(...inferredDrawdownPcts) : undefined);
-  const mcP95 = normalizePercentValue(getNumber(monteCarloRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"]))
+  const mcP95 = getNumber(monteCarloRaw, ["p95_drawdown", "p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"])
+    ?? getNumber(monteCarloSummaryMetrics, ["p95_drawdown", "p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"])
     ?? quantile(inferredDrawdownPcts, 0.95);
-  const mcMedian = normalizePercentValue(getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"]))
+  const mcMedian = getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"])
+    ?? getNumber(monteCarloSummaryMetrics, ["median_drawdown", "median_drawdown_pct", "medianDrawdownPct"])
     ?? quantile(inferredDrawdownPcts, 0.5);
   const explicitRuinThresholdFraction = getNumber(monteCarloRaw, ["ruin_threshold_fraction", "ruinThresholdFraction"]);
   const explicitRuinThresholdPct = getNumber(monteCarloRaw, ["ruin_threshold_pct", "ruinThresholdPct", "ruin_threshold"]);
