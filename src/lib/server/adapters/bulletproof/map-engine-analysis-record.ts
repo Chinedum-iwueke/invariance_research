@@ -596,11 +596,11 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
   const inferredDrawdownFractions = extractDrawdownFractions(monteCarloRaw);
   const inferredDrawdownPcts = inferredDrawdownFractions.map((value) => value * 100);
-  const mcWorst = normalizePercentValue(getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"]))
+  const mcWorst = getNumber(monteCarloRaw, ["worst_drawdown_pct", "worstDrawdownPct"])
     ?? (inferredDrawdownPcts.length ? Math.min(...inferredDrawdownPcts) : undefined);
-  const mcP95 = normalizePercentValue(getNumber(monteCarloRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"]))
+  const mcP95 = getNumber(monteCarloRaw, ["p95_drawdown", "p95_drawdown_pct", "drawdown_p95_pct", "p95DrawdownPct"])
     ?? quantile(inferredDrawdownPcts, 0.95);
-  const mcMedian = normalizePercentValue(getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"]))
+  const mcMedian = getNumber(monteCarloRaw, ["median_drawdown_pct", "medianDrawdownPct"])
     ?? quantile(inferredDrawdownPcts, 0.5);
   const explicitRuinThresholdFraction = getNumber(monteCarloRaw, ["ruin_threshold_fraction", "ruinThresholdFraction"]);
   const explicitRuinThresholdPct = getNumber(monteCarloRaw, ["ruin_threshold_pct", "ruinThresholdPct", "ruin_threshold"]);
