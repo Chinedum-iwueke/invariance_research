@@ -146,6 +146,10 @@ function normalizeBpsForDisplay(value: number | undefined, digits = 1): string |
   return `${value.toFixed(digits)} bps`;
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function extractRegimeRows(raw: UnknownRecord | undefined, envelope: AnalysisRecord["engine_payload"]["diagnostics"]["regimes"] | undefined) {
   const candidates: unknown[] = [];
   if (Array.isArray(raw?.regime_metrics)) candidates.push(...raw.regime_metrics);
@@ -626,6 +630,39 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinProbability = normalizePercentValue(getNumber(ruinRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin_pct", "probability_of_ruin", "probabilityOfRuin"]))
     ?? normalizePercentValue(getNumber(monteCarloRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin", "probabilityOfRuin"]))
     ?? derivedRuinProbabilityPct;
+  const ruinSummaryMetricsRaw = pickFirstRecord(ruinRaw, ["summary_metrics", "summaryMetrics"]);
+  const ruinStreakStatsRaw = pickFirstRecord(ruinRaw, ["streak_statistics", "streakStats"]);
+  const ruinExecutionStressRaw = pickFirstRecord(ruinRaw, ["execution_stress", "executionStress", "stress_summary"]);
+
+  const ruinProbabilityOfRuin = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["probability_of_ruin", "probability_of_ruin_pct"]))
+    ?? ruinProbability;
+  const ruinSurvivalProbability = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["survival_probability", "survival_probability_pct"]));
+  const ruinExpectedStressDrawdown = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["expected_stress_drawdown", "expected_stress_drawdown_pct", "stress_drawdown_pct", "stressDrawdownPct"]));
+  const ruinMaxTolerableRiskPerTrade = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["max_tolerable_risk_per_trade", "max_tolerable_risk_per_trade_pct"]));
+  const ruinMinimumSurvivableCapital = getNumber(ruinSummaryMetricsRaw, ["minimum_survivable_capital"]);
+  const ruinRiskAmountPerTrade = getNumber(ruinSummaryMetricsRaw, ["risk_amount_per_trade"]);
+  const ruinMaxConsecutiveLosses = getNumber(ruinSummaryMetricsRaw, ["max_consecutive_losses"])
+    ?? getNumber(ruinStreakStatsRaw, ["max_consecutive_losses"]);
+  const ruinMaxConsecutiveWins = getNumber(ruinSummaryMetricsRaw, ["max_consecutive_wins"])
+    ?? getNumber(ruinStreakStatsRaw, ["max_consecutive_wins"]);
+  const ruinAverageLosingStreak = getNumber(ruinSummaryMetricsRaw, ["average_losing_streak"])
+    ?? getNumber(ruinStreakStatsRaw, ["average_losing_streak"]);
+  const ruinMedianLosingStreak = getNumber(ruinSummaryMetricsRaw, ["median_losing_streak"])
+    ?? getNumber(ruinStreakStatsRaw, ["median_losing_streak"]);
+  const ruinAverageWinningStreak = getNumber(ruinSummaryMetricsRaw, ["average_winning_streak"])
+    ?? getNumber(ruinStreakStatsRaw, ["average_winning_streak"]);
+  const ruinMedianWinningStreak = getNumber(ruinSummaryMetricsRaw, ["median_winning_streak"])
+    ?? getNumber(ruinStreakStatsRaw, ["median_winning_streak"]);
+  const ruinLongestLosingStreakPnl = getNumber(ruinSummaryMetricsRaw, ["longest_losing_streak_pnl"])
+    ?? getNumber(ruinStreakStatsRaw, ["longest_losing_streak_pnl"]);
+  const ruinLongestLosingStreakR = getNumber(ruinSummaryMetricsRaw, ["longest_losing_streak_r"])
+    ?? getNumber(ruinStreakStatsRaw, ["longest_losing_streak_r"]);
+  const ruinLargestSingleLoss = getNumber(ruinSummaryMetricsRaw, ["largest_single_loss"])
+    ?? getNumber(ruinStreakStatsRaw, ["largest_single_loss"]);
+  const ruinLargestSingleLossR = getNumber(ruinSummaryMetricsRaw, ["largest_single_loss_r"])
+    ?? getNumber(ruinStreakStatsRaw, ["largest_single_loss_r"]);
+  const ruinWorstDrawdownPct = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["worst_drawdown_pct", "max_drawdown_pct"]))
+    ?? mcWorst;
   const executionSummaryMetrics = pickFirstRecord(executionRaw, ["summary_metrics", "summaryMetrics"]);
   const baselineExpectancyValue = getNumber(executionSummaryMetrics, ["baseline_expectancy", "baselineExpectancy"])
     ?? getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
@@ -687,6 +724,82 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       }];
     }),
   ) as AnalysisRecord["engine_payload"]["diagnostics"];
+
+  if (envelopeByDiagnostic.ruin) {
+    const emittedRuinFigures = uniqueFigureList([
+      ...(envelopeByDiagnostic.ruin.figures ?? []),
+      ...mapFigureList(ruinRaw?.ruin_probability_curve, { title: "Ruin Probability by Drawdown Threshold", type: "line", note: "Probability of breaching drawdown thresholds from Monte Carlo paths." }),
+      ...mapFigureList(ruinRaw?.risk_per_trade_sensitivity, { title: "Risk-per-Trade Sensitivity", type: "line", note: "Ruin response to position sizing risk assumptions." }),
+      ...mapFigureList(ruinRaw?.loss_streak_distribution, { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted ruin/streak payload." }),
+      ...mapFigureList(ruinStreakStatsRaw?.loss_streak_distribution, { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted streak statistics." }),
+      ...mapFigureList(ruinRaw?.ruin_sensitivity_figure, { title: "Ruin Sensitivity", type: "line", note: "Engine-emitted ruin sensitivity figure." }),
+    ]);
+
+    const scenarioCurves = asArray(ruinRaw?.ruin_scenarios).length
+      ? asArray(ruinRaw?.ruin_scenarios)
+      : asArray(ruinRaw?.scenario_curves).length
+        ? asArray(ruinRaw?.scenario_curves)
+        : asArray(ruinExecutionStressRaw?.scenario_curves);
+
+    envelopeByDiagnostic.ruin.figures = emittedRuinFigures;
+    envelopeByDiagnostic.ruin.assumptions = [
+      ...envelopeByDiagnostic.ruin.assumptions,
+      ...getStringArray(ruinRaw, ["assumptions", "model_assumptions"]),
+    ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+    envelopeByDiagnostic.ruin.limitations = [
+      ...envelopeByDiagnostic.ruin.limitations,
+      ...getStringArray(ruinRaw, ["limitations"]),
+      ...getStringArray(ruinExecutionStressRaw, ["limitations"]),
+    ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+    envelopeByDiagnostic.ruin.recommendations = [
+      ...envelopeByDiagnostic.ruin.recommendations,
+      ...getStringArray(ruinRaw, ["recommendations", "next_steps"]),
+      ...getStringArray(ruinExecutionStressRaw, ["recommendations", "next_steps"]),
+    ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+    envelopeByDiagnostic.ruin.metadata = {
+      ...(envelopeByDiagnostic.ruin.metadata ?? {}),
+      summary_metrics: ruinSummaryMetricsRaw,
+      streak_statistics: ruinStreakStatsRaw,
+      execution_stress_summary: ruinExecutionStressRaw,
+      scenario_curves: scenarioCurves.length ? scenarioCurves : undefined,
+      probability_of_ruin: ruinProbabilityOfRuin,
+      survival_probability: ruinSurvivalProbability,
+      expected_stress_drawdown: ruinExpectedStressDrawdown,
+      max_tolerable_risk_per_trade: ruinMaxTolerableRiskPerTrade,
+      minimum_survivable_capital: ruinMinimumSurvivableCapital,
+      risk_amount_per_trade: ruinRiskAmountPerTrade,
+      max_consecutive_losses: ruinMaxConsecutiveLosses,
+      max_consecutive_wins: ruinMaxConsecutiveWins,
+      average_losing_streak: ruinAverageLosingStreak,
+      median_losing_streak: ruinMedianLosingStreak,
+      average_winning_streak: ruinAverageWinningStreak,
+      median_winning_streak: ruinMedianWinningStreak,
+      longest_losing_streak_pnl: ruinLongestLosingStreakPnl,
+      longest_losing_streak_r: ruinLongestLosingStreakR,
+      largest_single_loss: ruinLargestSingleLoss,
+      largest_single_loss_r: ruinLargestSingleLossR,
+      worst_drawdown_pct: ruinWorstDrawdownPct,
+      worst_drawdown_duration_trades: getNumber(ruinSummaryMetricsRaw, ["worst_drawdown_duration_trades"]),
+      recovery_trades_after_worst_drawdown: getNumber(ruinSummaryMetricsRaw, ["recovery_trades_after_worst_drawdown"]),
+      capital_remaining_after_worst_historical_losing_streak:
+        getNumber(ruinRaw, ["capital_remaining_after_worst_historical_losing_streak"])
+        ?? getNumber(ruinSummaryMetricsRaw, ["capital_remaining_after_worst_historical_losing_streak"]),
+      capital_remaining_after_p95_drawdown:
+        getNumber(ruinRaw, ["capital_remaining_after_p95_drawdown"])
+        ?? getNumber(ruinSummaryMetricsRaw, ["capital_remaining_after_p95_drawdown"]),
+      capital_remaining_after_worst_simulated_drawdown:
+        getNumber(ruinRaw, ["capital_remaining_after_worst_simulated_drawdown"])
+        ?? getNumber(ruinSummaryMetricsRaw, ["capital_remaining_after_worst_simulated_drawdown"]),
+      drawdown_threshold_probabilities:
+        ruinRaw?.drawdown_threshold_probabilities
+        ?? ruinRaw?.drawdown_threshold_probability_data
+        ?? ruinRaw?.threshold_probabilities,
+      risk_per_trade_sensitivity: ruinRaw?.risk_per_trade_sensitivity,
+      loss_streak_distribution: ruinRaw?.loss_streak_distribution ?? ruinStreakStatsRaw?.loss_streak_distribution,
+      interpretation: getString(ruinRaw, ["interpretation", "narrative", "summary"]),
+      model_limitations: getStringArray(ruinRaw, ["limitations", "model_limitations"]),
+    };
+  }
   const mappedOverviewFigure = mapFigure(
     pickFigureById(envelopeByDiagnostic.overview?.figures, "equity_curve")
     ?? envelopeByDiagnostic.overview?.figures[0]
@@ -1304,8 +1417,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         metrics: envelopeByDiagnostic.ruin?.summary_metrics.length
           ? envelopeByDiagnostic.ruin.summary_metrics.map(envelopeMetricToScore)
           : [
-          score("Probability of Ruin", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
-          score("Expected Stress Drawdown", formatPct(getNumber(ruinRaw, ["stress_drawdown_pct", "stressDrawdownPct"])), pctBand(Math.abs(getNumber(ruinRaw, ["stress_drawdown_pct", "stressDrawdownPct"]) ?? 0), 25, 40)),
+          score("Probability of Ruin", formatPct(ruinProbabilityOfRuin), pctBand(ruinProbabilityOfRuin, 5, 12)),
+          score("Expected Stress Drawdown", formatPct(ruinExpectedStressDrawdown), pctBand(Math.abs(ruinExpectedStressDrawdown ?? 0), 25, 40)),
+          score("Survival Probability", formatPct(ruinSurvivalProbability), "moderate"),
+          score("Max Tolerable Risk per Trade", formatPct(ruinMaxTolerableRiskPerTrade), "informational"),
+          score("Max Consecutive Losses", formatNumber(ruinMaxConsecutiveLosses, 0), "informational"),
+          score("Longest Losing Streak PnL", formatNumber(ruinLongestLosingStreakPnl, 2), "informational"),
         ],
         assumptions: [
           { name: "Artifact Richness", value: parsedArtifact.richness },
