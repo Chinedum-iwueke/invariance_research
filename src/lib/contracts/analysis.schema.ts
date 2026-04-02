@@ -116,10 +116,14 @@ export const executionScenarioSchema = z.object({
   name: z.string(),
   assumption: z.string(),
   impact: z.string(),
+  severity: z.string().optional(),
   spread: z.string().optional(),
   slippage: z.string().optional(),
   fee: z.string().optional(),
   expectancy: z.string().optional(),
+  win_rate: z.string().optional(),
+  profit_factor: z.string().optional(),
+  average_r: z.string().optional(),
   edge_decay_pct: z.string().optional(),
   classification: z.enum(["survives", "fragile", "negative", "informational"]).optional(),
 });
@@ -138,6 +142,7 @@ export const executionDiagnosticSchema = z.object({
   stress_realism: z.string().optional(),
   artifact_completeness: z.string().optional(),
   sensitivity_classification: z.enum(["resilient", "fragile", "cost_killed", "informational"]).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const regimeDiagnosticSchema = z.object({

@@ -5,7 +5,7 @@ import type { EChartsOption } from "echarts";
 
 export function EChartsHost({ option, height = 320 }: { option: EChartsOption; height?: number }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const serializedOption = useMemo(() => JSON.stringify(option), [option]);
+  const memoizedOption = useMemo(() => option, [option]);
 
   useEffect(() => {
     let disposed = false;
@@ -17,7 +17,7 @@ export function EChartsHost({ option, height = 320 }: { option: EChartsOption; h
       if (disposed || !containerRef.current) return;
 
       chart = echarts.getInstanceByDom(containerRef.current) ?? echarts.init(containerRef.current, undefined, { renderer: "canvas" });
-      chart.setOption(option, { notMerge: true });
+      chart.setOption(memoizedOption, { notMerge: true });
 
       const observer = new ResizeObserver(() => chart?.resize());
       observer.observe(containerRef.current);
@@ -32,7 +32,7 @@ export function EChartsHost({ option, height = 320 }: { option: EChartsOption; h
       cleanupPromise?.then((cleanup) => cleanup?.());
       chart?.dispose();
     };
-  }, [serializedOption, option]);
+  }, [memoizedOption]);
 
   return <div ref={containerRef} className="w-full" style={{ height }} aria-label="Diagnostic chart" />;
 }
