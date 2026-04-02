@@ -43,6 +43,14 @@ function parsePercentUnits(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? Math.abs(parsed) : undefined;
 }
 
+function resolveFirstPercentCandidate(candidates: unknown[]): number | undefined {
+  for (const candidate of candidates) {
+    const parsed = parsePercentUnits(candidate);
+    if (parsed !== undefined) return parsed;
+  }
+  return undefined;
+}
+
 function parseCurrency(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return undefined;
@@ -137,6 +145,21 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     ?? readMetricValue(ruinEnvelope?.summary_metrics ?? [], ["probability of ruin", "risk-of-ruin probability"]);
   const worstDrawdownPct = parsePercentUnits(metadata.worst_drawdown_pct) ?? parsePercentUnits(summaryMetrics.worst_drawdown_pct);
   const p95DrawdownPct = parsePercentUnits(metadata.drawdown_95_pct ?? metadata.p95_drawdown_pct);
+  const resolvedP95DrawdownPct = resolveFirstPercentCandidate([
+    metadata.p95_drawdown_pct,
+    metadata.drawdown_p95_pct,
+    metadata.p95_drawdown,
+    metadata.drawdown_95_pct,
+    metadata.p95DrawdownPct,
+    metadata.capital_survivability && typeof metadata.capital_survivability === "object" ? (metadata.capital_survivability as Record<string, unknown>).p95_drawdown_pct : undefined,
+    metadata.capital_survivability && typeof metadata.capital_survivability === "object" ? (metadata.capital_survivability as Record<string, unknown>).drawdown_p95_pct : undefined,
+    metadata.capital_survivability && typeof metadata.capital_survivability === "object" ? (metadata.capital_survivability as Record<string, unknown>).p95_drawdown : undefined,
+    summaryMetrics.p95_drawdown_pct,
+    summaryMetrics.drawdown_p95_pct,
+    summaryMetrics.p95_drawdown,
+    summaryMetrics.drawdown_95_pct,
+    summaryMetrics.p95DrawdownPct,
+  ]) ?? p95DrawdownPct;
   const minimumSurvivableCapital = parseCurrency(metadata.minimum_survivable_capital ?? summaryMetrics.minimum_survivable_capital);
   const maxTolerableRiskPerTrade = parseFractionPercent(metadata.max_tolerable_risk_per_trade ?? summaryMetrics.max_tolerable_risk_per_trade);
   const maxConsecutiveLosses = asNumber(metadata.max_consecutive_losses ?? summaryMetrics.max_consecutive_losses ?? streakStats.max_consecutive_losses);
@@ -158,17 +181,17 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const hasStressedScenario = scenarios.some((entry) => typeof entry === "object" && entry && String((entry as Record<string, unknown>).name ?? "").toLowerCase().includes("stress"));
 
   const capitalHitWorstStreak = accountSize !== undefined && longestLosingStreakPnl !== undefined ? accountSize + longestLosingStreakPnl : undefined;
-  const capitalAfterP95 = accountSize !== undefined && p95DrawdownPct !== undefined ? accountSize * (1 - Math.abs(p95DrawdownPct) / 100) : undefined;
+  const capitalAfterP95 = accountSize !== undefined && resolvedP95DrawdownPct !== undefined ? accountSize * (1 - Math.abs(resolvedP95DrawdownPct) / 100) : undefined;
   const capitalAfterWorstSim = accountSize !== undefined && worstDrawdownPct !== undefined ? accountSize * (1 - Math.abs(worstDrawdownPct) / 100) : undefined;
 
   const topCards = [
     topCard("Probability of Ruin", fmtPct(probabilityOfRuin), "Probability of crossing the ruin boundary."),
     topCard("Max Consecutive Losses", fmtCount(maxConsecutiveLosses), "Observed or simulated longest losing run."),
     topCard("Worst Drawdown", fmtPct(worstDrawdownPct), "Worst simulated/estimated drawdown severity."),
-    minimumSurvivableCapital !== undefined ? topCard("Minimum Survivable Capital", fmtCurrency(minimumSurvivableCapital), "Minimum capital level implied by the ruin model.") : null,
-    maxTolerableRiskPerTrade !== undefined ? topCard("Max Tolerable Risk / Trade", fmtPct(maxTolerableRiskPerTrade), "Upper bound before survivability materially degrades.") : null,
-    longestLosingStreakPnl !== undefined ? topCard("Worst Losing-Streak PnL", fmtCurrency(longestLosingStreakPnl), "Historical streak burden in currency terms.") : null,
-  ].filter((item): item is JSX.Element => Boolean(item)).slice(0, 6);
+    topCard("Minimum Survivable Capital", fmtCurrency(minimumSurvivableCapital), "Minimum capital level implied by the ruin model."),
+    topCard("Max Tolerable Risk / Trade", fmtPct(maxTolerableRiskPerTrade), "Upper bound before survivability materially degrades."),
+    topCard("Worst Losing-Streak PnL", fmtCurrency(longestLosingStreakPnl), "Historical streak burden in currency terms."),
+  ];
 
   const sizingPosture = riskPerTradePct === undefined
     ? "Sizing posture is unclassified because risk-per-trade was not emitted."
@@ -190,6 +213,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
           <p><span className="font-medium text-text-graphite">Account size:</span> {fmtCurrency(accountSize)}</p>
           <p><span className="font-medium text-text-graphite">Risk per trade:</span> {fmtPct(riskPerTradePct, 2)}</p>
           <p><span className="font-medium text-text-graphite">Risk amount per trade:</span> {fmtCurrency(riskAmountPerTrade ?? (accountSize !== undefined && riskPerTradePct !== undefined ? accountSize * (riskPerTradePct / 100) : undefined))}</p>
+          <p><span className="font-medium text-text-graphite">p95 drawdown:</span> {fmtPct(resolvedP95DrawdownPct)}</p>
           <p><span className="font-medium text-text-graphite">Remaining after worst losing streak:</span> {fmtCurrency(capitalHitWorstStreak)}</p>
           <p><span className="font-medium text-text-graphite">Remaining after p95 drawdown:</span> {fmtCurrency(capitalAfterP95)}</p>
           <p><span className="font-medium text-text-graphite">Remaining after worst simulated drawdown:</span> {fmtCurrency(capitalAfterWorstSim)}</p>
@@ -208,6 +232,27 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         </p>
       </WorkspaceCard>
 
+      {(riskSensitivityFigure || lossStreakFigure) ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {riskSensitivityFigure ? (
+            <FigureCard
+              title={riskSensitivityFigure.title || "Risk Per Trade Sensitivity"}
+              subtitle={riskSensitivityFigure.subtitle || "How ruin probability rises as sizing risk increases"}
+              figure={<DiagnosticFigure figure={riskSensitivityFigure} height={340} />}
+              note={riskSensitivityFigure.note}
+            />
+          ) : null}
+          {lossStreakFigure ? (
+            <FigureCard
+              title={lossStreakFigure.title || "Loss Streak Distribution"}
+              subtitle={lossStreakFigure.subtitle || "Distribution of losing-run length severity"}
+              figure={<DiagnosticFigure figure={lossStreakFigure} height={340} />}
+              note={lossStreakFigure.note}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       <WorkspaceCard title="Streak Analytics" subtitle="Losing-streak burden remains primary for survivability and execution tolerance.">
         <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
           <p><span className="font-medium text-text-graphite">Max consecutive losses:</span> {fmtCount(maxConsecutiveLosses)}</p>
@@ -219,11 +264,22 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
           <p><span className="font-medium text-text-graphite">Longest losing streak PnL:</span> {fmtCurrency(longestLosingStreakPnl)}</p>
           <p><span className="font-medium text-text-graphite">Longest losing streak (R):</span> {longestLosingStreakR === undefined ? "Unavailable" : `${longestLosingStreakR.toFixed(2)}R`}</p>
         </div>
-        {lossStreakFigure ? (
-          <div className="mt-4">
-            <DiagnosticFigure figure={lossStreakFigure} height={340} />
-          </div>
-        ) : null}
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Risk Per Trade Sensitivity" subtitle="Sizing is often the fastest lever for survivability improvement.">
+        {riskSensitivityFigure ? (
+          <>
+            <DiagnosticFigure figure={riskSensitivityFigure} height={340} />
+            <p className="mt-3 text-sm text-text-neutral">
+              Ruin risk often rises non-linearly as risk per trade increases. If the current sizing sits near the steep region of this curve,
+              modest de-risking can materially improve survivability while preserving strategy continuity.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-text-neutral">
+            Risk-per-trade sensitivity was not emitted for this run. Current conclusions rely on the drawdown-breach curve and streak burden metrics.
+          </p>
+        )}
       </WorkspaceCard>
 
       <WorkspaceCard title="Execution Stress Survivability" subtitle="Baseline vs stressed survivability framing under degradation assumptions.">
@@ -239,37 +295,37 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
             <p>Execution stress summary was emitted and mapped into ruin metadata for interpretation alongside the main curve.</p>
           ) : null}
         </div>
-        {riskSensitivityFigure ? (
-          <div className="mt-4">
-            <FigureCard
-              title={riskSensitivityFigure.title || "Risk Per Trade Sensitivity"}
-              subtitle={riskSensitivityFigure.subtitle || "Ruin response as risk-per-trade changes"}
-              figure={<DiagnosticFigure figure={riskSensitivityFigure} height={320} />}
-              note={riskSensitivityFigure.note}
-            />
-          </div>
-        ) : null}
       </WorkspaceCard>
 
       <WorkspaceCard title="Interpretation & Action" subtitle="Sizing-aware, risk-tolerance-aware decision framing.">
         <div className="space-y-3 text-sm text-text-neutral">
           <p>
-            Survivability means keeping drawdown and losing-streak burden inside limits you can tolerate without forced de-risking. For risk-averse users,
-            focus on low breach probability at moderate drawdown thresholds and on streak burden that remains financially and psychologically tolerable.
+            {probabilityOfRuin !== undefined && probabilityOfRuin >= 25
+              ? "At current sizing, survivability risk appears elevated: breach probabilities and tail-drawdown exposure are high enough to merit active de-risking."
+              : "Current survivability appears more stable, but drawdown-threshold probabilities should still be judged against hard capital and behavioral limits."}
           </p>
           <p>
-            For users willing to tolerate higher volatility, deeper drawdown exposure may be acceptable only if capital buffers remain ample and stressed execution
-            does not materially raise ruin risk.
+            Conservative allocators should require low breach risk at shallow-to-moderate drawdown thresholds. Moderate-risk operators can tolerate more variance if
+            capital-after-drawdown remains operationally safe. High-volatility operators may accept deeper drawdowns only when capital buffers and execution discipline remain robust.
           </p>
-          <p>{sizingPosture} Reducing risk per trade generally improves survivability non-linearly when tail drawdown risk is elevated.</p>
+          <p>
+            {sizingPosture}{" "}
+            {resolvedP95DrawdownPct !== undefined && accountSize !== undefined
+              ? `p95 drawdown implies roughly ${fmtCurrency(capitalAfterP95)} remaining capital, which should be stress-tested against your minimum operating threshold.`
+              : "p95 drawdown was not fully available from this run, so tail survivability should be treated as partially observed."}
+          </p>
+          <p>
+            If the risk-per-trade sensitivity curve steepens near current sizing, reducing risk per trade is likely to improve survivability materially rather than marginally.
+            Treat this as a capital-preservation lever, not only a return-smoothing preference.
+          </p>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <p className="mb-1 font-medium text-text-graphite">Limitations</p>
-              <ul className="space-y-1">{limitations.map((item) => <li key={item}>• {item}</li>)}</ul>
+              <ul className="space-y-1">{limitations.map((item, index) => <li key={`ruin-limitation-${index}-${item.slice(0, 32)}`}>• {item}</li>)}</ul>
             </div>
             <div>
               <p className="mb-1 font-medium text-text-graphite">Recommendations</p>
-              <ul className="space-y-1">{recommendations.map((item) => <li key={item}>• {item}</li>)}</ul>
+              <ul className="space-y-1">{recommendations.map((item, index) => <li key={`ruin-recommendation-${index}-${item.slice(0, 32)}`}>• {item}</li>)}</ul>
             </div>
           </div>
         </div>

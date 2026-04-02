@@ -30,8 +30,8 @@ export function PricingCards() {
             <p className="text-sm text-text-neutral">{plan.billing}</p>
           </div>
           <ul className="space-y-2">
-            {plan.features.map((feature) => (
-              <li key={feature} className="flex items-center gap-2 text-sm text-text-graphite">
+            {plan.features.map((feature, featureIndex) => (
+              <li key={`${plan.title}-feature-${featureIndex}-${feature.slice(0, 20)}`} className="flex items-center gap-2 text-sm text-text-graphite">
                 <Check className="h-4 w-4 text-brand" />
                 {feature}
               </li>

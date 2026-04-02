@@ -121,7 +121,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
       <WorkspaceCard title="Distribution shape insights" subtitle="How outcomes cluster and where asymmetry appears in this run.">
         {keyShapeFindings.length ? (
           <ul className="space-y-1.5 text-sm text-text-neutral">
-            {keyShapeFindings.map((item) => <li key={item}>• {item}</li>)}
+            {keyShapeFindings.map((item, index) => <li key={`shape-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
           </ul>
         ) : (
           <p className="text-sm text-text-neutral">No shape-specific interpretation was emitted for this run. Upload richer trade annotations to unlock stronger tail and asymmetry commentary.</p>
@@ -143,15 +143,15 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Assumptions</p>
-            {assumptions.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit assumptions were emitted for this run.</p>}
+            {assumptions.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{assumptions.map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit assumptions were emitted for this run.</p>}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Limitations</p>
-            {limitations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{limitations.map((item) => <li key={item}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit limitations were emitted for this run.</p>}
+            {limitations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{limitations.map((item, index) => <li key={`limitation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit limitations were emitted for this run.</p>}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Recommendations</p>
-            {recommendations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{recommendations.map((item) => <li key={item}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit recommendations were emitted for this run.</p>}
+            {recommendations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{recommendations.map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit recommendations were emitted for this run.</p>}
           </div>
         </div>
       </WorkspaceCard>

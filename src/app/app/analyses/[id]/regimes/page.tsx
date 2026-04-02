@@ -140,7 +140,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         <ul className="space-y-1.5 text-sm text-text-neutral">
           <li>• Trend method: {regimes.definition?.trend_method ?? "Not emitted"}</li>
           <li>• Volatility method: {regimes.definition?.volatility_method ?? "Not emitted"}</li>
-          {definitionThresholds.map((threshold) => <li key={threshold}>• Threshold: {threshold}</li>)}
+          {definitionThresholds.map((threshold, index) => <li key={`threshold-${index}-${threshold.slice(0, 24)}`}>• Threshold: {threshold}</li>)}
           {regimes.definition?.notes ? <li>• Notes: {regimes.definition.notes}</li> : null}
         </ul>
       </WorkspaceCard>
@@ -167,7 +167,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         <WorkspaceCard title="Assumptions" subtitle="Engine-emitted regime assumptions">
           {(regimes.assumptions ?? []).length ? (
             <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.assumptions ?? []).map((item) => <li key={item}>• {item}</li>)}
+              {(regimes.assumptions ?? []).map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
             </ul>
           ) : (
             <p className="text-sm text-text-neutral">No explicit regime assumptions were emitted for this run.</p>
@@ -176,7 +176,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         <WorkspaceCard title="Recommendations" subtitle="Engine-emitted deployment guidance">
           {(regimes.recommendations ?? []).length ? (
             <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.recommendations ?? []).map((item) => <li key={item}>• {item}</li>)}
+              {(regimes.recommendations ?? []).map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
             </ul>
           ) : (
             <p className="text-sm text-text-neutral">No regime-specific recommendations were emitted for this run.</p>

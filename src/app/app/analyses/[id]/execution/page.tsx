@@ -202,8 +202,8 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
 
       <WorkspaceCard title="Execution assumptions" subtitle="Cost model and stress increments used in this run">
         <ul className="space-y-2 text-sm text-text-neutral">
-          {assumptionRows.map((assumption) => (
-            <li key={assumption}>• {assumption}</li>
+          {assumptionRows.map((assumption, index) => (
+            <li key={`assumption-${index}-${assumption.slice(0, 24)}`}>• {assumption}</li>
           ))}
           <li>• Deterministic proxy execution modeling uses trades-only outcomes and does not depend on OHLCV bars/order book reconstruction.</li>
           <li>• Assumption provenance: {execution.assumptions?.length ? "Provided by engine payload" : "Inferred as limited from missing structured assumptions"}.</li>
@@ -217,8 +217,8 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
             "No market-impact model.",
             "No latency effects model.",
             "No venue-specific execution modeling.",
-          ].map((item) => (
-            <li key={item}>• {item}</li>
+          ].map((item, index) => (
+            <li key={`scope-${index}-${item.slice(0, 24)}`}>• {item}</li>
           ))}
         </ul>
       </WorkspaceCard>

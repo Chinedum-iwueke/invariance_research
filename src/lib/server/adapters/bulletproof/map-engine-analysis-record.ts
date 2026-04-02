@@ -693,6 +693,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ?? getNumber(ruinStreakStatsRaw, ["largest_single_loss_r"]);
   const ruinWorstDrawdownPct = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["worst_drawdown_pct", "max_drawdown_pct"]))
     ?? mcWorst;
+  const ruinP95DrawdownPct = normalizePercentValue(getNumber(ruinRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95_drawdown", "drawdown_95_pct", "p95DrawdownPct"]))
+    ?? normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95_drawdown", "drawdown_95_pct", "p95DrawdownPct"]))
+    ?? normalizePercentValue(getNumber(ruinCapitalSurvivabilityRaw, ["p95_drawdown_pct", "drawdown_p95_pct", "p95_drawdown", "drawdown_95_pct", "p95DrawdownPct"]))
+    ?? mcP95;
   const ruinAccountSize = getNumber(ruinRaw, ["account_size"])
     ?? getNumber(ruinSummaryMetricsRaw, ["account_size"])
     ?? getNumber(engineContextRecord, ["account_size", "initial_capital", "starting_capital"]);
@@ -818,6 +822,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       largest_single_loss: ruinLargestSingleLoss,
       largest_single_loss_r: ruinLargestSingleLossR,
       worst_drawdown_pct: ruinWorstDrawdownPct,
+      p95_drawdown_pct: ruinP95DrawdownPct,
+      drawdown_p95_pct: ruinP95DrawdownPct,
       worst_drawdown_duration_trades: getNumber(ruinSummaryMetricsRaw, ["worst_drawdown_duration_trades"]),
       recovery_trades_after_worst_drawdown: getNumber(ruinSummaryMetricsRaw, ["recovery_trades_after_worst_drawdown"]),
       capital_remaining_after_worst_historical_losing_streak:
