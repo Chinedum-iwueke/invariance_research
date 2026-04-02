@@ -76,6 +76,10 @@ const EXECUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["baseline expectancy", "baseline edge", "baseline"],
   ["stressed expectancy", "stress expectancy", "stressed"],
   ["edge decay", "decay", "edge erosion"],
+  ["baseline win rate", "win rate baseline"],
+  ["stressed win rate", "win rate stressed"],
+  ["baseline profit factor", "profit factor baseline"],
+  ["stressed profit factor", "profit factor stressed"],
 ];
 
 const RUIN_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [

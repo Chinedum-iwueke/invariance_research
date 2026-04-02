@@ -135,6 +135,17 @@ function toPct(value: number | undefined, digits = 1) {
   return `${value.toFixed(digits)}%`;
 }
 
+function normalizePercentForDisplay(value: number | undefined, digits = 1): string | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  const pct = value <= 1 ? value * 100 : value;
+  return `${pct.toFixed(digits)}%`;
+}
+
+function normalizeBpsForDisplay(value: number | undefined, digits = 1): string | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return `${value.toFixed(digits)} bps`;
+}
+
 function extractRegimeRows(raw: UnknownRecord | undefined, envelope: AnalysisRecord["engine_payload"]["diagnostics"]["regimes"] | undefined) {
   const candidates: unknown[] = [];
   if (Array.isArray(raw?.regime_metrics)) candidates.push(...raw.regime_metrics);
@@ -615,9 +626,33 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinProbability = normalizePercentValue(getNumber(ruinRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin_pct", "probability_of_ruin", "probabilityOfRuin"]))
     ?? normalizePercentValue(getNumber(monteCarloRaw, ["ruin_probability_pct", "ruinProbabilityPct", "probability_of_ruin", "probabilityOfRuin"]))
     ?? derivedRuinProbabilityPct;
-  const baselineExpectancyValue = getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
-  const stressedExpectancyValue = getNumber(executionRaw, ["stressed_expectancy", "stressedExpectancy"]);
-  const edgeDecayPctValue = getNumber(executionRaw, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
+  const executionSummaryMetrics = pickFirstRecord(executionRaw, ["summary_metrics", "summaryMetrics"]);
+  const baselineExpectancyValue = getNumber(executionSummaryMetrics, ["baseline_expectancy", "baselineExpectancy"])
+    ?? getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
+  const stressedExpectancyValue = getNumber(executionSummaryMetrics, ["stressed_expectancy", "stressedExpectancy"])
+    ?? getNumber(executionRaw, ["stressed_expectancy", "stressedExpectancy"]);
+  const edgeDecayPctValue = getNumber(executionSummaryMetrics, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"])
+    ?? getNumber(executionRaw, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
+  const baselineWinRateValue = getNumber(executionSummaryMetrics, ["baseline_win_rate", "baselineWinRate"])
+    ?? getNumber(executionRaw, ["baseline_win_rate", "baselineWinRate"]);
+  const stressedWinRateValue = getNumber(executionSummaryMetrics, ["stressed_win_rate", "stressedWinRate"])
+    ?? getNumber(executionRaw, ["stressed_win_rate", "stressedWinRate"]);
+  const baselineProfitFactorValue = getNumber(executionSummaryMetrics, ["baseline_profit_factor", "baselineProfitFactor"])
+    ?? getNumber(executionRaw, ["baseline_profit_factor", "baselineProfitFactor"]);
+  const stressedProfitFactorValue = getNumber(executionSummaryMetrics, ["stressed_profit_factor", "stressedProfitFactor"])
+    ?? getNumber(executionRaw, ["stressed_profit_factor", "stressedProfitFactor"]);
+  const edgeDecayAbsValue = getNumber(executionSummaryMetrics, ["edge_decay_abs", "edgeDecayAbs"])
+    ?? getNumber(executionRaw, ["edge_decay_abs", "edgeDecayAbs"]);
+  const baselineEvNetValue = getNumber(executionSummaryMetrics, ["baseline_ev_net", "baselineEvNet"])
+    ?? getNumber(executionRaw, ["baseline_ev_net", "baselineEvNet"]);
+  const stressedScenario = getString(executionSummaryMetrics, ["stressed_scenario", "stressedScenario"])
+    ?? getString(executionRaw, ["stressed_scenario", "stressedScenario"]);
+  const executionResilienceScore = getNumber(executionSummaryMetrics, ["execution_resilience_score", "executionResilienceScore"])
+    ?? getNumber(executionRaw, ["execution_resilience_score", "executionResilienceScore"]);
+  const breakEvenCostThresholdBps = getNumber(executionSummaryMetrics, ["break_even_cost_threshold_bps", "breakEvenCostThresholdBps"])
+    ?? getNumber(executionRaw, ["break_even_cost_threshold_bps", "breakEvenCostThresholdBps"]);
+  const breakEvenCostMultiplier = getNumber(executionSummaryMetrics, ["break_even_cost_multiplier", "break_even_cost_multiplie", "breakEvenCostMultiplier"])
+    ?? getNumber(executionRaw, ["break_even_cost_multiplier", "break_even_cost_multiplie", "breakEvenCostMultiplier"]);
   const executionAssumptions = getStringArray(executionRaw, ["assumptions", "cost_assumptions", "baseline_assumptions"]);
   const executionLimitations = getStringArray(executionRaw, ["limitations", "model_limitations"]);
   const executionRecommendations = getStringArray(executionRaw, ["recommendations", "next_steps"]);
@@ -1034,24 +1069,78 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       },
       execution: {
         status: statusByDiagnostic.get("execution"),
-        metrics: envelopeByDiagnostic.execution?.summary_metrics.length
-          ? envelopeByDiagnostic.execution.summary_metrics.map(envelopeMetricToScore)
-          : [
-          score("Baseline Expectancy", getString(executionRaw, ["baseline_expectancy", "baselineExpectancy"]) ?? formatNumber(baselineExpectancyValue, 4), "moderate"),
-          score("Stressed Expectancy", getString(executionRaw, ["stressed_expectancy", "stressedExpectancy"]) ?? formatNumber(stressedExpectancyValue, 4), "elevated"),
-          score("Edge Decay", getString(executionRaw, ["edge_decay", "edgeDecay"]) ?? (edgeDecayPctValue === undefined ? "Unavailable" : `${edgeDecayPctValue.toFixed(1)}%`), "elevated"),
+        metrics: [
+          score(
+            "Baseline Expectancy",
+            getString(executionSummaryMetrics, ["baseline_expectancy", "baselineExpectancy"])
+              ?? getString(executionRaw, ["baseline_expectancy", "baselineExpectancy"])
+              ?? formatNumber(baselineExpectancyValue, 4),
+            "moderate",
+          ),
+          score(
+            "Stressed Expectancy",
+            getString(executionSummaryMetrics, ["stressed_expectancy", "stressedExpectancy"])
+              ?? getString(executionRaw, ["stressed_expectancy", "stressedExpectancy"])
+              ?? formatNumber(stressedExpectancyValue, 4),
+            "elevated",
+          ),
+          score(
+            "Edge Decay",
+            getString(executionSummaryMetrics, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"])
+              ?? getString(executionRaw, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"])
+              ?? (edgeDecayPctValue === undefined ? "Unavailable" : `${edgeDecayPctValue.toFixed(1)}%`),
+            "elevated",
+          ),
+          score(
+            "Baseline Win Rate",
+            getString(executionSummaryMetrics, ["baseline_win_rate", "baselineWinRate"])
+              ?? getString(executionRaw, ["baseline_win_rate", "baselineWinRate"])
+              ?? (normalizePercentForDisplay(baselineWinRateValue) ?? "Unavailable"),
+            pctBand(normalizePercentValue(baselineWinRateValue), 45, 60),
+          ),
+          score(
+            "Stressed Win Rate",
+            getString(executionSummaryMetrics, ["stressed_win_rate", "stressedWinRate"])
+              ?? getString(executionRaw, ["stressed_win_rate", "stressedWinRate"])
+              ?? (normalizePercentForDisplay(stressedWinRateValue) ?? "Unavailable"),
+            pctBand(normalizePercentValue(stressedWinRateValue), 45, 60),
+          ),
+          score(
+            "Baseline Profit Factor",
+            getString(executionSummaryMetrics, ["baseline_profit_factor", "baselineProfitFactor"])
+              ?? getString(executionRaw, ["baseline_profit_factor", "baselineProfitFactor"])
+              ?? formatNumber(baselineProfitFactorValue, 2),
+            "moderate",
+          ),
+          score(
+            "Stressed Profit Factor",
+            getString(executionSummaryMetrics, ["stressed_profit_factor", "stressedProfitFactor"])
+              ?? getString(executionRaw, ["stressed_profit_factor", "stressedProfitFactor"])
+              ?? formatNumber(stressedProfitFactorValue, 2),
+            "elevated",
+          ),
         ],
         scenarios: Array.isArray(executionRaw?.scenarios)
           ? executionRaw.scenarios
               .map((item) => {
                 const scenario = asRecord(item);
                 const name = getString(scenario, ["name"]);
-                const spread = getString(scenario, ["spread", "spread_bps", "spread_assumption", "spreadAssumption"]);
-                const slippage = getString(scenario, ["slippage", "slippage_bps", "slippage_assumption", "slippageAssumption"]);
-                const fee = getString(scenario, ["fee", "fees", "fee_bps", "fee_assumption", "feeAssumption"]);
+                const severity = getString(scenario, ["severity"]);
+                const spread = getString(scenario, ["spread", "spread_assumption", "spreadAssumption"])
+                  ?? normalizeBpsForDisplay(getNumber(scenario, ["spread_bps", "spreadBps"]));
+                const slippage = getString(scenario, ["slippage", "slippage_assumption", "slippageAssumption"])
+                  ?? normalizeBpsForDisplay(getNumber(scenario, ["slippage_bps", "slippageBps"]));
+                const fee = getString(scenario, ["fee", "fees", "fee_assumption", "feeAssumption"])
+                  ?? normalizeBpsForDisplay(getNumber(scenario, ["fee_bps", "feeBps"]));
                 const expectancyValue = getNumber(scenario, ["expectancy", "expectancy_r", "expectancyR"]);
                 const edgeDecayValue = getNumber(scenario, ["edge_decay_pct", "edgeDecayPct", "edge_decay", "edgeDecay"]);
+                const winRateValue = getNumber(scenario, ["win_rate", "winRate"]);
+                const profitFactorValue = getNumber(scenario, ["profit_factor", "profitFactor"]);
+                const averageRValue = getNumber(scenario, ["average_r", "averageR"]);
                 const expectancy = getString(scenario, ["expectancy_text", "expectancy_display"]) ?? formatNumber(expectancyValue, 4);
+                const winRate = getString(scenario, ["win_rate_text", "win_rate_display"]) ?? normalizePercentForDisplay(winRateValue);
+                const profitFactor = getString(scenario, ["profit_factor_text", "profit_factor_display"]) ?? formatNumber(profitFactorValue, 2);
+                const averageR = getString(scenario, ["average_r_text", "average_r_display"]) ?? formatNumber(averageRValue, 4);
                 const edgeDecayPct = getString(scenario, ["edge_decay_text", "edge_decay_display"]) ?? (edgeDecayValue === undefined ? undefined : `${edgeDecayValue.toFixed(1)}%`);
                 const assumption = getString(scenario, ["assumption", "cost_assumptions"])
                   ?? [spread ? `spread ${spread}` : undefined, slippage ? `slippage ${slippage}` : undefined, fee ? `fee ${fee}` : undefined].filter(Boolean).join(", ");
@@ -1062,12 +1151,21 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
                   name,
                   assumption: assumption || "Assumptions not emitted",
                   impact: impact || "Impact not emitted",
+                  severity,
                   spread,
                   slippage,
                   fee,
                   expectancy: expectancy === "Unavailable" ? undefined : expectancy,
+                  win_rate: winRate,
+                  profit_factor: profitFactor === "Unavailable" ? undefined : profitFactor,
+                  average_r: averageR === "Unavailable" ? undefined : averageR,
                   edge_decay_pct: edgeDecayPct,
-                  classification: classifyExecutionScenario(expectancyValue, edgeDecayValue),
+                  classification: getString(scenario, ["classification"]) === "survives"
+                    || getString(scenario, ["classification"]) === "fragile"
+                    || getString(scenario, ["classification"]) === "negative"
+                    || getString(scenario, ["classification"]) === "informational"
+                    ? (getString(scenario, ["classification"]) as "survives" | "fragile" | "negative" | "informational")
+                    : classifyExecutionScenario(expectancyValue, edgeDecayValue),
                 };
               })
               .filter((item): item is NonNullable<typeof item> => Boolean(item))
@@ -1086,17 +1184,53 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
             `Dominant cost driver: ${getString(executionRaw, ["dominant_cost_driver", "dominantCostDriver"]) ?? "not emitted by engine"}.`,
           ],
         },
-        assumptions: envelopeByDiagnostic.execution?.assumptions.length ? envelopeByDiagnostic.execution.assumptions : executionAssumptions,
+        assumptions: envelopeByDiagnostic.execution?.assumptions.length
+          ? envelopeByDiagnostic.execution.assumptions
+            : executionAssumptions.length
+            ? executionAssumptions
+            : [
+                "Deterministic proxy execution modeling was applied directly to trades-only outcomes.",
+                "No OHLCV/order-book inputs are required for this execution sensitivity run.",
+                "Scenario assumptions increase spread, slippage, and fee friction to estimate edge decay.",
+                "Scenario schedule: baseline(0/0/0), moderate_stress(5/5/4 bps), high_stress(15/15/7 bps), extreme_stress(30/30/10 bps).",
+              ],
         limitations: envelopeByDiagnostic.execution?.limitations.length
           ? envelopeByDiagnostic.execution.limitations
           : executionLimitations.length
             ? executionLimitations
-            : executionWarnings,
-        recommendations: envelopeByDiagnostic.execution?.recommendations.length ? envelopeByDiagnostic.execution.recommendations : executionRecommendations,
+            : executionWarnings.length
+              ? executionWarnings
+              : [
+                  "This is a deterministic proxy model and does not simulate intrabar microstructure dynamics.",
+                  "Latency, queue-position, and venue routing effects are not modeled in this run.",
+                ],
+        recommendations: envelopeByDiagnostic.execution?.recommendations.length
+          ? envelopeByDiagnostic.execution.recommendations
+          : executionRecommendations.length
+            ? executionRecommendations
+            : [
+                "Compare live realized execution costs against stressed scenario assumptions over time.",
+                "Use break-even cost threshold and resilience score to calibrate deployment guardrails.",
+              ],
         execution_model: getString(executionRaw, ["execution_model", "model"]) ?? (statusByDiagnostic.get("execution") === "available" ? "baseline" : "proxy"),
         stress_realism: getString(executionRaw, ["stress_realism", "realism_level"]) ?? (statusByDiagnostic.get("execution") === "available" ? "moderate" : "limited"),
         artifact_completeness: getString(executionRaw, ["artifact_completeness", "artifact_quality"]) ?? parsedArtifact.richness,
         sensitivity_classification: classifySensitivity(stressedExpectancyValue, edgeDecayPctValue),
+        metadata: {
+          ...(envelopeByDiagnostic.execution?.metadata ?? {}),
+          stressed_scenario: stressedScenario,
+          execution_resilience_score: executionResilienceScore,
+          break_even_cost_threshold_bps: breakEvenCostThresholdBps,
+          baseline_win_rate: baselineWinRateValue,
+          stressed_win_rate: stressedWinRateValue,
+          baseline_profit_factor: baselineProfitFactorValue,
+          stressed_profit_factor: stressedProfitFactorValue,
+          edge_decay_abs: edgeDecayAbsValue,
+          baseline_ev_net: baselineEvNetValue,
+          break_even_cost_multiplier: breakEvenCostMultiplier,
+          deterministic_proxy: true,
+          ohlcv_dependency: false,
+        },
       },
       regimes: {
         status: statusByDiagnostic.get("regimes"),
