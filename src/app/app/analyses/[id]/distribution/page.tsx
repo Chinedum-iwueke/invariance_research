@@ -90,8 +90,8 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
           { label: "Returns", value: histogram ? "available" : "unavailable" },
           { label: "MAE/MFE", value: hasExcursion ? "available" : "unavailable" },
           { label: "Duration", value: hasDuration ? "available" : "unavailable" },
-        ].map((item) => (
-          <div key={item.label} className="rounded-full border border-border-subtle bg-surface-panel px-3 py-1 text-xs text-text-neutral">
+        ].map((item, index) => (
+          <div key={`${item.label}-${index}`} className="rounded-full border border-border-subtle bg-surface-panel px-3 py-1 text-xs text-text-neutral">
             <span className="font-medium text-text-graphite">{item.label}:</span> {item.value}
           </div>
         ))}

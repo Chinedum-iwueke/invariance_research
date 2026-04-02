@@ -202,8 +202,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
       <WorkspaceCard title="Methodology posture" subtitle="Diagnostic availability for this artifact and runtime">
         <div className="grid gap-2 md:grid-cols-2">
-          {diagnosticRows(record).map((row) => (
-            <div key={row.name} className="flex items-center justify-between rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-sm">
+          {diagnosticRows(record).map((row, index) => (
+            <div key={`${row.name}-${index}`} className="flex items-center justify-between rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-sm">
               <span className="font-medium text-text-graphite">{toTitleCase(row.name)}</span>
               <StatusPill
                 label=""
