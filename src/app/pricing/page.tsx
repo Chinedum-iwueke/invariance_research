@@ -47,10 +47,10 @@ export default function PricingPage() {
                   ["Diagnostics depth", "Core checks", "Full test suite", "Custom mandate"],
                   ["Reporting", "Summary", "Detailed", "Committee-ready"],
                   ["Support", "Community", "Priority", "Dedicated analyst"],
-                ].map((row) => (
-                  <tr key={row[0]} className="border-t">
-                    {row.map((cell) => (
-                      <td key={cell} className="p-3 text-text-graphite">
+                ].map((row, rowIndex) => (
+                  <tr key={`${row[0]}-${rowIndex}`} className="border-t">
+                    {row.map((cell, cellIndex) => (
+                      <td key={`${row[0]}-cell-${cellIndex}-${cell}`} className="p-3 text-text-graphite">
                         {cell}
                       </td>
                     ))}

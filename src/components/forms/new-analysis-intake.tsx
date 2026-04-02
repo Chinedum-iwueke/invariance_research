@@ -275,8 +275,8 @@ export function NewAnalysisIntake() {
               <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
               {limitationList.length > 0 && (
                 <ul className="list-disc pl-5 text-xs">
-                  {limitationList.map((reason) => (
-                    <li key={reason}>{reason}</li>
+                  {limitationList.map((reason, index) => (
+                    <li key={`limitation-${index}-${reason.slice(0, 24)}`}>{reason}</li>
                   ))}
                 </ul>
               )}

@@ -29,8 +29,8 @@ export function VerdictCard({
       {confidence ? <p className="mt-3 text-xs font-medium uppercase tracking-wide text-text-graphite">Confidence: {confidence}</p> : null}
       {rationale?.length ? (
         <ul className="mt-3 space-y-1.5 text-sm text-text-neutral">
-          {rationale.slice(0, 4).map((item) => (
-            <li key={item}>• {item}</li>
+          {rationale.slice(0, 4).map((item, index) => (
+            <li key={`rationale-${index}-${item.slice(0, 24)}`}>• {item}</li>
           ))}
         </ul>
       ) : null}

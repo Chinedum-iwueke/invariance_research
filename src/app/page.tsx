@@ -79,8 +79,8 @@ export default function HomePage() {
               "Regime performance diagnostics",
               "Capital risk modeling",
               "Structured validation report",
-            ].map((item) => (
-              <Card key={item} className="p-card-md text-sm text-text-graphite">
+            ].map((item, index) => (
+              <Card key={`home-item-${index}-${item.slice(0, 24)}`} className="p-card-md text-sm text-text-graphite">
                 {item}
               </Card>
             ))}

@@ -63,7 +63,7 @@ function sectionList(items: string[] | undefined, emptyState: string) {
 
   return (
     <ul className="mt-1 space-y-1">
-      {items.map((item) => <li key={item}>• {item}</li>)}
+      {items.map((item, index) => <li key={`section-item-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
     </ul>
   );
 }
@@ -245,7 +245,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <WorkspaceCard title="What this page does not yet include" subtitle="Scope boundaries for this current run context">
         <ul className="space-y-1 text-sm text-text-neutral">
           {omittedDimensions.length
-            ? omittedDimensions.map((item) => <li key={item}>• {item}</li>)
+            ? omittedDimensions.map((item, index) => <li key={`omitted-${index}-${item.slice(0, 24)}`}>• {item}</li>)
             : <li>• This overview reflects the currently available diagnostics for this run.</li>}
         </ul>
       </WorkspaceCard>

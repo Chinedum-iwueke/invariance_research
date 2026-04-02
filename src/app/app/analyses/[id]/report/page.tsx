@@ -24,7 +24,7 @@ function BulletList({ items, empty }: { items: string[]; empty: string }) {
   if (!items.length) return <p className="text-sm text-text-neutral">{empty}</p>;
   return (
     <ul className="space-y-2 text-sm text-text-neutral">
-      {items.map((item) => <li key={item}>• {item}</li>)}
+      {items.map((item, index) => <li key={`bullet-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
     </ul>
   );
 }

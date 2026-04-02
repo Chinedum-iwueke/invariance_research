@@ -157,8 +157,8 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
             <p className="text-sm text-text-neutral">No Monte Carlo-specific warnings were emitted for this run.</p>
           ) : (
             <ul className="space-y-2 text-sm text-text-neutral">
-              {monteCarloWarnings.map((warning) => (
-                <li key={warning}>• {warning}</li>
+              {monteCarloWarnings.map((warning, index) => (
+                <li key={`warning-${index}-${warning.slice(0, 24)}`}>• {warning}</li>
               ))}
             </ul>
           )}
@@ -168,15 +168,15 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
         <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
           <div>
             <p className="font-medium text-text-graphite">Assumptions</p>
-            {assumptions.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No assumptions were explicitly emitted.</p> : <ul className="mt-1 space-y-1">{assumptions.map((item) => <li key={item}>• {item}</li>)}</ul>}
+            {assumptions.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No assumptions were explicitly emitted.</p> : <ul className="mt-1 space-y-1">{assumptions.map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
           </div>
           <div>
             <p className="font-medium text-text-graphite">Limitations</p>
-            {limitations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No additional limitations were emitted.</p> : <ul className="mt-1 space-y-1">{limitations.map((item) => <li key={item}>• {item}</li>)}</ul>}
+            {limitations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No additional limitations were emitted.</p> : <ul className="mt-1 space-y-1">{limitations.map((item, index) => <li key={`limitation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
           </div>
           <div>
             <p className="font-medium text-text-graphite">Recommendations</p>
-            {recommendations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No recommendations were emitted.</p> : <ul className="mt-1 space-y-1">{recommendations.map((item) => <li key={item}>• {item}</li>)}</ul>}
+            {recommendations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No recommendations were emitted.</p> : <ul className="mt-1 space-y-1">{recommendations.map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
           </div>
         </div>
       </WorkspaceCard>
