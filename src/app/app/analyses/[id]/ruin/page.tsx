@@ -4,6 +4,7 @@ import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { getRenderableSeries } from "@/lib/app/figure-rendering";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
@@ -167,6 +168,9 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
     ?? ruinFigures.find((item) => item.type === "line");
   const riskSensitivityFigure = ruinFigures.find((item) => hasFigureId(item, "risk_per_trade_sensitivity"));
   const lossStreakFigure = ruinFigures.find((item) => hasFigureId(item, "loss_streak_distribution"));
+  const curveRenderability = getRenderableSeries(curveFigure);
+  const riskSensitivityRenderability = getRenderableSeries(riskSensitivityFigure);
+  const lossStreakRenderability = getRenderableSeries(lossStreakFigure);
 
   const scenarios = Array.isArray(metadata.scenario_curves) ? metadata.scenario_curves : [];
   const hasStressedScenario = scenarios.some((entry) => typeof entry === "object" && entry && String((entry as Record<string, unknown>).name ?? "").toLowerCase().includes("stress"));
@@ -217,6 +221,20 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         </div>
       </WorkspaceCard>
 
+      <WorkspaceCard title="Ruin page render debug strip (temporary)" subtitle="Secondary-figure discovery and renderability diagnostics.">
+        <div className="space-y-2 text-xs text-text-neutral">
+          <p><span className="font-medium text-text-graphite">ruinFigures.length:</span> {ruinFigures.length}</p>
+          <p><span className="font-medium text-text-graphite">curveFigure:</span> id={curveFigure?.figure_id ?? "n/a"} · type={curveFigure?.type ?? "n/a"}</p>
+          <p><span className="font-medium text-text-graphite">riskSensitivityFigure:</span> present={riskSensitivityFigure ? "yes" : "no"} · id={riskSensitivityFigure?.figure_id ?? "n/a"} · type={riskSensitivityFigure?.type ?? "n/a"}</p>
+          <p><span className="font-medium text-text-graphite">lossStreakFigure:</span> present={lossStreakFigure ? "yes" : "no"} · id={lossStreakFigure?.figure_id ?? "n/a"} · type={lossStreakFigure?.type ?? "n/a"}</p>
+          <div className="mt-2 space-y-1 rounded border border-border-subtle bg-surface-muted/40 p-2">
+            <p><span className="font-medium text-text-graphite">DiagnosticFigure render check (curve):</span> renderable={curveRenderability.series.length > 0 ? "yes" : "no"} · rendererSupported={curveRenderability.rendererSupported ? "yes" : "no"} · series={curveRenderability.series.length} · rawSeries={curveFigure?.series?.length ?? 0} · rawGroups={curveFigure?.groups?.length ?? 0}</p>
+            <p><span className="font-medium text-text-graphite">DiagnosticFigure render check (risk sensitivity):</span> renderable={riskSensitivityRenderability.series.length > 0 ? "yes" : "no"} · rendererSupported={riskSensitivityRenderability.rendererSupported ? "yes" : "no"} · series={riskSensitivityRenderability.series.length} · rawSeries={riskSensitivityFigure?.series?.length ?? 0} · rawGroups={riskSensitivityFigure?.groups?.length ?? 0}</p>
+            <p><span className="font-medium text-text-graphite">DiagnosticFigure render check (loss streak):</span> renderable={lossStreakRenderability.series.length > 0 ? "yes" : "no"} · rendererSupported={lossStreakRenderability.rendererSupported ? "yes" : "no"} · series={lossStreakRenderability.series.length} · rawSeries={lossStreakFigure?.series?.length ?? 0} · rawGroups={lossStreakFigure?.groups?.length ?? 0}</p>
+          </div>
+        </div>
+      </WorkspaceCard>
+
       <WorkspaceCard
         title="Probability of Breaching Drawdown Thresholds"
         subtitle="Monte Carlo drawdown-threshold curve with capital-aware interpretation."
@@ -237,26 +255,38 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         )}
       </WorkspaceCard>
 
-      {(riskSensitivityFigure || lossStreakFigure) ? (
+      <WorkspaceCard title="Secondary survivability charts" subtitle="Presence and renderability are surfaced explicitly for both secondary figures.">
         <div className="grid gap-4 xl:grid-cols-2">
           {riskSensitivityFigure ? (
             <FigureCard
               title={riskSensitivityFigure.title || "Risk Per Trade Sensitivity"}
               subtitle={riskSensitivityFigure.subtitle || "How ruin probability rises as sizing risk increases"}
-              figure={<DiagnosticFigure figure={riskSensitivityFigure} height={340} />}
+              figure={riskSensitivityRenderability.series.length > 0
+                ? <DiagnosticFigure figure={riskSensitivityFigure} height={340} />
+                : <p className="text-sm text-text-neutral">Figure is present but could not be rendered by DiagnosticFigure (rendererSupported={riskSensitivityRenderability.rendererSupported ? "yes" : "no"}, series={riskSensitivityRenderability.series.length}, rawSeries={riskSensitivityFigure.series?.length ?? 0}, rawGroups={riskSensitivityFigure.groups?.length ?? 0}).</p>}
               note={riskSensitivityFigure.note}
             />
-          ) : null}
+          ) : (
+            <WorkspaceCard title="Risk Per Trade Sensitivity" subtitle="Secondary figure fallback">
+              <p className="text-sm text-text-neutral">Figure absent from ruin payload (risk_per_trade_sensitivity not found).</p>
+            </WorkspaceCard>
+          )}
           {lossStreakFigure ? (
             <FigureCard
               title={lossStreakFigure.title || "Loss Streak Distribution"}
               subtitle={lossStreakFigure.subtitle || "Distribution of losing-run length severity"}
-              figure={<DiagnosticFigure figure={lossStreakFigure} height={340} />}
+              figure={lossStreakRenderability.series.length > 0
+                ? <DiagnosticFigure figure={lossStreakFigure} height={340} />
+                : <p className="text-sm text-text-neutral">Figure is present but could not be rendered by DiagnosticFigure (rendererSupported={lossStreakRenderability.rendererSupported ? "yes" : "no"}, series={lossStreakRenderability.series.length}, rawSeries={lossStreakFigure.series?.length ?? 0}, rawGroups={lossStreakFigure.groups?.length ?? 0}).</p>}
               note={lossStreakFigure.note}
             />
-          ) : null}
+          ) : (
+            <WorkspaceCard title="Loss Streak Distribution" subtitle="Secondary figure fallback">
+              <p className="text-sm text-text-neutral">Figure absent from ruin payload (loss_streak_distribution not found).</p>
+            </WorkspaceCard>
+          )}
         </div>
-      ) : null}
+      </WorkspaceCard>
 
       <WorkspaceCard title="Streak Analytics" subtitle="Losing-streak burden remains primary for survivability and execution tolerance.">
         <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
