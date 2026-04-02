@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Download, ShieldAlert, ShieldCheck } from "lucide-react";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
@@ -11,50 +11,14 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
-import { buildReportViewModel } from "@/lib/app/report-view";
+import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
 import { metricsFromScoreBands } from "@/lib/app/analysis-ui";
+import type { FigurePayload } from "@/lib/contracts";
+import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
-
-function VerdictBanner({ headline, summary, statusLabel, posture }: { headline: string; summary: string; statusLabel: string; posture: "robust" | "moderate" | "fragile" }) {
-  const Icon = posture === "robust" ? ShieldCheck : posture === "moderate" ? BadgeCheck : ShieldAlert;
-
-  return (
-    <section
-      className={cn(
-        "rounded-md border px-6 py-5",
-        posture === "robust" && "border-chart-positive/30 bg-chart-positive/10",
-        posture === "moderate" && "border-brand/30 bg-brand/10",
-        posture === "fragile" && "border-chart-negative/30 bg-chart-negative/10",
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-graphite">Executive verdict</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-text-institutional">{headline}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-neutral">{summary}</p>
-        </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-text-institutional/15 bg-surface-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-institutional">
-          <Icon className="h-4 w-4" />
-          {statusLabel}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ConfidencePanel({ level, value, explanation }: { level: string; value?: string; explanation: string }) {
-  return (
-    <WorkspaceCard title="Confidence Level" subtitle="Trust weighting given artifact richness and diagnostic completeness">
-      <div className="space-y-2">
-        <p className="text-xl font-semibold tracking-tight text-text-institutional">{level}{value ? ` (${value})` : ""}</p>
-        <p className="text-sm leading-relaxed text-text-neutral">{explanation}</p>
-      </div>
-    </WorkspaceCard>
-  );
-}
 
 function BulletList({ items, empty }: { items: string[]; empty: string }) {
   if (!items.length) return <p className="text-sm text-text-neutral">{empty}</p>;
@@ -62,6 +26,25 @@ function BulletList({ items, empty }: { items: string[]; empty: string }) {
     <ul className="space-y-2 text-sm text-text-neutral">
       {items.map((item) => <li key={item}>• {item}</li>)}
     </ul>
+  );
+}
+
+function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: string; figure?: FigurePayload }) {
+  if (!figure) {
+    return (
+      <WorkspaceCard title={title} subtitle={subtitle}>
+        <p className="text-sm text-text-neutral">Figure unavailable for this run. Narrative and metrics remain included.</p>
+      </WorkspaceCard>
+    );
+  }
+
+  return (
+    <FigureCard
+      title={title}
+      subtitle={subtitle}
+      figure={<DiagnosticFigure figure={figure} height={420} />}
+      note={figure.note}
+    />
   );
 }
 
@@ -83,7 +66,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
 
   const view = buildReportViewModel(record);
+  const decisionMetrics = buildDecisionSnapshotMetrics(record);
+  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
+
   logAnalysisPageDebug({
     analysis_id: record.analysis_id,
     page: "report",
@@ -100,13 +86,30 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   });
 
   return (
-    <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, decision metrics, diagnostic evidence, and exportable reporting.">
-      <WorkspaceCard title="Report Header" subtitle="Institutional research artifact metadata">
-        <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
-          <p><span className="font-medium text-text-graphite">Strategy:</span> {record.strategy.strategy_name}</p>
-          <p><span className="font-medium text-text-graphite">Date:</span> {record.report.generated_at ?? record.updated_at}</p>
-          <p><span className="font-medium text-text-graphite">Scope:</span> {canViewFull ? "Full diagnostic suite" : "Limited report scope"}</p>
-          <p><span className="font-medium text-text-graphite">Asset:</span> {record.dataset.market ?? "N/A"}</p>
+    <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, survivability diagnostics, benchmark context, and exportable board-ready reporting.">
+      <WorkspaceCard title="Executive Summary" subtitle="Institutional validation memo — final deployment decision artifact">
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-graphite">Validation report</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-text-institutional">{record.strategy.strategy_name}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-neutral">{record.report.executive_summary}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a href="#report-export" className={buttonVariants({ variant: "secondary" })}><Download className="mr-2 h-4 w-4" />Download PDF</a>
+              <Link href={`/api/analyses/${record.analysis_id}`} className={buttonVariants({ variant: "secondary" })}>Raw payload</Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-md border border-border/80 bg-surface-subtle p-4 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
+            <p><span className="font-medium text-text-graphite">Asset / Market:</span> {record.dataset.market ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Timeframe:</span> {record.strategy.timeframe ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Coverage:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count.toLocaleString()}</p>
+            <p className="md:col-span-2"><span className="font-medium text-text-graphite">Verdict:</span> {view.verdict.statusLabel} — {view.verdict.headline}</p>
+            <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
+            <p><span className="font-medium text-text-graphite">Scope:</span> {canViewFull ? "Full diagnostic suite" : "Limited report scope"}</p>
+          </div>
         </div>
       </WorkspaceCard>
 
@@ -118,87 +121,124 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         />
       ) : null}
 
-      <VerdictBanner
-        headline={view.verdict.headline}
-        summary={view.verdict.summary}
-        statusLabel={view.verdict.statusLabel}
-        posture={view.verdict.posture}
-      />
-
-      <div className="grid gap-5 2xl:grid-cols-[1.25fr_0.75fr]">
-        <WorkspaceCard title="Executive Summary" subtitle="Conclusive narrative for stakeholder decisioning">
-          <p className="text-sm leading-relaxed text-text-neutral">{record.report.executive_summary}</p>
-        </WorkspaceCard>
-        <ConfidencePanel level={view.confidence.label} value={view.confidence.value} explanation={view.confidence.explanation} />
-      </div>
-
-      <WorkspaceCard title="Key Metrics Snapshot" subtitle="Most decision-relevant risk and robustness metrics">
-        <MetricRow metrics={metricsFromScoreBands(view.keyMetrics)} cols={6} />
+      <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">
+        <MetricRow metrics={metricsFromScoreBands(decisionMetrics)} cols={6} />
       </WorkspaceCard>
 
-      <WorkspaceCard title="Diagnostic Evidence" subtitle="Curated figures supporting the verdict and deployment posture">
+      <WorkspaceCard title="Verdict & Deployment Readiness" subtitle="Decision framing for allocators and risk committees">
+        <div className={cn("rounded-md border px-5 py-4", view.deploymentGuidance.advisable ? "border-chart-positive/25 bg-chart-positive/10" : "border-chart-negative/25 bg-chart-negative/10")}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-xl font-semibold text-text-institutional">{view.verdict.statusLabel}: {view.verdict.headline}</h3>
+            <span className="inline-flex items-center gap-2 rounded-full border border-text-institutional/20 bg-surface-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-text-institutional">
+              {view.verdict.posture === "robust" ? <ShieldCheck className="h-4 w-4" /> : view.verdict.posture === "moderate" ? <BadgeCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+              {view.deploymentGuidance.advisoryLabel}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-text-neutral">{view.verdict.summary}</p>
+          <p className="mt-3 text-sm text-text-neutral"><span className="font-medium text-text-graphite">What this means:</span> {view.deploymentGuidance.summary}</p>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Top-line Performance & Benchmark" subtitle="Return profile, benchmark-relative context, and normalization basis">
         <div className="grid gap-4 2xl:grid-cols-2">
-          {view.charts.map((figure) => (
-            <FigureCard
-              key={figure.figure_id}
-              title={figure.title}
-              subtitle={figure.subtitle}
-              figure={<DiagnosticFigure figure={figure} />}
-              note={figure.note}
-            />
+          <SectionFigure title="Strategy top-line equity" subtitle="Primary outcome trajectory" figure={view.prioritizedFigures.topLine} />
+          <SectionFigure title="Benchmark comparison" subtitle="Strategy vs selected benchmark" figure={view.prioritizedFigures.benchmark ?? benchmark?.figure} />
+        </div>
+        {benchmark?.summary_metrics ? (
+          <div className="mt-4 grid gap-3 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-3">
+            <p><span className="font-medium text-text-graphite">Strategy Return:</span> {benchmark.summary_metrics.strategy_return ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Benchmark Return:</span> {benchmark.summary_metrics.benchmark_return ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Excess Return:</span> {benchmark.summary_metrics.excess_return_vs_benchmark ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Window:</span> {benchmark.metadata?.comparison_window_start ?? "N/A"} → {benchmark.metadata?.comparison_window_end ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Normalization:</span> {benchmark.metadata?.normalization_basis ?? benchmark.metadata?.alignment_basis ?? "N/A"}</p>
+            <p><span className="font-medium text-text-graphite">Benchmark Assumptions:</span> {benchmark.assumptions[0] ?? "Engine-native benchmark alignment"}</p>
+          </div>
+        ) : <p className="mt-3 text-sm text-text-neutral">Benchmark comparison was not available for this run; core strategy diagnostics are still included.</p>}
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Risk & Survivability" subtitle="Ruin profile, drawdown burden, and capital survivability implications">
+        <div className="grid gap-4 2xl:grid-cols-2">
+          <SectionFigure title="Ruin / survivability curve" subtitle="Capital stress and ruin sensitivity" figure={view.prioritizedFigures.survivability} />
+          <div className="space-y-3 rounded-md border border-border/80 bg-surface-subtle p-4">
+            <p className="text-sm font-semibold text-text-institutional">Capital survivability translation</p>
+            <BulletList items={record.diagnostics.ruin.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No ruin metrics emitted." />
+            <p className="text-sm text-text-neutral">Interpretation: {record.diagnostics.ruin.interpretation.summary}</p>
+          </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Distribution & Trade Behavior" subtitle="How the strategy earns, loses, and behaves across trade cohorts">
+        <div className="grid gap-4 2xl:grid-cols-3">
+          {view.prioritizedFigures.distribution.map((figure) => (
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle ?? "Distribution diagnostic"} figure={<DiagnosticFigure figure={figure} height={360} />} note={figure.note} />
           ))}
         </div>
-        {!view.charts.length ? <p className="mt-2 text-sm text-text-neutral">No curated figure payloads were emitted for this report run.</p> : null}
+        {!view.prioritizedFigures.distribution.length ? <p className="text-sm text-text-neutral">Distribution charts were unavailable for this run.</p> : null}
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <BulletList items={record.diagnostics.distribution.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No distribution metrics emitted." />
+          <p className="text-sm text-text-neutral">Payoff profile interpretation: {record.diagnostics.distribution.interpretation.summary}</p>
+        </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Diagnostics Summary" subtitle="Synthesis of supporting checks across modules">
-        <BulletList items={view.diagnosticsSummary} empty="No diagnostic summary entries were persisted for this run." />
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Methodology" subtitle="Execution and stress model assumptions shaping interpretation">
-        <BulletList items={view.methodology} empty="No methodology assumptions were emitted." />
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Limitations" subtitle="Known boundaries, missing dimensions, and uncertainty sources">
-        <BulletList items={view.limitations} empty="No explicit report limitations were emitted." />
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Deployment Guidance" subtitle="Commercial deployment posture and gating conditions">
-        <div className="space-y-4">
-          <div className={cn("rounded-md border px-4 py-3", view.deploymentGuidance.advisable ? "border-chart-positive/25 bg-chart-positive/10" : "border-chart-negative/25 bg-chart-negative/10")}>
-            <p className="text-sm font-semibold text-text-institutional">{view.deploymentGuidance.advisoryLabel}</p>
-            <p className="mt-1 text-sm text-text-neutral">{view.deploymentGuidance.summary}</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Appropriate usage</p>
-              <BulletList items={view.deploymentGuidance.suitableContexts} empty="No specific favorable context was emitted in this run." />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Conditions before deployment</p>
-              <BulletList items={view.deploymentGuidance.requiredConditions} empty="No explicit pre-deployment conditions were emitted." />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Deployment blockers</p>
-              <BulletList items={view.deploymentGuidance.blockers} empty="No hard blockers were explicitly emitted, but continue governance review." />
-            </div>
+      <WorkspaceCard title="Monte Carlo & Tail Risk" subtitle="Path dependence, sequence fragility, and drawdown envelope">
+        <div className="grid gap-4 2xl:grid-cols-2">
+          <SectionFigure title="Monte Carlo fan / tail profile" subtitle="Simulation path envelope" figure={view.prioritizedFigures.monteCarlo} />
+          <div className="space-y-2 rounded-md border border-border/80 bg-surface-subtle p-4">
+            <BulletList items={record.diagnostics.monte_carlo.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No Monte Carlo metrics emitted." />
+            <p className="text-sm text-text-neutral">Simulation interpretation: {record.diagnostics.monte_carlo.interpretation.summary}</p>
           </div>
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Final Recommendations" subtitle="Action-oriented recommendations carried from report payload">
+      <WorkspaceCard title="Execution Sensitivity" subtitle="Whether execution friction erodes or preserves the modeled edge">
+        <div className="grid gap-4 2xl:grid-cols-2">
+          <SectionFigure title="Execution expectancy decay" subtitle="Baseline vs stressed edge" figure={view.prioritizedFigures.execution} />
+          <div className="space-y-2 rounded-md border border-border/80 bg-surface-subtle p-4">
+            <BulletList items={record.diagnostics.execution.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No execution metrics emitted." />
+            <p className="text-sm text-text-neutral">Deterministic assumption disclosure: {record.diagnostics.execution.assumptions?.[0] ?? "Execution assumptions were not explicitly emitted."}</p>
+          </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Regime / Stability / Conditionality" subtitle="Edge concentration, generalization risk, and conditionality diagnostics">
+        <div className="grid gap-4 md:grid-cols-2">
+          <BulletList items={[
+            ...record.diagnostics.regimes.metrics.map((metric) => `${metric.label}: ${metric.value}`),
+            ...record.diagnostics.stability.metrics.map((metric) => `${metric.label}: ${metric.value}`),
+          ]} empty="Regime and stability metrics were not emitted for this run." />
+          <p className="text-sm text-text-neutral">{record.diagnostics.regimes.interpretation.summary} {record.diagnostics.stability.interpretation.summary}</p>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Warnings, Limitations, and Methodology Boundaries" subtitle="Explicit uncertainty and model boundary disclosure">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-graphite">Methodology assumptions</p>
+            <BulletList items={view.methodology} empty="No methodology assumptions were emitted." />
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-graphite">Limitations and warnings</p>
+            <BulletList items={[...view.limitations, ...record.summary.warnings.map((warning) => `${warning.title}: ${warning.message}`)]} empty="No explicit limitations were emitted." />
+          </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Recommended Actions" subtitle="Prioritized next steps for de-risking and deployment governance">
         <BulletList items={view.recommendations} empty="No recommendations were emitted." />
       </WorkspaceCard>
 
-      <WorkspaceCard title="Export & Share" subtitle="Client-ready PDF artifact and raw payload access">
-        <ReportExportActions analysisId={record.analysis_id} canExport={canExport} currentPlan={state?.account.plan_id} />
+      <WorkspaceCard title="Export & Share" subtitle="Client-ready PDF artifact and raw payload access" note="The report download continues even if an individual chart cannot be embedded.">
+        <div id="report-export">
+          <ReportExportActions analysisId={record.analysis_id} canExport={canExport} currentPlan={state?.account.plan_id} />
+        </div>
         <div className="mt-4 border-t pt-3">
           <p className="text-xs text-text-neutral">Polished PDF export is the primary client deliverable. Raw payload access remains available for audit transparency and downstream analyst workflows.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/contact" className={buttonVariants()}>
               Need an independent validation audit?
             </Link>
-            <span className="inline-flex items-center gap-1 text-xs text-text-neutral"><AlertTriangle className="h-3.5 w-3.5" /> Export links expire automatically based on retention policy.</span>
+            <span className="inline-flex items-center gap-1 text-xs text-text-neutral"><CalendarDays className="h-3.5 w-3.5" /> Export links expire automatically based on retention policy.</span>
+            <span className="inline-flex items-center gap-1 text-xs text-text-neutral"><AlertTriangle className="h-3.5 w-3.5" /> Download retry is safe; failed exports surface explicit error messages.</span>
           </div>
         </div>
       </WorkspaceCard>
