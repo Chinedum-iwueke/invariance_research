@@ -462,10 +462,30 @@ function mapFigure(payload: unknown, fallback: { title: string; type: FigurePayl
   };
 }
 
+function isFigureLike(payload: unknown): boolean {
+  const figure = asRecord(payload);
+  if (!figure) return false;
+  return [
+    "series",
+    "points",
+    "bins",
+    "groups",
+    "x",
+    "figure_id",
+    "figureId",
+    "id",
+    "type",
+    "title",
+  ].some((key) => key in figure);
+}
+
 function mapFigureList(payload: unknown, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload[] {
   if (Array.isArray(payload)) {
-    return payload.map((entry) => mapFigure(entry, fallback));
+    const figureLikeEntries = payload.filter((entry) => isFigureLike(entry));
+    if (!figureLikeEntries.length) return [];
+    return figureLikeEntries.map((entry) => mapFigure(entry, fallback));
   }
+  if (!isFigureLike(payload)) return [];
   const single = mapFigure(payload, fallback);
   return [single];
 }
