@@ -577,6 +577,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const canonicalReport = asRecord(engine.report) ?? reportRaw ?? topLevelReportAlias;
   const reportConfidence = extractReportConfidence(canonicalReport, summaryRaw);
   const derivedStats = buildTradeDerivedStats(parsedArtifact);
+  const engineContextRecord = asRecord(engineContext as unknown as UnknownRecord);
 
   const warnings: WarningItem[] = [
     ...eligibility.limitation_reasons.map((reason, idx) => ({
@@ -637,6 +638,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinSummaryMetricsRaw = pickFirstRecord(ruinRaw, ["summary_metrics", "summaryMetrics"]);
   const ruinStreakStatsRaw = pickFirstRecord(ruinRaw, ["streak_statistics", "streakStats"]);
   const ruinExecutionStressRaw = pickFirstRecord(ruinRaw, ["execution_stress", "executionStress", "stress_summary"]);
+  const ruinCapitalSurvivabilityRaw = pickFirstRecord(ruinRaw, ["capital_survivability", "capital_survivability_fields"]);
 
   const ruinProbabilityOfRuin = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["probability_of_ruin", "probability_of_ruin_pct"]))
     ?? ruinProbability;
@@ -667,6 +669,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ?? getNumber(ruinStreakStatsRaw, ["largest_single_loss_r"]);
   const ruinWorstDrawdownPct = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["worst_drawdown_pct", "max_drawdown_pct"]))
     ?? mcWorst;
+  const ruinAccountSize = getNumber(ruinRaw, ["account_size"])
+    ?? getNumber(ruinSummaryMetricsRaw, ["account_size"])
+    ?? getNumber(engineContextRecord, ["account_size", "initial_capital", "starting_capital"]);
+  const ruinRiskPerTradePct = normalizePercentValue(getNumber(ruinRaw, ["risk_per_trade_pct", "risk_per_trade"]))
+    ?? normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["risk_per_trade_pct", "risk_per_trade"]))
+    ?? normalizePercentValue(getNumber(engineContextRecord, ["risk_per_trade_pct", "risk_per_trade"]));
   const executionSummaryMetrics = pickFirstRecord(executionRaw, ["summary_metrics", "summaryMetrics"]);
   const baselineExpectancyValue = getNumber(executionSummaryMetrics, ["baseline_expectancy", "baselineExpectancy"])
     ?? getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
@@ -764,8 +772,11 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       ...(envelopeByDiagnostic.ruin.metadata ?? {}),
       summary_metrics: ruinSummaryMetricsRaw,
       streak_statistics: ruinStreakStatsRaw,
+      capital_survivability: ruinCapitalSurvivabilityRaw,
       execution_stress_summary: ruinExecutionStressRaw,
       scenario_curves: scenarioCurves.length ? scenarioCurves : undefined,
+      account_size: ruinAccountSize,
+      risk_per_trade_pct: ruinRiskPerTradePct,
       probability_of_ruin: ruinProbabilityOfRuin,
       survival_probability: ruinSurvivalProbability,
       expected_stress_drawdown: ruinExpectedStressDrawdown,
@@ -798,6 +809,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         ruinRaw?.drawdown_threshold_probabilities
         ?? ruinRaw?.drawdown_threshold_probability_data
         ?? ruinRaw?.threshold_probabilities,
+      ruin_probability_curve: ruinRaw?.ruin_probability_curve,
       risk_per_trade_sensitivity: ruinRaw?.risk_per_trade_sensitivity,
       loss_streak_distribution: ruinRaw?.loss_streak_distribution ?? ruinStreakStatsRaw?.loss_streak_distribution,
       interpretation: getString(ruinRaw, ["interpretation", "narrative", "summary"]),
@@ -1432,6 +1444,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           { name: "Artifact Richness", value: parsedArtifact.richness },
           { name: "Trade Count", value: `${parsedArtifact.trades.length}` },
         ],
+        figures: envelopeByDiagnostic.ruin?.figures ?? [],
         figure: mapFigure(
           pickFigureById(envelopeByDiagnostic.ruin?.figures, "ruin_probability_curve")
           ?? envelopeByDiagnostic.ruin?.figures?.[0]

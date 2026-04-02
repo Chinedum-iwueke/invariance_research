@@ -110,10 +110,14 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const summaryMetrics = (metadata.summary_metrics ?? {}) as Record<string, unknown>;
   const streakStats = (metadata.streak_statistics ?? {}) as Record<string, unknown>;
   const executionStressSummary = (metadata.execution_stress_summary ?? {}) as Record<string, unknown>;
+  const ruinFigures = ruin.figures?.length ? ruin.figures : (ruinEnvelope?.figures ?? []);
 
   const accountSize = parseCurrency(readAssumptionValue(assumptions, ["account_size", "account size", "starting capital", "initial capital"]) ?? metadata.account_size);
   const riskPerTradePct = parsePct(readAssumptionValue(assumptions, ["risk_per_trade_pct", "risk per trade", "risk_per_trade"]) ?? metadata.risk_per_trade_pct);
-  const riskAmountPerTrade = parseCurrency(metadata.risk_amount_per_trade ?? summaryMetrics.risk_amount_per_trade);
+  const computedRiskAmountPerTrade = accountSize !== undefined && riskPerTradePct !== undefined
+    ? accountSize * (riskPerTradePct / 100)
+    : undefined;
+  const riskAmountPerTrade = computedRiskAmountPerTrade ?? parseCurrency(metadata.risk_amount_per_trade ?? summaryMetrics.risk_amount_per_trade);
 
   const probabilityOfRuin = parsePct(metadata.probability_of_ruin)
     ?? parsePct(summaryMetrics.probability_of_ruin)
@@ -131,11 +135,11 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const longestLosingStreakPnl = parseCurrency(metadata.longest_losing_streak_pnl ?? summaryMetrics.longest_losing_streak_pnl ?? streakStats.longest_losing_streak_pnl);
   const longestLosingStreakR = asNumber(metadata.longest_losing_streak_r ?? summaryMetrics.longest_losing_streak_r ?? streakStats.longest_losing_streak_r);
 
-  const curveFigure = ruinEnvelope?.figures.find((item) => item.figure_id === "ruin_probability_curve")
+  const curveFigure = ruinFigures.find((item) => item.figure_id === "ruin_probability_curve")
     ?? ruin.figure
-    ?? ruinEnvelope?.figures[0];
-  const riskSensitivityFigure = ruinEnvelope?.figures.find((item) => item.figure_id === "risk_per_trade_sensitivity");
-  const lossStreakFigure = ruinEnvelope?.figures.find((item) => item.figure_id === "loss_streak_distribution");
+    ?? ruinFigures[0];
+  const riskSensitivityFigure = ruinFigures.find((item) => item.figure_id === "risk_per_trade_sensitivity");
+  const lossStreakFigure = ruinFigures.find((item) => item.figure_id === "loss_streak_distribution");
 
   const scenarios = Array.isArray(metadata.scenario_curves) ? metadata.scenario_curves : [];
   const hasStressedScenario = scenarios.some((entry) => typeof entry === "object" && entry && String((entry as Record<string, unknown>).name ?? "").toLowerCase().includes("stress"));
