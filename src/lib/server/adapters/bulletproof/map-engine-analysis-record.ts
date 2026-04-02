@@ -470,6 +470,10 @@ function mapFigureList(payload: unknown, fallback: { title: string; type: Figure
   return [single];
 }
 
+function mapFigureListWithForcedPrimaryId(payload: unknown, figureId: string, fallback: { title: string; type: FigurePayload["type"]; note: string }): FigurePayload[] {
+  return mapFigureList(payload, fallback).map((figure, index) => (index === 0 ? { ...figure, figure_id: figureId } : figure));
+}
+
 function uniqueFigureList(figures: FigurePayload[]): FigurePayload[] {
   const seen = new Set<string>();
   return figures.filter((figure) => {
@@ -672,9 +676,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinAccountSize = getNumber(ruinRaw, ["account_size"])
     ?? getNumber(ruinSummaryMetricsRaw, ["account_size"])
     ?? getNumber(engineContextRecord, ["account_size", "initial_capital", "starting_capital"]);
-  const ruinRiskPerTradePct = normalizePercentValue(getNumber(ruinRaw, ["risk_per_trade_pct", "risk_per_trade"]))
-    ?? normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["risk_per_trade_pct", "risk_per_trade"]))
-    ?? normalizePercentValue(getNumber(engineContextRecord, ["risk_per_trade_pct", "risk_per_trade"]));
+  const ruinRiskPerTradePct = getNumber(ruinRaw, ["risk_per_trade_pct", "risk_per_trade"])
+    ?? getNumber(ruinSummaryMetricsRaw, ["risk_per_trade_pct", "risk_per_trade"])
+    ?? getNumber(engineContextRecord, ["risk_per_trade_pct", "risk_per_trade"]);
   const executionSummaryMetrics = pickFirstRecord(executionRaw, ["summary_metrics", "summaryMetrics"]);
   const baselineExpectancyValue = getNumber(executionSummaryMetrics, ["baseline_expectancy", "baselineExpectancy"])
     ?? getNumber(executionRaw, ["baseline_expectancy", "baselineExpectancy"]);
@@ -740,10 +744,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   if (envelopeByDiagnostic.ruin) {
     const emittedRuinFigures = uniqueFigureList([
       ...(envelopeByDiagnostic.ruin.figures ?? []),
-      ...mapFigureList(ruinRaw?.ruin_probability_curve, { title: "Ruin Probability by Drawdown Threshold", type: "line", note: "Probability of breaching drawdown thresholds from Monte Carlo paths." }),
-      ...mapFigureList(ruinRaw?.risk_per_trade_sensitivity, { title: "Risk-per-Trade Sensitivity", type: "line", note: "Ruin response to position sizing risk assumptions." }),
-      ...mapFigureList(ruinRaw?.loss_streak_distribution, { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted ruin/streak payload." }),
-      ...mapFigureList(ruinStreakStatsRaw?.loss_streak_distribution, { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted streak statistics." }),
+      ...mapFigureListWithForcedPrimaryId(ruinRaw?.ruin_probability_curve, "ruin_probability_curve", { title: "Ruin Probability by Drawdown Threshold", type: "line", note: "Probability of breaching drawdown thresholds from Monte Carlo paths." }),
+      ...mapFigureListWithForcedPrimaryId(ruinRaw?.risk_per_trade_sensitivity, "risk_per_trade_sensitivity", { title: "Risk-per-Trade Sensitivity", type: "line", note: "Ruin response to position sizing risk assumptions." }),
+      ...mapFigureListWithForcedPrimaryId(ruinRaw?.loss_streak_distribution, "loss_streak_distribution", { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted ruin/streak payload." }),
+      ...mapFigureListWithForcedPrimaryId(ruinStreakStatsRaw?.loss_streak_distribution, "loss_streak_distribution", { title: "Loss Streak Distribution", type: "histogram", note: "Distribution of losing streak lengths from emitted streak statistics." }),
       ...mapFigureList(ruinRaw?.ruin_sensitivity_figure, { title: "Ruin Sensitivity", type: "line", note: "Engine-emitted ruin sensitivity figure." }),
     ]);
 

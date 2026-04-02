@@ -28,12 +28,19 @@ function asNumber(value: unknown): number | undefined {
   return value;
 }
 
-function parsePct(value: unknown): number | undefined {
+function parseFractionPercent(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return Math.abs(value <= 1 ? value * 100 : value);
   if (typeof value !== "string") return undefined;
   const parsed = Number(value.replace(/[%,$]/g, "").trim());
   if (!Number.isFinite(parsed)) return undefined;
   return Math.abs(parsed <= 1 ? parsed * 100 : parsed);
+}
+
+function parsePercentUnits(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.abs(value);
+  if (typeof value !== "string") return undefined;
+  const parsed = Number(value.replace(/[%,$]/g, "").trim());
+  return Number.isFinite(parsed) ? Math.abs(parsed) : undefined;
 }
 
 function parseCurrency(value: unknown): number | undefined {
@@ -60,7 +67,13 @@ function readMetricValue(metrics: Array<{ label: string; value: string; numeric_
   const aliasSet = new Set(aliases.map((item) => normalizeToken(item)));
   const metric = metrics.find((entry) => aliasSet.has(normalizeToken(entry.label)));
   if (!metric) return undefined;
-  return metric.numeric_value ?? parseCurrency(metric.value) ?? parsePct(metric.value);
+  return metric.numeric_value ?? parseCurrency(metric.value) ?? parseFractionPercent(metric.value);
+}
+
+function hasFigureId(figure: { figure_id?: string; id?: string }, targetId: string) {
+  const normalizedTarget = normalizeToken(targetId);
+  const figureId = figure.figure_id ?? figure.id;
+  return typeof figureId === "string" && normalizeToken(figureId) === normalizedTarget;
 }
 
 function topCard(title: string, value: string, subtitle: string) {
@@ -113,19 +126,19 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const ruinFigures = ruin.figures?.length ? ruin.figures : (ruinEnvelope?.figures ?? []);
 
   const accountSize = parseCurrency(readAssumptionValue(assumptions, ["account_size", "account size", "starting capital", "initial capital"]) ?? metadata.account_size);
-  const riskPerTradePct = parsePct(readAssumptionValue(assumptions, ["risk_per_trade_pct", "risk per trade", "risk_per_trade"]) ?? metadata.risk_per_trade_pct);
+  const riskPerTradePct = parsePercentUnits(readAssumptionValue(assumptions, ["risk_per_trade_pct", "risk per trade", "risk_per_trade"]) ?? metadata.risk_per_trade_pct);
   const computedRiskAmountPerTrade = accountSize !== undefined && riskPerTradePct !== undefined
     ? accountSize * (riskPerTradePct / 100)
     : undefined;
   const riskAmountPerTrade = computedRiskAmountPerTrade ?? parseCurrency(metadata.risk_amount_per_trade ?? summaryMetrics.risk_amount_per_trade);
 
-  const probabilityOfRuin = parsePct(metadata.probability_of_ruin)
-    ?? parsePct(summaryMetrics.probability_of_ruin)
+  const probabilityOfRuin = parseFractionPercent(metadata.probability_of_ruin)
+    ?? parseFractionPercent(summaryMetrics.probability_of_ruin)
     ?? readMetricValue(ruinEnvelope?.summary_metrics ?? [], ["probability of ruin", "risk-of-ruin probability"]);
-  const worstDrawdownPct = parsePct(metadata.worst_drawdown_pct) ?? parsePct(summaryMetrics.worst_drawdown_pct);
-  const p95DrawdownPct = parsePct(metadata.drawdown_95_pct ?? metadata.p95_drawdown_pct);
+  const worstDrawdownPct = parsePercentUnits(metadata.worst_drawdown_pct) ?? parsePercentUnits(summaryMetrics.worst_drawdown_pct);
+  const p95DrawdownPct = parsePercentUnits(metadata.drawdown_95_pct ?? metadata.p95_drawdown_pct);
   const minimumSurvivableCapital = parseCurrency(metadata.minimum_survivable_capital ?? summaryMetrics.minimum_survivable_capital);
-  const maxTolerableRiskPerTrade = parsePct(metadata.max_tolerable_risk_per_trade ?? summaryMetrics.max_tolerable_risk_per_trade);
+  const maxTolerableRiskPerTrade = parseFractionPercent(metadata.max_tolerable_risk_per_trade ?? summaryMetrics.max_tolerable_risk_per_trade);
   const maxConsecutiveLosses = asNumber(metadata.max_consecutive_losses ?? summaryMetrics.max_consecutive_losses ?? streakStats.max_consecutive_losses);
   const maxConsecutiveWins = asNumber(metadata.max_consecutive_wins ?? summaryMetrics.max_consecutive_wins ?? streakStats.max_consecutive_wins);
   const avgLosingStreak = asNumber(metadata.average_losing_streak ?? summaryMetrics.average_losing_streak ?? streakStats.average_losing_streak);
@@ -135,18 +148,18 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const longestLosingStreakPnl = parseCurrency(metadata.longest_losing_streak_pnl ?? summaryMetrics.longest_losing_streak_pnl ?? streakStats.longest_losing_streak_pnl);
   const longestLosingStreakR = asNumber(metadata.longest_losing_streak_r ?? summaryMetrics.longest_losing_streak_r ?? streakStats.longest_losing_streak_r);
 
-  const curveFigure = ruinFigures.find((item) => item.figure_id === "ruin_probability_curve")
+  const curveFigure = ruinFigures.find((item) => hasFigureId(item, "ruin_probability_curve"))
     ?? ruin.figure
     ?? ruinFigures[0];
-  const riskSensitivityFigure = ruinFigures.find((item) => item.figure_id === "risk_per_trade_sensitivity");
-  const lossStreakFigure = ruinFigures.find((item) => item.figure_id === "loss_streak_distribution");
+  const riskSensitivityFigure = ruinFigures.find((item) => hasFigureId(item, "risk_per_trade_sensitivity"));
+  const lossStreakFigure = ruinFigures.find((item) => hasFigureId(item, "loss_streak_distribution"));
 
   const scenarios = Array.isArray(metadata.scenario_curves) ? metadata.scenario_curves : [];
   const hasStressedScenario = scenarios.some((entry) => typeof entry === "object" && entry && String((entry as Record<string, unknown>).name ?? "").toLowerCase().includes("stress"));
 
   const capitalHitWorstStreak = accountSize !== undefined && longestLosingStreakPnl !== undefined ? accountSize + longestLosingStreakPnl : undefined;
-  const capitalAfterP95 = accountSize !== undefined && p95DrawdownPct !== undefined ? accountSize * (1 - p95DrawdownPct / 100) : undefined;
-  const capitalAfterWorstSim = accountSize !== undefined && worstDrawdownPct !== undefined ? accountSize * (1 - worstDrawdownPct / 100) : undefined;
+  const capitalAfterP95 = accountSize !== undefined && p95DrawdownPct !== undefined ? accountSize * (1 - Math.abs(p95DrawdownPct) / 100) : undefined;
+  const capitalAfterWorstSim = accountSize !== undefined && worstDrawdownPct !== undefined ? accountSize * (1 - Math.abs(worstDrawdownPct) / 100) : undefined;
 
   const topCards = [
     topCard("Probability of Ruin", fmtPct(probabilityOfRuin), "Probability of crossing the ruin boundary."),
