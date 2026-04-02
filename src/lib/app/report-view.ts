@@ -2,6 +2,7 @@ import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
 import { isFigureRenderable } from "@/lib/app/figure-rendering";
 import { adaptFigureToECharts } from "@/lib/charts/adapters";
 import { selectExecutionTopMetrics, selectMonteCarloTopMetrics, selectOverviewTopMetrics, selectRuinTopMetrics } from "@/lib/app/analysis-ui";
+import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 
 export type VerdictPosture = "robust" | "moderate" | "fragile";
 
@@ -38,6 +39,15 @@ export interface ReportViewModel {
   recommendations: string[];
   deploymentGuidance: DeploymentGuidanceModel;
   charts: FigurePayload[];
+  prioritizedFigures: {
+    topLine?: FigurePayload;
+    benchmark?: FigurePayload;
+    survivability?: FigurePayload;
+    monteCarlo?: FigurePayload;
+    execution?: FigurePayload;
+    distribution: FigurePayload[];
+    streakRisk?: FigurePayload;
+  };
 }
 
 function normalize(value: string): string {
@@ -252,8 +262,62 @@ function deriveCuratedCharts(record: AnalysisRecord): FigurePayload[] {
   return curated;
 }
 
+function pickFigureByKeywords(figures: FigurePayload[], keywords: string[]): FigurePayload | undefined {
+  const normalizedKeywords = keywords.map((keyword) => normalize(keyword));
+  return figures.find((figure) => {
+    const haystack = normalize(`${figure.figure_id} ${figure.title} ${figure.subtitle ?? ""} ${figure.note ?? ""}`);
+    return normalizedKeywords.some((keyword) => haystack.includes(keyword));
+  });
+}
+
+function pickDistributionFigures(figures: FigurePayload[]): FigurePayload[] {
+  const selected = figures.filter((figure) => {
+    const haystack = normalize(`${figure.figure_id} ${figure.title} ${figure.subtitle ?? ""}`);
+    return ["histogram", "distribution", "mfe", "mae", "duration", "r-multiple", "r multiple", "streak", "scatter"].some((keyword) => haystack.includes(keyword));
+  });
+  return selected.slice(0, 3);
+}
+
+function derivePrioritizedFigures(record: AnalysisRecord, curatedCharts: FigurePayload[]) {
+  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison)?.figure
+    ?? pickFigureByKeywords(curatedCharts, ["benchmark", "excess return", "strategy vs benchmark"]);
+  const topLine = pickFigureByKeywords(curatedCharts, ["equity", "performance curve", "cumulative return", "overview"])
+    ?? record.diagnostics.overview.figure;
+  const survivability = pickFigureByKeywords(curatedCharts, ["ruin", "survivability", "capital stress", "drawdown"])
+    ?? record.diagnostics.ruin.figure;
+  const monteCarlo = pickFigureByKeywords(curatedCharts, ["monte carlo", "fan", "drawdown histogram", "simulation"])
+    ?? record.diagnostics.monte_carlo.figure;
+  const execution = pickFigureByKeywords(curatedCharts, ["execution", "expectancy decay", "friction", "slippage"])
+    ?? record.diagnostics.execution.figure;
+  const distribution = pickDistributionFigures(curatedCharts.length ? curatedCharts : record.diagnostics.distribution.figures);
+  const streakRisk = pickFigureByKeywords(curatedCharts, ["streak", "consecutive losses", "losing streak"]);
+
+  return { topLine, benchmark, survivability, monteCarlo, execution, distribution, streakRisk };
+}
+
+export function buildDecisionSnapshotMetrics(record: AnalysisRecord): ScoreBand[] {
+  const pool = [
+    ...selectOverviewTopMetrics(record.diagnostics.overview.metrics, 6),
+    ...selectRuinTopMetrics(record.diagnostics.ruin.metrics, 3),
+    ...selectExecutionTopMetrics(record.diagnostics.execution.metrics, 3),
+    ...selectMonteCarloTopMetrics(record.diagnostics.monte_carlo.metrics, 3),
+  ];
+
+  const seen = new Set<string>();
+  const selected: ScoreBand[] = [];
+  for (const metric of pool) {
+    const key = normalize(metric.label);
+    if (seen.has(key) || isUnavailable(metric.value)) continue;
+    seen.add(key);
+    selected.push(metric);
+    if (selected.length >= 8) break;
+  }
+  return selected;
+}
+
 export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
   const verdict = deriveReportVerdict(record);
+  const curatedCharts = deriveCuratedCharts(record);
   return {
     verdict,
     confidence: deriveConfidenceModel(record),
@@ -263,6 +327,7 @@ export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
     limitations: uniqueRows(record.report.limitations, 8),
     recommendations: uniqueRows(record.report.recommendations, 8),
     deploymentGuidance: deriveDeploymentGuidance(record, verdict),
-    charts: deriveCuratedCharts(record),
+    charts: curatedCharts,
+    prioritizedFigures: derivePrioritizedFigures(record, curatedCharts),
   };
 }

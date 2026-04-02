@@ -1,5 +1,6 @@
 import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
-import { buildReportViewModel } from "@/lib/app/report-view";
+import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
+import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import type { ExportFormat } from "@/lib/server/exports/models";
 
 export function renderExport(record: AnalysisRecord, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
@@ -8,29 +9,32 @@ export function renderExport(record: AnalysisRecord, format: ExportFormat): { by
     return { bytes: new Uint8Array(Buffer.from(json, "utf-8")), content_type: "application/json", file_name: `${record.analysis_id}.json` };
   }
 
+  const report = buildReportViewModel(record);
+
   if (format === "pdf") {
-    const report = buildReportViewModel(record);
     const pdf = buildInstitutionalPdf(record, report);
     return { bytes: pdf, content_type: "application/pdf", file_name: `${record.analysis_id}-validation-report.pdf` };
   }
 
-  const report = buildReportViewModel(record);
+  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
   const md = [
     `# Invariance Research Validation Report — ${record.strategy.strategy_name}`,
     `Generated: ${record.report.generated_at ?? new Date().toISOString()}`,
     "",
-    `## Executive Verdict (${report.verdict.statusLabel})`,
-    report.verdict.headline,
+    "## Executive Summary",
+    record.report.executive_summary,
+    "",
+    "## Decision Snapshot",
+    ...buildDecisionSnapshotMetrics(record).map((metric) => `- ${metric.label}: ${metric.value}`),
+    "",
+    "## Verdict",
+    `${report.verdict.statusLabel}: ${report.verdict.headline}`,
     report.verdict.summary,
     "",
-    `## Confidence: ${report.confidence.label}${report.confidence.value ? ` (${report.confidence.value})` : ""}`,
-    report.confidence.explanation,
-    "",
-    "## Key Metrics Snapshot",
-    ...report.keyMetrics.map((metric) => `- ${metric.label}: ${metric.value}`),
-    "",
-    "## Diagnostics Summary",
-    ...report.diagnosticsSummary.map((item) => `- ${item}`),
+    "## Benchmark",
+    benchmark?.available
+      ? `Strategy return: ${benchmark.summary_metrics?.strategy_return ?? "N/A"} | Benchmark return: ${benchmark.summary_metrics?.benchmark_return ?? "N/A"} | Excess return: ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}`
+      : `Unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}`,
   ].join("\n");
 
   return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}.md` };
@@ -50,12 +54,13 @@ interface PdfPage {
 
 interface WrappedLine {
   text: string;
-  bold?: boolean;
 }
 
 const PAGE = { width: 612, height: 792, margin: 44 };
 
 function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>): Uint8Array {
+  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
+  const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const pages: PdfPage[] = [{ ops: [], charts: [] }];
   let current = pages[0];
   let y = PAGE.height - PAGE.margin;
@@ -71,76 +76,75 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   };
 
   const write = (text: string, opts?: { size?: number; leading?: number; bold?: boolean }) => {
+    const safeText = String(text ?? "").trim();
+    if (!safeText) return;
     const size = opts?.size ?? 10;
     const leading = opts?.leading ?? Math.max(12, size + 2);
     ensureRoom(leading + 4);
-    current.ops.push({ text: opts?.bold ? `**${text}**` : text, x: PAGE.margin, y, size });
+    current.ops.push({ text: opts?.bold ? `**${safeText}**` : safeText, x: PAGE.margin, y, size });
     y -= leading;
   };
 
   const writeBlock = (title: string, lines: WrappedLine[], options?: { gapAfter?: number }) => {
     write(title, { size: 13, leading: 18, bold: true });
+    if (!lines.length) {
+      write("No data emitted for this section.", { size: 10, leading: 14 });
+      y -= options?.gapAfter ?? 8;
+      return;
+    }
     for (const line of lines) {
-      for (const wrapped of wrap(line.text, 92)) {
-        write(`${line.bold ? "• " : ""}${wrapped}`, { size: 10, leading: 14 });
+      for (const wrapped of wrap(line.text, 94)) {
+        write(`• ${wrapped}`, { size: 10, leading: 14 });
       }
     }
     y -= options?.gapAfter ?? 8;
+  };
+
+  const writeFigure = (title: string, figure?: FigurePayload) => {
+    if (!figure) {
+      write(`${title}: figure unavailable (text interpretation retained).`, { size: 9, leading: 13 });
+      return;
+    }
+
+    ensureRoom(180);
+    write(title, { size: 12, leading: 16, bold: true });
+    current.charts.push({ figure, x: PAGE.margin, y: y - 8, width: 520, height: 130 });
+    y -= 150;
   };
 
   drawPageHeader(current, record);
   y -= 36;
 
   write("Validation Report", { size: 19, leading: 24, bold: true });
-  write(`Executive Verdict: ${report.verdict.statusLabel}`, { size: 11, leading: 16 });
-  write(report.verdict.headline, { size: 14, leading: 18, bold: true });
-  wrap(report.verdict.summary, 90).forEach((line) => write(line, { size: 10, leading: 14 }));
-  y -= 6;
-
-  write(`Confidence Level: ${report.confidence.label}${report.confidence.value ? ` (${report.confidence.value})` : ""}`, { size: 11, leading: 16, bold: true });
-  wrap(report.confidence.explanation, 90).forEach((line) => write(line, { size: 10, leading: 14 }));
-  y -= 8;
+  write(`Strategy: ${record.strategy.strategy_name}`, { size: 11, leading: 16 });
+  write(`Coverage: ${record.dataset.start_date ?? "N/A"} to ${record.dataset.end_date ?? "N/A"} | Trades: ${record.dataset.trade_count}`, { size: 10, leading: 14 });
+  write(`Verdict: ${report.verdict.statusLabel} — ${report.verdict.headline}`, { size: 11, leading: 16, bold: true });
+  wrap(report.verdict.summary, 95).forEach((line) => write(line, { size: 10, leading: 14 }));
+  y -= 4;
 
   writeBlock("Executive Summary", [{ text: record.report.executive_summary }]);
+  writeBlock("Decision Snapshot Metrics", decisionMetrics.map((metric: ScoreBand) => ({ text: `${metric.label}: ${metric.value}` })));
 
-  writeBlock(
-    "Key Metrics Snapshot",
-    report.keyMetrics.map((metric: ScoreBand) => ({ text: `${metric.label}: ${metric.value}` })),
-  );
-
-  writeBlock("Diagnostics Summary", report.diagnosticsSummary.map((line) => ({ text: line })));
-  writeBlock("Methodology", report.methodology.map((line) => ({ text: line })));
-  writeBlock("Limitations", (report.limitations.length ? report.limitations : ["No explicit report limitations were emitted."]).map((line) => ({ text: line })));
-
-  writeBlock("Deployment Guidance", [
-    { text: `${report.deploymentGuidance.advisoryLabel}: ${report.deploymentGuidance.summary}` },
-    ...report.deploymentGuidance.suitableContexts.map((item) => ({ text: `Appropriate usage — ${item}` })),
-    ...report.deploymentGuidance.requiredConditions.map((item) => ({ text: `Required condition — ${item}` })),
-    ...report.deploymentGuidance.blockers.map((item) => ({ text: `Blocker — ${item}` })),
+  writeBlock("Top-line Performance & Benchmark", [
+    { text: benchmark?.available ? `Strategy return ${benchmark.summary_metrics?.strategy_return ?? "N/A"}, benchmark return ${benchmark.summary_metrics?.benchmark_return ?? "N/A"}, excess return ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}.` : `Benchmark comparison unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}.` },
+    { text: `Comparison window: ${benchmark?.metadata?.comparison_window_start ?? "N/A"} to ${benchmark?.metadata?.comparison_window_end ?? "N/A"}.` },
+    { text: `Normalization basis: ${benchmark?.metadata?.normalization_basis ?? benchmark?.metadata?.alignment_basis ?? "N/A"}.` },
   ]);
 
-  writeBlock("Final Recommendations", report.recommendations.map((line) => ({ text: line })));
+  writeBlock("Risk & Survivability", record.diagnostics.ruin.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Monte Carlo & Tail Risk", record.diagnostics.monte_carlo.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Execution Sensitivity", record.diagnostics.execution.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Distribution & Trade Behavior", record.diagnostics.distribution.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Key Limitations", (report.limitations.length ? report.limitations : ["No explicit report limitations were emitted."]).map((line) => ({ text: line })));
+  writeBlock("Recommendations", report.recommendations.map((line) => ({ text: line })));
 
-  if (report.charts.length) {
-    ensureRoom(180);
-    write("Selected Charts", { size: 13, leading: 18, bold: true });
-    let x = PAGE.margin;
-    const width = 250;
-    const height = 120;
-
-    report.charts.slice(0, 4).forEach((figure, index) => {
-      if (index > 0 && index % 2 === 0) {
-        y -= height + 34;
-        x = PAGE.margin;
-      }
-
-      ensureRoom(height + 30);
-      current.ops.push({ text: figure.title, x, y, size: 9 });
-      current.charts.push({ figure, x, y: y - 10, width, height });
-      x += width + 20;
-    });
-    y -= 160;
-  }
+  write("Selected Figures", { size: 13, leading: 18, bold: true });
+  writeFigure("Top-line Equity", report.prioritizedFigures.topLine);
+  writeFigure("Benchmark Comparison", report.prioritizedFigures.benchmark ?? benchmark?.figure);
+  writeFigure("Survivability / Ruin", report.prioritizedFigures.survivability);
+  writeFigure("Monte Carlo", report.prioritizedFigures.monteCarlo);
+  writeFigure("Execution Expectancy Decay", report.prioritizedFigures.execution);
+  report.prioritizedFigures.distribution.slice(0, 1).forEach((figure) => writeFigure(`Distribution: ${figure.title}`, figure));
 
   return compilePdf(pages);
 }
@@ -159,7 +163,7 @@ function compilePdf(pages: PdfPage[]): Uint8Array {
 
   objects[0] = "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj";
 
-  pages.forEach((page, idx) => {
+  pages.forEach((_, idx) => {
     const contentId = 6 + idx * 2;
     const pageId = 7 + idx * 2;
     contentObjectIds.push(contentId);
@@ -198,6 +202,31 @@ function compilePdf(pages: PdfPage[]): Uint8Array {
   return new Uint8Array(Buffer.from(pdf, "utf-8"));
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function normalizeSeriesPoints(figure: FigurePayload): Array<Array<{ x: number; y: number }>> {
+  const series = Array.isArray(figure.series) ? figure.series : [];
+  return series
+    .map((candidate) => {
+      if (!candidate || typeof candidate !== "object") return [];
+      const maybeSeries = candidate as { points?: unknown[] };
+      const points = Array.isArray(maybeSeries.points) ? maybeSeries.points : [];
+      return points
+        .map((point, idx) => {
+          if (!point || typeof point !== "object") return undefined;
+          const shaped = point as { x?: unknown; y?: unknown };
+          const xValue = isFiniteNumber(shaped.x) ? shaped.x : idx;
+          const yValue = shaped.y;
+          if (!isFiniteNumber(yValue)) return undefined;
+          return { x: xValue, y: yValue };
+        })
+        .filter((point): point is { x: number; y: number } => Boolean(point));
+    })
+    .filter((seriesPoints) => seriesPoints.length > 1);
+}
+
 function buildPageStream(page: PdfPage): string {
   const ops: string[] = ["BT"];
 
@@ -215,20 +244,36 @@ function buildPageStream(page: PdfPage): string {
   ops.push("ET");
 
   for (const chart of page.charts) {
-    ops.push(...drawChart(chart.figure, chart.x, chart.y, chart.width, chart.height));
+    try {
+      ops.push(...drawChart(chart.figure, chart.x, chart.y, chart.width, chart.height));
+    } catch {
+      // Skip malformed figure payloads; textual report content remains intact.
+    }
   }
 
   return ops.join("\n");
 }
 
 function drawChart(figure: FigurePayload, x: number, y: number, width: number, height: number): string[] {
-  const allPoints = figure.series.flatMap((series) => series.points);
-  const numericX = allPoints.map((point) => (typeof point.x === "number" ? point.x : undefined)).filter((value): value is number => value !== undefined);
-  const yValues = allPoints.map((point) => point.y).filter((value) => Number.isFinite(value));
-  const minX = numericX.length ? Math.min(...numericX) : 0;
-  const maxX = numericX.length ? Math.max(...numericX) : Math.max(1, allPoints.length - 1);
-  const minY = yValues.length ? Math.min(...yValues) : 0;
-  const maxY = yValues.length ? Math.max(...yValues) : 1;
+  const normalizedSeries = normalizeSeriesPoints(figure).slice(0, 3);
+  if (!normalizedSeries.length) {
+    return [
+      "q",
+      "0.95 0.95 0.95 rg",
+      `${x} ${y - height} ${width} ${height} re f`,
+      "0.75 0.78 0.84 RG",
+      `${x} ${y - height} ${width} ${height} re S`,
+      "Q",
+    ];
+  }
+
+  const allPoints = normalizedSeries.flat();
+  const xValues = allPoints.map((point) => point.x);
+  const yValues = allPoints.map((point) => point.y);
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
+  const minY = Math.min(...yValues);
+  const maxY = Math.max(...yValues);
   const spanX = Math.max(maxX - minX, 1);
   const spanY = Math.max(maxY - minY, 1);
 
@@ -250,14 +295,13 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
     `${x} ${y - height} ${width} ${height} re S`,
   ];
 
-  figure.series.slice(0, 3).forEach((series, index) => {
+  normalizedSeries.forEach((series, index) => {
     const color = colorPalette[index % colorPalette.length];
     commands.push(`${color[0]} ${color[1]} ${color[2]} RG`);
     commands.push("1.3 w");
 
-    series.points.forEach((point, pointIndex) => {
-      const numericPointX = typeof point.x === "number" ? point.x : pointIndex;
-      const px = xPos(numericPointX);
+    series.forEach((point, pointIndex) => {
+      const px = xPos(point.x);
       const py = yPos(point.y);
       commands.push(`${px} ${py} ${pointIndex === 0 ? "m" : "l"}`);
     });
@@ -269,7 +313,9 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
 }
 
 function wrap(value: string, max: number): string[] {
-  const words = value.split(/\s+/).filter(Boolean);
+  const safeValue = String(value ?? "").trim();
+  if (!safeValue) return [""];
+  const words = safeValue.split(/\s+/).filter(Boolean);
   if (!words.length) return [""];
 
   const lines: string[] = [];

@@ -955,6 +955,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ...getStringArray(canonicalReport, ["limitations"]),
     ...getStringArray(reportRaw, ["limitations"]),
     ...(envelopeByDiagnostic.report?.limitations ?? []),
+    ...(envelopeByDiagnostic.report?.warnings ?? []),
+    ...summaryWarnings.map((warning) => warning.message),
   ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
   const reportRecommendationsCandidate = [
     ...getStringArray(canonicalReport, ["recommendations", "next_steps"]),
