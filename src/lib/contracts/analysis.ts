@@ -191,6 +191,7 @@ export interface RuinDiagnostic {
   metrics: ScoreBand[];
   assumptions: RuinAssumption[];
   figure?: FigurePayload;
+  figures?: FigurePayload[];
   interpretation: InterpretationBlockPayload;
   limitations?: string[];
   recommendations?: string[];
