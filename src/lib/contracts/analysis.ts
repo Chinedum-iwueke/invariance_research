@@ -115,10 +115,14 @@ export interface ExecutionScenario {
   name: string;
   assumption: string;
   impact: string;
+  severity?: string;
   spread?: string;
   slippage?: string;
   fee?: string;
   expectancy?: string;
+  win_rate?: string;
+  profit_factor?: string;
+  average_r?: string;
   edge_decay_pct?: string;
   classification?: "survives" | "fragile" | "negative" | "informational";
 }
@@ -137,6 +141,7 @@ export interface ExecutionDiagnostic {
   stress_realism?: string;
   artifact_completeness?: string;
   sensitivity_classification?: "resilient" | "fragile" | "cost_killed" | "informational";
+  metadata?: Record<string, unknown>;
 }
 
 export interface RegimeDiagnostic {

@@ -92,11 +92,15 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
     branch: executionBranch,
     empty_state_reason: executionEmptyReason,
   });
-  const topMetrics = selectExecutionTopMetrics(execution.metrics, 3);
+  const topMetrics = selectExecutionTopMetrics(execution.metrics, 6);
   const metricHelpers = {
     "Baseline Expectancy": "Expected edge under baseline execution costs.",
     "Stressed Expectancy": "Expected edge after stress cost increments.",
     "Edge Decay": "Percent edge loss from baseline to stressed assumptions.",
+    "Baseline Win Rate": "Observed win rate under baseline execution costs.",
+    "Stressed Win Rate": "Observed win rate under stressed execution assumptions.",
+    "Baseline Profit Factor": "Gross-profit/gross-loss ratio under baseline execution costs.",
+    "Stressed Profit Factor": "Gross-profit/gross-loss ratio under stressed execution assumptions.",
   };
   const noScenarioReason = execution.assumptions?.length
     ? "The engine did not emit structured per-scenario rows for this run despite having cost assumptions."
@@ -165,6 +169,9 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
                   <th className="px-2 py-2 font-semibold">Slippage</th>
                   <th className="px-2 py-2 font-semibold">Fee</th>
                   <th className="px-2 py-2 font-semibold">Expectancy</th>
+                  <th className="px-2 py-2 font-semibold">Win rate</th>
+                  <th className="px-2 py-2 font-semibold">Profit factor</th>
+                  <th className="px-2 py-2 font-semibold">Average R</th>
                   <th className="px-2 py-2 font-semibold">Edge decay</th>
                   <th className="px-2 py-2 font-semibold">Classification</th>
                 </tr>
@@ -180,6 +187,9 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
                     <td className="px-2 py-2">{scenario.slippage ?? "—"}</td>
                     <td className="px-2 py-2">{scenario.fee ?? "—"}</td>
                     <td className="px-2 py-2">{scenario.expectancy ?? scenario.impact}</td>
+                    <td className="px-2 py-2">{scenario.win_rate ?? "—"}</td>
+                    <td className="px-2 py-2">{scenario.profit_factor ?? "—"}</td>
+                    <td className="px-2 py-2">{scenario.average_r ?? "—"}</td>
                     <td className="px-2 py-2">{scenario.edge_decay_pct ?? "—"}</td>
                     <td className={`px-2 py-2 font-medium ${toneForScenario(scenario.classification)}`}>{titleCase(scenario.classification ?? "informational")}</td>
                   </tr>
@@ -195,6 +205,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
           {assumptionRows.map((assumption) => (
             <li key={assumption}>• {assumption}</li>
           ))}
+          <li>• Deterministic proxy execution modeling uses trades-only outcomes and does not depend on OHLCV bars/order book reconstruction.</li>
           <li>• Assumption provenance: {execution.assumptions?.length ? "Provided by engine payload" : "Inferred as limited from missing structured assumptions"}.</li>
         </ul>
       </WorkspaceCard>
