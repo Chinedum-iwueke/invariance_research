@@ -192,6 +192,7 @@ export const ruinDiagnosticSchema = z.object({
   metrics: z.array(scoreBandSchema),
   assumptions: z.array(ruinAssumptionSchema),
   figure: figurePayloadSchema.optional(),
+  figures: z.array(figurePayloadSchema).optional(),
   interpretation: interpretationBlockPayloadSchema,
   limitations: z.array(z.string()).optional(),
   recommendations: z.array(z.string()).optional(),
