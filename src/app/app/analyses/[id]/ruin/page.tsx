@@ -4,7 +4,6 @@ import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
-import { RuinDrawdownChart } from "@/components/diagnostics/ruin/ruin-drawdown-chart";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
@@ -82,14 +81,6 @@ function hasFigureId(figure: { figure_id?: string; id?: string }, targetId: stri
   const normalizedTarget = normalizeToken(targetId);
   const figureId = figure.figure_id ?? figure.id;
   return typeof figureId === "string" && normalizeToken(figureId) === normalizedTarget;
-}
-
-function topCard(title: string, value: string, subtitle: string) {
-  return (
-    <WorkspaceCard title={title} subtitle={subtitle}>
-      <p className="text-2xl font-semibold text-text-graphite">{value}</p>
-    </WorkspaceCard>
-  );
 }
 
 export default async function RuinPage({ params }: { params: Promise<{ id: string }> }) {
@@ -172,8 +163,8 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const longestLosingStreakR = asNumber(metadata.longest_losing_streak_r ?? summaryMetrics.longest_losing_streak_r ?? streakStats.longest_losing_streak_r);
 
   const curveFigure = ruinFigures.find((item) => hasFigureId(item, "ruin_probability_curve"))
-    ?? ruin.figure
-    ?? ruinFigures[0];
+    ?? (hasFigureId(ruin.figure ?? {}, "ruin_probability_curve") ? ruin.figure : undefined)
+    ?? ruinFigures.find((item) => item.type === "line");
   const riskSensitivityFigure = ruinFigures.find((item) => hasFigureId(item, "risk_per_trade_sensitivity"));
   const lossStreakFigure = ruinFigures.find((item) => hasFigureId(item, "loss_streak_distribution"));
 
@@ -185,12 +176,12 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
   const capitalAfterWorstSim = accountSize !== undefined && worstDrawdownPct !== undefined ? accountSize * (1 - Math.abs(worstDrawdownPct) / 100) : undefined;
 
   const topCards = [
-    topCard("Probability of Ruin", fmtPct(probabilityOfRuin), "Probability of crossing the ruin boundary."),
-    topCard("Max Consecutive Losses", fmtCount(maxConsecutiveLosses), "Observed or simulated longest losing run."),
-    topCard("Worst Drawdown", fmtPct(worstDrawdownPct), "Worst simulated/estimated drawdown severity."),
-    topCard("Minimum Survivable Capital", fmtCurrency(minimumSurvivableCapital), "Minimum capital level implied by the ruin model."),
-    topCard("Max Tolerable Risk / Trade", fmtPct(maxTolerableRiskPerTrade), "Upper bound before survivability materially degrades."),
-    topCard("Worst Losing-Streak PnL", fmtCurrency(longestLosingStreakPnl), "Historical streak burden in currency terms."),
+    { key: "probability_of_ruin", title: "Probability of Ruin", value: fmtPct(probabilityOfRuin), subtitle: "Probability of crossing the ruin boundary." },
+    { key: "max_consecutive_losses", title: "Max Consecutive Losses", value: fmtCount(maxConsecutiveLosses), subtitle: "Observed or simulated longest losing run." },
+    { key: "worst_drawdown", title: "Worst Drawdown", value: fmtPct(worstDrawdownPct), subtitle: "Worst simulated/estimated drawdown severity." },
+    { key: "minimum_survivable_capital", title: "Minimum Survivable Capital", value: fmtCurrency(minimumSurvivableCapital), subtitle: "Minimum capital level implied by the ruin model." },
+    { key: "max_tolerable_risk_per_trade", title: "Max Tolerable Risk / Trade", value: fmtPct(maxTolerableRiskPerTrade), subtitle: "Upper bound before survivability materially degrades." },
+    { key: "worst_losing_streak_pnl", title: "Worst Losing-Streak PnL", value: fmtCurrency(longestLosingStreakPnl), subtitle: "Historical streak burden in currency terms." },
   ];
 
   const sizingPosture = riskPerTradePct === undefined
@@ -206,7 +197,13 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
 
   return (
     <AnalysisPageFrame title="Risk of Ruin" description="Decision-grade survivability view across drawdowns, streak burden, and execution stress.">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{topCards}</div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {topCards.map((card) => (
+          <WorkspaceCard key={card.key} title={card.title} subtitle={card.subtitle}>
+            <p className="text-2xl font-semibold text-text-graphite">{card.value}</p>
+          </WorkspaceCard>
+        ))}
+      </div>
 
       <WorkspaceCard title="Capital Survivability" subtitle="Translate drawdowns and streaks into account-level impact at current sizing.">
         <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-3">
@@ -225,11 +222,19 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         subtitle="Monte Carlo drawdown-threshold curve with capital-aware interpretation."
         note="Interpretation: higher breach probabilities at shallower thresholds indicate fragile survivability; deeper thresholds should have equal or lower probability."
       >
-        <RuinDrawdownChart figure={curveFigure} accountSize={accountSize} />
-        <p className="mt-3 text-sm text-text-neutral">
-          This curve shows the estimated probability of breaching each drawdown threshold. If account size is available, tooltip values translate each threshold into direct capital impact.
-          Compare threshold probabilities directly to your personal drawdown tolerance and required capital reserve.
-        </p>
+        {curveFigure ? (
+          <>
+            <DiagnosticFigure figure={curveFigure} height={360} />
+            <p className="mt-3 text-sm text-text-neutral">
+              This curve shows the estimated probability of breaching each drawdown threshold. If account size is available, tooltip values translate each threshold into direct capital impact.
+              Compare threshold probabilities directly to your personal drawdown tolerance and required capital reserve.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-text-neutral">
+            The ruin probability curve was not emitted for this run. Use summary metrics and streak analytics below for survivability interpretation.
+          </p>
+        )}
       </WorkspaceCard>
 
       {(riskSensitivityFigure || lossStreakFigure) ? (
@@ -264,22 +269,6 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
           <p><span className="font-medium text-text-graphite">Longest losing streak PnL:</span> {fmtCurrency(longestLosingStreakPnl)}</p>
           <p><span className="font-medium text-text-graphite">Longest losing streak (R):</span> {longestLosingStreakR === undefined ? "Unavailable" : `${longestLosingStreakR.toFixed(2)}R`}</p>
         </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Risk Per Trade Sensitivity" subtitle="Sizing is often the fastest lever for survivability improvement.">
-        {riskSensitivityFigure ? (
-          <>
-            <DiagnosticFigure figure={riskSensitivityFigure} height={340} />
-            <p className="mt-3 text-sm text-text-neutral">
-              Ruin risk often rises non-linearly as risk per trade increases. If the current sizing sits near the steep region of this curve,
-              modest de-risking can materially improve survivability while preserving strategy continuity.
-            </p>
-          </>
-        ) : (
-          <p className="text-sm text-text-neutral">
-            Risk-per-trade sensitivity was not emitted for this run. Current conclusions rely on the drawdown-breach curve and streak burden metrics.
-          </p>
-        )}
       </WorkspaceCard>
 
       <WorkspaceCard title="Execution Stress Survivability" subtitle="Baseline vs stressed survivability framing under degradation assumptions.">
