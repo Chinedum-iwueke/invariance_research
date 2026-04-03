@@ -80,7 +80,7 @@ function readMetricValue(metrics: Array<{ label: string; value: string; numeric_
 
 function hasFigureId(figure: { figure_id?: string; id?: string }, targetId: string) {
   const normalizedTarget = normalizeToken(targetId);
-  const figureId = figure.figure_id ?? figure.id;
+  const figureId = figure.id ?? figure.figure_id;
   return typeof figureId === "string" && normalizeToken(figureId) === normalizedTarget;
 }
 
@@ -224,9 +224,9 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
       <WorkspaceCard title="Ruin page render debug strip (temporary)" subtitle="Secondary-figure discovery and renderability diagnostics.">
         <div className="space-y-2 text-xs text-text-neutral">
           <p><span className="font-medium text-text-graphite">ruinFigures.length:</span> {ruinFigures.length}</p>
-          <p><span className="font-medium text-text-graphite">curveFigure:</span> id={curveFigure?.figure_id ?? "n/a"} · type={curveFigure?.type ?? "n/a"}</p>
-          <p><span className="font-medium text-text-graphite">riskSensitivityFigure:</span> present={riskSensitivityFigure ? "yes" : "no"} · id={riskSensitivityFigure?.figure_id ?? "n/a"} · type={riskSensitivityFigure?.type ?? "n/a"}</p>
-          <p><span className="font-medium text-text-graphite">lossStreakFigure:</span> present={lossStreakFigure ? "yes" : "no"} · id={lossStreakFigure?.figure_id ?? "n/a"} · type={lossStreakFigure?.type ?? "n/a"}</p>
+          <p><span className="font-medium text-text-graphite">curveFigure:</span> semanticId={curveFigure?.id ?? "n/a"} · figure_id={curveFigure?.figure_id ?? "n/a"} · type={curveFigure?.type ?? "n/a"}</p>
+          <p><span className="font-medium text-text-graphite">riskSensitivityFigure:</span> present={riskSensitivityFigure ? "yes" : "no"} · semanticId={riskSensitivityFigure?.id ?? "n/a"} · figure_id={riskSensitivityFigure?.figure_id ?? "n/a"} · type={riskSensitivityFigure?.type ?? "n/a"}</p>
+          <p><span className="font-medium text-text-graphite">lossStreakFigure:</span> present={lossStreakFigure ? "yes" : "no"} · semanticId={lossStreakFigure?.id ?? "n/a"} · figure_id={lossStreakFigure?.figure_id ?? "n/a"} · type={lossStreakFigure?.type ?? "n/a"}</p>
           <div className="mt-2 space-y-1 rounded border border-border-subtle bg-surface-muted/40 p-2">
             <p><span className="font-medium text-text-graphite">DiagnosticFigure render check (curve):</span> renderable={curveRenderability.series.length > 0 ? "yes" : "no"} · rendererSupported={curveRenderability.rendererSupported ? "yes" : "no"} · series={curveRenderability.series.length} · rawSeries={curveFigure?.series?.length ?? 0} · rawGroups={curveFigure?.groups?.length ?? 0}</p>
             <p><span className="font-medium text-text-graphite">DiagnosticFigure render check (risk sensitivity):</span> renderable={riskSensitivityRenderability.series.length > 0 ? "yes" : "no"} · rendererSupported={riskSensitivityRenderability.rendererSupported ? "yes" : "no"} · series={riskSensitivityRenderability.series.length} · rawSeries={riskSensitivityFigure?.series?.length ?? 0} · rawGroups={riskSensitivityFigure?.groups?.length ?? 0}</p>
