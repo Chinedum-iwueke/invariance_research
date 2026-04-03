@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
   AnalysisStatusResponse,
@@ -158,7 +159,11 @@ export function NewAnalysisIntake() {
   return (
     <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
       <div className="space-y-4">
-        <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV, structured bundle, or parameter sweep bundle ZIP">
+        <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-text-neutral">If you are unsure what to upload, use the canonical lab specification.</p>
+            <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>
+          </div>
           <div
             className={cn(
               "rounded-md border border-dashed bg-surface-panel/60 p-8 text-center",
@@ -176,7 +181,7 @@ export function NewAnalysisIntake() {
             }}
           >
             <p className="text-sm font-medium">Submit artifact into validation intake</p>
-            <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1 / parameter sweep bundle)</p>
+            <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1)</p>
             <input
               className="mt-4 block w-full text-xs"
               type="file"
@@ -186,8 +191,11 @@ export function NewAnalysisIntake() {
                 if (selected) void onInspect(selected);
               }}
             />
+            <p className="mt-2 text-xs text-text-neutral">
+              <Link href="/docs/lab" className="underline underline-offset-2 hover:text-text-graphite">What files are accepted?</Link>
+            </p>
           </div>
-          <p className="mt-3 text-xs text-text-neutral">Files are processed server-side. The frontend does not parse raw artifact contents.</p>
+          <p className="mt-3 text-xs text-text-neutral">Files are processed server-side.</p>
         </WorkspaceCard>
 
         <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
@@ -293,24 +301,6 @@ export function NewAnalysisIntake() {
 
         <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
           <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>
-        </WorkspaceCard>
-      </div>
-
-      <div className="space-y-4">
-        <WorkspaceCard title="Intake guidance" subtitle="What to upload for each analysis path">
-          <ul className="space-y-2 text-sm text-text-neutral">
-            <li>• Trade-only upload: a closed-trades CSV for baseline diagnostics.</li>
-            <li>• Structured bundle upload: manifest + trades + optional assumptions/context files.</li>
-            <li>• Parameter sweep bundle (required for baseline Parameter Stability): multi-run results across parameter combinations with run-to-parameter metadata.</li>
-          </ul>
-        </WorkspaceCard>
-
-        <WorkspaceCard title="Supported sweep formats" subtitle="Operator-friendly bundle contract">
-          <ul className="space-y-2 text-sm text-text-neutral">
-            <li>• Preferred: one ZIP bundle with <code>manifest.json</code> plus per-run trade/result files and explicit run_id → parameter values mapping.</li>
-            <li>• Advanced: one combined table that includes <code>run_id</code>, parameter columns, and trade/result fields for each run.</li>
-            <li>• OHLCV/regime files are optional for baseline Parameter Stability and may support richer future variants.</li>
-          </ul>
         </WorkspaceCard>
       </div>
     </div>
