@@ -157,8 +157,7 @@ export function NewAnalysisIntake() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-      <div className="space-y-4">
+    <div className="space-y-4">
         <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-text-neutral">If you are unsure what to upload, use the canonical lab specification.</p>
@@ -302,7 +301,6 @@ export function NewAnalysisIntake() {
         <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
           <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>
         </WorkspaceCard>
-      </div>
     </div>
   );
 }

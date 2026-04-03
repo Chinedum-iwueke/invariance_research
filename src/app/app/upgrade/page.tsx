@@ -6,7 +6,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 export default function UpgradePage() {
   return (
     <AnalysisPageFrame title="Upgrade" description="Upgrade for analytical depth and workflow capacity, not generic dashboard features.">
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
         <WorkspaceCard title="Professional" subtitle="Core paid tier">
           <p className="text-sm text-text-neutral">Execution sensitivity, full report visibility, export, and materially higher monthly capacity.</p>
         </WorkspaceCard>
