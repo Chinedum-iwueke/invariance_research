@@ -135,7 +135,7 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
         note={primaryFigure.note}
       />
       {secondaryFigures.length ? (
-        <div className="grid gap-5 2xl:grid-cols-2">
+        <div className="space-y-5">
           {secondaryFigures.map((figure) => (
             <FigureCard
               key={figure.figure_id}
@@ -150,7 +150,7 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
       <MetricRow metrics={metrics} cols={4} />
 
-      <div className="grid gap-5 2xl:grid-cols-[1.25fr_0.95fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.monte_carlo.interpretation)} />
         <WorkspaceCard title="Warnings & limitations" subtitle="Material constraints on this crash test">
           {monteCarloWarnings.length === 0 ? (

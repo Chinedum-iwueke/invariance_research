@@ -20,7 +20,7 @@ export default async function SettingsPage() {
 
   return (
     <AnalysisPageFrame title="Settings" description="Profile, plan posture, and account governance preferences.">
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <WorkspaceCard title="Profile" subtitle="Identity">
           <p className="text-sm text-text-neutral">Email: {session.email}</p>
           <p className="text-sm text-text-neutral">User ID: {session.user_id}</p>

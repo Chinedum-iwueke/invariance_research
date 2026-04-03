@@ -160,7 +160,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         )}
       />
       {overviewFigures.length > 1 ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {overviewFigures.slice(1).map((figure) => (
             <FigureCard
               key={figure.figure_id}
@@ -176,7 +176,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
       <OverviewBenchmarkSection benchmark={benchmarkComparison} />
 
-      <div className="grid gap-5 2xl:grid-cols-[1.3fr_0.9fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <InterpretationBlock {...overviewInterpretation(record.diagnostics.overview.interpretation)} />
         <VerdictCard
           title={record.summary.headline_verdict.title}
