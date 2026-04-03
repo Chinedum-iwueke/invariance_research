@@ -42,7 +42,7 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
     <FigureCard
       title={title}
       subtitle={subtitle}
-      figure={<DiagnosticFigure figure={figure} height={420} />}
+      figure={<DiagnosticFigure figure={figure} height={480} />}
       note={figure.note}
     />
   );
@@ -140,7 +140,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Top-line Performance & Benchmark" subtitle="Return profile, benchmark-relative context, and normalization basis">
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           <SectionFigure title="Strategy top-line equity" subtitle="Primary outcome trajectory" figure={view.prioritizedFigures.topLine} />
           <SectionFigure title="Benchmark comparison" subtitle="Strategy vs selected benchmark" figure={view.prioritizedFigures.benchmark ?? benchmark?.figure} />
         </div>
@@ -157,7 +157,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Risk & Survivability" subtitle="Ruin profile, drawdown burden, and capital survivability implications">
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           <SectionFigure title="Ruin / survivability curve" subtitle="Capital stress and ruin sensitivity" figure={view.prioritizedFigures.survivability} />
           <div className="space-y-3 rounded-md border border-border/80 bg-surface-subtle p-4">
             <p className="text-sm font-semibold text-text-institutional">Capital survivability translation</p>
@@ -168,9 +168,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Distribution & Trade Behavior" subtitle="How the strategy earns, loses, and behaves across trade cohorts">
-        <div className="grid gap-4 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           {view.prioritizedFigures.distribution.map((figure) => (
-            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle ?? "Distribution diagnostic"} figure={<DiagnosticFigure figure={figure} height={360} />} note={figure.note} />
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle ?? "Distribution diagnostic"} figure={<DiagnosticFigure figure={figure} height={480} />} note={figure.note} />
           ))}
         </div>
         {!view.prioritizedFigures.distribution.length ? <p className="text-sm text-text-neutral">Distribution charts were unavailable for this run.</p> : null}
@@ -181,7 +181,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Monte Carlo & Tail Risk" subtitle="Path dependence, sequence fragility, and drawdown envelope">
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           <SectionFigure title="Monte Carlo fan / tail profile" subtitle="Simulation path envelope" figure={view.prioritizedFigures.monteCarlo} />
           <div className="space-y-2 rounded-md border border-border/80 bg-surface-subtle p-4">
             <BulletList items={record.diagnostics.monte_carlo.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No Monte Carlo metrics emitted." />
@@ -191,7 +191,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Execution Sensitivity" subtitle="Whether execution friction erodes or preserves the modeled edge">
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           <SectionFigure title="Execution expectancy decay" subtitle="Baseline vs stressed edge" figure={view.prioritizedFigures.execution} />
           <div className="space-y-2 rounded-md border border-border/80 bg-surface-subtle p-4">
             <BulletList items={record.diagnostics.execution.metrics.map((metric) => `${metric.label}: ${metric.value}`)} empty="No execution metrics emitted." />
