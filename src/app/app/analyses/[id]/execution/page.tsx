@@ -122,7 +122,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
 
   return (
     <AnalysisPageFrame title="Execution Sensitivity" description="Edge resilience under worsened spread, slippage, and fee assumptions.">
-      <Card className="grid gap-3 rounded-md border bg-surface-panel/50 p-3 md:grid-cols-2 xl:grid-cols-4">
+      <Card className="grid gap-3 rounded-md border bg-surface-panel/50 p-3 md:grid-cols-2 2xl:grid-cols-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-neutral">Artifact completeness</p>
           <p className="text-sm font-semibold text-text-institutional">{titleCase(execution.artifact_completeness ?? "unknown")}</p>
@@ -148,7 +148,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         note={executionFigure?.note}
       />
       {executionFigures.length > 1 ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {executionFigures.slice(1).map((figure) => (
             <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
           ))}

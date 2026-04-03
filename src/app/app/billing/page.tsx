@@ -30,7 +30,7 @@ export default async function BillingPage() {
         unlimitedAnalyses={isAdmin}
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <UsageMeter used={usage.analyses_created} limit={limit} retentionDays={retentionDays} unlimited={isAdmin} />
         <WorkspaceCard title="Usage context" subtitle="Why upgrades are suggested">
           <p className="text-sm text-text-neutral">Analyses remaining this month: {remaining}</p>

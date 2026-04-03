@@ -101,7 +101,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
 
       <div className="space-y-4">
         {figures.length ? (
-          <div className="grid gap-5 2xl:grid-cols-2">
+          <div className="space-y-5">
             {figures.map((figure) => (
               <FigureCard
                 key={figure.figure_id}

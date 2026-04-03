@@ -96,7 +96,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
       />
 
       {secondaryFigures.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {secondaryFigures.map((figure) => (
             <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
           ))}
@@ -163,7 +163,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         caveats={regimes.limitations ?? []}
       />
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <WorkspaceCard title="Assumptions" subtitle="Engine-emitted regime assumptions">
           {(regimes.assumptions ?? []).length ? (
             <ul className="space-y-1.5 text-sm text-text-neutral">

@@ -55,7 +55,7 @@ export default async function AppHomePage() {
         unlimited={isAdmin}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
+      <div className="grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
         <WorkspaceCard title="Quick Start" subtitle="Structured flow" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
           <ol className="space-y-2 text-sm text-text-neutral">
             <li>1. Upload backtest and trade artifacts.</li>
