@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { EChartsOption } from "echarts";
 
-export function EChartsHost({ option, height = 320 }: { option: EChartsOption; height?: number }) {
+export function EChartsHost({ option, height = 480 }: { option: EChartsOption; height?: number }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const memoizedOption = useMemo(() => option, [option]);
 

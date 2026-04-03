@@ -158,11 +158,10 @@ function buildOption(series: RuinCurveSeries[], accountSize?: number): EChartsOp
     series: series.map((item, idx) => ({
       name: item.label,
       type: "line",
-      smooth: true,
-      symbol: "circle",
-      symbolSize: 6,
+      smooth: 0.4,
+      symbol: "none",
       showSymbol: false,
-      lineStyle: { width: 2 },
+      lineStyle: { width: 3 },
       emphasis: { focus: "series" },
       color: idx === 0 ? "#0f766e" : idx === 1 ? "#b91c1c" : undefined,
       data: item.points.map((point) => [point.drawdownPct, point.probabilityPct]),
@@ -183,5 +182,5 @@ export function RuinDrawdownChart({ figure, accountSize }: { figure?: FigurePayl
 
   const option = buildOption(series, accountSize);
 
-  return <EChartsHost option={option} height={460} />;
+  return <EChartsHost option={option} height={480} />;
 }

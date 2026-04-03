@@ -12,21 +12,12 @@ function provenanceLabel(value: FigurePayload["provenance"] | undefined): string
   return "Unknown provenance";
 }
 
-export function DiagnosticFigure({ figure, emptyMessage, height = 500 }: { figure?: FigurePayload; emptyMessage?: string; height?: number }) {
+export function DiagnosticFigure({ figure, emptyMessage, height = 480 }: { figure?: FigurePayload; emptyMessage?: string; height?: number }) {
   const { adapted, rendererSupported, emptyReason } = adaptFigureToECharts(figure);
   const hasSeries = Array.isArray(figure?.series) && figure.series.length > 0;
   const hasGroups = Array.isArray(figure?.groups) && figure.groups.length > 0;
 
   if (!figure || !adapted) {
-    console.log("[analysis-page-debug]", {
-      scope: "analysis-page-debug",
-      component: "DiagnosticFigure",
-      branch: "empty_state_branch",
-      renderer_supported: rendererSupported,
-      figure_type: figure?.type ?? null,
-      empty_state_reason: emptyReason,
-    });
-
     if (!figure) {
       return (
         <p className="rounded-sm border border-dashed border-border-subtle bg-surface-panel p-4 text-sm text-text-neutral">
@@ -48,17 +39,8 @@ export function DiagnosticFigure({ figure, emptyMessage, height = 500 }: { figur
     );
   }
 
-  console.log("[analysis-page-debug]", {
-    scope: "analysis-page-debug",
-    component: "DiagnosticFigure",
-    branch: "rendered",
-    figure_id: figure.figure_id,
-    figure_type: figure.type,
-    series_count: adapted.summary.length,
-  });
-
   return (
-    <div className="space-y-3 rounded-sm border border-border-subtle p-3 lg:p-4">
+    <div className="w-full space-y-4 rounded-sm border border-border-subtle p-4 lg:p-5">
       <EChartsHost option={adapted.option} height={height} />
 
       <div className="grid gap-2 text-xs text-text-neutral md:grid-cols-2">
