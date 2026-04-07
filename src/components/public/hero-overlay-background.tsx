@@ -95,14 +95,24 @@ export function HeroOverlayBackground() {
     if (resolvedCandidate.kind === "video") {
       mediaNode = (
         <video
+<<<<<<< codex/fix-hero-overlay-loader-fallback-logic-r5e8hx
+          key={candidate.src}
+          src={candidate.src}
+=======
           key={resolvedCandidate.src}
           src={resolvedCandidate.src}
+>>>>>>> main
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass}`}
           autoPlay
           muted
           loop
           playsInline
           preload="metadata"
+<<<<<<< codex/fix-hero-overlay-loader-fallback-logic-r5e8hx
+          onLoadedData={handleMediaSuccess}
+          onError={handleMediaError}
+=======
+>>>>>>> main
         />
       );
     } else {
