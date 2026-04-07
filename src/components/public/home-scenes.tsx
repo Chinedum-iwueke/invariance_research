@@ -40,16 +40,12 @@ export function SceneScrollCue({ href }: { href: string }) {
   );
 }
 
-type HeroSceneProps = {
-  rightSlot: ReactNode;
-};
-
-export function HeroScene({ rightSlot }: HeroSceneProps) {
+export function HeroScene() {
   return (
-    <section id="scene-hero" className="relative isolate flex min-h-[100svh] items-center overflow-hidden border-b border-black/5">
+    <section id="hero" className="relative isolate flex min-h-[100svh] items-center overflow-hidden border-b border-black/10">
       <HeroOverlayBackground />
-      <div className="container-shell grid items-center gap-12 py-20 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-8">
+      <div className="container-shell flex items-center py-20">
+        <div className="max-w-3xl space-y-8">
           <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
           <div className="space-y-5">
             <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
@@ -74,9 +70,9 @@ export function HeroScene({ rightSlot }: HeroSceneProps) {
             Institutional-style validation framework designed to eliminate false edge before capital deployment.
           </p>
         </div>
-        <div>{rightSlot}</div>
       </div>
-      <SceneScrollCue href="#scene-framework" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent via-white/25 to-white dark:to-[#101317]" />
+      <SceneScrollCue href="#problem" />
     </section>
   );
 }
@@ -85,26 +81,25 @@ export function ScrollspyRail({ sectionIds }: { sectionIds: string[] }) {
   const [activeId, setActiveId] = useState(sectionIds[0]);
 
   useEffect(() => {
-    const observers = sectionIds.map((id) => {
-      const element = document.getElementById(id);
-      if (!element) {
-        return null;
-      }
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveId(id);
-            }
-          });
-        },
-        { rootMargin: "-35% 0px -45% 0px", threshold: [0.2, 0.4, 0.7] },
-      );
-      observer.observe(element);
-      return observer;
-    });
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((section): section is HTMLElement => Boolean(section));
+    if (!sections.length) return;
 
-    return () => observers.forEach((observer) => observer?.disconnect());
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (!visibleEntries.length) return;
+        const nextActiveId = visibleEntries[0]?.target.id;
+        if (nextActiveId) setActiveId(nextActiveId);
+      },
+      { root: null, rootMargin: "-25% 0px -45% 0px", threshold: [0.15, 0.35, 0.6] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
   }, [sectionIds]);
 
   return (
@@ -121,7 +116,7 @@ export function ScrollspyRail({ sectionIds }: { sectionIds: string[] }) {
               isActive && "h-11 bg-brand shadow-[0_0_0_3px_rgba(176,0,32,0.12)]",
             )}
             aria-current={isActive ? "true" : undefined}
-            aria-label={`Jump to ${id.replace("scene-", "")} section`}
+            aria-label={`Jump to ${id} section`}
           />
         );
       })}

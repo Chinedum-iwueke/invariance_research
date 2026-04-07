@@ -13,15 +13,13 @@ type MediaCandidate = {
 };
 
 const MEDIA_CANDIDATES: MediaCandidate[] = [
-  { kind: "video", src: "/assets/overlay_graphic.webm", mimeType: "video/webm" },
-  { kind: "video", src: "/assets/overlay_graphic.mp4", mimeType: "video/mp4" },
-  { kind: "video", src: "/assets/overlay_graphic.mov", mimeType: "video/quicktime" },
-  { kind: "image", src: "/assets/overlay_graphic.avif" },
-  { kind: "image", src: "/assets/overlay_graphic.webp" },
-  { kind: "image", src: "/assets/overlay_graphic.png" },
-  { kind: "image", src: "/assets/overlay_graphic.jpg" },
-  { kind: "image", src: "/assets/overlay_graphic.jpeg" },
-  { kind: "image", src: "/assets/overlay_graphic.gif" },
+  { kind: "video", src: "/overlay_graphic.webm", mimeType: "video/webm" },
+  { kind: "video", src: "/overlay_graphic.mp4", mimeType: "video/mp4" },
+  { kind: "image", src: "/overlay_graphic.webp" },
+  { kind: "image", src: "/overlay_graphic.png" },
+  { kind: "image", src: "/overlay_graphic.jpg" },
+  { kind: "image", src: "/overlay_graphic.jpeg" },
+  { kind: "image", src: "/overlay_graphic.gif" },
 ];
 
 export function HeroOverlayBackground() {

@@ -148,7 +148,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         note={executionFigure?.note}
       />
       {executionFigures.length > 1 ? (
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="space-y-5">
           {executionFigures.slice(1).map((figure) => (
             <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
           ))}

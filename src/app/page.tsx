@@ -52,7 +52,7 @@ const frameworkSteps = [
   },
 ] as const;
 
-const sceneIds = ["scene-hero", "scene-framework", "scene-lab", "scene-consulting"];
+const sceneIds = ["hero", "problem", "lab", "consulting"];
 
 export default function HomePage() {
   return (
@@ -60,24 +60,9 @@ export default function HomePage() {
       <main className="relative bg-white">
         <ScrollspyRail sectionIds={sceneIds} />
 
-        <HeroScene
-          rightSlot={
-            <Card className="border-black/10 bg-white/90 p-5 backdrop-blur-sm">
-              <div className="flex items-center justify-between border-b border-black/10 pb-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.12em] text-text-neutral">Robustness Heatmap</p>
-                  <p className="text-sm font-medium text-text-graphite">Live readiness snapshot</p>
-                </div>
-                <p className="rounded-full border border-brand/20 bg-brand/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-brand">
-                  Execution-aware
-                </p>
-              </div>
-              <RegimeHeatmapVisual />
-            </Card>
-          }
-        />
+        <HeroScene />
 
-        <SectionSceneWrapper id="scene-framework" tone="soft">
+        <SectionSceneWrapper id="problem" tone="soft">
           <div className="space-y-8">
             <SectionHeader
               title="Most Trading Strategies Fail in Live Markets"
@@ -117,7 +102,7 @@ export default function HomePage() {
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="scene-lab" tone="base">
+        <SectionSceneWrapper id="lab" tone="base">
           <div className="space-y-8">
             <SectionHeader
               title="Strategy Robustness Lab"
@@ -150,7 +135,7 @@ export default function HomePage() {
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="scene-consulting" tone="panel" className="border-b border-black/5">
+        <SectionSceneWrapper id="consulting" tone="panel" className="border-b border-black/5">
           <div className="space-y-8">
             <SectionHeader
               title="Independent Strategy Validation"

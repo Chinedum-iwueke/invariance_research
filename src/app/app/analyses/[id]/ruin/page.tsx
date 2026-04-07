@@ -245,14 +245,14 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
       </WorkspaceCard>
 
       <WorkspaceCard title="Secondary survivability charts" subtitle="Presence and renderability are surfaced explicitly for both secondary figures.">
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-1">
+        <div className="space-y-6">
           {riskSensitivityFigure ? (
             <FigureCard
               title={riskSensitivityFigure.title || "Risk Per Trade Sensitivity"}
               subtitle={riskSensitivityFigure.subtitle || "How ruin probability rises as sizing risk increases"}
               figure={riskSensitivityRenderability.series.length > 0
                 ? <DiagnosticFigure figure={riskSensitivityFigure} height={480} />
-                : <p className="text-sm text-text-neutral">Figure is present but could not be rendered by DiagnosticFigure (rendererSupported={riskSensitivityRenderability.rendererSupported ? "yes" : "no"}, series={riskSensitivityRenderability.series.length}, rawSeries={riskSensitivityFigure.series?.length ?? 0}, rawGroups={riskSensitivityFigure.groups?.length ?? 0}).</p>}
+                : <p className="text-sm text-text-neutral">Figure payload is present but series data could not be rendered for this run.</p>}
               note={riskSensitivityFigure.note}
             />
           ) : (
@@ -266,7 +266,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
               subtitle={lossStreakFigure.subtitle || "Distribution of losing-run length severity"}
               figure={lossStreakRenderability.series.length > 0
                 ? <DiagnosticFigure figure={lossStreakFigure} height={480} />
-                : <p className="text-sm text-text-neutral">Figure is present but could not be rendered by DiagnosticFigure (rendererSupported={lossStreakRenderability.rendererSupported ? "yes" : "no"}, series={lossStreakRenderability.series.length}, rawSeries={lossStreakFigure.series?.length ?? 0}, rawGroups={lossStreakFigure.groups?.length ?? 0}).</p>}
+                : <p className="text-sm text-text-neutral">Figure payload is present but series data could not be rendered for this run.</p>}
               note={lossStreakFigure.note}
             />
           ) : (
