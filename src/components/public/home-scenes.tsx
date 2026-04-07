@@ -25,12 +25,11 @@ export function SectionSceneWrapper({ id, tone = "base", transition = "standard"
   return (
     <section id={id} className={cn("relative isolate border-t border-black/5", toneClass, className)}>
       {transition === "sheet-reveal" ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-4 -top-9 z-20 h-12 rounded-t-[1.75rem] bg-surface-white shadow-[0_-1px_0_rgba(17,17,17,0.04),0_-12px_30px_-24px_rgba(17,17,17,0.32)] md:inset-x-8"
-        />
+        <div className="relative overflow-hidden rounded-t-[1.75rem] bg-surface-white shadow-[0_-1px_0_rgba(17,17,17,0.05),0_-16px_30px_-26px_rgba(17,17,17,0.35)]">
+          <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
+        </div>
       ) : null}
-      <div className="container-shell py-section-md md:py-section-lg">{children}</div>
+      {transition === "standard" ? <div className="container-shell py-section-md md:py-section-lg">{children}</div> : null}
     </section>
   );
 }
@@ -40,12 +39,12 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
     <Link
       href={href}
       className={cn(
-        "inline-flex flex-col items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-text-neutral transition-colors hover:text-text-graphite",
+        "inline-flex flex-col items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-text-neutral/90 transition-colors hover:text-text-graphite",
         className,
       )}
     >
       <span>Scroll to explore</span>
-      <ChevronDown className="h-4 w-4 animate-bounce text-brand" strokeWidth={1.5} />
+      <ChevronDown className="h-4 w-4 text-brand motion-safe:animate-pulse" strokeWidth={1.5} />
     </Link>
   );
 }
@@ -54,35 +53,36 @@ export function HeroScene() {
   return (
     <section id="hero" className="relative isolate h-[100svh] min-h-[100svh] overflow-hidden bg-surface-white">
       <HeroOverlayBackground />
-      <div className="container-shell relative z-10 grid h-full min-h-[100svh] grid-rows-[1fr_auto] py-6 md:py-8">
-        <div className="flex items-center pb-6 pt-20 md:pt-24">
-          <div className="max-w-3xl space-y-8">
+      <div className="container-shell relative z-10 grid h-full min-h-[100svh] grid-rows-[minmax(4.5rem,14svh)_auto_auto_minmax(4.75rem,11svh)]">
+        <div aria-hidden />
+        <div className="max-w-[44rem] self-end">
+          <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
-            <div className="space-y-5">
-              <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
-                Independent Quantitative Strategy Validation
-              </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
-                Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href="/research-standards">View Research Standards</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/strategy-validation">Validate Your Strategy</Link>
-              </Button>
-              <Button asChild variant="tertiary">
-                <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
-              </Button>
-            </div>
-            <p className="max-w-xl border-l border-brand/40 pl-4 text-sm text-text-neutral">
-              Institutional-style validation framework designed to eliminate false edge before capital deployment.
+            <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
+              Independent Quantitative Strategy Validation
+            </h1>
+            <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+              Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
             </p>
           </div>
         </div>
-        <div className="flex items-end justify-center pb-5 md:pb-6">
+        <div className="max-w-[44rem] space-y-6 self-start pt-7 md:pt-8">
+          <div className="flex flex-wrap gap-3">
+            <Button asChild>
+              <Link href="/research-standards">View Research Standards</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/strategy-validation">Validate Your Strategy</Link>
+            </Button>
+            <Button asChild variant="tertiary">
+              <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+            </Button>
+          </div>
+          <p className="max-w-xl border-l border-brand/40 pl-4 text-sm text-text-neutral">
+            Institutional-style validation framework designed to eliminate false edge before capital deployment.
+          </p>
+        </div>
+        <div className="flex items-end justify-center pb-6 md:pb-7">
           <SceneScrollCue href="#problem" />
         </div>
       </div>
