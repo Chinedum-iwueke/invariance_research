@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HeroOverlayBackground } from "@/components/public/hero-overlay-background";
 
 type SectionSceneWrapperProps = {
   id: string;
@@ -24,43 +25,6 @@ export function SectionSceneWrapper({ id, tone = "base", className, children }: 
     <section id={id} className={cn("relative border-t border-black/5", toneClass, className)}>
       <div className="container-shell py-section-md">{children}</div>
     </section>
-  );
-}
-
-export function HeroOverlayBackground() {
-  const overlaySources = [
-    "/assets/overlay_graphic.webm",
-    "/assets/overlay_graphic.mp4",
-    "/assets/overlay_graphic.mov",
-  ];
-
-  const fallbackImages = [
-    "/assets/overlay_graphic.avif",
-    "/assets/overlay_graphic.webp",
-    "/assets/overlay_graphic.png",
-    "/assets/overlay_graphic.jpg",
-    "/assets/overlay_graphic.jpeg",
-    "/assets/overlay_graphic.gif",
-    "/assets/overlay_graphic.svg",
-  ];
-
-  return (
-    <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-      <video className="h-full w-full object-cover opacity-[0.16]" autoPlay muted loop playsInline preload="metadata">
-        {overlaySources.map((src) => (
-          <source key={src} src={src} />
-        ))}
-      </video>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/94 via-[#fdfcfb]/92 to-white/97" />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage: fallbackImages.map((src) => `url(${src})`).join(","),
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-    </div>
   );
 }
 
