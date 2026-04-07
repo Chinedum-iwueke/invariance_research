@@ -62,7 +62,7 @@ export default function HomePage() {
 
         <HeroScene />
 
-        <SectionSceneWrapper id="problem" tone="soft">
+        <SectionSceneWrapper id="problem" tone="soft" transition="sheet-reveal">
           <div className="space-y-8">
             <SectionHeader
               title="Most Trading Strategies Fail in Live Markets"
@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="lab" tone="base">
+        <SectionSceneWrapper id="lab" tone="base" className="border-t border-black/10">
           <div className="space-y-8">
             <SectionHeader
               title="Strategy Robustness Lab"
