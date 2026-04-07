@@ -21,20 +21,6 @@ export function HeroOverlayBackground() {
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
       <div className={`absolute inset-0 ${baseGradientClass}`} />
       {!imageUnavailable ? (
-          key={candidate.src}
-          src={candidate.src}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass}`}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onLoadedData={handleMediaSuccess}
-          onError={handleMediaError}
-        />
-      );
-    } else {
-      mediaNode = (
         <Image
           src={HERO_OVERLAY_SRC}
           alt=""
@@ -49,7 +35,11 @@ export function HeroOverlayBackground() {
       <div className={`absolute inset-0 transition-colors duration-300 ${washClass}`} />
       {imageUnavailable ? (
         <div
-          className={isDarkTheme ? "absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(182,70,88,0.12),transparent_40%)]" : "absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(176,0,32,0.08),transparent_42%)]"}
+          className={
+            isDarkTheme
+              ? "absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(182,70,88,0.12),transparent_40%)]"
+              : "absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(176,0,32,0.08),transparent_42%)]"
+          }
         />
       ) : null}
     </div>
