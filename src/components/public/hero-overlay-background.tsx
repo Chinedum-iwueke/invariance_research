@@ -21,6 +21,20 @@ export function HeroOverlayBackground() {
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
       <div className={`absolute inset-0 ${baseGradientClass}`} />
       {!imageUnavailable ? (
+          key={candidate.src}
+          src={candidate.src}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass}`}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onLoadedData={handleMediaSuccess}
+          onError={handleMediaError}
+        />
+      );
+    } else {
+      mediaNode = (
         <Image
           src={HERO_OVERLAY_SRC}
           alt=""

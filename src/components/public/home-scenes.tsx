@@ -10,11 +10,12 @@ import { HeroOverlayBackground } from "@/components/public/hero-overlay-backgrou
 type SectionSceneWrapperProps = {
   id: string;
   tone?: "base" | "soft" | "panel";
+  transition?: "standard" | "sheet-reveal";
   className?: string;
   children: ReactNode;
 };
 
-export function SectionSceneWrapper({ id, tone = "base", className, children }: SectionSceneWrapperProps) {
+export function SectionSceneWrapper({ id, tone = "base", transition = "standard", className, children }: SectionSceneWrapperProps) {
   const toneClass = {
     base: "bg-surface-white",
     soft: "bg-[#fcfbfa]",
@@ -22,32 +23,41 @@ export function SectionSceneWrapper({ id, tone = "base", className, children }: 
   }[tone];
 
   return (
-    <section id={id} className={cn("relative border-t border-black/5", toneClass, className)}>
-      <div className="container-shell py-section-md">{children}</div>
+    <section id={id} className={cn("relative isolate border-t border-black/5", toneClass, className)}>
+      {transition === "sheet-reveal" ? (
+        <div className="relative overflow-hidden rounded-t-[1.75rem] bg-surface-white shadow-[0_-1px_0_rgba(17,17,17,0.05),0_-16px_30px_-26px_rgba(17,17,17,0.35)]">
+          <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
+        </div>
+      ) : null}
+      {transition === "standard" ? <div className="container-shell py-section-md md:py-section-lg">{children}</div> : null}
     </section>
   );
 }
 
-export function SceneScrollCue({ href }: { href: string }) {
+export function SceneScrollCue({ href, className }: { href: string; className?: string }) {
   return (
     <Link
       href={href}
-      className="absolute bottom-6 left-1/2 inline-flex -translate-x-1/2 flex-col items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-text-neutral transition-colors hover:text-text-graphite"
+      className={cn(
+        "inline-flex flex-col items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-text-neutral/90 transition-colors hover:text-text-graphite",
+        className,
+      )}
     >
       <span>Scroll to explore</span>
-      <ChevronDown className="h-4 w-4 animate-bounce text-brand" strokeWidth={1.5} />
+      <ChevronDown className="h-4 w-4 text-brand motion-safe:animate-pulse" strokeWidth={1.5} />
     </Link>
   );
 }
 
 export function HeroScene() {
   return (
-    <section id="hero" className="relative isolate flex min-h-[100svh] items-center overflow-hidden border-b border-black/10">
+    <section id="hero" className="relative isolate h-[100svh] min-h-[100svh] overflow-hidden bg-surface-white">
       <HeroOverlayBackground />
-      <div className="container-shell flex items-center py-20">
-        <div className="max-w-3xl space-y-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
+      <div className="container-shell relative z-10 grid h-full min-h-[100svh] grid-rows-[minmax(4.5rem,14svh)_auto_auto_minmax(4.75rem,11svh)]">
+        <div aria-hidden />
+        <div className="max-w-[44rem] self-end">
           <div className="space-y-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
             <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
               Independent Quantitative Strategy Validation
             </h1>
@@ -55,6 +65,8 @@ export function HeroScene() {
               Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
             </p>
           </div>
+        </div>
+        <div className="max-w-[44rem] space-y-6 self-start pt-7 md:pt-8">
           <div className="flex flex-wrap gap-3">
             <Button asChild>
               <Link href="/research-standards">View Research Standards</Link>
@@ -70,9 +82,10 @@ export function HeroScene() {
             Institutional-style validation framework designed to eliminate false edge before capital deployment.
           </p>
         </div>
+        <div className="flex items-end justify-center pb-6 md:pb-7">
+          <SceneScrollCue href="#problem" />
+        </div>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent via-white/25 to-white dark:to-[#101317]" />
-      <SceneScrollCue href="#problem" />
     </section>
   );
 }
