@@ -160,7 +160,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         )}
       />
       {overviewFigures.length > 1 ? (
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="space-y-5">
           {overviewFigures.slice(1).map((figure) => (
             <FigureCard
               key={figure.figure_id}

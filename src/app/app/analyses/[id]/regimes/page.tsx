@@ -96,7 +96,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
       />
 
       {secondaryFigures.length ? (
-        <div className="grid gap-4 2xl:grid-cols-2">
+        <div className="space-y-5">
           {secondaryFigures.map((figure) => (
             <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
           ))}
