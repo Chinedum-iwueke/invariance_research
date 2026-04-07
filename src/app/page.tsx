@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
-import { ChartCard } from "@/components/charts/chart-card";
-import { MockHeatmap, MockLineChart } from "@/components/charts/chart-mocks";
-import { DashboardMockShell } from "@/components/public/dashboard-mock-shell";
-import { PublicShell } from "@/components/public/public-shell";
-import { CtaBanner } from "@/components/public/cta-banner";
-import { ArticleCard } from "@/components/public/article-card";
-import { PageHero } from "@/components/public/page-hero";
-import { ProcessTimeline } from "@/components/public/process-timeline";
+import {
+  CapabilityCard,
+  ComparisonTogglePanel,
+  DataVizFeatureCard,
+  HeroScene,
+  MetricSnapshotStrip,
+  NaiveVsExecutionVisual,
+  ProcessStepperCarouselCard,
+  RegimeHeatmapVisual,
+  ScrollspyRail,
+  SectionSceneWrapper,
+  StrategyBenchmarkVisual,
+} from "@/components/public/home-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
-import { FeatureGrid } from "@/components/marketing/feature-grid";
-import { featuredResearch } from "@/content/site";
+import { PublicShell } from "@/components/public/public-shell";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Invariance Research | Independent Quantitative Strategy Validation",
@@ -18,97 +24,175 @@ export const metadata: Metadata = {
     "Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.",
 };
 
-const methodologySteps = [
-  { title: "Strategy Formalization", body: "Convert the strategy into a transparent specification with explicit assumptions." },
-  { title: "Execution Modeling", body: "Model spread, slippage, and latency to estimate implementation realism." },
-  { title: "Robustness Testing", body: "Stress parameters and evaluate cross-window behavior under adversarial conditions." },
-  { title: "Capital Risk Diagnostics", body: "Assess drawdown concentration, risk-of-ruin, and volatility clustering." },
-  { title: "Reporting", body: "Deliver institutional-style summaries with clear interpretation and action boundaries." },
+const frameworkSteps = [
+  {
+    title: "Strategy Definition",
+    body: "Formalize trade logic, filters, and hypothesis boundaries before diagnostics begin.",
+    note: "Step 1 — Theory integrity",
+  },
+  {
+    title: "Execution Modeling",
+    body: "Inject realistic spread, latency, and slippage assumptions to prevent under-modeled edge.",
+    note: "Step 2 — Friction modeling",
+  },
+  {
+    title: "Robustness Testing",
+    body: "Stress key parameters over window shifts and adversarial slices to identify fragility.",
+    note: "Step 3 — Stability pressure",
+  },
+  {
+    title: "Regime Sensitivity Analysis",
+    body: "Evaluate strategy behavior through volatility and liquidity regime transitions.",
+    note: "Step 4 — Regime mapping",
+  },
+  {
+    title: "Capital Risk Diagnostics",
+    body: "Quantify drawdown concentration, ruin likelihood, and capital allocation limits.",
+    note: "Step 5 — Deployment controls",
+  },
 ] as const;
+
+const sceneIds = ["scene-hero", "scene-framework", "scene-lab", "scene-consulting"];
 
 export default function HomePage() {
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Independent Quantitative Validation Studio"
-          title="Independent Quantitative Strategy Validation"
-          description="Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies."
-          primaryCta={{ label: "View Research Standards", href: "/research-standards" }}
-          secondaryCta={{ label: "Validate Your Strategy", href: "/strategy-validation" }}
-          tertiaryCta={{ label: "Explore Strategy Robustness Lab", href: "/robustness-lab" }}
-          credibilityLine="Institutional-style validation framework designed to eliminate false edge before capital deployment."
-          rightSlot={<ChartCard title="Robustness Heatmap" subtitle="Live readiness snapshot" chart={<MockHeatmap />} />}
+      <main className="relative bg-white">
+        <ScrollspyRail sectionIds={sceneIds} />
+
+        <HeroScene
+          rightSlot={
+            <Card className="border-black/10 bg-white/90 p-5 backdrop-blur-sm">
+              <div className="flex items-center justify-between border-b border-black/10 pb-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.12em] text-text-neutral">Robustness Heatmap</p>
+                  <p className="text-sm font-medium text-text-graphite">Live readiness snapshot</p>
+                </div>
+                <p className="rounded-full border border-brand/20 bg-brand/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-brand">
+                  Execution-aware
+                </p>
+              </div>
+              <RegimeHeatmapVisual />
+            </Card>
+          }
         />
 
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Most Trading Strategies Fail in Live Markets" description="Naïve backtests commonly omit slippage, spread, latency, parameter fragility, and regime shifts. The resulting mismatch appears only after capital is deployed." />
-          <div className="grid gap-6 md:grid-cols-2">
-            <ChartCard title="Naïve Backtest" subtitle="Assumption-heavy simulation" chart={<MockLineChart />} footer="Smooth trajectory often reflects under-modeled execution conditions." />
-            <ChartCard title="Execution-Aware Test" subtitle="Realistic implementation assumptions" chart={<MockLineChart />} footer="Observed degradation and drawdown clustering become visible under realistic assumptions." />
-          </div>
-        </section>
+        <SectionSceneWrapper id="scene-framework" tone="soft">
+          <div className="space-y-8">
+            <SectionHeader
+              title="Most Trading Strategies Fail in Live Markets"
+              description="Naïve backtests commonly omit slippage, spread, latency, parameter fragility, and regime shifts. The mismatch appears after capital is deployed."
+            />
+            <ComparisonTogglePanel
+              items={[
+                {
+                  label: "Naïve Backtest",
+                  title: "Assumption-heavy simulations mask implementation risk.",
+                  body: "Without execution friction and adverse-condition stress, equity curves appear stable and deceptively deployable.",
+                  visual: <NaiveVsExecutionVisual />,
+                },
+                {
+                  label: "Execution-Aware Test",
+                  title: "Realistic assumptions surface true risk before deployment.",
+                  body: "Applying spread, slippage, and latency assumptions reveals degradation, drawdown clustering, and fragile parameter dependence.",
+                  visual: <NaiveVsExecutionVisual executionAware />,
+                },
+              ]}
+            />
 
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Execution-Aware Validation Framework" description="A disciplined pipeline from strategy definition through structured reporting." />
-          <ProcessTimeline
-            steps={[
-              { title: "Strategy Definition", body: "Formal assumptions and expected edge hypothesis." },
-              { title: "Execution Modeling", body: "Market impact, spread, latency, and cost realism." },
-              { title: "Robustness Testing", body: "Parameter and scenario stress diagnostics." },
-              { title: "Regime Sensitivity Analysis", body: "Behavior across volatility and liquidity states." },
-              { title: "Capital Risk Diagnostics", body: "Risk concentration and ruin probabilities." },
-            ]}
-          />
-          <Card className="p-card-md text-sm text-text-neutral">Final output: Structured Validation Report with methodology, findings, and risk interpretation.</Card>
-        </section>
-
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Strategy Robustness Lab" description="A platform that tests whether trading strategies survive realistic execution and adverse market conditions." />
-          <FeatureGrid columns={4} />
-          <DashboardMockShell />
-        </section>
-
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Independent Strategy Validation" description="For strategies requiring deeper analysis than automated diagnostics, consulting engagements provide analyst-led review and structured deliverables." />
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              "Execution-aware backtest",
-              "Monte Carlo robustness testing",
-              "Parameter stability analysis",
-              "Regime performance diagnostics",
-              "Capital risk modeling",
-              "Structured validation report",
-            ].map((item, index) => (
-              <Card key={`home-item-${index}-${item.slice(0, 24)}`} className="p-card-md text-sm text-text-graphite">
-                {item}
+            <div className="space-y-4">
+              <SectionHeader
+                title="Execution-Aware Validation Framework"
+                description="A disciplined pipeline from strategy definition through structured institutional reporting."
+              />
+              <ProcessStepperCarouselCard
+                title="Validation Process"
+                subtitle="A full-width methodology card with step-by-step inspection of the same five-stage framework."
+                steps={frameworkSteps}
+              />
+              <Card className="border-black/10 p-card-md text-sm text-text-neutral">
+                Final output: structured validation report with methodology traceability, primary findings, and capital-risk interpretation.
               </Card>
-            ))}
+            </div>
           </div>
-        </section>
+        </SectionSceneWrapper>
 
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Validation Methodology" description="Five-step workflow for consistent, execution-aware evaluation." />
-          <ProcessTimeline steps={methodologySteps} />
-        </section>
+        <SectionSceneWrapper id="scene-lab" tone="base">
+          <div className="space-y-8">
+            <SectionHeader
+              title="Strategy Robustness Lab"
+              description="Diagnostics focused on whether a strategy remains credible under realistic execution and adverse market states."
+            />
+            <div className="grid gap-4 md:grid-cols-4">
+              <CapabilityCard title="Validation Methodology" body="A rules-based test protocol with controlled assumptions and transparent acceptance criteria." />
+              <CapabilityCard title="Execution Diagnostics" body="Cost and implementation realism across spread, slippage, and latency envelopes." />
+              <CapabilityCard title="Capital Risk Analysis" body="Drawdown concentration, ruin sensitivity, and exposure constraints for deployment readiness." />
+              <CapabilityCard title="Benchmark Comparison" body="Relative edge analysis against institutional benchmark trajectories and stress baselines." />
+            </div>
 
-        <section className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Research & Case Studies" description="Method-driven analysis on fragility, execution, and robustness." />
-          <div className="grid gap-6 md:grid-cols-3">
-            {featuredResearch.map((article) => (
-              <ArticleCard key={article.title} {...article} />
-            ))}
+            <div className="grid gap-5 lg:grid-cols-2">
+              <DataVizFeatureCard title="Strategy Equity vs Benchmark" subtitle="Comparative trajectory diagnostics">
+                <StrategyBenchmarkVisual />
+              </DataVizFeatureCard>
+              <DataVizFeatureCard title="Regime Stress Heatmap" subtitle="Regime-conditioned robustness matrix">
+                <RegimeHeatmapVisual />
+              </DataVizFeatureCard>
+            </div>
+
+            <MetricSnapshotStrip
+              metrics={[
+                { label: "Live Readiness", value: "74 / 100" },
+                { label: "Max Drawdown", value: "-12.8%", tone: "alert" },
+                { label: "Sharpe (Adj.)", value: "1.32", tone: "positive" },
+                { label: "Stress Pass Rate", value: "82%" },
+              ]}
+            />
           </div>
-        </section>
+        </SectionSceneWrapper>
 
-        <section className="container-shell py-section-md">
-          <CtaBanner
-            title="Validate Your Strategy Before Capital Is Deployed"
-            description="Most strategies appear profitable until tested under realistic conditions. The validation framework identifies fragility before capital is exposed."
-            primary={{ label: "Run Strategy Diagnostics", href: "/robustness-lab" }}
-            secondary={{ label: "Request Validation Audit", href: "/contact" }}
-          />
-        </section>
+        <SectionSceneWrapper id="scene-consulting" tone="panel" className="border-b border-black/5">
+          <div className="space-y-8">
+            <SectionHeader
+              title="Independent Strategy Validation"
+              description="Analyst-led engagements for teams requiring deeper review than automated diagnostics alone."
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                "Execution-aware backtest",
+                "Monte Carlo robustness testing",
+                "Parameter stability analysis",
+                "Regime performance diagnostics",
+                "Capital risk modeling",
+                "Structured validation report",
+              ].map((item) => (
+                <Card key={item} className="border-black/10 bg-white p-card-md text-sm text-text-graphite">
+                  {item}
+                </Card>
+              ))}
+            </div>
+
+            <ProcessStepperCarouselCard
+              title="Analyst Engagement Workflow"
+              subtitle="The same five-step framework is reused in consulting engagements, with deeper manual review and interpretation."
+              steps={frameworkSteps}
+            />
+
+            <Card className="border-black/10 bg-white p-8">
+              <h3 className="text-2xl font-semibold text-text-graphite">Validate Your Strategy Before Capital Is Deployed</h3>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-neutral">
+                Most strategies appear profitable until tested under realistic conditions. The validation framework identifies fragility before capital is exposed.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button asChild>
+                  <Link href="/robustness-lab">Run Strategy Diagnostics</Link>
+                </Button>
+                <Button asChild variant="secondary">
+                  <Link href="/contact">Request Validation Audit</Link>
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </SectionSceneWrapper>
       </main>
     </PublicShell>
   );
