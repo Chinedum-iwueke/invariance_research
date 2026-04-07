@@ -15,6 +15,8 @@ type MediaCandidate = {
 const MEDIA_CANDIDATES: MediaCandidate[] = [
   { kind: "video", src: "/overlay_graphic.webm", mimeType: "video/webm" },
   { kind: "video", src: "/overlay_graphic.mp4", mimeType: "video/mp4" },
+  { kind: "video", src: "/overlay_graphic.mov", mimeType: "video/quicktime" },
+  { kind: "image", src: "/overlay_graphic.avif" },
   { kind: "image", src: "/overlay_graphic.webp" },
   { kind: "image", src: "/overlay_graphic.png" },
   { kind: "image", src: "/overlay_graphic.jpg" },
@@ -53,6 +55,7 @@ export function HeroOverlayBackground() {
       mediaNode = (
         <video
           key={candidate.src}
+          src={candidate.src}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass}`}
           autoPlay
           muted
@@ -61,9 +64,7 @@ export function HeroOverlayBackground() {
           preload="metadata"
           onLoadedData={handleMediaSuccess}
           onError={handleMediaError}
-        >
-          <source src={candidate.src} type={candidate.mimeType} />
-        </video>
+        />
       );
     } else {
       mediaNode = (
