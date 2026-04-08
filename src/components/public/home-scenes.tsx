@@ -49,7 +49,7 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
   );
 }
 
-export function HeroScene() {
+export function HeroScene(): ReactNode {
   return (
     <section id="hero" className="relative isolate h-[100svh] min-h-[44rem] overflow-hidden bg-surface-white">
       <HeroOverlayBackground />
@@ -58,25 +58,21 @@ export function HeroScene() {
           <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
             <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
-                Independent Quantitative Strategy Validation
-              </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
-                Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
-              </p>
-              <div className="space-y-6 pt-1">
-                <div className="flex flex-wrap gap-3">
-                  <Button asChild>
-                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
-                  </Button>
-                  <Button asChild variant="secondary">
-                    <Link href="/strategy-validation">Validate Your Strategy</Link>
-                  </Button>
-                </div>
-                <p className="max-w-xl text-sm text-text-neutral">
-                  Institutional-style validation framework designed to eliminate false edge before capital deployment.
-                </p>
+              Independent Quantitative Strategy Validation
+            </h1>
+            <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+              Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
+            </p>
+            <div className="space-y-6 pt-1">
+              <div className="flex flex-wrap gap-3">
+                <Button asChild>
+                  <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                </Button>
+                <Button asChild variant="secondary">
+                  <Link href="/strategy-validation">Validate Your Strategy</Link>
+                </Button>
               </div>
-              <p className="max-w-[60ch] border-l border-brand/35 pl-3.5 text-sm text-text-neutral/92">
+              <p className="max-w-xl text-sm text-text-neutral">
                 Institutional-style validation framework designed to eliminate false edge before capital deployment.
               </p>
             </div>
