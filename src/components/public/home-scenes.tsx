@@ -18,14 +18,14 @@ type SectionSceneWrapperProps = {
 export function SectionSceneWrapper({ id, tone = "base", transition = "standard", className, children }: SectionSceneWrapperProps) {
   const toneClass = {
     base: "bg-surface-white",
-    soft: "bg-[#fcfbfa]",
-    panel: "bg-[#f8f7f5]",
+    soft: "bg-surface-panel/45",
+    panel: "bg-surface-panel/70",
   }[tone];
 
   return (
-    <section id={id} className={cn("relative isolate border-t border-black/5", toneClass, className)}>
+    <section id={id} className={cn("relative isolate border-t border-border-subtle", toneClass, className)}>
       {transition === "sheet-reveal" ? (
-        <div className="relative overflow-hidden rounded-t-[1.75rem] bg-surface-white shadow-[0_-1px_0_rgba(17,17,17,0.05),0_-16px_30px_-26px_rgba(17,17,17,0.35)]">
+        <div className="relative overflow-hidden rounded-t-[2rem] border-t border-border-subtle/80 bg-surface-white shadow-raised">
           <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
         </div>
       ) : null}
@@ -51,39 +51,40 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
 
 export function HeroScene() {
   return (
-    <section id="hero" className="relative isolate h-[100svh] min-h-[100svh] overflow-hidden bg-surface-white">
-      <HeroOverlayBackground />
-      <div className="container-shell relative z-10 grid h-full min-h-[100svh] grid-rows-[minmax(4.5rem,14svh)_auto_auto_minmax(4.75rem,11svh)]">
-        <div aria-hidden />
-        <div className="max-w-[44rem] self-end">
-          <div className="space-y-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
-            <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
-              Independent Quantitative Strategy Validation
-            </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
-              Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
-            </p>
+    <section id="hero" className="relative isolate min-h-[130svh] bg-surface-white">
+      <div className="sticky top-0 h-[100svh] overflow-hidden">
+        <HeroOverlayBackground />
+        <div className="container-shell relative z-10 flex h-full flex-col pb-[max(1.5rem,4svh)] pt-[max(5.25rem,11svh)]">
+          <div className="flex flex-1 items-center">
+            <div className="max-w-[44rem] space-y-6 -translate-y-[clamp(0.75rem,2.6svh,1.6rem)] md:-translate-y-[clamp(1.1rem,3svh,2rem)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
+              <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
+                Independent Quantitative Strategy Validation
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+                Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
+              </p>
+              <div className="space-y-6 pt-1">
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link href="/research-standards">View Research Standards</Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href="/strategy-validation">Validate Your Strategy</Link>
+                  </Button>
+                  <Button asChild variant="tertiary">
+                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                  </Button>
+                </div>
+                <p className="max-w-xl border-l border-brand/40 pl-4 text-sm text-text-neutral">
+                  Institutional-style validation framework designed to eliminate false edge before capital deployment.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="max-w-[44rem] space-y-6 self-start pt-7 md:pt-8">
-          <div className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/research-standards">View Research Standards</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/strategy-validation">Validate Your Strategy</Link>
-            </Button>
-            <Button asChild variant="tertiary">
-              <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
-            </Button>
+          <div className="flex min-h-[4.75rem] items-end justify-center pb-2">
+            <SceneScrollCue href="#problem" />
           </div>
-          <p className="max-w-xl border-l border-brand/40 pl-4 text-sm text-text-neutral">
-            Institutional-style validation framework designed to eliminate false edge before capital deployment.
-          </p>
-        </div>
-        <div className="flex items-end justify-center pb-6 md:pb-7">
-          <SceneScrollCue href="#problem" />
         </div>
       </div>
     </section>
@@ -148,8 +149,8 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
-    <div className="rounded-md border border-black/10 bg-white p-6 shadow-[0_12px_40px_-28px_rgba(17,17,17,0.55)]">
-      <div className="inline-flex rounded-full border border-black/10 bg-[#fbfaf8] p-1">
+    <div className="rounded-md border border-border-subtle bg-surface-white p-6 shadow-soft">
+      <div className="inline-flex rounded-full border border-border-subtle bg-surface-panel/70 p-1">
         {items.map((item, index) => (
           <button
             key={item.label}
@@ -157,7 +158,7 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
             onClick={() => setActiveIndex(index)}
             className={cn(
               "rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] transition",
-              index === activeIndex ? "bg-[#221f1f] text-white" : "text-text-neutral hover:text-text-graphite",
+              index === activeIndex ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite",
             )}
           >
             {item.label}
@@ -165,7 +166,7 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
         ))}
       </div>
       <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:items-center">
-        <div className="rounded-sm border border-black/10 bg-[#fefdfc] p-4">{items[activeIndex]?.visual}</div>
+        <div className="rounded-sm border border-border-subtle bg-surface-panel/50 p-4">{items[activeIndex]?.visual}</div>
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{items[activeIndex]?.label}</p>
           <h3 className="text-2xl font-semibold text-text-graphite">{items[activeIndex]?.title}</h3>
@@ -183,13 +184,13 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
   const activeStep = steps[activeIndex];
 
   return (
-    <div className="rounded-md border border-black/10 bg-white p-6 shadow-[0_14px_40px_-32px_rgba(0,0,0,0.55)]">
+    <div className="rounded-md border border-border-subtle bg-surface-white p-6 shadow-soft">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{title}</p>
           {subtitle ? <p className="mt-1 text-sm text-text-neutral">{subtitle}</p> : null}
         </div>
-        <div className="inline-flex rounded-full border border-black/10 bg-[#f8f6f4] p-1">
+        <div className="inline-flex rounded-full border border-border-subtle bg-surface-panel/70 p-1">
           {steps.map((step, index) => (
             <button
               key={step.title}
@@ -197,7 +198,7 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
               onClick={() => setActiveIndex(index)}
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-medium transition",
-                index === activeIndex ? "bg-[#201d1d] text-white" : "text-text-neutral hover:text-text-graphite",
+                index === activeIndex ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite",
               )}
               aria-label={`View step ${index + 1}`}
             >
@@ -207,7 +208,7 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
         </div>
       </div>
       <div className="mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr] md:items-center">
-        <div className="rounded-sm border border-brand/20 bg-brand/[0.04] p-6">
+        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] p-6">
           <p className="text-xs uppercase tracking-[0.14em] text-text-neutral">Current Step</p>
           <p className="mt-2 text-4xl font-semibold text-brand">{String(activeIndex + 1).padStart(2, "0")}</p>
         </div>
@@ -223,7 +224,7 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
 
 export function CapabilityCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-sm border border-black/10 bg-white p-5">
+    <div className="rounded-sm border border-border-subtle bg-surface-white p-5">
       <h3 className="text-base font-semibold text-text-graphite">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-text-neutral">{body}</p>
     </div>
@@ -232,8 +233,8 @@ export function CapabilityCard({ title, body }: { title: string; body: string })
 
 export function DataVizFeatureCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <article className="rounded-md border border-black/10 bg-white p-5">
-      <div className="mb-4 flex items-end justify-between gap-4 border-b border-black/10 pb-3">
+    <article className="rounded-md border border-border-subtle bg-surface-white p-5">
+      <div className="mb-4 flex items-end justify-between gap-4 border-b border-border-subtle pb-3">
         <div>
           <h3 className="text-lg font-semibold text-text-graphite">{title}</h3>
           <p className="text-xs uppercase tracking-[0.12em] text-text-neutral">{subtitle}</p>
@@ -246,11 +247,11 @@ export function DataVizFeatureCard({ title, subtitle, children }: { title: strin
 
 export function MetricSnapshotStrip({ metrics }: { metrics: Array<{ label: string; value: string; tone?: "base" | "alert" | "positive" }> }) {
   return (
-    <div className="grid gap-3 rounded-sm border border-black/10 bg-white p-3 md:grid-cols-4">
+    <div className="grid gap-3 rounded-sm border border-border-subtle bg-surface-white p-3 md:grid-cols-4">
       {metrics.map((metric) => {
         const toneClass = metric.tone === "alert" ? "text-brand" : metric.tone === "positive" ? "text-emerald-700" : "text-text-graphite";
         return (
-          <div key={metric.label} className="rounded-sm border border-black/10 bg-[#fcfbf9] px-4 py-3">
+          <div key={metric.label} className="rounded-sm border border-border-subtle bg-surface-panel/60 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.14em] text-text-neutral">{metric.label}</p>
             <p className={cn("mt-2 text-xl font-semibold", toneClass)}>{metric.value}</p>
           </div>
@@ -262,7 +263,7 @@ export function MetricSnapshotStrip({ metrics }: { metrics: Array<{ label: strin
 
 export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: boolean }) {
   return (
-    <div className="relative h-52 overflow-hidden rounded-sm border border-black/10 bg-white p-3">
+    <div className="relative h-52 overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-3">
       <svg className="h-full w-full" viewBox="0 0 420 220" preserveAspectRatio="none">
         <text x="8" y="20" fill="#666" fontSize="10">Equity</text>
         <text x="368" y="208" fill="#666" fontSize="10">Time</text>
@@ -277,7 +278,7 @@ export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: bo
           points={executionAware ? "30,180 90,178 150,170 210,173 270,162 330,161 390,156" : "30,182 90,174 150,162 210,146 270,138 330,122 390,98"}
         />
       </svg>
-      <div className="absolute right-3 top-3 rounded-sm border border-black/10 bg-white/90 px-3 py-2 text-xs">
+      <div className="absolute right-3 top-3 rounded-sm border border-border-subtle bg-surface-white/90 px-3 py-2 text-xs">
         <p className="font-medium text-text-graphite">{executionAware ? "Realistic decay visible" : "Smooth edge profile"}</p>
       </div>
     </div>
@@ -293,7 +294,7 @@ export function StrategyBenchmarkVisual() {
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-brand" />Strategy</span>
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-[#4f6b95]" />Benchmark</span>
       </div>
-      <div className="relative h-56 rounded-sm border border-black/10 bg-[#fffdfb] p-3">
+      <div className="relative h-56 rounded-sm border border-border-subtle bg-surface-panel/45 p-3">
         <svg className="h-full w-full" viewBox="0 0 420 220" preserveAspectRatio="none">
           <text x="6" y="16" fill="#666" fontSize="10">Cumulative Return (%)</text>
           <text x="352" y="208" fill="#666" fontSize="10">Quarter</text>
