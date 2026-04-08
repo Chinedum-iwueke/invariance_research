@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowRight, ChevronDown, FileCheck2, FileText, Gauge, ShieldAlert, Waypoints } from "lucide-react";
+import { Activity, ArrowRight, ChevronDown, FileCheck2, FileOutput, FileText, Gauge, Inbox, ListChecks, ShieldAlert, Users, Waypoints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroOverlayBackground } from "@/components/public/hero-overlay-background";
@@ -51,9 +51,9 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
 
 export function HeroScene() {
   return (
-    <section id="hero" className="relative isolate h-[100svh] min-h-[44rem] overflow-hidden bg-surface-white">
+    <section id="hero" className="relative isolate h-[90svh] min-h-[40rem] overflow-hidden bg-surface-white">
       <HeroOverlayBackground />
-      <div className="container-shell relative z-10 flex h-full flex-col pt-[max(4.5rem,9svh)] pb-[max(1.4rem,3.5svh)]">
+      <div className="container-shell relative z-10 flex h-full flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
         <div className="flex flex-1 items-center motion-safe:animate-[hero-enter_620ms_cubic-bezier(0.22,1,0.36,1)_both]">
           <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
@@ -78,7 +78,7 @@ export function HeroScene() {
             </div>
           </div>
         </div>
-        <div className="flex min-h-[4rem] items-end justify-center pb-1">
+        <div className="flex min-h-[4.75rem] items-end justify-center pb-1">
           <SceneScrollCue href="#problem" />
         </div>
       </div>
@@ -201,6 +201,11 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
     "Robustness Testing": <Gauge className="h-7 w-7 text-brand" strokeWidth={1.8} />,
     "Regime Sensitivity Analysis": <ShieldAlert className="h-7 w-7 text-brand" strokeWidth={1.8} />,
     "Capital Risk Diagnostics": <ShieldAlert className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    Scoping: <ListChecks className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    "Data Intake": <Inbox className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    Validation: <Activity className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    Review: <Users className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    Delivery: <FileOutput className="h-7 w-7 text-brand" strokeWidth={1.8} />,
     Reporting: <FileCheck2 className="h-7 w-7 text-brand" strokeWidth={1.8} />,
   };
   const activeStepIcon = stepIconByTitle[activeStep?.title] ?? <FileCheck2 className="h-7 w-7 text-brand" strokeWidth={1.8} />;

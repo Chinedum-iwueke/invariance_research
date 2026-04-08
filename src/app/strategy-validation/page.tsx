@@ -4,8 +4,7 @@ import { ConfidentialityCallout } from "@/components/public/confidentiality-call
 import { ContactForm } from "@/components/public/contact-form";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
-import { ProcessTimeline } from "@/components/public/process-timeline";
-import { ScrollspyRail } from "@/components/public/home-scenes";
+import { ProcessStepperCarouselCard, ScrollspyRail } from "@/components/public/home-scenes";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -23,7 +22,6 @@ export default function StrategyValidationPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            eyebrow="Consulting Services"
             title="Independent Strategy Validation"
             description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
             primaryCta={{ label: "Request Consultation", href: "#request" }}
@@ -68,14 +66,16 @@ export default function StrategyValidationPage() {
         </section>
 
         <section id="process" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Engagement Process" description="Transparent steps from intake to final recommendation briefing." />
-          <ProcessTimeline
+          <SectionHeader title="Engagement Process" description="A structured analyst-led sequence from scoping through final delivery." />
+          <ProcessStepperCarouselCard
+            title="Engagement Process"
+            subtitle="Each phase is designed to produce decision-ready evidence for teams evaluating live deployment."
             steps={[
-              { title: "Scoping", body: "Define objectives, constraints, and material requirements." },
-              { title: "Data Intake", body: "Collect strategy artifacts and execution context." },
-              { title: "Validation", body: "Run diagnostics, stress testing, and sensitivity analysis." },
-              { title: "Review", body: "Analyst synthesis with committee-ready interpretation." },
-              { title: "Delivery", body: "Issue structured report and discussion session." },
+              { title: "Scoping", body: "Define objectives, constraints, and material requirements.", note: "Step 1" },
+              { title: "Data Intake", body: "Collect strategy artifacts and execution context.", note: "Step 2" },
+              { title: "Validation", body: "Run diagnostics, stress testing, and sensitivity analysis.", note: "Step 3" },
+              { title: "Review", body: "Analyst synthesis with committee-ready interpretation.", note: "Step 4" },
+              { title: "Delivery", body: "Issue structured report and discussion session.", note: "Step 5" },
             ]}
           />
         </section>
