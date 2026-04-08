@@ -8,7 +8,6 @@ import {
   NaiveVsExecutionVisual,
   ProcessStepperCarouselCard,
   RegimeHeatmapVisual,
-  ScrollspyRail,
   SectionSceneWrapper,
   StrategyBenchmarkVisual,
 } from "@/components/public/home-scenes";
@@ -16,6 +15,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
 import { PublicShell } from "@/components/public/public-shell";
 import { Button } from "@/components/ui/button";
+import { HomePageScenesShell } from "@/components/public/home-page-scenes-shell";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -57,12 +57,16 @@ const sceneIds = ["hero", "problem", "lab", "consulting"];
 export default function HomePage() {
   return (
     <PublicShell>
-      <main className="relative bg-surface-panel/55">
-        <ScrollspyRail sectionIds={sceneIds} />
+      <HomePageScenesShell sceneIds={sceneIds}>
+        <HeroScene style={{ transform: "translate3d(0, var(--hero-shift), 0)", opacity: "var(--hero-opacity)" }} />
 
-        <HeroScene />
-
-        <SectionSceneWrapper id="problem" tone="soft" transition="sheet-reveal">
+        <SectionSceneWrapper
+          id="problem"
+          tone="soft"
+          transition="sheet-reveal"
+          style={{ transform: "translate3d(0, var(--next-shift), 0)", opacity: "var(--next-opacity)" }}
+          className="transform-gpu transition-[transform,opacity] duration-500 ease-out"
+        >
           <div className="space-y-8">
             <SectionHeader
               title="Most Trading Strategies Fail in Live Markets"
@@ -181,7 +185,7 @@ export default function HomePage() {
             </Card>
           </div>
         </SectionSceneWrapper>
-      </main>
+      </HomePageScenesShell>
     </PublicShell>
   );
 }

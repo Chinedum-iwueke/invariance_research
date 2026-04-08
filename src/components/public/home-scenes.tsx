@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Activity, ArrowRight, ChevronDown, FileCheck2, FileOutput, FileText, Gauge, Inbox, ListChecks, ShieldAlert, Users, Waypoints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ type SectionSceneWrapperProps = {
   children: ReactNode;
 };
 
-export function SectionSceneWrapper({ id, tone = "base", transition = "standard", className, children }: SectionSceneWrapperProps) {
+export function SectionSceneWrapper({ id, tone = "base", transition = "standard", className, children, style }: SectionSceneWrapperProps & { style?: CSSProperties }) {
   const toneClass = {
     base: "bg-surface-white",
     soft: "bg-surface-panel/45",
@@ -23,7 +24,7 @@ export function SectionSceneWrapper({ id, tone = "base", transition = "standard"
   }[tone];
 
   return (
-    <section id={id} className={cn("relative isolate border-t border-border-subtle", toneClass, className)}>
+    <section id={id} style={style} className={cn("relative isolate min-h-screen snap-start border-t border-border-subtle", toneClass, className)}>
       {transition === "sheet-reveal" ? (
         <div className="relative overflow-hidden rounded-t-[2rem] border-t border-border-subtle/80 bg-surface-white shadow-raised">
           <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
@@ -35,25 +36,29 @@ export function SectionSceneWrapper({ id, tone = "base", transition = "standard"
 }
 
 export function SceneScrollCue({ href, className }: { href: string; className?: string }) {
+  const targetId = href.startsWith("#") ? href.slice(1) : href;
+
   return (
-    <Link
-      href={href}
+    <button
+      type="button"
+      onClick={() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" })}
       className={cn(
         "inline-flex flex-col items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-text-neutral/90 transition-colors hover:text-text-graphite",
         className,
       )}
+      aria-label="Scroll to next section"
     >
       <span>Scroll to explore</span>
       <ChevronDown className="h-4 w-4 text-brand motion-safe:animate-[scroll-cue_2.25s_ease-in-out_infinite]" strokeWidth={1.5} />
-    </Link>
+    </button>
   );
 }
 
-export function HeroScene() {
+export function HeroScene({ style }: { style?: CSSProperties }) {
   return (
-    <section id="hero" className="relative isolate h-[90svh] min-h-[40rem] overflow-hidden bg-surface-white">
+    <section id="hero" style={style} className="relative isolate flex min-h-screen snap-start items-center overflow-hidden bg-surface-white">
       <HeroOverlayBackground />
-      <div className="container-shell relative z-10 flex h-full flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
+      <div className="container-shell relative z-10 flex h-[90svh] min-h-[40rem] flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
         <div className="flex flex-1 items-center motion-safe:animate-[hero-enter_620ms_cubic-bezier(0.22,1,0.36,1)_both]">
           <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
@@ -86,7 +91,7 @@ export function HeroScene() {
   );
 }
 
-export function ScrollspyRail({ sectionIds }: { sectionIds: string[] }) {
+export function ScrollspyRail({ sectionIds, scrollRoot }: { sectionIds: string[]; scrollRoot?: RefObject<HTMLElement | null> }) {
   const [activeId, setActiveId] = useState(sectionIds[0]);
 
   useEffect(() => {
@@ -104,12 +109,12 @@ export function ScrollspyRail({ sectionIds }: { sectionIds: string[] }) {
         const nextActiveId = visibleEntries[0]?.target.id;
         if (nextActiveId) setActiveId(nextActiveId);
       },
-      { root: null, rootMargin: "-25% 0px -45% 0px", threshold: [0.15, 0.35, 0.6] },
+      { root: scrollRoot?.current ?? null, rootMargin: "-25% 0px -45% 0px", threshold: [0.15, 0.35, 0.6] },
     );
 
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, [sectionIds]);
+  }, [scrollRoot, sectionIds]);
 
   return (
     <nav className="fixed right-6 top-1/2 z-40 hidden -translate-y-1/2 gap-3 md:flex md:flex-col" aria-label="Section progress">
