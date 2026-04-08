@@ -117,3 +117,28 @@ h4 {
     @apply rounded-md border border-border-subtle bg-surface-white shadow-soft;
   }
 }
+
+@layer utilities {
+  @keyframes hero-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scroll-cue {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.95;
+    }
+    50% {
+      transform: translateY(2px);
+      opacity: 0.7;
+    }
+  }
+}
