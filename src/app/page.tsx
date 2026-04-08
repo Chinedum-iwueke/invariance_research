@@ -57,12 +57,12 @@ const sceneIds = ["hero", "problem", "lab", "consulting"];
 export default function HomePage() {
   return (
     <PublicShell>
-      <main className="relative bg-white">
+      <main className="relative bg-surface-panel/55">
         <ScrollspyRail sectionIds={sceneIds} />
 
         <HeroScene />
 
-        <SectionSceneWrapper id="problem" tone="soft" transition="sheet-reveal">
+        <SectionSceneWrapper id="problem" tone="soft" transition="sheet-reveal" className="-mt-[18svh]">
           <div className="space-y-8">
             <SectionHeader
               title="Most Trading Strategies Fail in Live Markets"
@@ -95,14 +95,14 @@ export default function HomePage() {
                 subtitle="A full-width methodology card with step-by-step inspection of the same five-stage framework."
                 steps={frameworkSteps}
               />
-              <Card className="border-black/10 p-card-md text-sm text-text-neutral">
+              <Card className="p-card-md text-sm text-text-neutral">
                 Final output: structured validation report with methodology traceability, primary findings, and capital-risk interpretation.
               </Card>
             </div>
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="lab" tone="base" className="border-t border-black/10">
+        <SectionSceneWrapper id="lab" tone="base">
           <div className="space-y-8">
             <SectionHeader
               title="Strategy Robustness Lab"
@@ -135,7 +135,7 @@ export default function HomePage() {
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="consulting" tone="panel" className="border-b border-black/5">
+        <SectionSceneWrapper id="consulting" tone="panel" className="border-b border-border-subtle">
           <div className="space-y-8">
             <SectionHeader
               title="Independent Strategy Validation"
@@ -150,7 +150,7 @@ export default function HomePage() {
                 "Capital risk modeling",
                 "Structured validation report",
               ].map((item) => (
-                <Card key={item} className="border-black/10 bg-white p-card-md text-sm text-text-graphite">
+                <Card key={item} className="p-card-md text-sm text-text-graphite">
                   {item}
                 </Card>
               ))}
@@ -162,7 +162,7 @@ export default function HomePage() {
               steps={frameworkSteps}
             />
 
-            <Card className="border-black/10 bg-white p-8">
+            <Card className="p-8">
               <h3 className="text-2xl font-semibold text-text-graphite">Validate Your Strategy Before Capital Is Deployed</h3>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-neutral">
                 Most strategies appear profitable until tested under realistic conditions. The validation framework identifies fragility before capital is exposed.
