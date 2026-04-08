@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, FileCheck2, FileText, Gauge, ShieldAlert, Waypoints } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroOverlayBackground } from "@/components/public/hero-overlay-background";
@@ -165,7 +165,7 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
           </button>
         ))}
       </div>
-      <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-sm border border-border-subtle bg-surface-panel/50 p-4">{items[activeIndex]?.visual}</div>
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{items[activeIndex]?.label}</p>
@@ -181,7 +181,40 @@ type ProcessStep = { title: string; body: string; note?: string };
 
 export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: string; subtitle?: string; steps: ProcessStep[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [flipState, setFlipState] = useState<"idle" | "out" | "in">("idle");
   const activeStep = steps[activeIndex];
+  const activeStepNumber = String(activeIndex + 1).padStart(2, "0");
+
+  const handleDirectStepChange = (index: number) => {
+    setFlipState("idle");
+    setActiveIndex(index);
+  };
+
+  const handleArrowAdvance = () => {
+    if (flipState !== "idle" || steps.length < 2) return;
+    setFlipState("out");
+    window.setTimeout(() => {
+      setActiveIndex((prev) => (prev + 1) % steps.length);
+      setFlipState("in");
+      window.setTimeout(() => setFlipState("idle"), 260);
+    }, 180);
+  };
+
+  const stepIconByTitle: Record<string, ReactNode> = {
+    "Strategy Definition": <FileText className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    "Execution Modeling": <Waypoints className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    "Robustness Testing": <Gauge className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    "Regime Sensitivity Analysis": <ShieldAlert className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    "Capital Risk Diagnostics": <ShieldAlert className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+    Reporting: <FileCheck2 className="h-7 w-7 text-brand" strokeWidth={1.8} />,
+  };
+  const activeStepIcon = stepIconByTitle[activeStep?.title] ?? <FileCheck2 className="h-7 w-7 text-brand" strokeWidth={1.8} />;
+  const flipMotionClass =
+    flipState === "out"
+      ? "opacity-0 [transform:perspective(1200px)_rotateY(-9deg)_translateX(18px)]"
+      : flipState === "in"
+        ? "opacity-100 [transform:perspective(1200px)_rotateY(0deg)_translateX(0px)]"
+        : "opacity-100";
 
   return (
     <div className="rounded-md border border-border-subtle bg-surface-white p-6 shadow-soft">
@@ -195,7 +228,7 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
             <button
               key={step.title}
               type="button"
-              onClick={() => setActiveIndex(index)}
+              onClick={() => handleDirectStepChange(index)}
               className={cn(
                 "rounded-full px-3 py-1.5 text-xs font-medium transition",
                 index === activeIndex ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite",
@@ -207,13 +240,22 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
           ))}
         </div>
       </div>
-      <div className="mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr] md:items-center">
+      <div className={cn("mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr]", "transform-gpu transition-all duration-[280ms] ease-out", flipMotionClass)}>
         <div className="rounded-sm border border-brand/30 bg-brand/[0.08] p-6">
           <p className="text-xs uppercase tracking-[0.14em] text-text-neutral">Current Step</p>
-          <p className="mt-2 text-4xl font-semibold text-brand">{String(activeIndex + 1).padStart(2, "0")}</p>
+          <p className="mt-2 text-4xl font-semibold text-brand">{activeStepNumber}</p>
+          <div className="mt-6 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
         </div>
-        <div className="space-y-2 transition duration-300">
-          <h3 className="text-2xl font-semibold text-text-graphite">{activeStep?.title}</h3>
+        <div className="relative space-y-2 rounded-sm border border-border-subtle/70 bg-surface-panel/25 p-5">
+          <button
+            type="button"
+            onClick={handleArrowAdvance}
+            className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand text-surface-white shadow-[0_8px_20px_-14px_rgba(176,0,32,0.85)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-14px_rgba(176,0,32,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 dark:bg-brand dark:text-surface-white"
+            aria-label={`Advance to next step from step ${activeStepNumber}`}
+          >
+            <ArrowRight className="h-4 w-4" strokeWidth={2} />
+          </button>
+          <h3 className="pr-12 text-2xl font-semibold text-text-graphite">{activeStep?.title}</h3>
           <p className="text-sm leading-relaxed text-text-neutral">{activeStep?.body}</p>
           {activeStep?.note ? <p className="pt-2 text-xs uppercase tracking-[0.13em] text-text-neutral">{activeStep.note}</p> : null}
         </div>
@@ -263,19 +305,19 @@ export function MetricSnapshotStrip({ metrics }: { metrics: Array<{ label: strin
 
 export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: boolean }) {
   return (
-    <div className="relative h-52 overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-3">
-      <svg className="h-full w-full" viewBox="0 0 420 220" preserveAspectRatio="none">
-        <text x="8" y="20" fill="#666" fontSize="10">Equity</text>
-        <text x="368" y="208" fill="#666" fontSize="10">Time</text>
-        <line x1="30" y1="188" x2="390" y2="188" stroke="#d4d4d4" strokeWidth="1" />
-        <line x1="30" y1="24" x2="30" y2="188" stroke="#d4d4d4" strokeWidth="1" />
-        <polyline fill="none" stroke="#9ca3af" strokeWidth="1.8" points="30,178 90,168 150,162 210,153 270,142 330,130 390,121" />
+    <div className="relative h-64 overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-4">
+      <svg className="h-full w-full" viewBox="0 0 460 260" preserveAspectRatio="xMidYMid meet">
+        <text x="10" y="24" fill="#666" fontSize="12">Equity</text>
+        <text x="402" y="238" fill="#666" fontSize="12">Time</text>
+        <line x1="38" y1="214" x2="428" y2="214" stroke="#d4d4d4" strokeWidth="1" />
+        <line x1="38" y1="30" x2="38" y2="214" stroke="#d4d4d4" strokeWidth="1" />
+        <polyline fill="none" stroke="#9ca3af" strokeWidth="1.8" points="38,202 100,190 162,183 224,171 286,158 348,145 428,132" />
         <polyline
           fill="none"
           stroke={executionAware ? "#b00020" : "#b00020"}
           strokeWidth={executionAware ? "2.4" : "2.2"}
           strokeDasharray={executionAware ? "0" : "0"}
-          points={executionAware ? "30,180 90,178 150,170 210,173 270,162 330,161 390,156" : "30,182 90,174 150,162 210,146 270,138 330,122 390,98"}
+          points={executionAware ? "38,205 100,198 162,188 224,190 286,177 348,174 428,168" : "38,205 100,194 162,177 224,157 286,147 348,128 428,100"}
         />
       </svg>
       <div className="absolute right-3 top-3 rounded-sm border border-border-subtle bg-surface-white/90 px-3 py-2 text-xs">
@@ -294,14 +336,14 @@ export function StrategyBenchmarkVisual() {
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-brand" />Strategy</span>
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-[#4f6b95]" />Benchmark</span>
       </div>
-      <div className="relative h-56 rounded-sm border border-border-subtle bg-surface-panel/45 p-3">
-        <svg className="h-full w-full" viewBox="0 0 420 220" preserveAspectRatio="none">
-          <text x="6" y="16" fill="#666" fontSize="10">Cumulative Return (%)</text>
-          <text x="352" y="208" fill="#666" fontSize="10">Quarter</text>
-          <line x1="34" y1="188" x2="395" y2="188" stroke="#d4d4d4" strokeWidth="1" />
-          <line x1="34" y1="30" x2="34" y2="188" stroke="#d4d4d4" strokeWidth="1" />
-          <polyline fill="none" stroke="#4f6b95" strokeWidth="2" points="34,186 94,181 154,170 214,164 274,154 334,145 394,137" />
-          <polyline fill="none" stroke="#b00020" strokeWidth="2.5" points="34,186 94,175 154,162 214,145 274,130 334,112 394,95" />
+      <div className="relative h-64 rounded-sm border border-border-subtle bg-surface-panel/45 p-4">
+        <svg className="h-full w-full" viewBox="0 0 460 260" preserveAspectRatio="xMidYMid meet">
+          <text x="8" y="20" fill="#666" fontSize="12">Cumulative Return (%)</text>
+          <text x="395" y="238" fill="#666" fontSize="12">Quarter</text>
+          <line x1="40" y1="214" x2="428" y2="214" stroke="#d4d4d4" strokeWidth="1" />
+          <line x1="40" y1="34" x2="40" y2="214" stroke="#d4d4d4" strokeWidth="1" />
+          <polyline fill="none" stroke="#4f6b95" strokeWidth="2" points="40,212 106,205 172,192 238,183 304,171 370,159 428,149" />
+          <polyline fill="none" stroke="#b00020" strokeWidth="2.5" points="40,212 106,198 172,181 238,159 304,141 370,121 428,101" />
         </svg>
       </div>
       <div className="grid grid-cols-6 gap-2 text-center text-[10px] uppercase tracking-[0.1em] text-text-neutral">
