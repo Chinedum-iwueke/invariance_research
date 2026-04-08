@@ -44,21 +44,20 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
       )}
     >
       <span>Scroll to explore</span>
-      <ChevronDown className="h-4 w-4 text-brand motion-safe:animate-pulse" strokeWidth={1.5} />
+      <ChevronDown className="h-4 w-4 text-brand motion-safe:animate-[scroll-cue_2.25s_ease-in-out_infinite]" strokeWidth={1.5} />
     </Link>
   );
 }
 
 export function HeroScene() {
   return (
-    <section id="hero" className="relative isolate min-h-[130svh] bg-surface-white">
-      <div className="sticky top-0 h-[100svh] overflow-hidden">
-        <HeroOverlayBackground />
-        <div className="container-shell relative z-10 flex h-full flex-col pb-[max(1.5rem,4svh)] pt-[max(5.25rem,11svh)]">
-          <div className="flex flex-1 items-center">
-            <div className="max-w-[44rem] space-y-6 -translate-y-[clamp(0.75rem,2.6svh,1.6rem)] md:-translate-y-[clamp(1.1rem,3svh,2rem)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.17em] text-text-neutral">Independent Quantitative Validation Studio</p>
-              <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-text-graphite md:text-5xl">
+    <section id="hero" className="relative isolate h-[100svh] min-h-[44rem] overflow-hidden bg-surface-white">
+      <HeroOverlayBackground />
+      <div className="container-shell relative z-10 flex h-full flex-col pt-[max(4.5rem,9svh)] pb-[max(1.4rem,3.5svh)]">
+        <div className="flex flex-1 items-center motion-safe:animate-[hero-enter_620ms_cubic-bezier(0.22,1,0.36,1)_both]">
+          <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
+            <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
                 Independent Quantitative Strategy Validation
               </h1>
               <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
@@ -77,11 +76,14 @@ export function HeroScene() {
                   Institutional-style validation framework designed to eliminate false edge before capital deployment.
                 </p>
               </div>
+              <p className="max-w-[60ch] border-l border-brand/35 pl-3.5 text-sm text-text-neutral/92">
+                Institutional-style validation framework designed to eliminate false edge before capital deployment.
+              </p>
             </div>
           </div>
-          <div className="flex min-h-[4.75rem] items-end justify-center pb-2">
-            <SceneScrollCue href="#problem" />
-          </div>
+        </div>
+        <div className="flex min-h-[4rem] items-end justify-center pb-1">
+          <SceneScrollCue href="#problem" />
         </div>
       </div>
     </section>
