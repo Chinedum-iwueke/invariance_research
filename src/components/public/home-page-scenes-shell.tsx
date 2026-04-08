@@ -35,7 +35,7 @@ export function HomePageScenesShell({ sceneIds, children, className }: HomePageS
     <main
       ref={scrollerRef}
       onScroll={handleScroll}
-      className={cn("relative h-screen snap-y snap-mandatory overflow-y-auto bg-surface-panel/55", className)}
+      className={cn("relative h-[92vh] snap-y snap-mandatory overflow-y-auto bg-surface-panel/55", className)}
       style={transitionVars}
     >
       <ScrollspyRail sectionIds={sceneIds} scrollRoot={scrollerRef} />
