@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/public/public-shell";
 import { ContactForm } from "@/components/public/contact-form";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { PageHero } from "@/components/public/page-hero";
 import { Card } from "@/components/ui/card";
 
@@ -10,16 +11,21 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+  const sectionIds = ["hero", "contact"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Contact"
-          title="Request Strategy Validation"
-          description="Share your strategy type and review goals. Engagements are handled with institutional confidentiality standards."
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Contact"
+            title="Request Strategy Validation"
+            description="Share your strategy type and review goals. Engagements are handled with institutional confidentiality standards."
+          />
+        </section>
 
-        <section className="container-shell grid gap-6 py-section-sm md:grid-cols-[1.2fr_0.8fr]">
+        <section id="contact" className="container-shell grid gap-6 py-section-sm md:grid-cols-[1.2fr_0.8fr]">
           <ContactForm />
           <Card className="h-fit space-y-4 p-card-md">
             <h2 className="text-lg font-semibold">Alternative contact</h2>

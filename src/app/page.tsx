@@ -21,7 +21,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Invariance Research | Independent Quantitative Strategy Validation",
   description:
-    "Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.",
+    "Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.",
 };
 
 const frameworkSteps = [
@@ -95,8 +95,11 @@ export default function HomePage() {
                 subtitle="A five-stage validation sequence that translates strategy intent into deployable, risk-aware evidence."
                 steps={frameworkSteps}
               />
-              <Card className="p-card-md text-sm text-text-neutral">
-                Final output: structured validation report with methodology traceability, primary findings, and capital-risk interpretation.
+              <Card className="space-y-4 p-card-md text-sm text-text-neutral">
+                <p>Final output: structured validation report with methodology traceability, primary findings, and capital-risk interpretation.</p>
+                <Button asChild>
+                  <Link href="/research-standards">View Research Standards</Link>
+                </Button>
               </Card>
             </div>
           </div>

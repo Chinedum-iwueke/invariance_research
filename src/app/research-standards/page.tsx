@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Card } from "@/components/ui/card";
 
@@ -11,16 +12,21 @@ export const metadata: Metadata = {
 };
 
 export default function ResearchStandardsPage() {
+  const sectionIds = ["hero", "standards-pdf", "summary", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Authority Publication"
-          title="Research Standards"
-          description="Institutional guidance for validating quantitative strategies under realistic execution and market stress conditions."
-          primaryCta={{ label: "Download PDF", href: "#standards-pdf" }}
-          secondaryCta={{ label: "View Methodology", href: "/methodology" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Authority Publication"
+            title="Research Standards"
+            description="Institutional guidance for validating quantitative strategies under realistic execution and market stress conditions."
+            primaryCta={{ label: "Download PDF", href: "#standards-pdf" }}
+            secondaryCta={{ label: "View Methodology", href: "/methodology" }}
+          />
+        </section>
 
         <section id="standards-pdf" className="container-shell py-section-sm">
           <Card className="space-y-4 p-card-lg">
@@ -37,7 +43,7 @@ export default function ResearchStandardsPage() {
           </Card>
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="summary" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="HTML Summary" description="Condensed standards for teams reviewing strategy quality and implementation viability." />
           <div className="grid gap-4">
             {[
@@ -55,7 +61,7 @@ export default function ResearchStandardsPage() {
           </div>
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Apply the standards to your strategy pipeline"
             description="Use the Robustness Lab for automated diagnostics or request an independent analyst audit."

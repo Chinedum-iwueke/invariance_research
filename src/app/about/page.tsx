@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -11,18 +12,23 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
+  const sectionIds = ["hero", "philosophy", "operator", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="About"
-          title="About Invariance Research"
-          description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics."
-          primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
-          secondaryCta={{ label: "Contact", href: "/contact" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="About"
+            title="About Invariance Research"
+            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics."
+            primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
+            secondaryCta={{ label: "Contact", href: "/contact" }}
+          />
+        </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="philosophy" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Research philosophy" description="Methodology-first validation designed to reduce false confidence before capital deployment." />
           <div className="grid gap-4 md:grid-cols-3">
             {[
@@ -37,7 +43,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="container-shell py-section-sm">
+        <section id="operator" className="container-shell py-section-sm">
           <Card className="max-w-2xl p-card-lg">
             <p className="eyebrow">Operator</p>
             <h2 className="mt-2 text-2xl font-semibold">Chinedum Iwueke</h2>
@@ -48,7 +54,7 @@ export default function AboutPage() {
           </Card>
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Apply a disciplined validation process"
             description="Use the Robustness Lab or commission a bespoke strategy review."

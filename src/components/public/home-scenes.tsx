@@ -59,25 +59,22 @@ export function HeroScene() {
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
             <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
                 Independent Quantitative Strategy Validation
-            </h1>
-            <p className="max-w-[56ch] text-base font-normal leading-relaxed text-text-neutral md:text-lg">
-              Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
-            </p>
-            <div className="space-y-4 pt-1">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Button asChild className="h-11 px-5 shadow-[0_8px_20px_-16px_rgba(176,0,32,0.7)] transition-all duration-150 hover:-translate-y-px hover:bg-[#92001b] hover:shadow-[0_12px_26px_-18px_rgba(176,0,32,0.82)]">
-                  <Link href="/research-standards">View Research Standards</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="secondary"
-                  className="h-11 border-border-subtle/70 bg-surface-white/30 px-5 text-text-graphite/88 backdrop-blur-[1px] transition-colors duration-150 hover:bg-surface-white/45"
-                >
-                  <Link href="/strategy-validation">Validate Your Strategy</Link>
-                </Button>
-                <Button asChild variant="tertiary" className="h-11 px-3.5 text-text-neutral/88 transition-colors duration-150 hover:bg-surface-panel/70 hover:text-text-graphite">
-                  <Link href="/robustness-lab">Explore Robustness Lab</Link>
-                </Button>
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+                Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
+              </p>
+              <div className="space-y-6 pt-1">
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href="/strategy-validation">Validate Your Strategy</Link>
+                  </Button>
+                </div>
+                <p className="max-w-xl text-sm text-text-neutral">
+                  Institutional-style validation framework designed to eliminate false edge before capital deployment.
+                </p>
               </div>
               <p className="max-w-[60ch] border-l border-brand/35 pl-3.5 text-sm text-text-neutral/92">
                 Institutional-style validation framework designed to eliminate false edge before capital deployment.
@@ -243,10 +240,9 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
         </div>
       </div>
       <div className={cn("mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr]", "transform-gpu transition-all duration-[280ms] ease-out", flipMotionClass)}>
-        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] p-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-text-neutral">Current Step</p>
-          <p className="mt-2 text-4xl font-semibold text-brand">{activeStepNumber}</p>
-          <div className="mt-6 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
+        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] px-6 py-5">
+          <p className="text-4xl font-semibold text-brand">{activeStepNumber}</p>
+          <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
         </div>
         <div className="relative space-y-2 rounded-sm border border-border-subtle/70 bg-surface-panel/25 p-5">
           <button
