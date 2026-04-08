@@ -3,6 +3,7 @@ import { PublicShell } from "@/components/public/public-shell";
 import { ArticleCard } from "@/components/public/article-card";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { featuredResearch } from "@/content/site";
@@ -31,18 +32,23 @@ const additionalArticles = [
 ] as const;
 
 export default function ResearchPage() {
+  const sectionIds = ["hero", "featured", "library", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Research"
-          title="Research & Case Studies"
-          description="Method-driven publications exploring strategy fragility, execution realities, and validation standards."
-          primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
-          secondaryCta={{ label: "Request Audit", href: "/contact" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Research"
+            title="Research & Case Studies"
+            description="Method-driven publications exploring strategy fragility, execution realities, and validation standards."
+            primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
+            secondaryCta={{ label: "Request Audit", href: "/contact" }}
+          />
+        </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="featured" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Featured Studies" />
           <div className="grid gap-6 md:grid-cols-3">
             {featuredResearch.map((article) => (
@@ -51,7 +57,7 @@ export default function ResearchPage() {
           </div>
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="library" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Research Library" description="Structured placeholders for future long-form publications." />
           <div className="flex flex-wrap gap-2">
             {[
@@ -73,7 +79,7 @@ export default function ResearchPage() {
           </div>
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Need a case-study style review of your strategy?"
             description="Translate raw strategy behavior into a structured validation narrative for stakeholders."

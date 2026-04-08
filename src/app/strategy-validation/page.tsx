@@ -5,6 +5,7 @@ import { ContactForm } from "@/components/public/contact-form";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
 import { ProcessTimeline } from "@/components/public/process-timeline";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -14,18 +15,23 @@ export const metadata: Metadata = {
 };
 
 export default function StrategyValidationPage() {
+  const sectionIds = ["hero", "tiers", "deliverables", "process", "request", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Consulting Services"
-          title="Independent Strategy Validation"
-          description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
-          primaryCta={{ label: "Request Consultation", href: "#request" }}
-          secondaryCta={{ label: "View Methodology", href: "/methodology" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Consulting Services"
+            title="Independent Strategy Validation"
+            description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
+            primaryCta={{ label: "Request Consultation", href: "#request" }}
+            secondaryCta={{ label: "View Methodology", href: "/methodology" }}
+          />
+        </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="tiers" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Audit Tiers" description="Tiered scope for exploratory, institutional, and bespoke validation mandates." />
           <div className="grid gap-6 md:grid-cols-3">
             {[
@@ -42,7 +48,7 @@ export default function StrategyValidationPage() {
           </div>
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="deliverables" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Core Deliverables" />
           <div className="grid gap-3 md:grid-cols-2">
             {[
@@ -61,7 +67,7 @@ export default function StrategyValidationPage() {
           <ConfidentialityCallout />
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="process" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Engagement Process" description="Transparent steps from intake to final recommendation briefing." />
           <ProcessTimeline
             steps={[
@@ -78,7 +84,7 @@ export default function StrategyValidationPage() {
           <ContactForm />
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Ready for independent review?"
             description="Submit your strategy context for a structured validation engagement."

@@ -5,6 +5,7 @@ import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
 import { ProcessTimeline } from "@/components/public/process-timeline";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
@@ -36,25 +37,30 @@ const steps = [
 ] as const;
 
 export default function MethodologyPage() {
+  const sectionIds = ["hero", "workflow", "contract", "execution", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Method"
-          title="Validation Methodology"
-          description="A five-step framework designed for repeatable, execution-aware strategy evaluation."
-          primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
-          secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Method"
+            title="Validation Methodology"
+            description="A five-step framework designed for repeatable, execution-aware strategy evaluation."
+            primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
+            secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
+          />
+        </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="workflow" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Workflow" description="Sequential process emphasizing realism, stress testing, and institutional reporting discipline." />
           <ProcessTimeline steps={steps} />
         </section>
 
 
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="contract" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             title="Parameter Stability upload contract"
             description="Parameter Stability unlocks only when intake receives a parameter sweep artifact with explicit run-to-parameter mapping."
@@ -75,7 +81,7 @@ export default function MethodologyPage() {
           </div>
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="execution" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Why execution-aware testing matters" description="Backtests without implementation constraints overstate practical edge and understate deployment risk." />
           <ChartCard
             title="Expected Return Distribution Shift"
@@ -85,7 +91,7 @@ export default function MethodologyPage() {
           />
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Use the methodology in your validation workflow"
             description="Run diagnostics through the lab or commission an analyst-led review."

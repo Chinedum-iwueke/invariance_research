@@ -62,21 +62,18 @@ export function HeroScene() {
                 Independent Quantitative Strategy Validation
               </h1>
               <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
-                Execution-aware analysis, robustness testing, and capital risk diagnostics for serious traders and trading academies.
+                Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
               </p>
               <div className="space-y-6 pt-1">
                 <div className="flex flex-wrap gap-3">
                   <Button asChild>
-                    <Link href="/research-standards">View Research Standards</Link>
+                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
                   </Button>
                   <Button asChild variant="secondary">
                     <Link href="/strategy-validation">Validate Your Strategy</Link>
                   </Button>
-                  <Button asChild variant="tertiary">
-                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
-                  </Button>
                 </div>
-                <p className="max-w-xl border-l border-brand/40 pl-4 text-sm text-text-neutral">
+                <p className="max-w-xl text-sm text-text-neutral">
                   Institutional-style validation framework designed to eliminate false edge before capital deployment.
                 </p>
               </div>
@@ -241,10 +238,9 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
         </div>
       </div>
       <div className={cn("mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr]", "transform-gpu transition-all duration-[280ms] ease-out", flipMotionClass)}>
-        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] p-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-text-neutral">Current Step</p>
-          <p className="mt-2 text-4xl font-semibold text-brand">{activeStepNumber}</p>
-          <div className="mt-6 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
+        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] px-6 py-5">
+          <p className="text-4xl font-semibold text-brand">{activeStepNumber}</p>
+          <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
         </div>
         <div className="relative space-y-2 rounded-sm border border-border-subtle/70 bg-surface-panel/25 p-5">
           <button

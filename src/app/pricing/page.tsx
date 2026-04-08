@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
+import { ScrollspyRail } from "@/components/public/home-scenes";
 import { PricingCards } from "@/components/ui/pricing-cards";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -13,23 +14,28 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
+  const sectionIds = ["hero", "plans", "comparison", "cta"];
+
   return (
     <PublicShell>
-      <main>
-        <PageHero
-          eyebrow="Pricing"
-          title="Access Plans and Validation Engagements"
-          description="Choose diagnostic platform access or bespoke consulting mandates based on review depth and operational complexity."
-          primaryCta={{ label: "Request Audit", href: "/contact" }}
-          secondaryCta={{ label: "Explore Lab", href: "/robustness-lab" }}
-        />
+      <main className="relative">
+        <ScrollspyRail sectionIds={sectionIds} />
+        <section id="hero">
+          <PageHero
+            eyebrow="Pricing"
+            title="Access Plans and Validation Engagements"
+            description="Choose diagnostic platform access or bespoke consulting mandates based on review depth and operational complexity."
+            primaryCta={{ label: "Request Audit", href: "/contact" }}
+            secondaryCta={{ label: "Explore Lab", href: "/robustness-lab" }}
+          />
+        </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="plans" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Lab Plans" description="Foundational and institutional tiers for recurring diagnostics." />
           <PricingCards />
         </section>
 
-        <section className="container-shell space-y-6 py-section-sm">
+        <section id="comparison" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Plan Comparison" />
           <Card className="overflow-hidden p-0">
             <table className="w-full text-left text-sm">
@@ -64,7 +70,7 @@ export default function PricingPage() {
           </Card>
         </section>
 
-        <section className="container-shell py-section-md">
+        <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Select a validation path"
             description="Start with diagnostics access or move directly into analyst-led strategy review."
