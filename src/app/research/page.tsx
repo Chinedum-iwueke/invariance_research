@@ -6,33 +6,20 @@ import { PageHero } from "@/components/public/page-hero";
 import { ScrollspyRail } from "@/components/public/home-scenes";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
-import { featuredResearch } from "@/content/site";
+import { listResearchLibrary } from "@/lib/server/publications/repository";
 
 export const metadata: Metadata = {
   title: "Research & Case Studies | Invariance Research",
   description: "Case-study style research on robustness diagnostics, execution modeling, and strategy fragility.",
 };
 
-const additionalArticles = [
-  {
-    title: "The Hidden Fragility of Momentum Systems",
-    category: "Case Study",
-    summary: "Stability analysis across transaction-cost assumptions and volatility regimes.",
-  },
-  {
-    title: "Regime Drift and False Confidence in Backtests",
-    category: "Research Note",
-    summary: "Why static assumptions conceal changing market microstructure and execution feasibility.",
-  },
-  {
-    title: "Risk-of-Ruin Diagnostics for Levered Strategies",
-    category: "Capital Risk",
-    summary: "A framework for linking distribution tails to practical capital policy decisions.",
-  },
-] as const;
+function titleizeCategory(category: string) {
+  return category.replaceAll("_", " ");
+}
 
 export default function ResearchPage() {
   const sectionIds = ["hero", "featured", "library", "cta"];
+  const library = listResearchLibrary();
 
   return (
     <PublicShell>
@@ -51,31 +38,25 @@ export default function ResearchPage() {
         <section id="featured" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Featured Studies" />
           <div className="grid gap-6 md:grid-cols-3">
-            {featuredResearch.map((article) => (
-              <ArticleCard key={article.title} {...article} />
-            ))}
+            {library.featured.length > 0 ? library.featured.map((article) => (
+              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
+            )) : <p className="text-sm text-text-neutral">No featured publications are live yet.</p>}
           </div>
         </section>
 
         <section id="library" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Research Library" description="Structured placeholders for future long-form publications." />
+          <SectionHeader title="Research Library" description="Published case studies and research notes sourced from the shared publication model." />
           <div className="flex flex-wrap gap-2">
-            {[
-              "All Topics",
-              "Execution",
-              "Robustness",
-              "Capital Risk",
-              "Case Studies",
-            ].map((filter) => (
+            {["All Topics", ...library.taxonomy.map((item) => item[0].toUpperCase() + item.slice(1))].map((filter) => (
               <Button key={filter} size="sm" variant={filter === "All Topics" ? "primary" : "secondary"}>
                 {filter}
               </Button>
             ))}
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            {additionalArticles.map((article) => (
-              <ArticleCard key={article.title} {...article} />
-            ))}
+            {library.collection.length > 0 ? library.collection.map((article) => (
+              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
+            )) : <p className="text-sm text-text-neutral">No published case studies or research notes available.</p>}
           </div>
         </section>
 
