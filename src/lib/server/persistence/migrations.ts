@@ -193,4 +193,34 @@ export const migrations = [
       ALTER TABLE analyses ADD COLUMN runtime_config_json TEXT;
     `,
   },
+  {
+    version: 6,
+    name: "publications_module",
+    sql: `
+      CREATE TABLE IF NOT EXISTS publications (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        category TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        status TEXT NOT NULL,
+        published_at TEXT,
+        updated_at TEXT NOT NULL,
+        cover_image_url TEXT NOT NULL,
+        pdf_url TEXT NOT NULL,
+        viewer_url TEXT,
+        featured INTEGER NOT NULL DEFAULT 0,
+        author_label TEXT,
+        estimated_read_time TEXT,
+        tags_json TEXT,
+        sort_order INTEGER,
+        seo_title TEXT,
+        seo_description TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_publications_category_status ON publications(category, status);
+      CREATE INDEX IF NOT EXISTS idx_publications_published_at ON publications(published_at);
+    `,
+  },
+
 ];

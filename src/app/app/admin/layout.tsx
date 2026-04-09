@@ -10,6 +10,7 @@ const items = [
   { href: "/app/admin/health", label: "Health" },
   { href: "/app/admin/maintenance", label: "Maintenance" },
   { href: "/app/admin/accounts", label: "Accounts" },
+  { href: "/app/admin/publications", label: "Publications" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
