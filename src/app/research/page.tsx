@@ -40,12 +40,16 @@ export default function ResearchPage() {
           <div className="grid gap-6 md:grid-cols-3">
             {library.featured.length > 0 ? library.featured.map((article) => (
               <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
-            )) : <p className="text-sm text-text-neutral">No featured publications are live yet.</p>}
+            )) : (
+              <div className="rounded-sm border border-border-subtle bg-surface-panel/40 p-5 md:col-span-3">
+                <p className="text-sm text-text-neutral">Featured publications will appear here once published.</p>
+              </div>
+            )}
           </div>
         </section>
 
         <section id="library" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Research Library" description="Published case studies and research notes sourced from the shared publication model." />
+          <SectionHeader title="Research Library" />
           <div className="flex flex-wrap gap-2">
             {["All Topics", ...library.taxonomy.map((item) => item[0].toUpperCase() + item.slice(1))].map((filter) => (
               <Button key={filter} size="sm" variant={filter === "All Topics" ? "primary" : "secondary"}>
@@ -56,7 +60,11 @@ export default function ResearchPage() {
           <div className="grid gap-6 md:grid-cols-3">
             {library.collection.length > 0 ? library.collection.map((article) => (
               <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
-            )) : <p className="text-sm text-text-neutral">No published case studies or research notes available.</p>}
+            )) : (
+              <div className="rounded-sm border border-border-subtle bg-surface-panel/40 p-5 md:col-span-3">
+                <p className="text-sm text-text-neutral">Published research and case studies will appear here.</p>
+              </div>
+            )}
           </div>
         </section>
 

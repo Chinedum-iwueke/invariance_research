@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { ChartCard } from "@/components/charts/chart-card";
-import { MockHistogram } from "@/components/charts/chart-mocks";
+import { ExecutionDistributionShiftChart } from "@/components/charts/execution-distribution-shift-chart";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
-import { ProcessTimeline } from "@/components/public/process-timeline";
-import { ScrollspyRail } from "@/components/public/home-scenes";
+import { ProcessStepperCarouselCard, ScrollspyRail } from "@/components/public/home-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 
 const steps = [
   {
-    title: "Strategy Formalization",
+    title: "Strategy Definition",
     body: "Define logic, trade constraints, assumptions, and expected edge boundaries in explicit terms.",
   },
   {
@@ -55,7 +54,11 @@ export default function MethodologyPage() {
 
         <section id="workflow" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Workflow" description="Sequential process emphasizing realism, stress testing, and institutional reporting discipline." />
-          <ProcessTimeline steps={steps} />
+          <ProcessStepperCarouselCard
+            title="Validation Workflow"
+            subtitle="Sequential process emphasizing realism, stress testing, and institutional reporting discipline."
+            steps={[...steps]}
+          />
         </section>
 
 
@@ -86,7 +89,19 @@ export default function MethodologyPage() {
           <ChartCard
             title="Expected Return Distribution Shift"
             subtitle="The shape of outcomes changes under realistic execution assumptions"
-            chart={<MockHistogram />}
+            chart={<ExecutionDistributionShiftChart />}
+            legend={(
+              <div className="flex flex-wrap items-center gap-4 border-t border-border-subtle pt-3 text-xs text-text-neutral">
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#6b7280]" aria-hidden />
+                  <span>Naïve Backtest</span>
+                </div>
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden />
+                  <span>Execution-Aware</span>
+                </div>
+              </div>
+            )}
             footer="Methodology emphasis: distribution-aware diagnostics, not single-metric storytelling."
           />
         </section>
