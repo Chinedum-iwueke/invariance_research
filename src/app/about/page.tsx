@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  const sectionIds = ["hero", "philosophy", "operator", "cta"];
+  const sectionIds = ["hero", "philosophy", "founder", "cta"];
 
   return (
     <PublicShell>
@@ -20,7 +22,6 @@ export default function AboutPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            eyebrow="About"
             title="About Invariance Research"
             description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics."
             primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
@@ -43,15 +44,34 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section id="operator" className="container-shell py-section-sm">
-          <Card className="max-w-2xl p-card-lg">
-            <p className="eyebrow">Operator</p>
-            <h2 className="mt-2 text-2xl font-semibold">Chinedum Iwueke</h2>
-            <p className="mt-1 text-sm text-text-neutral">Independent Quantitative Validation Specialist</p>
-            <p className="mt-4 text-sm leading-relaxed text-text-neutral">
-              The validation framework is developed and operated with emphasis on transparent assumptions, reproducible diagnostics, and institutional-grade review standards.
-            </p>
-          </Card>
+        <section id="founder" className="container-shell py-section-md">
+          <div className="grid items-center gap-10 md:grid-cols-[0.7fr_0.3fr] md:gap-12">
+            <div className="space-y-4 md:space-y-5">
+              <p className="eyebrow">Founder</p>
+              <h2 className="text-3xl font-semibold leading-tight md:text-4xl">Chinedum Iwueke</h2>
+              <p className="text-base text-text-neutral md:text-lg">Independent Quantitative Validation Specialist</p>
+              <p className="max-w-3xl text-sm leading-relaxed text-text-neutral md:text-base">
+                The validation framework is developed and operated with emphasis on transparent assumptions, reproducible diagnostics, and institutional-grade review standards.
+              </p>
+              <Link
+                href="/about/chinedum-iwueke"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand transition-transform duration-normal hover:translate-x-1 hover:opacity-90"
+              >
+                Read Bio <span aria-hidden>→</span>
+              </Link>
+            </div>
+
+            <Link href="/about/chinedum-iwueke" className="group relative mx-auto block w-full max-w-[22rem] overflow-hidden rounded-lg md:max-w-none">
+              <div className="relative aspect-[4/5] w-full">
+                <Image
+                  src="/founder_image.png"
+                  alt="Portrait of Chinedum Iwueke"
+                  fill
+                  className="object-cover object-center transition duration-slow group-hover:scale-[1.01]"
+                />
+              </div>
+            </Link>
+          </div>
         </section>
 
         <section id="cta" className="container-shell py-section-md">
