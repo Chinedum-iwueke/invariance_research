@@ -1,7 +1,7 @@
 import type { PublicationInput, PublicationRecord } from "@/lib/publications/model";
 
 export function toPublicationViewerUrl(slug: string) {
-  return `/research/${slug}/viewer`;
+  return `/research/${slug}`;
 }
 
 export function toCanonicalPublication(input: PublicationInput): PublicationRecord {
