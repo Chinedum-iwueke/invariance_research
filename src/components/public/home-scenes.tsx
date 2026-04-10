@@ -69,7 +69,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           <HeroOverlayBackground />
         </div>
         <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 1 ? "opacity-100" : "opacity-0")}>
-          <HeroOverlayBackground src="/overlay_graphic.png" />
+          <HeroOverlayBackground src="/overlay_graphic_2.png" />
         </div>
       </div>
 
