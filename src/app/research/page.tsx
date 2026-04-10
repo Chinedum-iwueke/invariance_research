@@ -39,7 +39,7 @@ export default function ResearchPage() {
           <SectionHeader title="Featured Studies" />
           <div className="grid gap-6 md:grid-cols-3">
             {library.featured.length > 0 ? library.featured.map((article) => (
-              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
+              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} publishedDate={article.published_at} readTime={article.estimated_read_time} />
             )) : (
               <div className="rounded-sm border border-border-subtle bg-surface-panel/40 p-5 md:col-span-3">
                 <p className="text-sm text-text-neutral">Featured publications will appear here once published.</p>
@@ -59,7 +59,7 @@ export default function ResearchPage() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {library.collection.length > 0 ? library.collection.map((article) => (
-              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} featured={article.featured} />
+              <ArticleCard key={article.id} title={article.title} category={titleizeCategory(article.category)} summary={article.summary} href={`/research/${article.slug}`} coverImageUrl={article.cover_image_url} publishedDate={article.published_at} readTime={article.estimated_read_time} />
             )) : (
               <div className="rounded-sm border border-border-subtle bg-surface-panel/40 p-5 md:col-span-3">
                 <p className="text-sm text-text-neutral">Published research and case studies will appear here.</p>
