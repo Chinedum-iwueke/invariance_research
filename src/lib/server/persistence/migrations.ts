@@ -223,4 +223,28 @@ export const migrations = [
     `,
   },
 
+  {
+    version: 7,
+    name: "research_desk_waitlist",
+    sql: `
+      CREATE TABLE IF NOT EXISTS waitlist_entries (
+        waitlist_entry_id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        normalized_email TEXT NOT NULL,
+        name TEXT,
+        source_page TEXT NOT NULL,
+        role_or_team TEXT,
+        status TEXT NOT NULL DEFAULT 'new',
+        note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_entries_email_source
+        ON waitlist_entries(normalized_email, source_page);
+      CREATE INDEX IF NOT EXISTS idx_waitlist_entries_status_created_at
+        ON waitlist_entries(status, created_at DESC);
+    `,
+  },
+
 ];

@@ -55,35 +55,84 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
 }
 
 export function HeroScene({ style }: { style?: CSSProperties }) {
+  const [activeScene, setActiveScene] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setActiveScene((prev) => (prev + 1) % 2), 8000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
     <section id="hero" style={style} className="relative isolate flex min-h-screen snap-start items-center overflow-hidden bg-surface-white">
-      <HeroOverlayBackground />
+      <div className="absolute inset-0">
+        <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 0 ? "opacity-100" : "opacity-0")}>
+          <HeroOverlayBackground />
+        </div>
+        <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 1 ? "opacity-100" : "opacity-0")}>
+          <HeroOverlayBackground src="/overlay_graphic_2.png" />
+        </div>
+      </div>
+
       <div className="container-shell relative z-10 flex h-[90svh] min-h-[40rem] flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
-        <div className="flex flex-1 items-center motion-safe:animate-[hero-enter_620ms_cubic-bezier(0.22,1,0.36,1)_both]">
-          <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
-            <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
-              Independent Quantitative Strategy Validation
-            </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
-              Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
-            </p>
-            <div className="space-y-6 pt-1">
-              <div className="flex flex-wrap gap-3">
+        <div className="relative flex flex-1 items-center">
+          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 0 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")}>
+            <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
+              <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
+                Independent Quantitative Strategy Validation
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+                Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
+              </p>
+              <div className="space-y-6 pt-1">
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                  </Button>
+                  <Button asChild variant="secondary">
+                    <Link href="/strategy-validation">Validate Your Strategy</Link>
+                  </Button>
+                </div>
+                <p className="max-w-xl text-sm text-text-neutral">
+                  Institutional-style validation framework designed to eliminate false edge before capital deployment.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 1 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")}>
+            <div className="max-w-[36rem] space-y-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">COMING SOON</p>
+              <h2 className="max-w-[14ch] text-4xl font-semibold leading-[1.08] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
+              <p className="text-xl text-text-graphite">Turn trading ideas into evidence.</p>
+              <p className="max-w-xl text-base leading-relaxed text-text-neutral">
+                Structured strategy drafting, execution-aware backtesting, diagnostics, and disciplined research iteration.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
                 <Button asChild>
-                  <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                  <Link href="/research-desk#waitlist">Join the Waitlist</Link>
                 </Button>
                 <Button asChild variant="secondary">
-                  <Link href="/strategy-validation">Validate Your Strategy</Link>
+                  <Link href="/research-desk">Learn More</Link>
                 </Button>
               </div>
-              <p className="max-w-xl text-sm text-text-neutral">
-                Institutional-style validation framework designed to eliminate false edge before capital deployment.
-              </p>
             </div>
           </div>
         </div>
-        <div className="flex min-h-[4.75rem] items-end justify-center pb-1">
+
+        <div className="flex min-h-[4.75rem] items-end justify-between pb-1">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-white/75 p-1 backdrop-blur-sm">
+            {[0, 1].map((scene) => (
+              <button
+                key={scene}
+                type="button"
+                onClick={() => setActiveScene(scene)}
+                className={cn("h-2.5 w-7 rounded-full transition-all duration-300", activeScene === scene ? "bg-brand" : "bg-text-neutral/30 hover:bg-text-neutral/45")}
+                aria-label={`Switch to hero scene ${scene + 1}`}
+                aria-current={activeScene === scene ? "true" : undefined}
+              />
+            ))}
+          </div>
           <SceneScrollCue href="#problem" />
         </div>
       </div>
