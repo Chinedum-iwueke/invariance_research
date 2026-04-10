@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { ContactForm } from "@/components/public/contact-form";
 import { ScrollspyRail } from "@/components/public/home-scenes";
@@ -19,7 +20,6 @@ export default function ContactPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            eyebrow="Contact"
             title="Request Strategy Validation"
             description="Share your strategy type and review goals. Engagements are handled with institutional confidentiality standards."
           />
@@ -31,7 +31,12 @@ export default function ContactPage() {
             <h2 className="text-lg font-semibold">Alternative contact</h2>
             <p className="text-sm text-text-neutral">For mandate scoping, partnership inquiries, or standards publications.</p>
             <div className="text-sm text-text-graphite">
-              <p>Email: contact@invarianceresearch.com</p>
+              <p>
+                Email:{" "}
+                <Link href="mailto:admin@invarianceresearch.xyz" className="underline-offset-4 hover:underline">
+                  admin@invarianceresearch.xyz
+                </Link>
+              </p>
               <p className="mt-2">Response window: 1–2 business days</p>
             </div>
             <p className="rounded-sm border bg-surface-panel p-3 text-xs text-text-neutral">
