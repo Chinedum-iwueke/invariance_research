@@ -24,6 +24,7 @@ export default function AdminOverviewPage() {
         <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/jobs">Jobs dashboard</Link>
         <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/webhooks">Webhook receipts</Link>
         <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/maintenance">Maintenance controls</Link>
+        <Link className="rounded-sm border border-border-subtle bg-surface-white p-4 text-sm hover:bg-surface-panel" href="/app/admin/waitlist">Waitlist directory</Link>
       </div>
     </AdminPageShell>
   );

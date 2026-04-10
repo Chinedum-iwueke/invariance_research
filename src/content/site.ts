@@ -2,6 +2,7 @@ export const primaryNav = [
   { label: "Research Standards", href: "/research-standards" },
   { label: "Strategy Validation", href: "/strategy-validation" },
   { label: "Robustness Lab", href: "/robustness-lab" },
+  { label: "Research Desk", href: "/research-desk" },
   { label: "Research", href: "/research" },
   { label: "Methodology", href: "/methodology" },
   { label: "Pricing", href: "/pricing" },
@@ -13,6 +14,7 @@ export const footerGroups = [
     title: "Platform",
     links: [
       { label: "Robustness Lab", href: "/robustness-lab" },
+  { label: "Research Desk", href: "/research-desk" },
       { label: "Pricing", href: "/pricing" },
       { label: "Request Audit", href: "/contact" },
     ],

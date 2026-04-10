@@ -19,7 +19,10 @@ export const headerNavGroups: HeaderNavGroup[] = [
   {
     label: "IR LABS",
     // Keep this group intentionally lightweight for future lab expansions.
-    items: [{ label: "Robustness Lab", href: "/robustness-lab" }],
+    items: [
+      { label: "Strategy Robustness Lab", href: "/robustness-lab" },
+      { label: "Invariance Research Desk", href: "/research-desk" },
+    ],
   },
   {
     label: "OUR FIRM",

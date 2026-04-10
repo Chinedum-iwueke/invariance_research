@@ -4,9 +4,9 @@ import Image from "next/image";
 import { useState } from "react";
 import { useTheme } from "@/components/theme/theme-provider";
 
-const HERO_OVERLAY_SRC = "/overlay_graphic.png";
+const DEFAULT_HERO_OVERLAY_SRC = "/overlay_graphic.png";
 
-export function HeroOverlayBackground() {
+export function HeroOverlayBackground({ src = DEFAULT_HERO_OVERLAY_SRC }: { src?: string }) {
   const { theme } = useTheme();
   const [imageUnavailable, setImageUnavailable] = useState(false);
 
@@ -28,7 +28,7 @@ export function HeroOverlayBackground() {
       <div className={`absolute inset-0 ${baseGradientClass}`} />
       {!imageUnavailable ? (
         <Image
-          src={HERO_OVERLAY_SRC}
+          src={src}
           alt=""
           aria-hidden="true"
           fill
