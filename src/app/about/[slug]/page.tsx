@@ -40,16 +40,18 @@ export default async function TeamBioPage({ params }: TeamBioPageProps) {
   return (
     <PublicShell>
       <main>
-        <section className="bg-brand/90 text-white">
-          <div className="container-shell grid min-h-[70vh] items-center gap-12 py-section-md md:grid-cols-[1.05fr_0.95fr]">
-            <div className="relative h-[52vh] min-h-[23rem] overflow-hidden rounded-lg md:h-[62vh]">
-              <Image src={profile.heroImageSrc} alt={profile.heroImageAlt} fill className="object-cover object-center" priority />
+        <section className="bg-brand text-white">
+          <div className="container-shell grid min-h-[68vh] items-center gap-8 py-section-md md:grid-cols-[0.9fr_1.1fr] md:gap-12">
+            <div className="relative mx-auto w-full max-w-[20rem] overflow-hidden rounded-lg md:mx-0 md:max-w-[28rem]">
+              <div className="relative aspect-[4/5] w-full">
+                <Image src={profile.heroImageSrc} alt={profile.heroImageAlt} fill className="object-cover object-center" priority />
+              </div>
             </div>
             <div className="space-y-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white/85">{profile.roleLabel}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">{profile.roleLabel}</p>
               <h1 className="text-[clamp(2.3rem,5.2vw,4.4rem)] font-semibold leading-[1.04] text-white">{profile.name}</h1>
-              <p className="text-lg leading-relaxed text-white/90">{profile.title}</p>
-              <div className="space-y-3 text-sm md:text-base">
+              <p className="text-lg leading-relaxed text-white">{profile.title}</p>
+              <div className="space-y-3 text-sm text-white md:text-base">
                 <Link href={`mailto:${profile.email}`} className="group flex items-center gap-3 text-white/95 transition hover:text-white">
                   <span aria-hidden>✉</span>
                   <span className="font-medium">Email</span>

@@ -44,24 +44,24 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section id="founder" className="container-shell py-section-md">
-          <div className="grid items-center gap-10 md:grid-cols-[0.7fr_0.3fr] md:gap-12">
-            <div className="space-y-4 md:space-y-5">
+        <section id="founder" className="container-shell py-8 md:py-10">
+          <div className="grid items-center gap-5 md:grid-cols-[0.74fr_0.26fr] md:gap-8">
+            <div className="space-y-2.5 md:space-y-3">
               <p className="eyebrow">Founder</p>
-              <h2 className="text-3xl font-semibold leading-tight md:text-4xl">Chinedum Iwueke</h2>
-              <p className="text-base text-text-neutral md:text-lg">Independent Quantitative Validation Specialist</p>
-              <p className="max-w-3xl text-sm leading-relaxed text-text-neutral md:text-base">
+              <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Chinedum Iwueke</h2>
+              <p className="text-sm text-text-neutral md:text-base">Independent Quantitative Validation Specialist</p>
+              <p className="max-w-2xl text-xs leading-relaxed text-text-neutral md:text-sm">
                 The validation framework is developed and operated with emphasis on transparent assumptions, reproducible diagnostics, and institutional-grade review standards.
               </p>
               <Link
                 href="/about/chinedum-iwueke"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-brand transition-transform duration-normal hover:translate-x-1 hover:opacity-90"
+                className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-brand transition-transform duration-normal hover:translate-x-1 hover:opacity-90 md:text-sm md:normal-case md:tracking-normal"
               >
                 Read Bio <span aria-hidden>→</span>
               </Link>
             </div>
 
-            <Link href="/about/chinedum-iwueke" className="group relative mx-auto block w-full max-w-[22rem] overflow-hidden rounded-lg md:max-w-none">
+            <Link href="/about/chinedum-iwueke" className="group relative mx-auto block w-full max-w-[9rem] overflow-hidden rounded-lg md:max-w-[11rem]">
               <div className="relative aspect-[4/5] w-full">
                 <Image
                   src="/founder_image.png"
