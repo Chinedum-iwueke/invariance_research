@@ -32,9 +32,9 @@ export async function AppShellLayout({ children, rightRail, context }: AppShellL
         <AppSidebar isAdmin={isAdmin} logoutAction={logoutAction} />
         <div className="min-w-0 flex-1">
           <AppTopbar context={context} />
-          <div className="grid min-h-[calc(100vh-7.75rem)] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className={rightRail ? "grid min-h-[calc(100vh-7.75rem)] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]" : "grid min-h-[calc(100vh-7.75rem)] grid-cols-1"}>
             <main className="min-w-0 px-5 py-10 lg:px-8 2xl:px-10">
-              <div className="mx-auto w-full max-w-container">{children}</div>
+              <div className={rightRail ? "mx-auto w-full max-w-container" : "mx-auto w-full max-w-container lg:max-w-app-content-aligned"}>{children}</div>
             </main>
             {rightRail ? <aside className="border-l border-border-subtle bg-surface-panel/35 p-6">{rightRail}</aside> : null}
           </div>
