@@ -1,23 +1,30 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { accountService } from "@/lib/server/accounts/service";
 
-export const authConfig = {
+export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   providers: [
     Credentials({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        name: { label: "Name", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         const email = credentials?.email?.toString().trim().toLowerCase();
-        if (!email) return null;
-        const name = credentials?.name?.toString().trim() || undefined;
-        const { user, account } = accountService.ensureUserAndAccount({ email, name });
-        accountService.recordLogin(user.user_id);
-        return { id: user.user_id, email: user.email, name: user.name, account_id: account.account_id };
+        const password = credentials?.password?.toString() ?? "";
+        if (!email || !password) return null;
+
+        const authenticated = accountService.authenticateWithPassword({ email, password });
+        if (!authenticated) return null;
+
+        return {
+          id: authenticated.user.user_id,
+          email: authenticated.user.email,
+          name: authenticated.user.name,
+          account_id: authenticated.account.account_id,
+        };
       },
     }),
   ],

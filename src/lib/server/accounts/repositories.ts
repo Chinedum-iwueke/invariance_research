@@ -21,7 +21,7 @@ export const userRepository = {
     const row = getDb().prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as User | undefined;
     return row;
   },
-  save(input: { email: string; name?: string }) {
+  save(input: { email: string; name?: string; password_hash?: string }) {
     const now = new Date().toISOString();
     const user: User = {
       user_id: randomUUID(),
@@ -29,18 +29,22 @@ export const userRepository = {
       name: input.name,
       created_at: now,
       last_login_at: now,
+      password_hash: input.password_hash,
+      password_updated_at: input.password_hash ? now : undefined,
     };
-    getDb().prepare("INSERT INTO users (user_id, email, name, created_at, last_login_at) VALUES (?, ?, ?, ?, ?)").run(
-      user.user_id,
-      user.email,
-      user.name ?? null,
-      user.created_at,
-      user.last_login_at,
-    );
+    getDb()
+      .prepare(
+        "INSERT INTO users (user_id, email, name, created_at, last_login_at, password_hash, password_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .run(user.user_id, user.email, user.name ?? null, user.created_at, now, user.password_hash ?? null, user.password_updated_at ?? null);
     return user;
   },
   touchLogin(userId: string) {
     getDb().prepare("UPDATE users SET last_login_at = ? WHERE user_id = ?").run(new Date().toISOString(), userId);
+  },
+  updatePassword(userId: string, passwordHash: string) {
+    const now = new Date().toISOString();
+    getDb().prepare("UPDATE users SET password_hash = ?, password_updated_at = ? WHERE user_id = ?").run(passwordHash, now, userId);
   },
 };
 
@@ -109,7 +113,7 @@ export const subscriptionRepository = {
     return subscription;
   },
   findByAccountId(accountId: string) {
-    const row = getDb().prepare("SELECT * FROM subscriptions WHERE account_id = ?").get(accountId) as (Subscription & { cancel_at_period_end: number }) | undefined;
+    const row = getDb().prepare("SELECT * FROM subscriptions WHERE account_id = ?").get(accountId) as (Omit<Subscription, "cancel_at_period_end"> & { cancel_at_period_end: number }) | undefined;
     return row ? { ...row, cancel_at_period_end: toBool(row.cancel_at_period_end) } : undefined;
   },
 };

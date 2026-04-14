@@ -11,6 +11,37 @@ import type {
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
+export type CsvUploadPreview = {
+  columns: string[];
+  rows: string[][];
+  row_count_shown: number;
+  row_count_total: number;
+};
+
+export type ZipIngestionEntry = {
+  path: string;
+  file_type: string;
+  status: "recognized" | "ignored" | "unsupported";
+  note?: string;
+};
+
+export type ZipUploadReview = {
+  recognized_count: number;
+  ignored_count: number;
+  unsupported_count: number;
+  entries: ZipIngestionEntry[];
+};
+
+export type UploadReview =
+  | {
+      kind: "csv";
+      csv_preview: CsvUploadPreview;
+    }
+  | {
+      kind: "zip";
+      zip_review: ZipUploadReview;
+    };
+
 export type UploadInspectionResponse = {
   artifact_id?: string;
   artifact_kind?: ArtifactKind;
@@ -24,6 +55,7 @@ export type UploadInspectionResponse = {
   diagnostics_unavailable: DiagnosticName[];
   limitation_reasons: string[];
   upload_summary_text: string;
+  upload_review?: UploadReview;
 };
 
 export type CreateAnalysisRequest = {

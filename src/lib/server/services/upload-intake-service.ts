@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { UploadInspectionResponse } from "@/lib/contracts";
+import path from "node:path";
+import type { UploadInspectionResponse, ZipIngestionEntry } from "@/lib/contracts";
 import { accountService } from "@/lib/server/accounts/service";
 import { toUploadEligibilitySummary, type ArtifactValidationError } from "@/lib/server/ingestion";
 import { parseUploadArtifact } from "@/lib/server/ingestion/parsers";
@@ -10,6 +11,18 @@ import { artifactRepository } from "@/lib/server/repositories/artifact-repositor
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const CSV_PREVIEW_ROW_LIMIT = 50;
+const RECOGNIZED_BUNDLE_FILES = new Set([
+  "manifest.json",
+  "trades.csv",
+  "metadata.json",
+  "equity_curve.csv",
+  "assumptions.json",
+  "params.json",
+  "ohlcv.csv",
+  "ohlcv.parquet",
+  "benchmark.csv",
+]);
 
 export async function inspectUpload(input: {
   fileName: string;
@@ -114,6 +127,15 @@ export async function inspectUpload(input: {
     diagnostics_unavailable: eligibility.diagnostics_unavailable,
     limitation_reasons: eligibility.limitation_reasons,
     upload_summary_text: eligibility.summary_text,
+    upload_review: extension === "csv"
+      ? {
+          kind: "csv",
+          csv_preview: buildCsvPreview(contents ?? ""),
+        }
+      : {
+          kind: "zip",
+          zip_review: buildZipReview(extractedBundleEntries ?? []),
+        },
   };
 }
 
@@ -135,5 +157,59 @@ function failedInspection(errors: ArtifactValidationError[], parserNotes: string
     diagnostics_unavailable: [],
     limitation_reasons: [],
     upload_summary_text: "Upload rejected during validation.",
+  };
+}
+
+function buildCsvPreview(rawCsv: string) {
+  const lines = rawCsv.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return { columns: [], rows: [], row_count_shown: 0, row_count_total: 0 };
+  }
+
+  const columns = splitCsvLine(lines[0]);
+  const dataLines = lines.slice(1);
+  const rows = dataLines.slice(0, CSV_PREVIEW_ROW_LIMIT).map(splitCsvLine);
+
+  return {
+    columns,
+    rows,
+    row_count_shown: rows.length,
+    row_count_total: dataLines.length,
+  };
+}
+
+function splitCsvLine(line: string) {
+  return line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
+}
+
+function buildZipReview(entries: Array<{ path: string }>) {
+  const modeledEntries: ZipIngestionEntry[] = entries.map((entry) => {
+    const normalizedPath = entry.path.toLowerCase();
+    const fileName = normalizedPath.split("/").pop() ?? normalizedPath;
+
+    if (RECOGNIZED_BUNDLE_FILES.has(fileName)) {
+      return {
+        path: entry.path,
+        file_type: path.extname(fileName).replace(".", "") || "file",
+        status: "recognized",
+      };
+    }
+
+    const extension = path.extname(fileName).replace(".", "") || "file";
+    const status = extension === "csv" || extension === "json" || extension === "parquet" ? "ignored" : "unsupported";
+
+    return {
+      path: entry.path,
+      file_type: extension,
+      status,
+      note: status === "ignored" ? "Not used by Bundle Manifest v1." : "Unsupported type for intake processing.",
+    };
+  });
+
+  return {
+    recognized_count: modeledEntries.filter((entry) => entry.status === "recognized").length,
+    ignored_count: modeledEntries.filter((entry) => entry.status === "ignored").length,
+    unsupported_count: modeledEntries.filter((entry) => entry.status === "unsupported").length,
+    entries: modeledEntries,
   };
 }
