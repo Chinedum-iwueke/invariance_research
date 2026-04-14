@@ -37,6 +37,7 @@ export default {
       maxWidth: {
         container: "var(--container-max)",
         narrow: "var(--container-narrow)",
+        "app-content-aligned": "var(--app-content-max-aligned)",
       },
       spacing: {
         "section-xs": "var(--section-xs)",

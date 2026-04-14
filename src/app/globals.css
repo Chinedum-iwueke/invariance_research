@@ -32,6 +32,9 @@
 
   --container-max: 84rem;
   --container-narrow: 64rem;
+  --app-sidebar-width: 18rem;
+  --container-inline-padding: 1.5rem;
+  --app-content-max-aligned: calc(var(--container-max) - var(--app-sidebar-width) - (var(--container-inline-padding) * 2));
 
   --section-xs: 2rem;
   --section-sm: 3rem;
