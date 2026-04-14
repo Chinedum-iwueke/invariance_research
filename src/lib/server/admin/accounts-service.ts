@@ -1,4 +1,5 @@
 import { entitlementRepository, usageRepository } from "@/lib/server/accounts/repositories";
+import { accountService } from "@/lib/server/accounts/service";
 import { getDb } from "@/lib/server/persistence/database";
 
 function monthBucket(date: Date) {
@@ -17,12 +18,13 @@ export type AdminAccountOverview = {
   cancel_at_period_end?: boolean;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
+  has_password: boolean;
 };
 
 export function listAdminAccounts(filter?: { plan?: string; status?: string; highUsage?: boolean }) {
   const rows = getDb()
     .prepare(
-      `SELECT a.*, u.email as owner_email, s.provider_customer_id, s.provider_subscription_id, s.current_period_end, s.cancel_at_period_end
+      `SELECT a.*, u.email as owner_email, u.password_hash, s.provider_customer_id, s.provider_subscription_id, s.current_period_end, s.cancel_at_period_end
       FROM accounts a
       JOIN users u ON u.user_id = a.owner_user_id
       LEFT JOIN subscriptions s ON s.account_id = a.account_id
@@ -53,6 +55,7 @@ export function listAdminAccounts(filter?: { plan?: string; status?: string; hig
         cancel_at_period_end: Boolean(row.cancel_at_period_end),
         stripe_customer_id: row.provider_customer_id ? String(row.provider_customer_id) : undefined,
         stripe_subscription_id: row.provider_subscription_id ? String(row.provider_subscription_id) : undefined,
+        has_password: Boolean(row.password_hash),
       };
     })
     .filter((item) => (filter?.plan ? item.plan_id === filter.plan : true))
@@ -66,4 +69,9 @@ export function listAdminAccounts(filter?: { plan?: string; status?: string; hig
       return acc;
     }, {}),
   };
+}
+
+
+export function adminSetAccountPassword(input: { email: string; password: string }) {
+  return accountService.setPasswordForEmail(input);
 }

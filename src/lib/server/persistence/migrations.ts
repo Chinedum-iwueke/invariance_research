@@ -246,5 +246,13 @@ export const migrations = [
         ON waitlist_entries(status, created_at DESC);
     `,
   },
+  {
+    version: 8,
+    name: "auth_password_credentials",
+    sql: `
+      ALTER TABLE users ADD COLUMN password_hash TEXT;
+      ALTER TABLE users ADD COLUMN password_updated_at TEXT;
+    `,
+  },
 
 ];

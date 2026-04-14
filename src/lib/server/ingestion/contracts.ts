@@ -61,6 +61,7 @@ export const VALIDATION_ERROR_CODES = [
   "invalid_trade_direction",
   "invalid_trade_row",
   "unsupported_artifact_structure",
+  "plan_upload_locked",
 ] as const;
 
 export type ArtifactValidationErrorCode = (typeof VALIDATION_ERROR_CODES)[number];
