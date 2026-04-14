@@ -100,13 +100,18 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
             </div>
           </div>
 
-          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 1 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")}>
-            <div className="max-w-[36rem] space-y-4">
+          <div
+            className={cn(
+              "absolute inset-0 grid items-center transition-all duration-700 ease-out lg:grid-cols-[1fr_auto] lg:gap-9",
+              activeScene === 1 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+            )}
+          >
+            <div className="max-w-[42rem] space-y-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">COMING SOON</p>
-              <h2 className="max-w-[14ch] text-4xl font-semibold leading-[1.08] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
-              <p className="text-xl text-text-graphite">Turn trading ideas into evidence.</p>
-              <p className="max-w-xl text-base leading-relaxed text-text-neutral">
-                Structured strategy drafting, execution-aware backtesting, diagnostics, and disciplined research iteration.
+              <h2 className="max-w-[13ch] text-4xl font-semibold leading-[1.08] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
+              <p className="text-xl text-text-graphite">From intuition to audited backtest.</p>
+              <p className="max-w-2xl text-base leading-relaxed text-text-neutral">
+                A new AI-native research environment built to help you formalize ideas, run execution-aware tests, and diagnose what actually survives scrutiny — with AI assistants and research agents guiding you through the process.
               </p>
               <div className="flex flex-wrap gap-3 pt-1">
                 <Button asChild>
@@ -115,6 +120,26 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
                 <Button asChild variant="secondary">
                   <Link href="/research-desk">Learn More</Link>
                 </Button>
+              </div>
+            </div>
+
+            <div className="relative hidden w-[24rem] overflow-hidden rounded-md border border-border-subtle/80 bg-surface-white/65 p-4 shadow-soft backdrop-blur-sm lg:block">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/55 to-transparent" />
+              <div className="mb-4 flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-text-neutral">
+                <span>Research desk protocol</span>
+                <span>v0.preview</span>
+              </div>
+              <div className="space-y-3.5 text-xs text-text-neutral">
+                {[
+                  "Idea intake parsed into structured assumptions",
+                  "Execution model constraints synchronized",
+                  "Diagnostic traces prepared for survivability review",
+                ].map((marker, index) => (
+                  <div key={marker} className="flex items-start gap-2.5">
+                    <span className={cn("mt-1 h-2 w-2 rounded-full border border-brand/45", index === 1 ? "bg-brand/70" : "bg-brand/30")} />
+                    <p className="leading-relaxed">{marker}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
