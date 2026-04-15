@@ -1,6 +1,7 @@
 import type { PlanId, SubscriptionStatus } from "@/lib/contracts/account";
 import { accountRepository, entitlementRepository, subscriptionRepository, usageRepository, userRepository } from "@/lib/server/accounts/repositories";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
 
 function monthBucket(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -19,6 +20,51 @@ export const accountService = {
     }
 
     return { user, account };
+  },
+
+  createUserAndAccountWithPassword(input: { email: string; name?: string; password: string }) {
+    const email = input.email.trim().toLowerCase();
+    if (!email) {
+      throw new Error("email_required");
+    }
+    if (userRepository.findByEmail(email)) {
+      throw new Error("email_already_registered");
+    }
+
+    const user = userRepository.save({
+      email,
+      name: input.name,
+      password_hash: hashPassword(input.password),
+    });
+    const account = accountRepository.save(user.user_id, "explorer");
+    return { user, account };
+  },
+
+  authenticateWithPassword(input: { email: string; password: string }) {
+    const email = input.email.trim().toLowerCase();
+    if (!email || !input.password) return undefined;
+
+    const user = userRepository.findByEmail(email);
+    if (!user || !verifyPassword(input.password, user.password_hash)) {
+      return undefined;
+    }
+
+    const account = accountRepository.findByOwnerUserId(user.user_id);
+    if (!account) return undefined;
+
+    this.recordLogin(user.user_id);
+    return { user, account };
+  },
+
+  setPasswordForEmail(input: { email: string; password: string }) {
+    const email = input.email.trim().toLowerCase();
+    const user = userRepository.findByEmail(email);
+    if (!user) {
+      throw new Error("user_not_found");
+    }
+
+    userRepository.updatePassword(user.user_id, hashPassword(input.password));
+    return { user_id: user.user_id, email: user.email };
   },
 
   recordLogin(userId: string) {

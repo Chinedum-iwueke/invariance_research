@@ -134,16 +134,20 @@ export function listAnalyses(accountId?: string): AnalysisListItem[] {
     .map((analysis) => {
       const artifact = artifactRepository.findById(analysis.artifact_id);
       const result = analysis.result;
+      const runtimeStrategyName = analysis.strategy_name?.trim();
       return {
         analysis_id: analysis.analysis_id,
         strategy_name:
-          result?.strategy.strategy_name ??
-          analysis.strategy_name ??
-          artifact?.parsed_artifact.strategy_metadata?.strategy_name ??
+          runtimeStrategyName ||
+          result?.strategy.strategy_name ||
+          artifact?.parsed_artifact.strategy_metadata?.strategy_name ||
           "Untitled upload",
         trade_count: result?.dataset.trade_count ?? artifact?.parsed_artifact.trades.length ?? 0,
         timeframe: result?.strategy.timeframe ?? artifact?.parsed_artifact.trades[0]?.timeframe ?? "N/A",
-        asset: result?.dataset.market ?? artifact?.parsed_artifact.trades[0]?.market ?? "N/A",
+        asset: resolveAssetLabel({
+          datasetMarket: result?.dataset.market,
+          parsedTrades: artifact?.parsed_artifact.trades,
+        }),
         created_at: analysis.created_at.slice(0, 10),
         status: analysis.status,
         robustness_score: result?.summary.robustness_score?.value ?? "Pending",
@@ -168,4 +172,25 @@ export function retryAnalysis(analysisId: string): AnalysisStatusResponse | unde
   enqueueAnalysisRetry(analysisId, retryCount);
 
   return getAnalysisStatus(analysisId);
+}
+
+function resolveAssetLabel(input: { datasetMarket?: string; parsedTrades?: Array<{ symbol?: string }> }) {
+  if (input.datasetMarket?.trim()) {
+    return input.datasetMarket.trim();
+  }
+
+  const symbols = new Set(
+    (input.parsedTrades ?? [])
+      .map((trade) => trade.symbol?.trim())
+      .filter((symbol): symbol is string => Boolean(symbol)),
+  );
+
+  if (symbols.size === 1) {
+    return Array.from(symbols)[0];
+  }
+  if (symbols.size > 1) {
+    return "Multi-Asset";
+  }
+
+  return "N/A";
 }

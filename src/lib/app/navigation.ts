@@ -23,12 +23,12 @@ export interface AppNavItem {
 }
 
 const baseSecondaryItems: AppNavItem[] = [
+  { key: "workspace:home", label: "Workspace Home", href: "/app", icon: Sigma },
   { key: "workspace:new-analysis", label: "New Analysis", href: "/app/new-analysis", icon: Sparkles },
   { key: "workspace:analyses", label: "Analyses", href: "/app/analyses", icon: ListChecks },
   { key: "workspace:settings", label: "Settings", href: "/app/settings", icon: Settings },
   { key: "workspace:billing", label: "Billing", href: "/app/billing", icon: FileText },
   { key: "workspace:upgrade", label: "Upgrade", href: "/app/upgrade", icon: Sparkles },
-  { key: "workspace:home", label: "Workspace Home", href: "/app", icon: Sigma },
 ];
 
 const adminSecondaryItem: AppNavItem = { key: "workspace:admin", label: "Admin Ops", href: "/app/admin", icon: ShieldAlert };
