@@ -6,11 +6,13 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import type { AnalysisRecord, InterpretationBlockPayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -54,18 +56,6 @@ function diagnosticRows(record: AnalysisRecord) {
     name,
     status: record.diagnostic_statuses[name]?.status ?? "unavailable",
   }));
-}
-
-function sectionList(items: string[] | undefined, emptyState: string) {
-  if (!items?.length) {
-    return <p className="mt-1 text-xs text-text-neutral">{emptyState}</p>;
-  }
-
-  return (
-    <ul className="mt-1 space-y-1">
-      {items.map((item, index) => <li key={`section-item-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-    </ul>
-  );
 }
 
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -120,21 +110,13 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
     branch: overviewBranch,
     empty_state_reason: overviewEmptyReason,
   });
-  const assumptions = record.diagnostics.overview.assumptions?.length ? record.diagnostics.overview.assumptions : record.report.methodology_assumptions;
-  const limitations = record.diagnostics.overview.limitations?.length ? record.diagnostics.overview.limitations : record.report.limitations;
-  const recommendations = record.diagnostics.overview.recommendations?.length ? record.diagnostics.overview.recommendations : record.report.recommendations;
+  const truthContext = buildTruthContext(record, "overview");
   const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
 
   const parserNotes = Array.from(new Set([
     ...(analysis.eligibility_snapshot?.parser_notes ?? []),
     ...(record.run_context.notes ?? "").split("|").map((item) => item.trim()).filter(Boolean),
   ]));
-
-  const omittedDimensions = [
-    benchmarkStatus !== "available" ? "No benchmark-relative comparison is included in this run." : undefined,
-    record.diagnostic_statuses.stability.status !== "available" ? "No parameter-surface fragility assessment is available in this run context." : undefined,
-    record.diagnostic_statuses.regimes.status !== "available" ? "No market-regime decomposition is available for this artifact." : undefined,
-  ].filter((item): item is string => Boolean(item));
 
   return (
     <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
@@ -225,30 +207,15 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Diagnostic context" subtitle="Engine-native assumptions, limitations, and recommendations">
-        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
-          <div>
-            <p className="font-medium text-text-graphite">Assumptions</p>
-            {sectionList(assumptions, "No assumptions were emitted for this run.")}
-          </div>
-          <div>
-            <p className="font-medium text-text-graphite">Limitations</p>
-            {sectionList(limitations, "No explicit limitations were emitted for this run.")}
-          </div>
-          <div>
-            <p className="font-medium text-text-graphite">Recommendations</p>
-            {sectionList(recommendations, "No recommendations were emitted for this run.")}
-          </div>
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="What this page does not yet include" subtitle="Scope boundaries for this current run context">
-        <ul className="space-y-1 text-sm text-text-neutral">
-          {omittedDimensions.length
-            ? omittedDimensions.map((item, index) => <li key={`omitted-${index}-${item.slice(0, 24)}`}>• {item}</li>)
-            : <li>• This overview reflects the currently available diagnostics for this run.</li>}
-        </ul>
-      </WorkspaceCard>
+      <ContextFlipCard
+        title="Diagnostic context"
+        subtitle="Truth-based assumptions, limitations, and recommendations for this exact run."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No assumptions were emitted for this run.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
+        ]}
+      />
     </AnalysisPageFrame>
   );
 }

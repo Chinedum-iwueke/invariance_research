@@ -279,7 +279,7 @@ function pickDistributionFigures(figures: FigurePayload[]): FigurePayload[] {
 }
 
 function derivePrioritizedFigures(record: AnalysisRecord, curatedCharts: FigurePayload[]) {
-  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison)?.figure
+  const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview)?.figure
     ?? pickFigureByKeywords(curatedCharts, ["benchmark", "excess return", "strategy vs benchmark"]);
   const topLine = pickFigureByKeywords(curatedCharts, ["equity", "performance curve", "cumulative return", "overview"])
     ?? record.diagnostics.overview.figure;

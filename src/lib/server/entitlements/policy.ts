@@ -8,8 +8,8 @@ export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin"
 function artifactSupports(parsed: ParsedArtifact | undefined, diagnostic: DiagnosticKey): boolean {
   if (!parsed) return false;
   if (diagnostic === "overview" || diagnostic === "distribution" || diagnostic === "monte_carlo") return true;
-  if (diagnostic === "ruin" || diagnostic === "execution") return parsed.richness !== "minimal_trade_only";
-  if (diagnostic === "regimes") return parsed.richness === "execution_context" || parsed.richness === "research_complete";
+  if (diagnostic === "ruin" || diagnostic === "execution") return parsed.richness !== "trade_only";
+  if (diagnostic === "regimes") return parsed.richness === "trade_plus_context" || parsed.richness === "research_complete";
   if (diagnostic === "stability") return parsed.richness === "research_complete";
   return false;
 }
@@ -17,7 +17,7 @@ function artifactSupports(parsed: ParsedArtifact | undefined, diagnostic: Diagno
 function engineSupports(parsed: ParsedArtifact | undefined, diagnostic: DiagnosticKey): boolean {
   if (!parsed) return false;
   if (diagnostic === "stability") return parsed.richness === "research_complete";
-  if (diagnostic === "regimes") return parsed.richness !== "minimal_trade_only";
+  if (diagnostic === "regimes") return parsed.richness !== "trade_only";
   return true;
 }
 

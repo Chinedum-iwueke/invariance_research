@@ -4,8 +4,10 @@ import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { getRenderableSeries } from "@/lib/app/figure-rendering";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -199,8 +201,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         ? "Current sizing is elevated but can be tolerable if drawdown tolerance is moderate."
         : "Current sizing is aggressive and may be intolerable for risk-averse users.";
 
-  const limitations = ruin.limitations?.length ? ruin.limitations : ["Ruin limitations were not explicitly emitted by the engine for this run."];
-  const recommendations = ruin.recommendations?.length ? ruin.recommendations : ["Reduce risk per trade if drawdown breach probabilities are outside your tolerance."];
+  const truthContext = buildTruthContext(record, "ruin");
 
   return (
     <AnalysisPageFrame title="Risk of Ruin" description="Decision-grade survivability view across drawdowns, streak burden, and execution stress.">
@@ -326,18 +327,18 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
             If the risk-per-trade sensitivity curve steepens near current sizing, reducing risk per trade is likely to improve survivability materially rather than marginally.
             Treat this as a capital-preservation lever, not only a return-smoothing preference.
           </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <p className="mb-1 font-medium text-text-graphite">Limitations</p>
-              <ul className="space-y-1">{limitations.map((item, index) => <li key={`ruin-limitation-${index}-${item.slice(0, 32)}`}>• {item}</li>)}</ul>
-            </div>
-            <div>
-              <p className="mb-1 font-medium text-text-graphite">Recommendations</p>
-              <ul className="space-y-1">{recommendations.map((item, index) => <li key={`ruin-recommendation-${index}-${item.slice(0, 32)}`}>• {item}</li>)}</ul>
-            </div>
-          </div>
         </div>
       </WorkspaceCard>
+
+      <ContextFlipCard
+        title="Interpretation context"
+        subtitle="Truth-based assumptions, limitations, and actions for survivability."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No explicit assumptions were emitted for this run.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
+        ]}
+      />
     </AnalysisPageFrame>
   );
 }

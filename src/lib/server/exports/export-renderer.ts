@@ -115,7 +115,7 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   drawPageHeader(current, record);
   y -= 36;
 
-  write("Validation Report", { size: 19, leading: 24, bold: true });
+  write("Institutional Validation Report", { size: 21, leading: 26, bold: true });
   write(`Strategy: ${record.strategy.strategy_name}`, { size: 11, leading: 16 });
   write(`Coverage: ${record.dataset.start_date ?? "N/A"} to ${record.dataset.end_date ?? "N/A"} | Trades: ${record.dataset.trade_count}`, { size: 10, leading: 14 });
   write(`Verdict: ${report.verdict.statusLabel} — ${report.verdict.headline}`, { size: 11, leading: 16, bold: true });
@@ -150,8 +150,9 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
 }
 
 function drawPageHeader(page: PdfPage, record: AnalysisRecord) {
-  page.ops.push({ text: "INVARIANCE RESEARCH", x: PAGE.margin, y: PAGE.height - 26, size: 11 });
-  page.ops.push({ text: "Validation Report", x: PAGE.width - 170, y: PAGE.height - 26, size: 9 });
+  page.ops.push({ text: "◆", x: PAGE.margin, y: PAGE.height - 24, size: 16 });
+  page.ops.push({ text: "INVARIANCE RESEARCH", x: PAGE.margin + 16, y: PAGE.height - 26, size: 11 });
+  page.ops.push({ text: "Institutional Validation Report", x: PAGE.width - 210, y: PAGE.height - 26, size: 9 });
   page.ops.push({ text: `Strategy: ${record.strategy.strategy_name}`, x: PAGE.margin, y: PAGE.height - 40, size: 8 });
   page.ops.push({ text: `Generated: ${record.report.generated_at ?? record.updated_at}`, x: PAGE.width - 250, y: PAGE.height - 40, size: 8 });
 }
@@ -207,24 +208,54 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function normalizeSeriesPoints(figure: FigurePayload): Array<Array<{ x: number; y: number }>> {
-  const series = Array.isArray(figure.series) ? figure.series : [];
-  return series
+  const baseSeries = Array.isArray(figure.series) ? figure.series : [];
+  const fromSeries = baseSeries
     .map((candidate) => {
       if (!candidate || typeof candidate !== "object") return [];
       const maybeSeries = candidate as { points?: unknown[] };
       const points = Array.isArray(maybeSeries.points) ? maybeSeries.points : [];
       return points
         .map((point, idx) => {
+          if (Array.isArray(point) && point.length >= 2 && isFiniteNumber(point[1])) return { x: idx, y: point[1] };
           if (!point || typeof point !== "object") return undefined;
-          const shaped = point as { x?: unknown; y?: unknown };
-          const xValue = isFiniteNumber(shaped.x) ? shaped.x : idx;
-          const yValue = shaped.y;
-          if (!isFiniteNumber(yValue)) return undefined;
-          return { x: xValue, y: yValue };
+          const shaped = point as { x?: unknown; y?: unknown; value?: unknown };
+          const yValue = isFiniteNumber(shaped.y) ? shaped.y : (isFiniteNumber(shaped.value) ? shaped.value : undefined);
+          if (yValue === undefined) return undefined;
+          return { x: isFiniteNumber(shaped.x) ? shaped.x : idx, y: yValue };
         })
         .filter((point): point is { x: number; y: number } => Boolean(point));
     })
-    .filter((seriesPoints) => seriesPoints.length > 1);
+    .filter((seriesPoints) => seriesPoints.length > 0);
+
+  if (fromSeries.length > 0) return fromSeries;
+
+  const points = Array.isArray(figure.points) ? figure.points : [];
+  if (points.length > 0) {
+    const normalized = points
+      .map((point, idx) => {
+        if (Array.isArray(point) && point.length >= 2 && isFiniteNumber(point[1])) return { x: idx, y: point[1] };
+        if (!point || typeof point !== "object") return undefined;
+        const row = point as { y?: unknown; value?: unknown };
+        const value = isFiniteNumber(row.y) ? row.y : (isFiniteNumber(row.value) ? row.value : undefined);
+        return value === undefined ? undefined : { x: idx, y: value };
+      })
+      .filter((point): point is { x: number; y: number } => Boolean(point));
+    if (normalized.length > 0) return [normalized];
+  }
+
+  const bins = Array.isArray(figure.bins) ? figure.bins : [];
+  if (bins.length > 0) {
+    const normalized = bins
+      .map((bin, idx) => {
+        const row = typeof bin === "object" && bin ? bin as Record<string, unknown> : {};
+        const value = ["count", "frequency", "y", "value"].map((key) => row[key]).find((item) => isFiniteNumber(item));
+        return isFiniteNumber(value) ? { x: idx, y: value } : undefined;
+      })
+      .filter((point): point is { x: number; y: number } => Boolean(point));
+    if (normalized.length > 0) return [normalized];
+  }
+
+  return [];
 }
 
 function buildPageStream(page: PdfPage): string {
@@ -259,10 +290,15 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
   if (!normalizedSeries.length) {
     return [
       "q",
-      "0.95 0.95 0.95 rg",
+      "0.96 0.97 0.99 rg",
       `${x} ${y - height} ${width} ${height} re f`,
-      "0.75 0.78 0.84 RG",
+      "0.80 0.82 0.86 RG",
       `${x} ${y - height} ${width} ${height} re S`,
+      "BT",
+      "/F1 9 Tf",
+      `1 0 0 1 ${x + 10} ${y - 20} Tm`,
+      "(No renderable chart series emitted for this figure payload.) Tj",
+      "ET",
       "Q",
     ];
   }
@@ -289,7 +325,7 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
 
   const commands: string[] = [
     "q",
-    "0.88 0.9 0.94 rg",
+    "0.95 0.96 0.98 rg",
     `${x} ${y - height} ${width} ${height} re f`,
     "0.75 0.78 0.84 RG",
     `${x} ${y - height} ${width} ${height} re S`,

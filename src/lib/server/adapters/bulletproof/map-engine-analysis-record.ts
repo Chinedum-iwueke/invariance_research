@@ -229,6 +229,14 @@ function median(values: number[]): number | undefined {
 
 function buildTradeDerivedStats(parsedArtifact: ParsedArtifact) {
   const pnl = parsedArtifact.trades.map((trade) => trade.pnl).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const pnlPct = parsedArtifact.trades.map((trade) => trade.pnl_pct).filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const riskNormalizedReturns = parsedArtifact.trades
+    .map((trade) => {
+      if (typeof trade.pnl !== "number" || !Number.isFinite(trade.pnl)) return undefined;
+      if (typeof trade.risk_amount !== "number" || !Number.isFinite(trade.risk_amount) || trade.risk_amount === 0) return undefined;
+      return trade.pnl / trade.risk_amount;
+    })
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
   const durations = parsedArtifact.trades.map((trade) => trade.duration_seconds).filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0);
 
   if (pnl.length === 0) {
@@ -238,6 +246,8 @@ function buildTradeDerivedStats(parsedArtifact: ParsedArtifact) {
       medianPnl: undefined,
       winRatePct: undefined,
       expectancy: undefined,
+      sharpePerTrade: undefined,
+      sharpeSource: undefined as "trade_pnl_pct" | "trade_pnl_over_risk_amount" | undefined,
       avgDurationSeconds: durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : undefined,
       equitySeries: [] as FigurePayload["series"],
       histogramSeries: [] as FigurePayload["series"],
@@ -283,12 +293,27 @@ function buildTradeDerivedStats(parsedArtifact: ParsedArtifact) {
     },
   ];
 
+  const sharpeInput = pnlPct.length >= 20
+    ? { series: pnlPct, source: "trade_pnl_pct" as const }
+    : riskNormalizedReturns.length >= 20
+      ? { series: riskNormalizedReturns, source: "trade_pnl_over_risk_amount" as const }
+      : undefined;
+  const mean = sharpeInput ? sharpeInput.series.reduce((sum, value) => sum + value, 0) / sharpeInput.series.length : undefined;
+  const stdDev = sharpeInput && mean !== undefined
+    ? Math.sqrt(sharpeInput.series.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / Math.max(sharpeInput.series.length - 1, 1))
+    : undefined;
+  const sharpePerTrade = mean !== undefined && stdDev !== undefined && stdDev > 0
+    ? (mean / stdDev) * Math.sqrt(sharpeInput?.series.length ?? 0)
+    : undefined;
+
   return {
     totalPnl,
     averagePnl: avg,
     medianPnl: med,
     winRatePct,
     expectancy: avg,
+    sharpePerTrade,
+    sharpeSource: sharpeInput?.source,
     avgDurationSeconds: durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : undefined,
     equitySeries,
     histogramSeries,
@@ -632,7 +657,13 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   ].filter((warning, idx, arr) => warning.length > 0 && arr.indexOf(warning) === idx);
 
   const robustness = engine.summary?.robustness_score ?? getNumber(overviewRaw, ["robustness_score", "robustnessScore", "score"]);
-  const overfit = engine.summary?.overfitting_risk_pct ?? getNumber(overviewRaw, ["overfitting_risk_pct", "overfittingRiskPct"]);
+  const sharpeBand = derivedStats.sharpePerTrade === undefined
+    ? "informational" as const
+    : derivedStats.sharpePerTrade >= 1.5
+      ? "good" as const
+      : derivedStats.sharpePerTrade >= 0.8
+        ? "moderate" as const
+        : "elevated" as const;
   const simulationCount = getNumber(monteCarloRaw, ["simulations", "paths", "n_paths", "num_paths", "simulation_count"]);
   const monteCarloSummaryMetrics = asRecord(monteCarloRaw?.summary_metrics);
   const inferredDrawdownFractions = extractDrawdownFractions(monteCarloRaw);
@@ -947,6 +978,11 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     `monte_carlo=${monteCarloFigures.length}`,
     `execution=${executionFigures.length}`,
   ];
+  const sharpeAssumption = derivedStats.sharpeSource === "trade_pnl_pct"
+    ? "Sharpe derived from per-trade pnl_pct (risk-free rate assumed 0, trade observations treated as independent)."
+    : derivedStats.sharpeSource === "trade_pnl_over_risk_amount"
+      ? "Sharpe derived from per-trade pnl/risk_amount proxy returns (risk-free rate assumed 0, trade observations treated as independent)."
+      : undefined;
   const reportMethodologyAssumptions = [
     ...getStringArray(canonicalReport, ["methodology_assumptions", "assumptions"]),
     ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
@@ -955,6 +991,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     `seam=${engineContext.seam}`,
     `artifact_richness=${parsedArtifact.richness}`,
     ...richDiagnosticsAvailability,
+    sharpeAssumption,
     ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
   ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
   const reportLimitations = [
@@ -1099,7 +1136,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     },
     summary: {
       robustness_score: score("Robustness Score", robustness !== undefined ? `${Math.round(robustness)} / 100` : "Unavailable", robustness !== undefined ? (robustness >= 70 ? "good" : "moderate") : "informational"),
-      overfitting_risk: score("Overfitting Risk", overfit !== undefined ? `${Math.round(overfit)}%` : "Unavailable", pctBand(overfit, 30, 45)),
+      overfitting_risk: score("Sharpe", derivedStats.sharpePerTrade !== undefined ? formatNumber(derivedStats.sharpePerTrade, 2) : "Unavailable", sharpeBand),
       execution_resilience: score("Execution Resilience", statusByDiagnostic.get("execution") ?? "unavailable", statusByDiagnostic.get("execution") === "available" ? "moderate" : "informational"),
       capital_survivability: score("Risk of Ruin", formatPct(ruinProbability), pctBand(ruinProbability, 5, 12)),
       headline_verdict: {
@@ -1124,9 +1161,9 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         status: statusByDiagnostic.get("overview"),
         metrics: envelopeByDiagnostic.overview?.summary_metrics.length
           ? envelopeByDiagnostic.overview.summary_metrics.map(envelopeMetricToScore)
-          : [
+        : [
           score("Robustness Score", robustness !== undefined ? `${Math.round(robustness)} / 100` : "Unavailable", robustness !== undefined ? (robustness >= 70 ? "good" : "moderate") : "informational"),
-          score("Overfitting Risk", overfit !== undefined ? `${Math.round(overfit)}%` : "Unavailable", pctBand(overfit, 30, 45)),
+          score("Sharpe", derivedStats.sharpePerTrade !== undefined ? formatNumber(derivedStats.sharpePerTrade, 2) : "Unavailable", sharpeBand),
           score("Trade Count", `${parsedArtifact.trades.length}`, "informational"),
           score("Win Rate", formatPct(derivedStats.winRatePct), pctBand(derivedStats.winRatePct, 45, 60)),
           score("Worst Monte Carlo Drawdown", formatPct(mcWorst), pctBand(Math.abs(mcWorst ?? 0), 25, 40)),
@@ -1152,7 +1189,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           title: verdict === "robust" ? "Robust profile under current assumptions" : verdict === "moderate" ? "Moderate profile with bounded fragility" : "Fragile profile under stress assumptions",
           summary: engine.summary?.short_summary ?? eligibility.summary_text,
         },
-        assumptions: envelopeByDiagnostic.overview?.assumptions ?? [],
+        assumptions: [
+          ...(envelopeByDiagnostic.overview?.assumptions ?? []),
+          ...(sharpeAssumption ? [sharpeAssumption] : []),
+        ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx),
         limitations: envelopeByDiagnostic.overview?.limitations ?? [],
         recommendations: envelopeByDiagnostic.overview?.recommendations ?? [],
       },

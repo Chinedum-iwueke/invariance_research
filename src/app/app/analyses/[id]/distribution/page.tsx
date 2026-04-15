@@ -5,8 +5,10 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectDistributionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -72,9 +74,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const hasExcursion = toBoolean(distribution.metadata?.has_excursion) ?? figures.some((figure) => figure.title.toLowerCase().includes("mae") || figure.title.toLowerCase().includes("mfe"));
   const hasDuration = toBoolean(distribution.metadata?.has_duration) ?? distribution.metrics.some((metric) => metric.label.toLowerCase().includes("duration") && !isUnavailable(metric.value));
 
-  const assumptions = distribution.assumptions ?? [];
-  const limitations = distribution.limitations ?? [];
-  const recommendations = distribution.recommendations ?? [];
+  const truthContext = buildTruthContext(record, "distribution");
   const keyShapeFindings = Array.from(new Set([
     ...(distribution.interpretation.bullets ?? []),
     ...record.summary.key_findings.filter((item) => /win|loss|tail|skew|expectancy|distribution|payoff/i.test(item)),
@@ -139,43 +139,24 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         </ul>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Distribution context" subtitle="Engine-native framing of assumptions, limitations, and recommendations.">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Assumptions</p>
-            {assumptions.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{assumptions.map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit assumptions were emitted for this run.</p>}
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Limitations</p>
-            {limitations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{limitations.map((item, index) => <li key={`limitation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit limitations were emitted for this run.</p>}
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-graphite">Recommendations</p>
-            {recommendations.length ? <ul className="mt-1.5 space-y-1 text-sm text-text-neutral">{recommendations.map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul> : <p className="mt-1.5 text-sm text-text-neutral">No explicit recommendations were emitted for this run.</p>}
-          </div>
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="What this page does not yet include" subtitle="Richer artifacts unlock additional conditional distribution diagnostics.">
-        <ul className="space-y-1 text-sm text-text-neutral">
-          {!hasExcursion ? <li>• No MAE/MFE excursion decomposition because excursion fields were not present.</li> : null}
-          <li>• No regime-conditioned distribution split on this page.</li>
-          <li>• No parameter-conditioned distribution surface on this page.</li>
-        </ul>
-      </WorkspaceCard>
+      <ContextFlipCard
+        title="Distribution context"
+        subtitle="Truth-based assumptions, limitations, and recommendations for this exact run."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No explicit assumptions were emitted for this run.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No explicit recommendations were emitted for this run.", tone: "positive" },
+        ]}
+      />
 
       <InterpretationBlock
         {...toInterpretationBlockPayload({
           ...record.diagnostics.distribution.interpretation,
           summary: distribution.interpretation.summary,
           positives: keyShapeFindings.slice(0, 2),
-          cautions: limitations.slice(0, 3),
-          caveats: [
-            ...(!hasExcursion ? ["MAE/MFE excursion decomposition was unavailable for this run."] : []),
-            "Regime-conditioned distribution is out of scope for this page.",
-            "Parameter-conditioned distribution is out of scope for this page.",
-          ].slice(0, 3),
-          bullets: recommendations.slice(0, 3),
+          cautions: truthContext.limitations.slice(0, 3),
+          caveats: (!hasExcursion ? ["MAE/MFE excursion decomposition was unavailable for this run."] : []).slice(0, 3),
+          bullets: truthContext.recommendations.slice(0, 3),
         })}
       />
     </AnalysisPageFrame>
