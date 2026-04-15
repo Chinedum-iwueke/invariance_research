@@ -134,12 +134,13 @@ export function listAnalyses(accountId?: string): AnalysisListItem[] {
     .map((analysis) => {
       const artifact = artifactRepository.findById(analysis.artifact_id);
       const result = analysis.result;
+      const runtimeStrategyName = analysis.strategy_name?.trim();
       return {
         analysis_id: analysis.analysis_id,
         strategy_name:
-          analysis.strategy_name?.trim() ||
-          result?.strategy.strategy_name ??
-          artifact?.parsed_artifact.strategy_metadata?.strategy_name ??
+          runtimeStrategyName ||
+          result?.strategy.strategy_name ||
+          artifact?.parsed_artifact.strategy_metadata?.strategy_name ||
           "Untitled upload",
         trade_count: result?.dataset.trade_count ?? artifact?.parsed_artifact.trades.length ?? 0,
         timeframe: result?.strategy.timeframe ?? artifact?.parsed_artifact.trades[0]?.timeframe ?? "N/A",
