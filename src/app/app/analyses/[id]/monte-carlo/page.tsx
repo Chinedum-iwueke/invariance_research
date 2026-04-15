@@ -5,8 +5,10 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectMonteCarloTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -91,9 +93,7 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     ...emittedWarnings.filter((message) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(message)),
   ].filter((warning, idx, arr) => warning.trim().length > 0 && arr.indexOf(warning) === idx);
 
-  const assumptions = monteCarlo.assumptions ?? [];
-  const limitations = monteCarlo.limitations ?? [];
-  const recommendations = monteCarlo.recommendations ?? [];
+  const truthContext = buildTruthContext(record, "monte_carlo");
 
   return (
     <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">
@@ -112,12 +112,12 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
             <p><span className="font-medium text-text-graphite">Ruin threshold:</span> {ruinThreshold}</p>
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Advanced scope not yet included" subtitle="Methodological boundaries">
+        <WorkspaceCard title="Simulation realism posture" subtitle="What was materially available in this run context">
           <ul className="space-y-1.5 text-sm text-text-neutral">
-            <li>• No regime-conditioned sequencing.</li>
-            <li>• No volatility clustering process model.</li>
-            <li>• No liquidity/execution crash amplification.</li>
-            <li>• No serial-dependence (block bootstrap) model.</li>
+            <li>• Method: {method}</li>
+            <li>• Paths: {simulations}</li>
+            <li>• Horizon: {horizon}</li>
+            <li>• Ruin threshold: {ruinThreshold}</li>
           </ul>
         </WorkspaceCard>
       </div>
@@ -164,22 +164,15 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
           )}
         </WorkspaceCard>
       </div>
-      <WorkspaceCard title="Simulation assumptions, limitations & recommendations" subtitle="Engine-native methodology and guidance">
-        <div className="grid gap-4 text-sm text-text-neutral md:grid-cols-3">
-          <div>
-            <p className="font-medium text-text-graphite">Assumptions</p>
-            {assumptions.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No assumptions were explicitly emitted.</p> : <ul className="mt-1 space-y-1">{assumptions.map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
-          </div>
-          <div>
-            <p className="font-medium text-text-graphite">Limitations</p>
-            {limitations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No additional limitations were emitted.</p> : <ul className="mt-1 space-y-1">{limitations.map((item, index) => <li key={`limitation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
-          </div>
-          <div>
-            <p className="font-medium text-text-graphite">Recommendations</p>
-            {recommendations.length === 0 ? <p className="mt-1 text-xs text-text-neutral">No recommendations were emitted.</p> : <ul className="mt-1 space-y-1">{recommendations.map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}</ul>}
-          </div>
-        </div>
-      </WorkspaceCard>
+      <ContextFlipCard
+        title="Simulation assumptions, limitations & recommendations"
+        subtitle="Truth-based methodology and guidance for this run."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No assumptions were explicitly emitted.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No additional limitations were emitted.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted.", tone: "positive" },
+        ]}
+      />
     </AnalysisPageFrame>
   );
 }

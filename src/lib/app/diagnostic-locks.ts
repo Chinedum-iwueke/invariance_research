@@ -30,6 +30,9 @@ interface BuildDiagnosticLockModelInput {
 }
 
 export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): DiagnosticLockModel {
+  const currentPlan = (input.currentPlan ?? "explorer").toLowerCase();
+  const showUpgradeCta = currentPlan === "explorer" || currentPlan === "professional";
+
   if (input.state === "artifact_unavailable") {
     if (input.artifactRequirementProfile === "execution_sensitivity") {
       return {
@@ -67,10 +70,10 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         ],
         actions: [
           { label: "Upload parameter sweep bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "View supported sweep format", href: "/methodology", emphasis: "secondary" },
+          { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
         ],
         footerNote:
-          "This lock is due to artifact structure, not plan tier. OHLCV/regime context is optional for baseline Parameter Stability.",
+          "Parameter Stability also requires Research Lab access. Artifact structure and plan tier are both required.",
       };
     }
 
@@ -89,7 +92,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         ],
         actions: [
           { label: "Upload trade + OHLCV bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "View supported bundle format", href: "/methodology", emphasis: "secondary" },
+          { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
         ],
         footerNote: "No regime classifications or proxy regime results are generated when OHLCV context is missing.",
       };
@@ -141,16 +144,23 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
     diagnosticPurpose: input.diagnosticPurpose,
     state: input.state,
     badgeLabel: "Plan Locked",
-    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Professional"} plan and above.`,
+    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Professional"} plan and above.${input.artifactRequirementProfile ? " It also requires specific structured artifact inputs." : ""}`,
     unlockRequirements: [
       `Current plan: ${input.currentPlan ?? "Explorer"}`,
       `Required plan: ${input.requiredPlan ?? "Professional"}`,
+      ...(input.artifactRequirementProfile === "parameter_sweep_bundle"
+        ? ["Artifact requirement: parameter sweep bundle with run-to-parameter mapping."]
+        : input.artifactRequirementProfile === "regime_analysis"
+          ? ["Artifact requirement: OHLCV or equivalent market context to classify regimes."]
+          : []),
       "Upgrade unlocks deeper diagnostics and workflow capacity for this surface.",
     ],
     actions: [
-      { label: `Upgrade to ${input.requiredPlan ?? "Professional"}`, href: "/app/upgrade", emphasis: "primary" },
-      { label: "Compare plans", href: "/app/billing", emphasis: "secondary" },
+      ...(showUpgradeCta ? [{ label: `Upgrade to ${input.requiredPlan ?? "Professional"}`, href: "/app/upgrade", emphasis: "primary" as const }] : []),
+      { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
     ],
-    footerNote: "This limitation is entitlement-based and can be unlocked by plan change.",
+    footerNote: showUpgradeCta
+      ? "This diagnostic is plan-gated and artifact-dependent."
+      : "Artifact requirements still apply even when your plan is already entitled.",
   };
 }

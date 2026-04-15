@@ -6,9 +6,11 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { Card } from "@/components/ui/card";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
@@ -74,6 +76,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
     `Classification: ${classification.text}.`,
     ...(regimes.interpretation.bullets ?? []),
   ];
+  const truthContext = buildTruthContext(record, "regimes");
 
   return (
     <AnalysisPageFrame title="Regime Analysis" description="Performance decomposition by volatility and trend structure.">
@@ -145,15 +148,6 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         </ul>
       </WorkspaceCard>
 
-      <WorkspaceCard title="What this does not include" subtitle="Scope boundaries for this diagnostic">
-        <ul className="space-y-1.5 text-sm text-text-neutral">
-          <li>• No macro regimes.</li>
-          <li>• No liquidity regimes.</li>
-          <li>• No execution regimes.</li>
-          <li>• No forward regime prediction.</li>
-        </ul>
-      </WorkspaceCard>
-
       <InterpretationBlock
         {...toInterpretationBlockPayload({ ...regimes.interpretation, bullets: interpretationBullets })}
         cautions={[
@@ -163,26 +157,15 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         caveats={regimes.limitations ?? []}
       />
 
-      <div className="grid gap-4 2xl:grid-cols-2">
-        <WorkspaceCard title="Assumptions" subtitle="Engine-emitted regime assumptions">
-          {(regimes.assumptions ?? []).length ? (
-            <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.assumptions ?? []).map((item, index) => <li key={`assumption-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-neutral">No explicit regime assumptions were emitted for this run.</p>
-          )}
-        </WorkspaceCard>
-        <WorkspaceCard title="Recommendations" subtitle="Engine-emitted deployment guidance">
-          {(regimes.recommendations ?? []).length ? (
-            <ul className="space-y-1.5 text-sm text-text-neutral">
-              {(regimes.recommendations ?? []).map((item, index) => <li key={`recommendation-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-            </ul>
-          ) : (
-            <p className="text-sm text-text-neutral">No regime-specific recommendations were emitted for this run.</p>
-          )}
-        </WorkspaceCard>
-      </div>
+      <ContextFlipCard
+        title="Regime context"
+        subtitle="Truth-based assumptions, limitations, and recommendations."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No explicit regime assumptions were emitted for this run.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit regime limitations were emitted for this run.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No regime-specific recommendations were emitted for this run.", tone: "positive" },
+        ]}
+      />
     </AnalysisPageFrame>
   );
 }

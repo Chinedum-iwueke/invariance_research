@@ -8,11 +8,13 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { ReportExportActions } from "@/components/dashboard/report-export-actions";
 import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
 import { metricsFromScoreBands } from "@/lib/app/analysis-ui";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import type { FigurePayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { accountService } from "@/lib/server/accounts/service";
@@ -67,8 +69,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const view = buildReportViewModel(record);
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
-  const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
+  const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
+  const truthContext = buildTruthContext(record, "report");
 
   logAnalysisPageDebug({
     analysis_id: record.analysis_id,
@@ -210,22 +213,15 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Warnings, Limitations, and Methodology Boundaries" subtitle="Explicit uncertainty and model boundary disclosure">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-graphite">Methodology assumptions</p>
-            <BulletList items={view.methodology} empty="No methodology assumptions were emitted." />
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-graphite">Limitations and warnings</p>
-            <BulletList items={[...view.limitations, ...record.summary.warnings.map((warning) => `${warning.title}: ${warning.message}`)]} empty="No explicit limitations were emitted." />
-          </div>
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Recommended Actions" subtitle="Prioritized next steps for de-risking and deployment governance">
-        <BulletList items={view.recommendations} empty="No recommendations were emitted." />
-      </WorkspaceCard>
+      <ContextFlipCard
+        title="Methodology boundaries, limitations, and actions"
+        subtitle="Unified truth-based context for assumptions, warnings, and recommended actions."
+        panes={[
+          { key: "assumptions", label: "Assumptions", items: [...truthContext.assumptions, ...view.methodology], empty: "No methodology assumptions were emitted.", tone: "neutral" },
+          { key: "limitations", label: "Limitations", items: [...truthContext.limitations, ...record.summary.warnings.map((warning) => `${warning.title}: ${warning.message}`)], empty: "No explicit limitations were emitted.", tone: "warning" },
+          { key: "recommendations", label: "Recommendations", items: [...truthContext.recommendations, ...view.recommendations], empty: "No recommendations were emitted.", tone: "positive" },
+        ]}
+      />
 
       <WorkspaceCard title="Export & Share" subtitle="Client-ready PDF artifact and raw payload access" note="The report download continues even if an individual chart cannot be embedded.">
         <div id="report-export">

@@ -197,123 +197,131 @@ export function NewAnalysisIntake() {
           </p>
         </div>
         <p className="mt-3 text-xs text-text-neutral">Files are processed server-side.</p>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-sm font-medium text-text-institutional">Strategy name</span>
-            <input
-              className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
-              type="text"
-              maxLength={120}
-              placeholder="e.g., Mean Reversion v3"
-              value={strategyName}
-              onChange={(event) => setStrategyName(event.target.value)}
-            />
-            <span className="text-xs text-text-neutral">Used in Workspace Home and analysis summaries. Leave blank to use upload-derived fallback naming.</span>
-          </label>
-        </div>
-        <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-sm font-medium text-text-institutional">Account size</span>
-            <input
-              className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
-              type="number"
-              min={1}
-              step="any"
-              value={accountSize}
-              onChange={(event) => setAccountSize(event.target.value)}
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-sm font-medium text-text-institutional">Risk per trade (%)</span>
-            <input
-              className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={riskPerTradePct}
-              onChange={(event) => setRiskPerTradePct(event.target.value)}
-            />
-          </label>
-        </div>
-        {benchmarkSelection.mode === "auto" && (
-          <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
-        )}
-        <p className="text-sm text-text-neutral">State: {state.replaceAll("_", " ")}</p>
-        {file && <p className="text-xs text-text-neutral">Artifact: {file.name}</p>}
-        {status && (
-          <div className="text-xs text-text-neutral">
-            <p>Step: {status.current_step ?? "Pending"}</p>
-            <p>Progress: {status.progress_pct ?? 0}%</p>
-            <p>{status.message}</p>
-          </div>
-        )}
-        {clientError && <p className="text-xs text-red-600">{clientError}</p>}
-        {isQuotaExceeded(apiErrorCode) && (
-          <UpgradePanel
-            title="Monthly analysis limit reached"
-            explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
-            planHint="Professional and Research Lab increase monthly analysis throughput."
-          />
-        )}
-        {isUploadPlanRestricted(apiErrorCode) && (
-          <DiagnosticLockPanel
-            model={buildDiagnosticLockModel({
-              state: "plan_locked",
-              diagnosticTitle: "Advanced Artifact Upload",
-              diagnosticPurpose: "Upload structured or research bundles to unlock richer eligibility and diagnostics.",
-              requiredPlan: "Professional",
-            })}
-          />
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            className={buttonVariants({ variant: "primary" })}
-            disabled={state !== "eligibility_ready"}
-            onClick={() => void startAnalysis()}
-          >
-            Proceed to Run Analysis
-          </button>
-          <button
-            className={buttonVariants({ variant: "secondary" })}
-            onClick={() => void retry()}
-            disabled={state !== "failed" || !analysisId}
-          >
-            Retry
-          </button>
-          <button className={buttonVariants({ variant: "tertiary" })} onClick={() => router.push("/app/analyses")}>Return to Analyses</button>
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth and artifact review">
-        {!inspection && <p className="text-sm text-text-neutral">Upload an artifact to generate eligibility output.</p>}
-        {inspection && (
-          <div className="space-y-3 text-sm text-text-neutral">
-            <p>{inspection.upload_summary_text}</p>
-            <p className="text-xs">Available: {inspection.diagnostics_available.join(", ") || "None"}</p>
-            <p className="text-xs">Limited: {inspection.diagnostics_limited.join(", ") || "None"}</p>
-            <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
-            {limitationList.length > 0 && (
-              <ul className="list-disc pl-5 text-xs">
-                {limitationList.map((reason, index) => (
-                  <li key={`limitation-${index}-${reason.slice(0, 24)}`}>{reason}</li>
-                ))}
-              </ul>
-            )}
-            {inspection.validation_errors.length > 0 && (
-              <ul className="list-disc pl-5 text-xs text-red-600">
-                {inspection.validation_errors.map((error) => (
-                  <li key={`${error.code}-${error.message}`}>{error.message}</li>
-                ))}
-              </ul>
-            )}
+        {inspection ? (
+          <div className="mt-4 border-t border-border-subtle pt-4">
             <UploadReviewPanel inspection={inspection} />
           </div>
-        )}
+        ) : null}
       </WorkspaceCard>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-sm font-medium text-text-institutional">Strategy name</span>
+                <input
+                  className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                  type="text"
+                  maxLength={120}
+                  placeholder="e.g., Mean Reversion v3"
+                  value={strategyName}
+                  onChange={(event) => setStrategyName(event.target.value)}
+                />
+                <span className="text-xs text-text-neutral">Used in Workspace Home and analysis summaries. Leave blank to use upload-derived fallback naming.</span>
+              </label>
+            </div>
+            <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-institutional">Account size</span>
+                <input
+                  className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                  type="number"
+                  min={1}
+                  step="any"
+                  value={accountSize}
+                  onChange={(event) => setAccountSize(event.target.value)}
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-medium text-text-institutional">Risk per trade (%)</span>
+                <input
+                  className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                  type="number"
+                  min={0.01}
+                  step="0.01"
+                  value={riskPerTradePct}
+                  onChange={(event) => setRiskPerTradePct(event.target.value)}
+                />
+              </label>
+            </div>
+            {benchmarkSelection.mode === "auto" && (
+              <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
+            )}
+            <p className="text-sm text-text-neutral">State: {state.replaceAll("_", " ")}</p>
+            {file && <p className="text-xs text-text-neutral">Artifact: {file.name}</p>}
+            {status && (
+              <div className="text-xs text-text-neutral">
+                <p>Step: {status.current_step ?? "Pending"}</p>
+                <p>Progress: {status.progress_pct ?? 0}%</p>
+                <p>{status.message}</p>
+              </div>
+            )}
+            {clientError && <p className="text-xs text-red-600">{clientError}</p>}
+            {isQuotaExceeded(apiErrorCode) && (
+              <UpgradePanel
+                title="Monthly analysis limit reached"
+                explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
+                planHint="Professional and Research Lab increase monthly analysis throughput."
+              />
+            )}
+            {isUploadPlanRestricted(apiErrorCode) && (
+              <DiagnosticLockPanel
+                model={buildDiagnosticLockModel({
+                  state: "plan_locked",
+                  diagnosticTitle: "Advanced Artifact Upload",
+                  diagnosticPurpose: "Upload structured or research bundles to unlock richer eligibility and diagnostics.",
+                  requiredPlan: "Professional",
+                })}
+              />
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                className={buttonVariants({ variant: "primary" })}
+                disabled={state !== "eligibility_ready"}
+                onClick={() => void startAnalysis()}
+              >
+                Proceed to Run Analysis
+              </button>
+              <button
+                className={buttonVariants({ variant: "secondary" })}
+                onClick={() => void retry()}
+                disabled={state !== "failed" || !analysisId}
+              >
+                Retry
+              </button>
+              <button className={buttonVariants({ variant: "tertiary" })} onClick={() => router.push("/app/analyses")}>Return to Analyses</button>
+            </div>
+          </WorkspaceCard>
+        </div>
+
+        <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth">
+          {!inspection && <p className="text-sm text-text-neutral">Upload an artifact to generate eligibility output.</p>}
+          {inspection && (
+            <div className="space-y-3 text-sm text-text-neutral">
+              <p>{inspection.upload_summary_text}</p>
+              <p className="text-xs">Available: {inspection.diagnostics_available.join(", ") || "None"}</p>
+              <p className="text-xs">Limited: {inspection.diagnostics_limited.join(", ") || "None"}</p>
+              <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
+              {limitationList.length > 0 && (
+                <ul className="list-disc pl-5 text-xs">
+                  {limitationList.map((reason, index) => (
+                    <li key={`limitation-${index}-${reason.slice(0, 24)}`}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+              {inspection.validation_errors.length > 0 && (
+                <ul className="list-disc pl-5 text-xs text-red-600">
+                  {inspection.validation_errors.map((error) => (
+                    <li key={`${error.code}-${error.message}`}>{error.message}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </WorkspaceCard>
+      </div>
 
       <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
         <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>

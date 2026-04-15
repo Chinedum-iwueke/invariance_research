@@ -50,7 +50,7 @@ const OVERVIEW_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
   ["profit factor", "payoff ratio", "payoff"],
   ["worst monte carlo drawdown", "worst simulated drawdown", "max drawdown", "maximum drawdown", "drawdown"],
   ["risk of ruin", "probability of ruin", "p(ruin)"],
-  ["overfitting risk", "overfitting"],
+  ["sharpe", "sharpe ratio"],
 ];
 
 const DISTRIBUTION_METRIC_PRIORITY: ReadonlyArray<ReadonlyArray<string>> = [
