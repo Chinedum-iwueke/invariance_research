@@ -24,7 +24,7 @@ export function SectionSceneWrapper({ id, tone = "base", transition = "standard"
   }[tone];
 
   return (
-    <section id={id} style={style} className={cn("relative isolate min-h-screen snap-start border-t border-border-subtle", toneClass, className)}>
+    <section id={id} style={style} className={cn("relative isolate min-h-screen border-t border-border-subtle", toneClass, className)}>
       {transition === "sheet-reveal" ? (
         <div className="relative overflow-hidden rounded-t-[2rem] border-t border-border-subtle/80 bg-surface-white shadow-raised">
           <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
@@ -63,7 +63,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
   }, []);
 
   return (
-    <section id="hero" style={style} className="relative isolate flex min-h-screen snap-start items-center overflow-hidden bg-surface-white">
+    <section id="hero" style={style} className="relative isolate flex min-h-screen items-center overflow-hidden bg-surface-white">
       <div className="absolute inset-0">
         <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 0 ? "opacity-100" : "opacity-0")}>
           <HeroOverlayBackground />
@@ -87,7 +87,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               <div className="space-y-6 pt-1">
                 <div className="flex flex-wrap gap-3">
                   <Button asChild>
-                    <Link href="/robustness-lab">Explore Strategy Robustness Lab</Link>
+                    <Link href="/lab">Explore Strategy Robustness Lab</Link>
                   </Button>
                   <Button asChild variant="secondary">
                     <Link href="/strategy-validation">Validate Your Strategy</Link>
@@ -123,25 +123,6 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               </div>
             </div>
 
-            <div className="relative hidden w-[24rem] overflow-hidden rounded-md border border-border-subtle/80 bg-surface-white/65 p-4 shadow-soft backdrop-blur-sm lg:block">
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/55 to-transparent" />
-              <div className="mb-4 flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-text-neutral">
-                <span>Research desk protocol</span>
-                <span>v0.preview</span>
-              </div>
-              <div className="space-y-3.5 text-xs text-text-neutral">
-                {[
-                  "Idea intake parsed into structured assumptions",
-                  "Execution model constraints synchronized",
-                  "Diagnostic traces prepared for survivability review",
-                ].map((marker, index) => (
-                  <div key={marker} className="flex items-start gap-2.5">
-                    <span className={cn("mt-1 h-2 w-2 rounded-full border border-brand/45", index === 1 ? "bg-brand/70" : "bg-brand/30")} />
-                    <p className="leading-relaxed">{marker}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -382,24 +363,68 @@ export function MetricSnapshotStrip({ metrics }: { metrics: Array<{ label: strin
 }
 
 export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: boolean }) {
+  const xTicks = [
+    { label: "Jan", x: 72 },
+    { label: "Apr", x: 138 },
+    { label: "Jul", x: 204 },
+    { label: "Oct", x: 270 },
+    { label: "Jan", x: 336 },
+    { label: "Apr", x: 402 },
+    { label: "Jul", x: 468 },
+  ];
+  const yTicks = [
+    { label: "100", y: 216 },
+    { label: "110", y: 178 },
+    { label: "120", y: 140 },
+    { label: "130", y: 102 },
+    { label: "140", y: 64 },
+    { label: "160", y: 28 },
+  ];
+  const equityPath = executionAware
+    ? "M72 210 L92 205 L108 201 L124 193 L140 185 L156 191 L172 182 L188 175 L204 169 L220 176 L236 172 L252 165 L268 158 L284 163 L300 153 L316 146 L332 151 L348 144 L364 136 L380 141 L396 132 L412 126 L428 129 L448 122 L468 116"
+    : "M72 210 L92 207 L108 203 L124 198 L140 192 L156 186 L172 181 L188 175 L204 169 L220 164 L236 158 L252 151 L268 145 L284 138 L300 131 L316 124 L332 116 L348 108 L364 101 L380 93 L396 84 L412 75 L428 66 L448 54 L468 42";
+  const baselinePath = executionAware ? "M72 210 L468 156" : "M72 210 L468 96";
+
   return (
-    <div className="relative h-64 overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-4">
-      <svg className="h-full w-full" viewBox="0 0 460 260" preserveAspectRatio="xMidYMid meet">
-        <text x="10" y="24" fill="#666" fontSize="12">Equity</text>
-        <text x="402" y="238" fill="#666" fontSize="12">Time</text>
-        <line x1="38" y1="214" x2="428" y2="214" stroke="#d4d4d4" strokeWidth="1" />
-        <line x1="38" y1="30" x2="38" y2="214" stroke="#d4d4d4" strokeWidth="1" />
-        <polyline fill="none" stroke="#9ca3af" strokeWidth="1.8" points="38,202 100,190 162,183 224,171 286,158 348,145 428,132" />
-        <polyline
-          fill="none"
-          stroke={executionAware ? "#b00020" : "#b00020"}
-          strokeWidth={executionAware ? "2.4" : "2.2"}
-          strokeDasharray={executionAware ? "0" : "0"}
-          points={executionAware ? "38,205 100,198 162,188 224,190 286,177 348,174 428,168" : "38,205 100,194 162,177 224,157 286,147 348,128 428,100"}
-        />
+    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-4">
+      <svg className="h-full w-full" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label={executionAware ? "Execution-aware equity curve diagnostics" : "Naive backtest equity curve diagnostics"}>
+        {[72, 138, 204, 270, 336, 402, 468].map((x) => (
+          <line key={`v-${x}`} x1={x} y1={28} x2={x} y2={216} stroke="rgba(113,113,122,0.16)" strokeWidth="1" />
+        ))}
+        {[28, 64, 102, 140, 178, 216].map((y) => (
+          <line key={`h-${y}`} x1={72} y1={y} x2={468} y2={y} stroke="rgba(113,113,122,0.16)" strokeWidth="1" />
+        ))}
+
+        <line x1={72} y1={216} x2={468} y2={216} stroke="rgba(39,39,42,0.75)" strokeWidth="1.2" />
+        <line x1={72} y1={28} x2={72} y2={216} stroke="rgba(39,39,42,0.75)" strokeWidth="1.2" />
+
+        <path d={baselinePath} fill="none" stroke="rgba(107,114,128,0.36)" strokeWidth="1.2" strokeDasharray={executionAware ? "5 5" : undefined} />
+        <path d={equityPath} fill="none" stroke="#b00020" strokeWidth={executionAware ? "2.35" : "2.2"} strokeLinejoin="round" strokeLinecap="round" />
+
+        {xTicks.map((tick) => (
+          <text key={tick.x} x={tick.x} y={238} textAnchor="middle" className="fill-text-neutral text-[11px]">
+            {tick.label}
+          </text>
+        ))}
+        {yTicks.map((tick) => (
+          <text key={tick.y} x={58} y={tick.y + 4} textAnchor="end" className="fill-text-neutral text-[11px]">
+            {tick.label}
+          </text>
+        ))}
+
+        <text x={270} y={260} textAnchor="middle" className="fill-text-neutral text-[12px]">
+          Time
+        </text>
+        <text x={16} y={122} transform="rotate(-90 16 122)" textAnchor="middle" className="fill-text-neutral text-[12px]">
+          Equity (Normalized)
+        </text>
       </svg>
-      <div className="absolute right-3 top-3 rounded-sm border border-border-subtle bg-surface-white/90 px-3 py-2 text-xs">
-        <p className="font-medium text-text-graphite">{executionAware ? "Realistic decay visible" : "Smooth edge profile"}</p>
+
+      <div className="absolute left-4 top-4 rounded-sm border border-border-subtle bg-surface-white/95 px-3 py-2 text-xs backdrop-blur-sm">
+        <div className="inline-flex items-center gap-2">
+          <span className="h-[2px] w-6 bg-brand" aria-hidden />
+          <span className="text-text-graphite">{executionAware ? "Strategy Equity (Execution-Aware)" : "Strategy Equity (Naïve)"}</span>
+        </div>
       </div>
     </div>
   );

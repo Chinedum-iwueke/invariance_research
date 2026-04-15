@@ -36,7 +36,7 @@ const steps = [
 ] as const;
 
 export default function MethodologyPage() {
-  const sectionIds = ["hero", "workflow", "contract", "execution", "cta"];
+  const sectionIds = ["hero", "workflow", "execution", "cta"];
 
   return (
     <PublicShell>
@@ -44,7 +44,6 @@ export default function MethodologyPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            eyebrow="Method"
             title="Validation Methodology"
             description="A five-step framework designed for repeatable, execution-aware strategy evaluation."
             primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
@@ -60,30 +59,6 @@ export default function MethodologyPage() {
             steps={[...steps]}
           />
         </section>
-
-
-
-        <section id="contract" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader
-            title="Parameter Stability upload contract"
-            description="Parameter Stability unlocks only when intake receives a parameter sweep artifact with explicit run-to-parameter mapping."
-          />
-          <div className="rounded-md border bg-surface-panel p-card-md text-sm text-text-neutral">
-            <p className="font-medium text-text-institutional">Required for baseline Parameter Stability</p>
-            <ul className="mt-3 space-y-2">
-              <li>• Multiple strategy runs spanning parameter combinations.</li>
-              <li>• Parameter metadata that maps each <code>run_id</code> to parameter values.</li>
-              <li>• Trade history/results for each run in one structured upload bundle.</li>
-            </ul>
-            <p className="mt-4 font-medium text-text-institutional">Supported formats</p>
-            <ul className="mt-3 space-y-2">
-              <li>• Preferred: ZIP bundle with <code>manifest.json</code> + per-run trade files + run parameter mapping file.</li>
-              <li>• Advanced: one combined table with <code>run_id</code>, parameter columns, and trade/result rows.</li>
-              <li>• OHLCV/regime context is optional for baseline stability and reserved for richer future variants.</li>
-            </ul>
-          </div>
-        </section>
-
         <section id="execution" className="container-shell space-y-6 py-section-sm">
           <SectionHeader title="Why execution-aware testing matters" description="Backtests without implementation constraints overstate practical edge and understate deployment risk." />
           <ChartCard
