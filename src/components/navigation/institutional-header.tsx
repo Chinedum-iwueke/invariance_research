@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, CircleUserRound, Menu, X } from "lucide-react";
+import { ChevronDown, CircleUserRound, LogIn, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BrandLogoLink } from "@/components/ui/logo";
@@ -57,11 +57,9 @@ function AccountArea({ authenticated }: { authenticated: boolean }) {
 
   return (
     <div className="hidden items-center gap-2 md:flex">
-      <Link href="/login" className="text-sm text-text-neutral hover:text-text-institutional">
-        Log In
-      </Link>
-      <Link href="/signup" className={buttonVariants({ size: "sm", variant: "secondary" })}>
-        Sign Up
+      <Link href="/login" className={buttonVariants({ size: "sm", variant: "secondary", className: "gap-2" })}>
+        <LogIn className="h-4 w-4" />
+        <span>→ ]Sign in</span>
       </Link>
     </div>
   );
