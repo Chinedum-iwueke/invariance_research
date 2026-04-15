@@ -59,7 +59,7 @@ function AccountArea({ authenticated }: { authenticated: boolean }) {
     <div className="hidden items-center gap-2 md:flex">
       <Link href="/login" className={buttonVariants({ size: "sm", variant: "secondary", className: "gap-2" })}>
         <LogIn className="h-4 w-4" />
-        <span>→ ]Sign in</span>
+        <span>Sign In</span>
       </Link>
     </div>
   );
