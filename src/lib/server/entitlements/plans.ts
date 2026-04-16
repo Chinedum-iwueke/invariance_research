@@ -14,7 +14,7 @@ export const PLAN_MATRIX: Record<PlanId, EntitlementTemplate> = {
     can_view_distribution: true,
     can_view_monte_carlo: true,
     can_view_ruin: true,
-    can_view_execution: false,
+    can_view_execution: true,
     can_view_regimes: false,
     can_view_stability: false,
     can_view_full_report: false,
