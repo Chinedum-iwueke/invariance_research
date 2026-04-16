@@ -18,6 +18,14 @@ function unique(items: Array<string | undefined>, limit = 8): string[] {
 export function buildTruthContext(record: AnalysisRecord, diagnostic: "overview" | "distribution" | "monte_carlo" | "ruin" | "report" | "regimes" | "stability") {
   const benchmark = record.engine_payload.diagnostics.overview?.benchmark_comparison;
   const benchmarkReason = typeof benchmark?.reason === "string" ? benchmark.reason : undefined;
+  const benchmarkMetadata = benchmark?.metadata && typeof benchmark.metadata === "object"
+    ? (benchmark.metadata as Record<string, unknown>)
+    : undefined;
+  const benchmarkSummary = benchmark?.summary_metrics && typeof benchmark.summary_metrics === "object"
+    ? (benchmark.summary_metrics as Record<string, unknown>)
+    : undefined;
+  const benchmarkWasSelected = typeof benchmarkSummary?.benchmark_selected === "string"
+    || typeof benchmarkMetadata?.benchmark_id === "string";
   const benchmarkEnabled = benchmarkReason !== "benchmark_disabled" && benchmarkReason !== "benchmark_not_configured" && benchmarkReason !== "invalid_benchmark_config";
   const hasBenchmark = benchmarkReason === "available" || benchmarkReason === undefined;
   const hasRegimes = record.diagnostic_statuses.regimes.status === "available";
@@ -52,7 +60,13 @@ export function buildTruthContext(record: AnalysisRecord, diagnostic: "overview"
   const recommendations = unique([
     ...("recommendations" in source && Array.isArray(source.recommendations) ? source.recommendations : []),
     ...(diagnostic === "report" ? record.report.recommendations : []),
-    !hasBenchmark ? "Upload benchmark-compatible data or configure a benchmark explicitly before relying on relative-performance claims." : undefined,
+    !hasBenchmark && !benchmarkWasSelected
+      ? "Upload benchmark-compatible data or configure a benchmark explicitly before relying on relative-performance claims."
+      : !hasBenchmark && benchmarkReason === "no_benchmark_overlap"
+        ? "Benchmark was selected, but overlap with strategy timestamps was insufficient for reliable relative-performance claims."
+        : !hasBenchmark
+          ? "Benchmark context is configured but currently unavailable; resolve benchmark data/alignment issues before relying on relative-performance claims."
+          : undefined,
     !hasRegimes ? "Add OHLCV/regime context to unlock conditional deployment analysis by market state." : undefined,
     !hasStability ? "Upload parameter sweep metadata to validate robustness across parameter neighborhoods." : undefined,
   ]);

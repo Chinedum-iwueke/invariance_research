@@ -8,7 +8,7 @@ export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin"
 function artifactSupports(parsed: ParsedArtifact | undefined, diagnostic: DiagnosticKey): boolean {
   if (!parsed) return false;
   if (diagnostic === "overview" || diagnostic === "distribution" || diagnostic === "monte_carlo") return true;
-  if (diagnostic === "ruin" || diagnostic === "execution") return parsed.richness !== "trade_only";
+  if (diagnostic === "ruin" || diagnostic === "execution") return true;
   if (diagnostic === "regimes") return parsed.richness === "trade_plus_context" || parsed.richness === "research_complete";
   if (diagnostic === "stability") return parsed.richness === "research_complete";
   return false;
