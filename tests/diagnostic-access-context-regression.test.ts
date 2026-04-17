@@ -57,3 +57,42 @@ test("selected benchmark with no overlap does not emit stale benchmark upload re
     true,
   );
 });
+
+test("truth context tolerates structured recommendation objects", () => {
+  const context = buildTruthContext(
+    {
+      engine_payload: {
+        diagnostics: {
+          overview: {
+            benchmark_comparison: {
+              reason: "available",
+            },
+          },
+        },
+      },
+      diagnostic_statuses: {
+        regimes: { status: "available" },
+        stability: { status: "available" },
+        execution: { status: "available" },
+      },
+      diagnostics: {
+        ruin: {
+          recommendations: [
+            { message: "Keep risk sizing stable between sessions." },
+          ],
+        },
+      },
+      report: {
+        methodology_assumptions: [],
+        limitations: [],
+        recommendations: [],
+      },
+    } as never,
+    "ruin",
+  );
+
+  assert.equal(
+    context.recommendations.includes("Keep risk sizing stable between sessions."),
+    true,
+  );
+});

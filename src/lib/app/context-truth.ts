@@ -1,10 +1,25 @@
 import type { AnalysisRecord } from "@/lib/contracts";
 
-function unique(items: Array<string | undefined>, limit = 8): string[] {
+function normalizeItem(item: unknown): string | undefined {
+  if (typeof item === "string") {
+    const value = item.trim();
+    return value.length > 0 ? value : undefined;
+  }
+  if (!item || typeof item !== "object") return undefined;
+  const record = item as Record<string, unknown>;
+  for (const key of ["message", "text", "value", "label", "title"]) {
+    if (typeof record[key] === "string" && record[key].trim().length > 0) {
+      return record[key].trim();
+    }
+  }
+  return undefined;
+}
+
+function unique(items: unknown[], limit = 8): string[] {
   const deduped: string[] = [];
   const seen = new Set<string>();
   for (const item of items) {
-    const value = item?.trim();
+    const value = normalizeItem(item);
     if (!value) continue;
     const key = value.toLowerCase();
     if (seen.has(key)) continue;
