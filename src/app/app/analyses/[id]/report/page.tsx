@@ -45,7 +45,6 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
       title={title}
       subtitle={subtitle}
       figure={<DiagnosticFigure figure={figure} height={480} />}
-      note={figure.note}
     />
   );
 }
@@ -173,7 +172,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       <WorkspaceCard title="Distribution & Trade Behavior" subtitle="How the strategy earns, loses, and behaves across trade cohorts">
         <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
           {view.prioritizedFigures.distribution.map((figure) => (
-            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle ?? "Distribution diagnostic"} figure={<DiagnosticFigure figure={figure} height={480} />} note={figure.note} />
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle ?? "Distribution diagnostic"} figure={<DiagnosticFigure figure={figure} height={480} />} />
           ))}
         </div>
         {!view.prioritizedFigures.distribution.length ? <p className="text-sm text-text-neutral">Distribution charts were unavailable for this run.</p> : null}

@@ -37,7 +37,6 @@ export default async function AppHomePage() {
   return (
     <AnalysisPageFrame
       title="Research Workspace"
-      description="Welcome to the Strategy Robustness Lab. Start a new analysis, review artifacts, and monitor usage boundaries clearly."
     >
       <MetricRow
         metrics={[

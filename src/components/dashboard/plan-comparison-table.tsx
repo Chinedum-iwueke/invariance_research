@@ -1,5 +1,7 @@
 import { Check, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import type { PlanId } from "@/lib/contracts/account";
+import { PlanAction } from "@/components/dashboard/plan-action";
 
 const rows = [
   ["Trade CSV upload", "yes", "yes", "yes", "yes"],
@@ -24,7 +26,7 @@ function cell(value: string) {
   return <span className="text-xs text-text-neutral">{value}</span>;
 }
 
-export function PlanComparisonTable() {
+export function PlanComparisonTable({ currentPlan }: { currentPlan?: PlanId }) {
   return (
     <Card className="overflow-x-auto rounded-md border bg-surface-white p-0">
       <table className="min-w-[760px] w-full text-sm">
@@ -47,6 +49,15 @@ export function PlanComparisonTable() {
               <td className="px-4 py-3 text-center">{cell(row[4])}</td>
             </tr>
           ))}
+          {currentPlan ? (
+            <tr>
+              <td className="px-4 py-3 text-text-graphite">Plan action</td>
+              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="explorer" className="mx-auto" /></td>
+              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="professional" className="mx-auto" /></td>
+              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="research_lab" className="mx-auto" /></td>
+              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="advisory" className="mx-auto" /></td>
+            </tr>
+          ) : null}
         </tbody>
       </table>
     </Card>

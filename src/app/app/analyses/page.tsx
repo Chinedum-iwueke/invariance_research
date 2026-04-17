@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { AnalysisArchiveSearch } from "@/components/dashboard/analysis-archive-search";
 import { AnalysesLibrary } from "@/components/dashboard/analyses-library";
 
 export const metadata: Metadata = {
@@ -12,10 +13,9 @@ export default function AnalysesPage() {
   return (
     <AnalysisPageFrame
       title="Analyses Library"
-      description="Archive of uploaded research artifacts and analysis lifecycle statuses."
     >
-      <WorkspaceCard title="Archive controls" subtitle="Filtering will expand in Phase 5">
-        <p className="text-sm text-text-neutral">Status and metadata are sourced from backend analysis/job records.</p>
+      <WorkspaceCard title="Archive controls">
+        <AnalysisArchiveSearch />
       </WorkspaceCard>
       <AnalysesLibrary />
     </AnalysisPageFrame>

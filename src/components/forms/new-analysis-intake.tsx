@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -44,6 +45,7 @@ export function NewAnalysisIntake() {
   const [accountSize, setAccountSize] = useState<string>("100000");
   const [riskPerTradePct, setRiskPerTradePct] = useState<string>("1");
   const [apiErrorCode, setApiErrorCode] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
   const limitationList = useMemo(() => inspection?.limitation_reasons ?? [], [inspection]);
@@ -158,6 +160,19 @@ export function NewAnalysisIntake() {
     void pollStatus(analysisId, `/app/analyses/${analysisId}/overview`);
   }
 
+  function clearSelectedFile() {
+    setFile(null);
+    setInspection(null);
+    setStatus(null);
+    setAnalysisId(null);
+    setClientError(null);
+    setApiErrorCode(null);
+    setState("idle");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <div className="space-y-4">
       <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
@@ -184,6 +199,7 @@ export function NewAnalysisIntake() {
           <p className="text-sm font-medium">Submit artifact into validation intake</p>
           <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1)</p>
           <input
+            ref={fileInputRef}
             className="mt-4 block w-full text-xs"
             type="file"
             accept=".csv,.zip"
@@ -195,6 +211,15 @@ export function NewAnalysisIntake() {
           <p className="mt-2 text-xs text-text-neutral">
             <Link href="/docs/lab" className="underline underline-offset-2 hover:text-text-graphite">What files are accepted?</Link>
           </p>
+          {file ? (
+            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-neutral">
+              <span className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1">Selected: {file.name}</span>
+              <button type="button" onClick={clearSelectedFile} className="inline-flex items-center gap-1 rounded-sm border border-border-subtle bg-surface-white px-2 py-1 hover:border-border hover:text-text-graphite">
+                <X className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            </div>
+          ) : null}
         </div>
         <p className="mt-3 text-xs text-text-neutral">Files are processed server-side.</p>
         {inspection ? (
@@ -323,7 +348,7 @@ export function NewAnalysisIntake() {
         </WorkspaceCard>
       </div>
 
-      <WorkspaceCard title="Confidentiality" subtitle="Institutional handling">
+      <WorkspaceCard subtitle="Institutional handling">
         <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>
       </WorkspaceCard>
     </div>

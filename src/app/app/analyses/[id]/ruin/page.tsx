@@ -254,7 +254,6 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
               figure={riskSensitivityRenderability.series.length > 0
                 ? <DiagnosticFigure figure={riskSensitivityFigure} height={480} />
                 : <p className="text-sm text-text-neutral">Figure payload is present but series data could not be rendered for this run.</p>}
-              note={riskSensitivityFigure.note}
             />
           ) : (
             <WorkspaceCard title="Risk Per Trade Sensitivity" subtitle="Secondary figure fallback">
@@ -268,7 +267,6 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
               figure={lossStreakRenderability.series.length > 0
                 ? <DiagnosticFigure figure={lossStreakFigure} height={480} />
                 : <p className="text-sm text-text-neutral">Figure payload is present but series data could not be rendered for this run.</p>}
-              note={lossStreakFigure.note}
             />
           ) : (
             <WorkspaceCard title="Loss Streak Distribution" subtitle="Secondary figure fallback">

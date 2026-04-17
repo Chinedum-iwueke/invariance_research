@@ -23,7 +23,7 @@ function iconForLabel(label: string): LucideIcon {
 }
 
 function toneClasses(tone: ContextPaneTone): string {
-  if (tone === "warning") return "border-amber-500/25 bg-amber-500/8 text-amber-700 dark:text-amber-300";
+  if (tone === "warning") return "border-red-500/25 bg-red-500/8 text-red-700 dark:text-red-300";
   if (tone === "positive") return "border-chart-positive/25 bg-chart-positive/8 text-chart-positive";
   return "border-border-subtle bg-surface-muted text-text-neutral";
 }

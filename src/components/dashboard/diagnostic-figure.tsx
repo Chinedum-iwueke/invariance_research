@@ -49,12 +49,6 @@ export function DiagnosticFigure({ figure, emptyMessage, height = 480 }: { figur
         <p><span className="font-medium text-text-graphite">Series:</span> {adapted.summary.map((item) => item.label).join(", ")}</p>
         <p><span className="font-medium text-text-graphite">Provenance:</span> {provenanceLabel(figure.provenance)}</p>
       </div>
-
-      {figure.note || adapted.note ? (
-        <p className="rounded-sm border border-border-subtle bg-surface-panel px-2.5 py-2 text-xs text-text-neutral">
-          <span className="font-medium text-text-graphite">Method note:</span> {figure.note ?? adapted.note}
-        </p>
-      ) : null}
     </div>
   );
 }
