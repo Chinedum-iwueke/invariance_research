@@ -2,12 +2,11 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
-import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
-import { metricsFromScoreBands, selectMonteCarloTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { metricsFromScoreBands, selectMonteCarloTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -87,12 +86,6 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     return "Low";
   })();
 
-  const emittedWarnings = record.diagnostics.monte_carlo.warnings.map((warning) => warning.message);
-  const monteCarloWarnings = [
-    ...(monteCarlo.limitations ?? []),
-    ...emittedWarnings.filter((message) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(message)),
-  ].filter((warning, idx, arr) => warning.trim().length > 0 && arr.indexOf(warning) === idx);
-
   const truthContext = buildTruthContext(record, "monte_carlo");
 
   return (
@@ -132,7 +125,6 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
             height={620}
           />
         )}
-        note={primaryFigure.note}
       />
       {secondaryFigures.length ? (
         <div className="space-y-5">
@@ -142,7 +134,6 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
               title={figure.title}
               subtitle={figure.subtitle}
               figure={<DiagnosticFigure figure={figure} height={figure.type === "histogram" ? 520 : 500} />}
-              note={figure.note}
             />
           ))}
         </div>
@@ -150,20 +141,6 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
       <MetricRow metrics={metrics} cols={4} />
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.monte_carlo.interpretation)} />
-        <WorkspaceCard title="Warnings & limitations" subtitle="Material constraints on this crash test">
-          {monteCarloWarnings.length === 0 ? (
-            <p className="text-sm text-text-neutral">No Monte Carlo-specific warnings were emitted for this run.</p>
-          ) : (
-            <ul className="space-y-2 text-sm text-text-neutral">
-              {monteCarloWarnings.map((warning, index) => (
-                <li key={`warning-${index}-${warning.slice(0, 24)}`}>• {warning}</li>
-              ))}
-            </ul>
-          )}
-        </WorkspaceCard>
-      </div>
       <ContextFlipCard
         title="Simulation assumptions, limitations & recommendations"
         subtitle="Truth-based methodology and guidance for this run."

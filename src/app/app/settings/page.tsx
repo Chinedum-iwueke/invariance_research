@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
 
   return (
-    <AnalysisPageFrame title="Settings" description="Profile, plan posture, and account governance preferences.">
+    <AnalysisPageFrame title="Settings">
       <div className="grid gap-4 2xl:grid-cols-2">
         <WorkspaceCard title="Profile" subtitle="Identity">
           <p className="text-sm text-text-neutral">Email: {session.email}</p>

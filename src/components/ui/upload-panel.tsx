@@ -1,4 +1,5 @@
 import { FileUp } from "lucide-react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 
 export function UploadPanel() {
@@ -7,6 +8,7 @@ export function UploadPanel() {
       <div>
         <h3 className="text-lg font-semibold">Upload Research Artifacts</h3>
         <p className="mt-1 text-sm text-text-neutral">Submit datasets, logs, and model notes for validation intake.</p>
+        <Link href="/docs/lab" className="mt-2 inline-block text-xs font-medium text-brand hover:underline">View Docs</Link>
       </div>
       <div className="rounded-md border border-dashed bg-surface-panel/50 p-8 text-center">
         <FileUp className="mx-auto h-6 w-6 text-brand" />

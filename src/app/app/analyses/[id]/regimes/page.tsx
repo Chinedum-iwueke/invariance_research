@@ -95,13 +95,12 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
         title={primaryFigure?.title ?? "Performance by Regime"}
         subtitle={primaryFigure?.subtitle ?? "Bar chart of strategy behavior across trend/volatility states."}
         figure={<DiagnosticFigure figure={primaryFigure} emptyMessage="No regime bar chart was emitted for this run payload." />}
-        note={primaryFigure?.note}
       />
 
       {secondaryFigures.length ? (
         <div className="space-y-5">
           {secondaryFigures.map((figure) => (
-            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} />
           ))}
         </div>
       ) : null}

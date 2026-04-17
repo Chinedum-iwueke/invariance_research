@@ -2,12 +2,11 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
-import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
-import { metricsFromScoreBands, selectDistributionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { metricsFromScoreBands, selectDistributionTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
@@ -108,7 +107,6 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
                 title={figure.title}
                 subtitle={figure.subtitle}
                 figure={<DiagnosticFigure figure={figure} />}
-                note={figure.note}
                 metadata={figure.figure_id === histogram?.figure_id
                   ? <span className="rounded-full border border-border-subtle px-2 py-0.5">{engineHistogramProvenance === "engine_emitted" ? "Engine-native histogram" : "Reconstructed from persisted trades"}</span>
                   : undefined}
@@ -149,16 +147,6 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         ]}
       />
 
-      <InterpretationBlock
-        {...toInterpretationBlockPayload({
-          ...record.diagnostics.distribution.interpretation,
-          summary: distribution.interpretation.summary,
-          positives: keyShapeFindings.slice(0, 2),
-          cautions: truthContext.limitations.slice(0, 3),
-          caveats: (!hasExcursion ? ["MAE/MFE excursion decomposition was unavailable for this run."] : []).slice(0, 3),
-          bullets: truthContext.recommendations.slice(0, 3),
-        })}
-      />
     </AnalysisPageFrame>
   );
 }

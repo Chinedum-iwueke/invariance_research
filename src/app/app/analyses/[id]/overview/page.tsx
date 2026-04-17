@@ -2,15 +2,13 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
-import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
 import { MetricRow } from "@/components/dashboard/metric-row";
-import { VerdictCard } from "@/components/dashboard/verdict-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
-import { metricsFromScoreBands, selectOverviewTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
-import type { AnalysisRecord, InterpretationBlockPayload } from "@/lib/contracts";
+import { metricsFromScoreBands, selectOverviewTopMetrics } from "@/lib/app/analysis-ui";
+import type { AnalysisRecord } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -35,19 +33,6 @@ function benchmarkStatusLabel(status: string): string {
   if (status === "unavailable") return "Unavailable";
   if (status === "absent") return "Absent";
   return "Pending";
-}
-
-function verdictRationale(record: AnalysisRecord): string[] {
-  if (record.summary.key_findings.length) return record.summary.key_findings.slice(0, 4);
-  return [record.diagnostics.overview.interpretation.summary];
-}
-
-function overviewInterpretation(interpretation: InterpretationBlockPayload) {
-  return {
-    ...toInterpretationBlockPayload({
-      ...interpretation,
-    }),
-  };
 }
 
 function diagnosticRows(record: AnalysisRecord) {
@@ -113,11 +98,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const truthContext = buildTruthContext(record, "overview");
   const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
 
-  const parserNotes = Array.from(new Set([
-    ...(analysis.eligibility_snapshot?.parser_notes ?? []),
-    ...(record.run_context.notes ?? "").split("|").map((item) => item.trim()).filter(Boolean),
-  ]));
-
   return (
     <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
       <div className="flex flex-wrap items-center gap-2">
@@ -131,7 +111,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         title={overviewFigure.title || "Top-line equity view"}
         subtitle={overviewFigure.subtitle || "Primary strategy equity path for initial decisioning"}
         figure={<DiagnosticFigure figure={overviewFigure} emptyMessage="No persisted overview figure is currently available for this run." />}
-        note={overviewFigure.note}
         metadata={(
           <>
             <StatusPill label="Provenance" value={provenance === "engine_emitted" ? "Engine-emitted" : provenance === "reconstructed_from_trades" ? "Reconstructed from trades" : "Unknown"} tone={provenance === "engine_emitted" ? "positive" : "warning"} />
@@ -149,7 +128,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               title={figure.title}
               subtitle={figure.subtitle}
               figure={<DiagnosticFigure figure={figure} />}
-              note={figure.note}
             />
           ))}
         </div>
@@ -157,17 +135,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
       <OverviewBenchmarkSection benchmark={benchmarkComparison} />
-
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <InterpretationBlock {...overviewInterpretation(record.diagnostics.overview.interpretation)} />
-        <VerdictCard
-          title={record.summary.headline_verdict.title}
-          summary={record.summary.headline_verdict.summary}
-          posture={record.summary.headline_verdict.status}
-          confidence={record.report.confidence}
-          rationale={verdictRationale(record)}
-        />
-      </div>
 
       <WorkspaceCard title="Operational summary" subtitle="What exactly was analyzed in this run">
         <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2">
@@ -194,16 +161,6 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               />
             </div>
           ))}
-        </div>
-        <div className="mt-4 border-t pt-3 text-sm text-text-neutral">
-          <p className="font-medium text-text-graphite">Parser/runtime notes</p>
-          {parserNotes.length ? (
-            <ul className="mt-1 space-y-1">
-              {parserNotes.slice(0, 6).map((note, index) => <li key={`parser-note-${index}-${note.slice(0, 32)}`}>• {note}</li>)}
-            </ul>
-          ) : (
-            <p className="mt-1 text-xs">No additional parser/runtime notes were persisted for this run.</p>
-          )}
         </div>
       </WorkspaceCard>
 

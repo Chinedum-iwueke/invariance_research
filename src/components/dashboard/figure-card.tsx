@@ -6,13 +6,12 @@ interface FigureCardProps {
   subtitle?: string;
   figure: ReactNode;
   legend?: ReactNode;
-  note?: string;
   metadata?: ReactNode;
 }
 
-export function FigureCard({ title, subtitle, figure, legend, note, metadata }: FigureCardProps) {
+export function FigureCard({ title, subtitle, figure, legend, metadata }: FigureCardProps) {
   return (
-    <WorkspaceCard title={title} subtitle={subtitle} note={note}>
+    <WorkspaceCard title={title} subtitle={subtitle}>
       <div className="space-y-3">
         {metadata ? <div className="flex flex-wrap items-center gap-2 border-b pb-3 text-xs text-text-neutral">{metadata}</div> : null}
         {figure}

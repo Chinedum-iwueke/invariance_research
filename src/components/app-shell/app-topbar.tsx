@@ -20,9 +20,7 @@ export function AppTopbar({ context }: { context?: AnalysisContext }) {
               Robustness {context.robustness_score}
             </span>
           </>
-        ) : (
-          <p className="text-sm text-text-neutral">Authenticated research workspace</p>
-        )}
+        ) : null}
       </div>
     </div>
   );

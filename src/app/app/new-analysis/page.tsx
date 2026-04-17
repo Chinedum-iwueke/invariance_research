@@ -9,10 +9,7 @@ export const metadata: Metadata = {
 
 export default function NewAnalysisPage() {
   return (
-    <AnalysisPageFrame
-      title="New Analysis"
-      description="Submit a research artifact into validation intake. Eligibility, benchmark selection, queue status, and completion routing are backend-orchestrated."
-    >
+    <AnalysisPageFrame title="New Analysis">
       <NewAnalysisIntake />
     </AnalysisPageFrame>
   );

@@ -37,31 +37,10 @@ function metadataGrid(metadata?: BenchmarkMetadata) {
   );
 }
 
-function sectionList(items: string[], emptyState: string) {
-  if (!items.length) return <p className="mt-1 text-xs text-text-neutral">{emptyState}</p>;
-  return (
-    <ul className="mt-1 space-y-1 text-sm text-text-neutral">
-      {items.map((item, index) => <li key={`${item.slice(0, 20)}-${index}`}>• {item}</li>)}
-    </ul>
-  );
-}
-
 export function BenchmarkMetadataPanel({ benchmark }: { benchmark: OverviewBenchmarkComparison }) {
   return (
-    <WorkspaceCard title="Benchmark comparison context" subtitle="Comparison basis, assumptions, and limitations for reproducibility.">
-      <div className="space-y-4">
-        {metadataGrid(benchmark.metadata)}
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-sm font-medium text-text-graphite">Assumptions</p>
-            {sectionList(benchmark.assumptions, "No benchmark assumptions were emitted.")}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-text-graphite">Limitations</p>
-            {sectionList(benchmark.limitations, "No benchmark limitations were emitted.")}
-          </div>
-        </div>
-      </div>
+    <WorkspaceCard title="Benchmark comparison context" subtitle="Comparison basis for reproducibility.">
+      {metadataGrid(benchmark.metadata)}
     </WorkspaceCard>
   );
 }

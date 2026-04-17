@@ -3,13 +3,13 @@ import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
-import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
+import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { Card } from "@/components/ui/card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
-import { metricsFromScoreBands, selectExecutionTopMetrics, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
+import { metricsFromScoreBands, selectExecutionTopMetrics } from "@/lib/app/analysis-ui";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
@@ -145,12 +145,11 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         title={executionFigure?.title ?? "Execution Cost Sensitivity"}
         subtitle={executionFigure?.subtitle ?? "Expectancy response across higher execution friction assumptions."}
         figure={<DiagnosticFigure figure={executionFigure} emptyMessage={figureMissingReason} />}
-        note={executionFigure?.note}
       />
       {executionFigures.length > 1 ? (
         <div className="space-y-5">
           {executionFigures.slice(1).map((figure) => (
-            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} note={figure.note} />
+            <FigureCard key={figure.figure_id} title={figure.title} subtitle={figure.subtitle} figure={<DiagnosticFigure figure={figure} />} />
           ))}
         </div>
       ) : null}
@@ -223,13 +222,36 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         </ul>
       </WorkspaceCard>
 
-      <InterpretationBlock
-        {...toInterpretationBlockPayload(execution.interpretation)}
-        cautions={[
-          `Risk level: ${titleCase(execution.sensitivity_classification ?? "informational")}.`,
-          ...(dominantCostDriver ? [`Dominant cost driver signal: ${dominantCostDriver}.`] : []),
+      <ContextFlipCard
+        title="Execution interpretation"
+        subtitle="Interpretation context for this execution sensitivity run."
+        panes={[
+          {
+            key: "interpretation",
+            label: "Interpretation",
+            items: [execution.interpretation.summary, ...(execution.interpretation.bullets ?? [])].filter(Boolean),
+            empty: "No execution interpretation was emitted for this run.",
+            tone: "neutral",
+          },
+          {
+            key: "cautions",
+            label: "Cautions",
+            items: [
+              `Risk level: ${titleCase(execution.sensitivity_classification ?? "informational")}.`,
+              ...(dominantCostDriver ? [`Dominant cost driver signal: ${dominantCostDriver}.`] : []),
+              ...(execution.interpretation.cautions ?? []),
+            ],
+            empty: "No execution cautions were emitted for this run.",
+            tone: "warning",
+          },
+          {
+            key: "key-caveats",
+            label: "Key Caveats",
+            items: limitations,
+            empty: "No explicit execution caveats were emitted for this run.",
+            tone: "warning",
+          },
         ]}
-        caveats={limitations}
       />
     </AnalysisPageFrame>
   );

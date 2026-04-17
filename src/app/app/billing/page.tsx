@@ -18,9 +18,10 @@ export default async function BillingPage() {
   const limit = state?.entitlements.analyses_per_month ?? 3;
   const retentionDays = state?.entitlements.history_retention_days ?? 30;
   const remaining = isAdmin ? "Unlimited" : String(Math.max(0, limit - usage.analyses_created));
+  const currentPlan = state?.account.plan_id ?? "explorer";
 
   return (
-    <AnalysisPageFrame title="Billing & Plan" description="Transparent usage, clear plan boundaries, and calm upgrade controls.">
+    <AnalysisPageFrame title="Billing & Plan">
       <BillingSummaryCard
         plan={state?.account.plan_id ?? "explorer"}
         status={state?.account.subscription_status ?? "trialing"}
@@ -36,21 +37,17 @@ export default async function BillingPage() {
           <p className="text-sm text-text-neutral">Analyses remaining this month: {remaining}</p>
           <p className="mt-2 text-sm text-text-neutral">Uploads this month: {usage.artifacts_uploaded}</p>
           <p className="mt-2 text-sm text-text-neutral">Report exports this month: {usage.report_exports}</p>
-          <p className="mt-3 text-xs text-text-neutral">Upgrade prompts appear only when diagnostic depth or monthly workflow limits require it.</p>
         </WorkspaceCard>
       </div>
 
       <WorkspaceCard title="Subscription controls" subtitle="Self-service where available">
         <div className="flex flex-wrap gap-2">
           <Link className={buttonVariants({ size: "sm" })} href="/app/upgrade">Upgrade options</Link>
-          <form action="/api/billing/portal" method="post">
-            <button className={buttonVariants({ size: "sm", variant: "secondary" })} type="submit">Manage subscription</button>
-          </form>
           <Link href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request advisory consultation</Link>
         </div>
       </WorkspaceCard>
 
-      <PlanComparisonTable />
+      <PlanComparisonTable currentPlan={currentPlan} />
 
       <UpgradePanel
         title="Need deeper diagnostics or more monthly capacity?"
