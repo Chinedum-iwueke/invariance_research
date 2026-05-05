@@ -75,7 +75,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
 
       <div className="container-shell relative z-10 flex h-[90svh] min-h-[40rem] flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
         <div className="relative flex flex-1 items-center">
-          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 0 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0")}>
+          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 0 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0")}>
             <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
               <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
               <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
@@ -103,7 +103,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           <div
             className={cn(
               "absolute inset-0 grid items-center transition-all duration-700 ease-out lg:grid-cols-[1fr_auto] lg:gap-9",
-              activeScene === 1 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+              activeScene === 1 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
             )}
           >
             <div className="max-w-[42rem] space-y-5">
