@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { AdminPageShell } from "@/components/admin/admin-page-shell";
+import { AdminTable } from "@/components/admin/admin-table";
+import { listVideos } from "@/lib/server/videos/repository";
+
+export default function AdminVideosPage() { const videos = listVideos(); return <AdminPageShell title="Videos" description="Manage YouTube episodes for the public research library."><div className="flex justify-end"><Link href="/app/admin/videos/new" className="rounded-sm border border-border-subtle px-3 py-2 text-xs hover:bg-surface-panel">Create video</Link></div><AdminTable><thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral"><tr><th className="px-3 py-2">Title</th><th>Track</th><th>Episode</th><th>Status</th><th>Published</th><th>Actions</th></tr></thead><tbody>{videos.map((v)=><tr key={v.id} className="border-b border-border-subtle/60 text-xs"><td className="px-3 py-2">{v.title}<div className="text-text-neutral">/{v.slug}</div></td><td>{v.category}</td><td>{v.episode_number}</td><td>{v.status}</td><td>{v.published_at?.slice(0,10) ?? '-'}</td><td><Link className="underline" href={`/app/admin/videos/${v.id}/edit`}>Edit</Link></td></tr>)}</tbody></AdminTable></AdminPageShell>; }

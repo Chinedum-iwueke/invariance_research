@@ -11,6 +11,7 @@ const items = [
   { href: "/app/admin/maintenance", label: "Maintenance" },
   { href: "/app/admin/accounts", label: "Accounts" },
   { href: "/app/admin/publications", label: "Publications" },
+  { href: "/app/admin/videos", label: "Videos" },
   { href: "/app/admin/waitlist", label: "Waitlist" },
 ];
 

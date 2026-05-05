@@ -255,4 +255,28 @@ export const migrations = [
     `,
   },
 
+  {
+    version: 9,
+    name: "research_videos_module",
+    sql: `
+      CREATE TABLE IF NOT EXISTS videos (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        description TEXT NOT NULL,
+        youtube_url TEXT NOT NULL,
+        category TEXT NOT NULL,
+        episode_number INTEGER NOT NULL,
+        duration TEXT,
+        thumbnail_override_url TEXT,
+        status TEXT NOT NULL,
+        published_at TEXT,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_videos_status_category ON videos(status, category);
+      CREATE INDEX IF NOT EXISTS idx_videos_episode_published ON videos(episode_number, published_at DESC);
+    `,
+  },
+
 ];
