@@ -5,11 +5,9 @@ import { AnalysisTable } from "@/components/dashboard/analysis-table";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { MetricRow } from "@/components/dashboard/metric-row";
-import { UsageMeter } from "@/components/dashboard/usage-meter";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buttonVariants } from "@/components/ui/button";
 import { accountService } from "@/lib/server/accounts/service";
-import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { listAnalyses } from "@/lib/server/services/analysis-service";
 
@@ -20,9 +18,7 @@ export const metadata: Metadata = {
 
 export default async function AppHomePage() {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
   const usage = accountService.getUsage(session.account_id);
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const analyses = listAnalyses(session.account_id);
 
   if (analyses.length === 0) {
@@ -47,18 +43,15 @@ export default async function AppHomePage() {
         ]}
       />
 
-      <UsageMeter
-        used={usage.analyses_created}
-        limit={state?.entitlements.analyses_per_month ?? 3}
-        retentionDays={state?.entitlements.history_retention_days ?? 30}
-        unlimited={isAdmin}
-      />
+      <WorkspaceCard title="Monthly activity" subtitle="Current calendar month">
+        <p className="text-lg font-semibold text-text-institutional">Analyses this month: {usage.analyses_created}</p>
+      </WorkspaceCard>
 
       <div className="grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
         <WorkspaceCard title="Quick Start" subtitle="Structured flow" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
           <ol className="space-y-2 text-sm text-text-neutral">
             <li>1. Upload backtest and trade artifacts.</li>
-            <li>2. Confirm eligibility and plan boundaries.</li>
+            <li>2. Review dataset quality and analysis readiness.</li>
             <li>3. Review diagnostics and interpretation summaries.</li>
           </ol>
           <div className="mt-4 flex flex-wrap gap-2">

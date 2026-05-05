@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CalendarDays, Download, ShieldAlert, ShieldCheck } from "lucide-react";
+import { BadgeCheck, ShieldAlert, ShieldCheck } from "lucide-react";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
-import { ReportExportActions } from "@/components/dashboard/report-export-actions";
-import { UpgradePanel } from "@/components/dashboard/upgrade-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,8 +15,6 @@ import { metricsFromScoreBands } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import type { FigurePayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
-import { accountService } from "@/lib/server/accounts/service";
-import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
@@ -51,12 +47,8 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
-  const state = accountService.getAccountState(session.account_id);
   const { id } = await params;
   const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
-  const canExport = isAdmin || (state?.entitlements.can_export_report ?? false);
-  const canViewFull = isAdmin || (state?.entitlements.can_view_full_report ?? false);
 
   if (!record) {
     return (
@@ -88,7 +80,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   });
 
   return (
-    <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, survivability diagnostics, benchmark context, and exportable board-ready reporting.">
+    <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, survivability diagnostics, and benchmark context.">
       <WorkspaceCard title="Executive Summary" subtitle="Institutional validation memo — final deployment decision artifact">
         <div className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -97,11 +89,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-text-institutional">{record.strategy.strategy_name}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-neutral">{record.report.executive_summary}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <a href="#report-export" className={buttonVariants({ variant: "secondary" })}><Download className="mr-2 h-4 w-4" />Download PDF</a>
-              <Link href={`/api/analyses/${record.analysis_id}`} className={buttonVariants({ variant: "secondary" })}>Raw payload</Link>
             </div>
-          </div>
 
           <div className="grid gap-3 rounded-md border border-border/80 bg-surface-subtle p-4 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
             <p><span className="font-medium text-text-graphite">Asset / Market:</span> {record.dataset.market ?? "N/A"}</p>
@@ -110,18 +98,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count.toLocaleString()}</p>
             <p className="md:col-span-2"><span className="font-medium text-text-graphite">Verdict:</span> {view.verdict.statusLabel} — {view.verdict.headline}</p>
             <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
-            <p><span className="font-medium text-text-graphite">Scope:</span> {canViewFull ? "Full diagnostic suite" : "Limited report scope"}</p>
+            <p><span className="font-medium text-text-graphite">Scope:</span> Free diagnostic preview</p>
           </div>
         </div>
       </WorkspaceCard>
-
-      {!canViewFull ? (
-        <UpgradePanel
-          title="Full report depth is plan-gated"
-          explanation="Your current plan includes a limited report view. Upgrade when you need expanded diagnostic sections and complete exportable reporting."
-          planHint="Full report view and exports are available on Professional and above."
-        />
-      ) : null}
 
       <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">
         <MetricRow metrics={metricsFromScoreBands(decisionMetrics)} cols={6} />
@@ -222,21 +202,43 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         ]}
       />
 
-      <WorkspaceCard title="Export & Share" subtitle="Client-ready PDF artifact and raw payload access" note="The report download continues even if an individual chart cannot be embedded.">
-        <div id="report-export">
-          <ReportExportActions analysisId={record.analysis_id} canExport={canExport} currentPlan={state?.account.plan_id} />
-        </div>
-        <div className="mt-4 border-t pt-3">
-          <p className="text-xs text-text-neutral">Polished PDF export is the primary client deliverable. Raw payload access remains available for audit transparency and downstream analyst workflows.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/contact" className={buttonVariants()}>
-              Need an independent validation audit?
-            </Link>
-            <span className="inline-flex items-center gap-1 text-xs text-text-neutral"><CalendarDays className="h-3.5 w-3.5" /> Export links expire automatically based on retention policy.</span>
-            <span className="inline-flex items-center gap-1 text-xs text-text-neutral"><AlertTriangle className="h-3.5 w-3.5" /> Download retry is safe; failed exports surface explicit error messages.</span>
-          </div>
+      <WorkspaceCard title="What full validation includes" subtitle="Decision-grade validation scope beyond the free diagnostic layer">
+        <ul className="space-y-2 text-sm text-text-neutral">
+          <li>• Parameter Stability Analysis</li>
+          <li>• Regime-Based Performance Diagnostics</li>
+          <li>• Execution Stress Testing</li>
+          <li>• Capital Risk Modeling</li>
+        </ul>
+        <div className="mt-4">
+          <Link href="/contact" className={buttonVariants()}>Request Validation Audit</Link>
         </div>
       </WorkspaceCard>
+
+      <WorkspaceCard title="Advanced Diagnostics (Required for Decision-Grade Validation)" subtitle="These diagnostics are included in structured audit engagements.">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4 opacity-85">
+            <p className="text-sm font-semibold text-text-institutional">Parameter Stability 🔒</p>
+            <p className="mt-2 text-sm text-text-neutral">Tests whether performance remains durable as core parameters shift.</p>
+            <p className="mt-2 text-xs text-text-neutral">Why it matters: guards against parameter luck and narrow optimization.</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4 opacity-85">
+            <p className="text-sm font-semibold text-text-institutional">Regime Analysis 🔒</p>
+            <p className="mt-2 text-sm text-text-neutral">Evaluates behavior across volatility and trend-state transitions.</p>
+            <p className="mt-2 text-xs text-text-neutral">Why it matters: verifies edge persistence outside favorable windows.</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Link href="/contact" className={buttonVariants()}>Request Full Validation Audit</Link>
+        </div>
+      </WorkspaceCard>
+
+      <div className="rounded-md border border-brand/25 bg-brand/5 px-6 py-10 text-center">
+        <h2 className="text-2xl font-semibold text-text-institutional">Get an Independent Validation Audit</h2>
+        <p className="mx-auto mt-3 max-w-3xl text-sm text-text-neutral">For full-spectrum validation prior to capital deployment — including regime diagnostics, parameter stability, execution stress testing, and institutional reporting — request a structured audit.</p>
+        <div className="mt-6">
+          <Link href="/contact" className={buttonVariants({ size: "lg" })}>Get an Independent Validation Audit</Link>
+        </div>
+      </div>
     </AnalysisPageFrame>
   );
 }

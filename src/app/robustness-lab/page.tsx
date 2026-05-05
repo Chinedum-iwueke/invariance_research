@@ -30,15 +30,15 @@ export default function RobustnessLabPage() {
             eyebrow="Product"
             title="Strategy Robustness Lab"
             description="A research instrument that tests whether strategies survive realistic execution and adverse market conditions."
-            primaryCta={{ label: "Sign Up", href: "/signup" }}
-            secondaryCta={{ label: "View Pricing", href: "/pricing" }}
+            primaryCta={{ label: "Sign up for free", href: "/signup" }}
+            
           />
         </section>
 
         <section id="demo" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             title="See the Lab in Use"
-            description="A walkthrough of upload, diagnostics, interpretation, and report generation inside the Strategy Robustness Lab."
+            description="A walkthrough of the lightweight diagnostic flow used before formal validation."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -75,7 +75,7 @@ export default function RobustnessLabPage() {
         <section id="produces" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             title="What the Lab Produces"
-            description="The lab converts uploaded strategy artifacts into decision-grade evidence for deployment and risk review."
+            description="The free lab produces a lightweight diagnostic layer for initial strategy triage."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {[
@@ -110,9 +110,9 @@ export default function RobustnessLabPage() {
                 "Decision value: sets capital-risk boundaries and stop/go thresholds.",
               ],
               [
-                "Regime & Stability Views",
-                "Identify where returns depend on narrow conditions, parameter luck, or unstable market regimes.",
-                "Decision value: tests whether the edge generalizes beyond a favorable window.",
+                "What full validation includes",
+                "Advanced diagnostics such as parameter stability and regime analysis are delivered inside structured audits.",
+                "Decision value: confirms whether edge quality remains durable under deeper institutional review.",
               ],
               [
                 "Validation Report",
@@ -137,9 +137,9 @@ export default function RobustnessLabPage() {
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Move from diagnostics to a clear deployment decision"
-            description="Start in the lab for self-serve validation, or add analyst support for high-stakes review contexts."
-            primary={{ label: "Sign Up", href: "/signup" }}
-            secondary={{ label: "Compare Plans", href: "/pricing" }}
+            description="Start with free diagnostics, then request a structured audit for decision-grade validation depth."
+            primary={{ label: "Sign up for free", href: "/signup" }}
+            secondary={{ label: "Request Validation Audit", href: "/contact" }}
           />
         </section>
       </main>
