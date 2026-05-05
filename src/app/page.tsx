@@ -122,6 +122,15 @@ export default function HomePage() {
               <CapabilityCard title="Benchmark Comparison" body="Relative edge analysis against institutional benchmark trajectories and stress baselines." />
             </div>
 
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="secondary">
+                <Link href="/signup">Sign up for free</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/contact">Request Validation Audit</Link>
+              </Button>
+            </div>
+
             <div className="grid gap-5 lg:grid-cols-2">
               <DataVizFeatureCard title="Strategy Equity vs Benchmark" subtitle="Comparative trajectory diagnostics">
                 <StrategyBenchmarkVisual />

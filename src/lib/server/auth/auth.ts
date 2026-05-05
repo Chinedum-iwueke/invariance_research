@@ -1,10 +1,16 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { accountService } from "@/lib/server/accounts/service";
 
 export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
+    }),
     Credentials({
       name: "Credentials",
       credentials: {
