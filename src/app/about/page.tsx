@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
@@ -23,7 +22,7 @@ export default function AboutPage() {
         <section id="hero">
           <PageHero
             title="About Invariance Research"
-            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics."
+            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation, robustness diagnostics, and research systems built around disciplined methodology. The firm develops tools that reflect its validation philosophy — from the Strategy Robustness Lab already available today to the forthcoming Invariance Research Desk, an AI-native research environment designed to make backtesting more structured, realistic, and decision-grade."
             primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
             secondaryCta={{ label: "Contact", href: "/contact" }}
           />
@@ -45,7 +44,7 @@ export default function AboutPage() {
         </section>
 
         <section id="founder" className="container-shell py-8 md:py-10">
-          <div className="grid items-center gap-5 md:grid-cols-[0.74fr_0.26fr] md:gap-8">
+          <div className="grid items-center gap-5 md:max-w-[46rem] md:gap-6">
             <div className="space-y-2.5 md:space-y-3">
               <p className="eyebrow">Founder</p>
               <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Chinedum Iwueke</h2>
@@ -60,17 +59,6 @@ export default function AboutPage() {
                 Read Bio <span aria-hidden>→</span>
               </Link>
             </div>
-
-            <Link href="/about/chinedum-iwueke" className="group relative mx-auto block w-full max-w-[9rem] overflow-hidden rounded-lg md:max-w-[11rem]">
-              <div className="relative aspect-[4/5] w-full">
-                <Image
-                  src="/founder_image.png"
-                  alt="Portrait of Chinedum Iwueke"
-                  fill
-                  className="object-cover object-center transition duration-slow group-hover:scale-[1.01]"
-                />
-              </div>
-            </Link>
           </div>
         </section>
 
