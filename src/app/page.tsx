@@ -115,20 +115,21 @@ export default function HomePage() {
               title="Strategy Robustness Lab"
               description="Diagnostics focused on whether a strategy remains credible under realistic execution and adverse market states."
             />
+
+            <div className="flex flex-wrap gap-3">
+              <Button asChild>
+                <Link href="/signup">Sign up for free</Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="/contact">Request Validation Audit</Link>
+              </Button>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-4">
               <CapabilityCard title="Validation Methodology" body="A rules-based test protocol with controlled assumptions and transparent acceptance criteria." />
               <CapabilityCard title="Execution Diagnostics" body="Cost and implementation realism across spread, slippage, and latency envelopes." />
               <CapabilityCard title="Capital Risk Analysis" body="Drawdown concentration, ruin sensitivity, and exposure constraints for deployment readiness." />
               <CapabilityCard title="Benchmark Comparison" body="Relative edge analysis against institutional benchmark trajectories and stress baselines." />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button asChild variant="secondary">
-                <Link href="/signup">Sign up for free</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/contact">Request Validation Audit</Link>
-              </Button>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">

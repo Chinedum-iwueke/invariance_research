@@ -17,6 +17,8 @@ export type PublicationRecord = {
   updated_at: string;
   cover_image_url: string;
   pdf_url: string;
+  cover_storage_key?: string;
+  pdf_storage_key?: string;
   viewer_url: string;
   featured: boolean;
   author_label?: string;

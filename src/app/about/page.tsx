@@ -48,7 +48,7 @@ export default function AboutPage() {
             <div className="space-y-2.5 md:space-y-3">
               <p className="eyebrow">Founder</p>
               <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Chinedum Iwueke</h2>
-              <p className="text-sm text-text-neutral md:text-base">Independent Quantitative Validation Specialist</p>
+              <p className="text-sm text-text-neutral md:text-base">Quantitative Validation Specialist</p>
               <p className="max-w-2xl text-xs leading-relaxed text-text-neutral md:text-sm">
                 The validation framework is developed and operated with emphasis on transparent assumptions, reproducible diagnostics, and institutional-grade review standards.
               </p>

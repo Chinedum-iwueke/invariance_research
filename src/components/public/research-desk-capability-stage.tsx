@@ -53,7 +53,6 @@ export function ResearchDeskCapabilityStage() {
       <div className="rounded-lg border border-border-subtle bg-surface-panel/35 p-5 md:p-7">
         <div className="mb-6 space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-neutral">Signature capabilities</p>
-          <h2 className="text-2xl font-semibold text-text-institutional md:text-3xl">Guided system reveal</h2>
         </div>
 
         <div className="grid gap-5 md:grid-cols-[17rem_1fr]">

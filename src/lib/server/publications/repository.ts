@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "@/lib/server/persistence/database";
 import { manualPublications } from "@/content/publications";
 import { publicationCategories, publicationStatuses, type PublicationCategory, type PublicationInput, type PublicationRecord, type PublicationStatus } from "@/lib/publications/model";
+import { getObjectStorage } from "@/lib/server/storage/object-storage";
+import { buildPublicationCoverObjectKey, buildPublicationObjectKey } from "@/lib/server/storage/object-keys";
 import { toCanonicalPublication } from "@/lib/publications/urls";
-
-const PUBLICATION_ROOT = process.env.INVARIANCE_PUBLICATION_STORAGE_ROOT ?? path.join(process.cwd(), ".data", "publications");
 
 type PublicationRow = {
   id: string;
@@ -19,6 +18,8 @@ type PublicationRow = {
   updated_at: string;
   cover_image_url: string;
   pdf_url: string;
+  cover_storage_key: string | null;
+  pdf_storage_key: string | null;
   viewer_url: string | null;
   featured: number;
   author_label: string | null;
@@ -41,6 +42,8 @@ function fromRow(row: PublicationRow): PublicationRecord {
     updated_at: row.updated_at,
     cover_image_url: row.cover_image_url,
     pdf_url: row.pdf_url,
+    cover_storage_key: row.cover_storage_key ?? undefined,
+    pdf_storage_key: row.pdf_storage_key ?? undefined,
     viewer_url: row.viewer_url ?? undefined,
     featured: Boolean(row.featured),
     author_label: row.author_label ?? undefined,
@@ -81,19 +84,20 @@ export function resolveActiveResearchStandard() {
   return standards.sort((a, b) => (b.published_at ?? b.updated_at).localeCompare(a.published_at ?? a.updated_at))[0];
 }
 
-export function createPublication(input: Omit<PublicationInput, "id" | "updated_at" | "viewer_url" | "source">) {
-  ensureUniqueSlug(input.slug);
+export function createPublication(input: Omit<PublicationInput, "updated_at" | "viewer_url" | "source"> & { id?: string }) {
+  const publicationId = input.id ?? randomUUID();
+  ensureUniqueSlug(input.slug, publicationId);
   const now = new Date().toISOString();
   const publication = toCanonicalPublication({
     ...input,
-    id: randomUUID(),
+    id: publicationId,
     updated_at: now,
     source: "admin",
   });
 
   getDb()
-    .prepare(`INSERT INTO publications (id, title, slug, category, summary, status, published_at, updated_at, cover_image_url, pdf_url, viewer_url, featured, author_label, estimated_read_time, tags_json, sort_order, seo_title, seo_description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .prepare(`INSERT INTO publications (id, title, slug, category, summary, status, published_at, updated_at, cover_image_url, pdf_url, cover_storage_key, pdf_storage_key, viewer_url, featured, author_label, estimated_read_time, tags_json, sort_order, seo_title, seo_description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(
       publication.id,
       publication.title,
@@ -105,6 +109,8 @@ export function createPublication(input: Omit<PublicationInput, "id" | "updated_
       publication.updated_at,
       publication.cover_image_url,
       publication.pdf_url,
+      publication.cover_storage_key ?? null,
+      publication.pdf_storage_key ?? null,
       publication.viewer_url,
       publication.featured ? 1 : 0,
       publication.author_label ?? null,
@@ -134,7 +140,7 @@ export function updatePublication(id: string, input: Partial<Omit<PublicationInp
   });
 
   getDb()
-    .prepare(`UPDATE publications SET title = ?, slug = ?, category = ?, summary = ?, status = ?, published_at = ?, updated_at = ?, cover_image_url = ?, pdf_url = ?, viewer_url = ?, featured = ?, author_label = ?, estimated_read_time = ?, tags_json = ?, sort_order = ?, seo_title = ?, seo_description = ? WHERE id = ?`)
+    .prepare(`UPDATE publications SET title = ?, slug = ?, category = ?, summary = ?, status = ?, published_at = ?, updated_at = ?, cover_image_url = ?, pdf_url = ?, cover_storage_key = ?, pdf_storage_key = ?, viewer_url = ?, featured = ?, author_label = ?, estimated_read_time = ?, tags_json = ?, sort_order = ?, seo_title = ?, seo_description = ? WHERE id = ?`)
     .run(
       merged.title,
       merged.slug,
@@ -145,6 +151,8 @@ export function updatePublication(id: string, input: Partial<Omit<PublicationInp
       merged.updated_at,
       merged.cover_image_url,
       merged.pdf_url,
+      merged.cover_storage_key ?? null,
+      merged.pdf_storage_key ?? null,
       merged.viewer_url,
       merged.featured ? 1 : 0,
       merged.author_label ?? null,
@@ -185,30 +193,37 @@ function safePathPart(input: string) {
   return input.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
-export function storePublicationAsset(input: { file: File; kind: "pdf" | "cover"; slug: string }) {
-  const ext = path.extname(input.file.name) || (input.kind === "pdf" ? ".pdf" : ".png");
-  const fileName = `${safePathPart(input.slug)}${ext}`;
-  const dir = path.join(PUBLICATION_ROOT, input.kind === "pdf" ? "pdfs" : "covers");
-  fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(dir, fileName);
-  return input.file.arrayBuffer().then((buffer) => {
-    fs.writeFileSync(filePath, Buffer.from(buffer));
-    return {
-      absolute_path: filePath,
-      public_url: `/api/publications/assets/${input.kind}/${fileName}`,
-    };
-  });
+export function buildPublicationAssetUrl(input: { kind: "pdf" | "cover"; publicationId: string; fileName: string }) {
+  return `/api/publications/assets/${input.kind}/${input.publicationId}/${safePathPart(input.fileName)}`;
 }
 
-export function resolvePublicationAssetPath(kind: "pdf" | "cover", fileName: string) {
-  return path.join(PUBLICATION_ROOT, kind === "pdf" ? "pdfs" : "covers", fileName);
+export async function storePublicationAsset(input: { file: File; kind: "pdf" | "cover"; slug: string; publicationId: string }) {
+  const ext = path.extname(input.file.name) || (input.kind === "pdf" ? ".pdf" : ".png");
+  const fileName = `${safePathPart(input.slug)}${ext}`;
+  const storageKey =
+    input.kind === "pdf"
+      ? buildPublicationObjectKey({ publicationId: input.publicationId, fileName })
+      : buildPublicationCoverObjectKey({ publicationId: input.publicationId, fileName });
+  const buffer = new Uint8Array(await input.file.arrayBuffer());
+  const stored = await getObjectStorage().putObject({
+    bucket: input.kind === "pdf" ? "publications" : "publication-covers",
+    file_name: fileName,
+    bytes: buffer,
+    content_type: input.file.type || (input.kind === "pdf" ? "application/pdf" : "image/png"),
+    storage_key: storageKey,
+  });
+  return {
+    file_name: fileName,
+    storage_key: stored.storage_key,
+    public_url: buildPublicationAssetUrl({ kind: input.kind, publicationId: input.publicationId, fileName }),
+  };
 }
 
 export function listResearchLibrary() {
   const published = listPublishedPublications();
   return {
-    featured: published.filter((item) => item.featured && item.category !== "research_standard"),
-    collection: published.filter((item) => item.category !== "research_standard"),
-    taxonomy: ["execution", "robustness", "capital risk", "case study", "research note"],
+    featured: published.filter((item) => item.featured),
+    collection: published,
+    taxonomy: ["execution", "robustness", "capital risk", "research standards", "case study", "research note"],
   };
 }

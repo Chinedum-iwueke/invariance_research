@@ -1,4 +1,5 @@
 import type { AnalysisEntity } from "@/lib/server/analysis/models";
+import type { AnalysisRepository } from "@/lib/server/persistence/contracts";
 import { getDb } from "@/lib/server/persistence/database";
 
 function mapRow(row: Record<string, unknown>): AnalysisEntity {
@@ -21,7 +22,8 @@ function mapRow(row: Record<string, unknown>): AnalysisEntity {
   };
 }
 
-export const analysisRepository = {
+export const analysisRepository: AnalysisRepository = {
+  mode: "read-write",
   save(analysis: AnalysisEntity): AnalysisEntity {
     getDb()
       .prepare(

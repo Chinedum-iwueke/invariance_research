@@ -134,8 +134,8 @@ test("health service returns structured snapshot", async () => {
   assert.ok(snapshot.workers.analysis === "healthy" || snapshot.workers.analysis === "degraded" || snapshot.workers.analysis === "unhealthy");
 });
 
-test("maintenance action execution returns structured counts", () => {
-  const result = runAdminMaintenanceAction("sweep");
+test("maintenance action execution returns structured counts", async () => {
+  const result = await runAdminMaintenanceAction("sweep");
   assert.equal(typeof result, "object");
   assert.ok("expired_exports_removed" in result);
 });

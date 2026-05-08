@@ -9,9 +9,14 @@
     "lint": "next lint",
     "worker:analysis": "tsx scripts/run-analysis-worker.ts",
     "worker:export": "tsx scripts/run-export-worker.ts",
-    "usage:recalculate": "tsx scripts/recalculate-usage.ts"
+    "usage:recalculate": "tsx scripts/recalculate-usage.ts",
+    "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
+    "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",
+    "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.911.0",
+    "@aws-sdk/s3-request-presigner": "^3.911.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.469.0",

@@ -41,7 +41,7 @@ export default async function TeamBioPage({ params }: TeamBioPageProps) {
     <PublicShell>
       <main>
         <section className="bg-brand text-white">
-          <div className="container-shell grid min-h-[32vh] items-center gap-5 py-10 md:grid-cols-[0.78fr_1.22fr] md:gap-8 md:py-12">
+          <div className="container-shell grid min-h-[32vh] items-center gap-5 py-10 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-5 md:py-12 lg:gap-6">
             <div className="relative mx-auto w-full max-w-[9rem] overflow-hidden rounded-lg md:mx-0 md:max-w-[11rem]">
               <div className="relative aspect-[4/5] w-full">
                 <Image src={profile.heroImageSrc} alt={profile.heroImageAlt} fill className="object-cover object-center" priority />

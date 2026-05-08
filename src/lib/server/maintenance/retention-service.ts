@@ -3,12 +3,12 @@ import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getDb } from "@/lib/server/persistence/database";
 
-export function cleanupExpiredExports(now = new Date()) {
+export async function cleanupExpiredExports(now = new Date()) {
   const expired = exportRepository.listExpired(now.toISOString());
   let removed = 0;
   for (const item of expired) {
-    if (item.storage_key && getObjectStorage().objectExists(item.storage_key)) {
-      getObjectStorage().deleteObject(item.storage_key);
+    if (item.storage_key && await getObjectStorage().objectExists(item.storage_key)) {
+      await getObjectStorage().deleteObject(item.storage_key);
     }
     exportRepository.delete(item.export_id);
     removed += 1;
@@ -27,8 +27,8 @@ export function cleanupStaleFailedJobs(now = new Date()) {
   return { removed };
 }
 
-export function runMaintenanceSweep() {
-  const expired = cleanupExpiredExports();
+export async function runMaintenanceSweep() {
+  const expired = await cleanupExpiredExports();
   const stale = cleanupStaleFailedJobs();
   return { expired_exports_removed: expired.removed, stale_jobs_removed: stale.removed };
 }

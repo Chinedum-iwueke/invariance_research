@@ -4,6 +4,6 @@ import { runMaintenanceSweep } from "@/lib/server/maintenance/retention-service"
 
 export async function POST() {
   await requireAdminSession();
-  const result = runMaintenanceSweep();
+  const result = await runMaintenanceSweep();
   return NextResponse.json({ ok: true, ...result });
 }

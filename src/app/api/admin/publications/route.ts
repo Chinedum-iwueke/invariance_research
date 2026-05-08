@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/server/admin/guards";
 import { createPublication, parseCategory, parseStatus, storePublicationAsset } from "@/lib/server/publications/repository";
@@ -33,12 +34,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "pdf_and_cover_required" }, { status: 400 });
   }
 
+  const publicationId = randomUUID();
   const [pdfAsset, coverAsset] = await Promise.all([
-    storePublicationAsset({ file: pdf, kind: "pdf", slug }),
-    storePublicationAsset({ file: cover, kind: "cover", slug }),
+    storePublicationAsset({ file: pdf, kind: "pdf", slug, publicationId }),
+    storePublicationAsset({ file: cover, kind: "cover", slug, publicationId }),
   ]);
 
   const created = createPublication({
+    id: publicationId,
     title,
     slug,
     category,
@@ -47,6 +50,8 @@ export async function POST(request: Request) {
     published_at: publishedAt,
     cover_image_url: coverAsset.public_url,
     pdf_url: pdfAsset.public_url,
+    cover_storage_key: coverAsset.storage_key,
+    pdf_storage_key: pdfAsset.storage_key,
     featured,
     author_label: authorLabel,
     estimated_read_time: estimatedReadTime,

@@ -4,8 +4,17 @@ import fs from "node:fs";
 import { migrations } from "@/lib/server/persistence/migrations";
 
 const DB_PATH = process.env.INVARIANCE_DB_PATH ?? path.join(process.cwd(), ".data", "invariance.sqlite");
+export type DatabaseProvider = "sqlite" | "postgres";
 
 let db: DatabaseSync | undefined;
+
+export function getDatabaseProvider(): DatabaseProvider {
+  const provider = process.env.DATABASE_PROVIDER ?? "sqlite";
+  if (provider !== "sqlite" && provider !== "postgres") {
+    throw new Error(`Unsupported DATABASE_PROVIDER "${provider}". Expected sqlite or postgres.`);
+  }
+  return provider;
+}
 
 function ensureDbDir() {
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -40,6 +49,9 @@ function applyMigrations(connection: DatabaseSync) {
 }
 
 export function getDb() {
+  if (getDatabaseProvider() === "postgres") {
+    throw new Error("SQLite getDb() was called while DATABASE_PROVIDER=postgres. Use repository/provider contracts instead.");
+  }
   if (db) return db;
   ensureDbDir();
   db = new DatabaseSync(DB_PATH);
@@ -48,6 +60,21 @@ export function getDb() {
   applyMigrations(db);
   return db;
 }
+
+export const sqliteTransactionRunner = {
+  withTransaction<T>(fn: () => T): T {
+    const connection = getDb();
+    connection.exec("BEGIN IMMEDIATE");
+    try {
+      const result = fn();
+      connection.exec("COMMIT");
+      return result;
+    } catch (error) {
+      connection.exec("ROLLBACK");
+      throw error;
+    }
+  },
+};
 
 export function closeDbForTests() {
   if (db) {

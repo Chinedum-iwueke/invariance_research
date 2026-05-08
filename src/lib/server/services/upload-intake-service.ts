@@ -92,9 +92,15 @@ export async function inspectUpload(input: {
     return failedInspection([{ code: "plan_upload_locked", message: "Current plan does not allow this artifact class." }]);
   }
 
-  const eligibility = toUploadEligibilitySummary(parsedResult.parsed);
-  const storage = saveUploadedArtifact(input.fileName, input.bytes, input.contentType || "application/octet-stream");
   const artifactId = randomUUID();
+  const eligibility = toUploadEligibilitySummary(parsedResult.parsed);
+  const storage = await saveUploadedArtifact({
+    accountId: input.account_id,
+    artifactId,
+    fileName: input.fileName,
+    bytes: input.bytes,
+    contentType: input.contentType || "application/octet-stream",
+  });
 
   artifactRepository.save({
     artifact_id: artifactId,

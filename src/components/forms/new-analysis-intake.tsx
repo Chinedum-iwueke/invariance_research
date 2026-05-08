@@ -347,10 +347,6 @@ export function NewAnalysisIntake() {
           )}
         </WorkspaceCard>
       </div>
-
-      <WorkspaceCard subtitle="Institutional handling">
-        <p className="text-sm text-text-neutral">Artifacts are retained in controlled backend storage and only exposed as structured product-safe payloads.</p>
-      </WorkspaceCard>
     </div>
   );
 }

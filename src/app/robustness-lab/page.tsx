@@ -27,11 +27,9 @@ export default function RobustnessLabPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            eyebrow="Product"
             title="Strategy Robustness Lab"
             description="A research instrument that tests whether strategies survive realistic execution and adverse market conditions."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
-            
           />
         </section>
 

@@ -278,5 +278,30 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_videos_episode_published ON videos(episode_number, published_at DESC);
     `,
   },
+  {
+    version: 10,
+    name: "analysis_job_queue_contract",
+    sql: `
+      ALTER TABLE analysis_jobs ADD COLUMN account_id TEXT;
+      ALTER TABLE analysis_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE analysis_jobs ADD COLUMN max_attempts INTEGER NOT NULL DEFAULT 3;
+      ALTER TABLE analysis_jobs ADD COLUMN leased_until TEXT;
+      ALTER TABLE analysis_jobs ADD COLUMN last_error TEXT;
+      ALTER TABLE analysis_jobs ADD COLUMN updated_at TEXT;
+
+      CREATE INDEX IF NOT EXISTS idx_analysis_jobs_claimable
+        ON analysis_jobs(status, available_at, leased_until, created_at);
+      CREATE INDEX IF NOT EXISTS idx_analysis_jobs_dead_letter
+        ON analysis_jobs(status, finished_at);
+    `,
+  },
+  {
+    version: 11,
+    name: "publication_object_storage_keys",
+    sql: `
+      ALTER TABLE publications ADD COLUMN cover_storage_key TEXT;
+      ALTER TABLE publications ADD COLUMN pdf_storage_key TEXT;
+    `,
+  },
 
 ];

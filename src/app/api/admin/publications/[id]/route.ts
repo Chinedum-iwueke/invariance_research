@@ -28,8 +28,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const pdf = body.get("pdf_file");
   const cover = body.get("cover_file");
 
-  const pdfAsset = pdf instanceof File && pdf.size > 0 ? await storePublicationAsset({ file: pdf, kind: "pdf", slug }) : undefined;
-  const coverAsset = cover instanceof File && cover.size > 0 ? await storePublicationAsset({ file: cover, kind: "cover", slug }) : undefined;
+  const pdfAsset = pdf instanceof File && pdf.size > 0 ? await storePublicationAsset({ file: pdf, kind: "pdf", slug, publicationId: existing.id }) : undefined;
+  const coverAsset = cover instanceof File && cover.size > 0 ? await storePublicationAsset({ file: cover, kind: "cover", slug, publicationId: existing.id }) : undefined;
 
   const publishedAtRaw = String(body.get("published_at") ?? "").trim();
   const updated = updatePublication(id, {
@@ -47,7 +47,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     seo_title: String(body.get("seo_title") ?? "").trim() || undefined,
     seo_description: String(body.get("seo_description") ?? "").trim() || undefined,
     pdf_url: pdfAsset?.public_url ?? existing.pdf_url,
+    pdf_storage_key: pdfAsset?.storage_key ?? existing.pdf_storage_key,
     cover_image_url: coverAsset?.public_url ?? existing.cover_image_url,
+    cover_storage_key: coverAsset?.storage_key ?? existing.cover_storage_key,
   });
 
   revalidatePath("/research");

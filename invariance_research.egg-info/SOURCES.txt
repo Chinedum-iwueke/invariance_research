@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+invariance_research.egg-info/PKG-INFO
+invariance_research.egg-info/SOURCES.txt
+invariance_research.egg-info/dependency_links.txt
+invariance_research.egg-info/requires.txt
+invariance_research.egg-info/top_level.txt

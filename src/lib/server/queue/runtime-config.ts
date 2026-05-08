@@ -1,11 +1,10 @@
-const EMBEDDED_WORKERS_DEFAULT = "true";
 const ANALYSIS_POLL_MS_DEFAULT = "1500";
 const EXPORT_POLL_MS_DEFAULT = "2000";
 const WORKER_STALE_MS_DEFAULT = "120000";
 
-function parseBool(value: string | undefined, fallback: string): boolean {
-  const normalized = (value ?? fallback).trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+function parseBool(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 function parseMs(value: string | undefined, fallback: string): number {
@@ -14,8 +13,37 @@ function parseMs(value: string | undefined, fallback: string): number {
   return Math.floor(parsed);
 }
 
+export function getWorkerMode() {
+  const mode = (process.env.WORKER_MODE ?? (process.env.NODE_ENV === "development" ? "embedded" : "external")).trim().toLowerCase();
+  if (mode !== "embedded" && mode !== "external") {
+    throw new Error(`Unsupported WORKER_MODE "${mode}". Expected embedded or external.`);
+  }
+  return mode;
+}
+
+export function allowEmbeddedWorkers() {
+  return parseBool(process.env.ALLOW_EMBEDDED_WORKERS, process.env.NODE_ENV === "development");
+}
+
+export function assertWorkerRuntimeConfig() {
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  const mode = getWorkerMode();
+  const allowEmbedded = allowEmbeddedWorkers();
+
+  if (nodeEnv === "production" && (mode === "embedded" || allowEmbedded)) {
+    throw new Error("Embedded workers are disabled in production. Use WORKER_MODE=external and ALLOW_EMBEDDED_WORKERS=false.");
+  }
+
+  if (nodeEnv !== "development" && mode === "embedded" && !allowEmbedded) {
+    throw new Error("Embedded worker mode requires ALLOW_EMBEDDED_WORKERS=true.");
+  }
+
+  return { nodeEnv, mode, allowEmbedded };
+}
+
 export function shouldRunEmbeddedWorkers() {
-  return parseBool(process.env.INVARIANCE_EMBEDDED_WORKERS, EMBEDDED_WORKERS_DEFAULT);
+  const { nodeEnv, mode, allowEmbedded } = assertWorkerRuntimeConfig();
+  return nodeEnv === "development" && mode === "embedded" && allowEmbedded;
 }
 
 export function getWorkerPollIntervalMs(kind: "analysis" | "export") {

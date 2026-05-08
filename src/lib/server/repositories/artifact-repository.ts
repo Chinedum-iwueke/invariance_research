@@ -1,4 +1,5 @@
 import type { UploadArtifact } from "@/lib/server/analysis/models";
+import type { ArtifactRepository } from "@/lib/server/persistence/contracts";
 import { getDb } from "@/lib/server/persistence/database";
 
 function mapRow(row: Record<string, unknown>): UploadArtifact {
@@ -20,7 +21,8 @@ function mapRow(row: Record<string, unknown>): UploadArtifact {
   };
 }
 
-export const artifactRepository = {
+export const artifactRepository: ArtifactRepository = {
+  mode: "read-write",
   save(artifact: UploadArtifact): UploadArtifact {
     getDb()
       .prepare(

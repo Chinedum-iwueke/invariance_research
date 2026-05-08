@@ -9,6 +9,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ action: s
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
-  const result = runAdminMaintenanceAction(action as "sweep" | "expired_exports" | "stale_failed_jobs");
+  const result = await runAdminMaintenanceAction(action as "sweep" | "expired_exports" | "stale_failed_jobs");
   return NextResponse.json({ ok: true, result });
 }

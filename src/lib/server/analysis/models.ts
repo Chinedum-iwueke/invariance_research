@@ -56,16 +56,22 @@ export type AnalysisEntity = {
 export type AnalysisJob = {
   job_id: string;
   analysis_id: string;
+  account_id?: string;
   job_type: "analysis_v1";
-  status: "queued" | "processing" | "completed" | "failed";
+  status: "queued" | "processing" | "running" | "completed" | "failed" | "dead_letter";
   progress_pct?: number;
   current_step?: string;
   error_code?: string;
   error_message?: string;
   created_at: string;
+  updated_at?: string;
   started_at?: string;
   finished_at?: string;
   retry_count: number;
+  attempts?: number;
+  max_attempts?: number;
   available_at?: string;
   last_attempt_at?: string;
+  leased_until?: string;
+  last_error?: string;
 };

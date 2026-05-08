@@ -3,11 +3,14 @@ import path from "node:path";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { jobRepository } from "@/lib/server/repositories/job-repository";
+import { getAnalysisQueue } from "@/lib/server/queue/provider";
 import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bulletproof-runner";
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
 import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
 import { accountService } from "@/lib/server/accounts/service";
+import { readArtifact } from "@/lib/server/storage/artifact-storage";
+import { assertWorkerRuntimeConfig } from "@/lib/server/queue/runtime-config";
 
 const STEP_DELAY_MS = 50;
 let loopActive = false;
@@ -45,11 +48,15 @@ export function startAnalysisWorker() {
 }
 
 export async function runAnalysisWorkerRuntime() {
+  const config = assertWorkerRuntimeConfig();
+  if (config.mode !== "external") {
+    throw new Error("Analysis worker runtime requires WORKER_MODE=external.");
+  }
   await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob });
 }
 
 export async function processNextAnalysisJob(): Promise<boolean> {
-  const claimed = jobRepository.claimNextQueued(new Date().toISOString());
+  const claimed = await getAnalysisQueue().lease({ nowIso: new Date().toISOString() });
   if (claimed) logger.info("analysis.worker.claimed", { analysis_id: claimed.analysis_id, job_id: claimed.job_id });
   if (!claimed) return false;
   const analysisId = claimed.analysis_id;
@@ -58,6 +65,11 @@ export async function processNextAnalysisJob(): Promise<boolean> {
 
   const artifact = artifactRepository.findById(analysis.artifact_id);
   if (!artifact) return markFailed(analysisId, "artifact_missing", "Artifact reference not found.");
+  try {
+    await readArtifact(artifact.storage_key);
+  } catch {
+    return markFailed(analysisId, "artifact_missing", "Stored artifact bytes could not be loaded.");
+  }
 
   const eligibility = analysis.eligibility_snapshot ?? artifact.eligibility_summary;
   if (!eligibility.accepted) {
@@ -101,15 +113,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
     }));
     accountService.incrementUsage(analysis.account_id, "analysis");
 
-    jobRepository.updateByAnalysisId(analysisId, (current) => ({
-      ...current,
-      status: "completed",
-      progress_pct: 100,
-      current_step: "Completed",
-      finished_at: new Date().toISOString(),
-      error_code: undefined,
-      error_message: undefined,
-    }));
+    getAnalysisQueue().complete({ analysisId });
     logger.info("analysis.worker.completed", { analysis_id: analysisId });
     return true;
   } catch (error) {
@@ -167,14 +171,36 @@ function markFailed(analysisId: string, code: string, message: string): boolean 
     failure_message: message,
   }));
 
-  jobRepository.updateByAnalysisId(analysisId, (current) => ({
-    ...current,
-    status: "failed",
-    current_step: "Failed",
-    finished_at: new Date().toISOString(),
-    error_code: code,
-    error_message: message,
-  }));
+  jobRepository.updateByAnalysisId(analysisId, (current) => {
+    const retryCount = current.retry_count + 1;
+    const maxAttempts = current.max_attempts ?? 3;
+    if (retryCount >= maxAttempts) {
+      return {
+        ...current,
+        status: "dead_letter",
+        current_step: "Dead-lettered",
+        finished_at: new Date().toISOString(),
+        leased_until: undefined,
+        retry_count: retryCount,
+        error_code: code,
+        error_message: message,
+        last_error: message,
+        updated_at: new Date().toISOString(),
+      };
+    }
+    return {
+      ...current,
+      status: "failed",
+      current_step: "Failed",
+      finished_at: new Date().toISOString(),
+      leased_until: undefined,
+      retry_count: retryCount,
+      error_code: code,
+      error_message: message,
+      last_error: message,
+      updated_at: new Date().toISOString(),
+    };
+  });
   return true;
 }
 

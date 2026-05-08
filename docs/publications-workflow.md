@@ -87,6 +87,6 @@ Every publication record uses the same shape (`src/lib/publications/model.ts`):
 ## Public rendering
 
 - `/research-standards` resolves the active published `research_standard` record.
-- `/research` lists published `case_study` + `research_note` records and supports featured items.
+- `/research` lists every published publication record, including the active `research_standard`, and supports featured items.
 - `/research/<slug>` is the publication detail summary page.
 - `/research/<slug>/viewer` renders the PDF viewer.

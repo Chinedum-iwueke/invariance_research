@@ -15,7 +15,7 @@ export const TEAM_BIOS: TeamBioProfile[] = [
     slug: "chinedum-iwueke",
     roleLabel: "Founder",
     name: "Chinedum Iwueke",
-    title: "Independent Quantitative Validation Specialist",
+    title: "Quantitative Validation Specialist",
     email: "chinedum@invarianceresearch.xyz",
     linkedinUrl: "https://linkedin.com",
     heroImageSrc: "/founder_image.png",

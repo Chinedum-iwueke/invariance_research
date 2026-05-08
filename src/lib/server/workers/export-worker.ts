@@ -4,7 +4,9 @@ import { exportJobRepository } from "@/lib/server/repositories/export-job-reposi
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
+import { buildReportObjectKey } from "@/lib/server/storage/object-keys";
 import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
+import { assertWorkerRuntimeConfig } from "@/lib/server/queue/runtime-config";
 
 let active = false;
 
@@ -23,6 +25,10 @@ export function startExportWorker() {
 }
 
 export async function runExportWorkerRuntime() {
+  const config = assertWorkerRuntimeConfig();
+  if (config.mode !== "external") {
+    throw new Error("Export worker runtime requires WORKER_MODE=external.");
+  }
   await runWorkerLoop({ workerType: "export", processNext: processNextExportJob });
 }
 
@@ -42,11 +48,16 @@ export async function processNextExportJob(): Promise<boolean> {
     const rendered = renderExport(analysis.result, exportRecord.format);
     exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Persisting export", progress_pct: 85 }));
 
-    const stored = getObjectStorage().putObject({
-      bucket: "exports",
+    const stored = await getObjectStorage().putObject({
+      bucket: "reports",
       file_name: rendered.file_name,
       content_type: rendered.content_type,
       bytes: rendered.bytes,
+      storage_key: buildReportObjectKey({
+        accountId: exportRecord.account_id,
+        analysisId: exportRecord.analysis_id,
+        fileName: rendered.file_name,
+      }),
     });
 
     exportRepository.update(claimed.export_id, (current) => ({

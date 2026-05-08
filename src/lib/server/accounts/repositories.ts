@@ -4,6 +4,7 @@ import type { EntitlementSnapshot, UsageSnapshot } from "@/lib/contracts/entitle
 import type { UsageInput, UsageRepository } from "@/lib/server/accounts/models";
 import { resolveEntitlementsForPlan } from "@/lib/server/entitlements/entitlements";
 import { getDb } from "@/lib/server/persistence/database";
+import type { AccountRepository, EntitlementRepository, SubscriptionRepository, UsageSnapshotRepository, UserRepository } from "@/lib/server/persistence/contracts";
 
 function monthBucket(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -13,7 +14,8 @@ function toBool(value: unknown) {
   return Boolean(Number(value));
 }
 
-export const userRepository = {
+export const userRepository: UserRepository = {
+  mode: "read-write",
   findById(userId: string) {
     return getDb().prepare("SELECT * FROM users WHERE user_id = ?").get(userId) as User | undefined;
   },
@@ -48,7 +50,8 @@ export const userRepository = {
   },
 };
 
-export const accountRepository = {
+export const accountRepository: AccountRepository = {
+  mode: "read-write",
   findByOwnerUserId(ownerUserId: string) {
     return getDb().prepare("SELECT * FROM accounts WHERE owner_user_id = ?").get(ownerUserId) as Account | undefined;
   },
@@ -81,7 +84,8 @@ export const accountRepository = {
   },
 };
 
-export const subscriptionRepository = {
+export const subscriptionRepository: SubscriptionRepository = {
+  mode: "read-write",
   upsert(subscription: Subscription) {
     getDb()
       .prepare(
@@ -118,7 +122,8 @@ export const subscriptionRepository = {
   },
 };
 
-export const entitlementRepository = {
+export const entitlementRepository: EntitlementRepository = {
+  mode: "read-write",
   get(accountId: string) {
     const row = getDb().prepare("SELECT snapshot_json FROM entitlement_snapshots WHERE account_id = ?").get(accountId) as { snapshot_json: string } | undefined;
     return row ? (JSON.parse(row.snapshot_json) as EntitlementSnapshot) : resolveEntitlementsForPlan(accountId, "explorer", "plan_matrix");
@@ -134,7 +139,8 @@ export const entitlementRepository = {
   },
 };
 
-export const usageRepository: UsageRepository = {
+export const usageRepository: UsageSnapshotRepository = {
+  mode: "read-write",
   get(accountId, bucket) {
     const row = getDb().prepare("SELECT * FROM usage_snapshots WHERE account_id = ? AND month_bucket = ?").get(accountId, bucket) as UsageSnapshot | undefined;
     return (

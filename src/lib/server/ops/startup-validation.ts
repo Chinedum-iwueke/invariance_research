@@ -5,7 +5,7 @@ import { getDb } from "@/lib/server/persistence/database";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getBulletproofBridgeConfig, probeBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
 import { logger } from "@/lib/server/ops/logger";
-import { getWorkerHeartbeatStaleMs } from "@/lib/server/queue/runtime-config";
+import { assertWorkerRuntimeConfig, getWorkerHeartbeatStaleMs } from "@/lib/server/queue/runtime-config";
 import { workerHeartbeatRepository } from "@/lib/server/repositories/worker-heartbeat-repository";
 
 export type HealthLevel = "healthy" | "degraded" | "unhealthy";
@@ -22,8 +22,8 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
   }
 
   try {
-    const test = getObjectStorage().putObject({ bucket: "exports", file_name: "healthcheck.txt", content_type: "text/plain", bytes: new Uint8Array(Buffer.from("ok")) });
-    getObjectStorage().deleteObject(test.storage_key);
+    const test = await getObjectStorage().putObject({ bucket: "reports", file_name: "healthcheck.txt", content_type: "text/plain", bytes: new Uint8Array(Buffer.from("ok")), storage_key: "reports/healthcheck.txt" });
+    await getObjectStorage().deleteObject(test.storage_key);
     checks.push({ name: "storage", status: "healthy" });
   } catch (error) {
     checks.push({ name: "storage", status: "unhealthy", detail: error instanceof Error ? error.message : "storage_error" });
@@ -31,6 +31,13 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
 
   const stripeOk = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
   checks.push({ name: "stripe_config", status: stripeOk ? "healthy" : "degraded", detail: stripeOk ? undefined : "Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET" });
+
+  try {
+    const workerConfig = assertWorkerRuntimeConfig();
+    checks.push({ name: "worker_runtime", status: "healthy", detail: `${workerConfig.mode}:${workerConfig.nodeEnv}` });
+  } catch (error) {
+    checks.push({ name: "worker_runtime", status: "unhealthy", detail: error instanceof Error ? error.message : "worker_runtime_invalid" });
+  }
 
   checks.push(...(await getEngineChecks()));
 

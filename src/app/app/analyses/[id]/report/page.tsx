@@ -202,43 +202,35 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         ]}
       />
 
-      <WorkspaceCard title="What full validation includes" subtitle="Decision-grade validation scope beyond the free diagnostic layer">
-        <ul className="space-y-2 text-sm text-text-neutral">
-          <li>• Parameter Stability Analysis</li>
-          <li>• Regime-Based Performance Diagnostics</li>
-          <li>• Execution Stress Testing</li>
-          <li>• Capital Risk Modeling</li>
-        </ul>
-        <div className="mt-4">
-          <Link href="/contact" className={buttonVariants()}>Request Validation Audit</Link>
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Advanced Diagnostics (Required for Decision-Grade Validation)" subtitle="These diagnostics are included in structured audit engagements.">
+      <WorkspaceCard title="Deeper Validation Path" subtitle="Decision-grade audit scope beyond the free diagnostic layer">
+        <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">
+          Deeper validation extends the lab output into a structured audit: parameter stability, regime-conditioned performance, execution stress testing, and capital-risk interpretation are reviewed together to test whether the modeled edge remains durable under institutional scrutiny.
+        </p>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4 opacity-85">
-            <p className="text-sm font-semibold text-text-institutional">Parameter Stability 🔒</p>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-sm font-semibold text-text-institutional">Parameter Stability</p>
             <p className="mt-2 text-sm text-text-neutral">Tests whether performance remains durable as core parameters shift.</p>
             <p className="mt-2 text-xs text-text-neutral">Why it matters: guards against parameter luck and narrow optimization.</p>
           </div>
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4 opacity-85">
-            <p className="text-sm font-semibold text-text-institutional">Regime Analysis 🔒</p>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-sm font-semibold text-text-institutional">Regime Analysis</p>
             <p className="mt-2 text-sm text-text-neutral">Evaluates behavior across volatility and trend-state transitions.</p>
             <p className="mt-2 text-xs text-text-neutral">Why it matters: verifies edge persistence outside favorable windows.</p>
           </div>
         </div>
         <div className="mt-4">
-          <Link href="/contact" className={buttonVariants()}>Request Full Validation Audit</Link>
+          <Link href="/contact" className={buttonVariants()}>Request Validation Audit</Link>
         </div>
       </WorkspaceCard>
 
-      <div className="rounded-md border border-brand/25 bg-brand/5 px-6 py-10 text-center">
-        <h2 className="text-2xl font-semibold text-text-institutional">Get an Independent Validation Audit</h2>
-        <p className="mx-auto mt-3 max-w-3xl text-sm text-text-neutral">For full-spectrum validation prior to capital deployment — including regime diagnostics, parameter stability, execution stress testing, and institutional reporting — request a structured audit.</p>
-        <div className="mt-6">
-          <Link href="/contact" className={buttonVariants({ size: "lg" })}>Get an Independent Validation Audit</Link>
+      <WorkspaceCard title="Invariance Research Desk" subtitle="Forthcoming research environment for deeper validation">
+        <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">
+          Research Desk will bring AI-assisted research workflows to deeper validation, edge research iteration, and the process of turning strategy ideas into structured evidence.
+        </p>
+        <div className="mt-4">
+          <Link href="/research-desk#waitlist" className={buttonVariants()}>Join Research Desk Waitlist</Link>
         </div>
-      </div>
+      </WorkspaceCard>
     </AnalysisPageFrame>
   );
 }

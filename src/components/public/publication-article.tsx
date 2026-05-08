@@ -17,6 +17,7 @@ function formatPublicationDate(value: string | null) {
 }
 
 function titleizeCategory(value: PublicationRecord["category"]) {
+  if (value === "research_standard") return "Research Standards";
   return value.replaceAll("_", " ");
 }
 

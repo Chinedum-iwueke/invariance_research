@@ -103,7 +103,7 @@ test("export request -> queue -> generated artifact", async () => {
   const exported = getExportOwned(exportReq.export_id, account.account_id);
   assert.equal(exported?.status, "completed");
   assert.ok(exported?.storage_key);
-  assert.equal(getObjectStorage().objectExists(exported!.storage_key!), true);
+  assert.equal(await getObjectStorage().objectExists(exported!.storage_key!), true);
 });
 
 test("export access authorization is account-scoped", () => {
@@ -137,10 +137,10 @@ test("health checks show invalid config signal when stripe missing", async () =>
   assert.equal(stripe?.ok, false);
 });
 
-test("retention cleanup deletes expired exports", () => {
+test("retention cleanup deletes expired exports", async () => {
   const now = new Date();
   const { user, account } = accountService.ensureUserAndAccount({ email: "retention@example.com" });
-  const stored = getObjectStorage().putObject({ bucket: "exports", file_name: "old.json", content_type: "application/json", bytes: new Uint8Array(Buffer.from("{}")) });
+  const stored = await getObjectStorage().putObject({ bucket: "reports", file_name: "old.json", content_type: "application/json", bytes: new Uint8Array(Buffer.from("{}")) });
   exportRepository.save({
     export_id: "expired-export",
     analysis_id: "analysis-old",
@@ -158,7 +158,7 @@ test("retention cleanup deletes expired exports", () => {
     updated_at: now.toISOString(),
   });
 
-  const result = cleanupExpiredExports(now);
+  const result = await cleanupExpiredExports(now);
   assert.equal(result.removed, 1);
-  assert.equal(getObjectStorage().objectExists(stored.storage_key), false);
+  assert.equal(await getObjectStorage().objectExists(stored.storage_key), false);
 });

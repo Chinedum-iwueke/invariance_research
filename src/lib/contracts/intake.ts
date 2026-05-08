@@ -9,7 +9,7 @@ import type {
   UploadEligibilitySummary,
 } from "@/lib/server/ingestion";
 
-export type JobStatus = "queued" | "processing" | "completed" | "failed";
+export type JobStatus = "queued" | "processing" | "running" | "completed" | "failed" | "dead_letter";
 
 export type CsvUploadPreview = {
   columns: string[];

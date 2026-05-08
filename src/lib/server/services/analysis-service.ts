@@ -56,12 +56,16 @@ export async function createAnalysisFromArtifact(
   jobRepository.save({
     job_id: jobId,
     analysis_id: analysisId,
+    account_id: payload.account_id,
     job_type: "analysis_v1",
     status: "queued",
     progress_pct: 0,
     current_step: "Queued",
     created_at: timestamp,
+    updated_at: timestamp,
     retry_count: 0,
+    attempts: 0,
+    max_attempts: 3,
     available_at: timestamp,
   });
 

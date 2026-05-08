@@ -6,19 +6,19 @@ import { runAdminMaintenanceAction } from "@/lib/server/admin/maintenance-servic
 async function runSweep() {
   "use server";
   await requireAdminSession();
-  runAdminMaintenanceAction("sweep");
+  await runAdminMaintenanceAction("sweep");
 }
 
 async function runExpiredCleanup() {
   "use server";
   await requireAdminSession();
-  runAdminMaintenanceAction("expired_exports");
+  await runAdminMaintenanceAction("expired_exports");
 }
 
 async function runStaleJobsCleanup() {
   "use server";
   await requireAdminSession();
-  runAdminMaintenanceAction("stale_failed_jobs");
+  await runAdminMaintenanceAction("stale_failed_jobs");
 }
 
 export default function AdminMaintenancePage() {
