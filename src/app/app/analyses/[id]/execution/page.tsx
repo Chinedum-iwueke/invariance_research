@@ -5,11 +5,14 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { Card } from "@/components/ui/card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectExecutionTopMetrics } from "@/lib/app/analysis-ui";
+import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
 function toneForScenario(classification?: "survives" | "fragile" | "negative" | "informational") {
   if (classification === "survives") return "text-chart-positive";
@@ -25,7 +28,7 @@ function titleCase(value: string) {
 export default async function ExecutionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
   if (!record) {
     return (
@@ -93,6 +96,8 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
     ];
   const dominantCostDriver = execution.recommendations?.find((item) => /spread|slippage|fee|commission|cost/i.test(item))
     ?? execution.interpretation.bullets?.find((item) => /dominant cost driver/i.test(item));
+  const truthContext = buildTruthContext(record, "execution", { benchmark: analysis.benchmark });
+  const executionRecommendations = pageInsightRecommendations(record, "execution", execution.recommendations ?? []);
 
   return (
     <AnalysisPageFrame title="Execution Sensitivity" description="Edge resilience under worsened spread, slippage, and fee assumptions.">
@@ -196,6 +201,13 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
         </ul>
       </WorkspaceCard>
 
+      <AiSynthesisPanel
+        title="Execution synthesis"
+        summary={record.llm_insights?.execution_interpretation}
+        bullets={record.llm_insights?.execution_interpretation_detail?.execution_warnings}
+        model={record.llm_insights_model}
+      />
+
       <ContextFlipCard
         title="Execution interpretation"
         subtitle="Interpretation context for this execution sensitivity run."
@@ -203,7 +215,7 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
           {
             key: "interpretation",
             label: "Interpretation",
-            items: [execution.interpretation.summary, ...(execution.interpretation.bullets ?? [])].filter(Boolean),
+            items: [record.llm_insights?.execution_interpretation ?? execution.interpretation.summary, ...(execution.interpretation.bullets ?? [])].filter(Boolean),
             empty: "No execution interpretation was emitted for this run.",
             tone: "neutral",
           },
@@ -224,6 +236,13 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
             items: limitations,
             empty: "No explicit execution caveats were emitted for this run.",
             tone: "warning",
+          },
+          {
+            key: "recommendations",
+            label: "Recommendations",
+            items: executionRecommendations.length ? executionRecommendations : truthContext.recommendations,
+            empty: "No execution recommendations were emitted for this run.",
+            tone: "positive",
           },
         ]}
       />

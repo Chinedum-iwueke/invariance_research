@@ -5,6 +5,7 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectOverviewTopMetrics } from "@/lib/app/analysis-ui";
@@ -13,6 +14,7 @@ import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benc
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
 function StatusPill({ label, value, tone = "neutral" }: { label?: string; value: string; tone?: "neutral" | "positive" | "warning" }) {
   const toneClass = tone === "positive"
@@ -46,7 +48,7 @@ function diagnosticRows(record: AnalysisRecord) {
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
   if (!record) {
     return (
@@ -95,7 +97,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
     branch: overviewBranch,
     empty_state_reason: overviewEmptyReason,
   });
-  const truthContext = buildTruthContext(record, "overview");
+  const truthContext = buildTruthContext(record, "overview", { benchmark: analysis.benchmark });
+  const overviewRecommendations = pageInsightRecommendations(record, "overview", truthContext.recommendations);
   const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
 
   return (
@@ -135,6 +138,12 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
       <MetricRow metrics={metricsFromScoreBands(selectedMetrics)} cols={6} />
       <OverviewBenchmarkSection benchmark={benchmarkComparison} />
+      <AiSynthesisPanel
+        title="Overview synthesis"
+        summary={record.llm_insights?.overview_interpretation}
+        bullets={record.llm_insights?.validation_verdict?.strengths}
+        model={record.llm_insights_model}
+      />
 
       <WorkspaceCard title="Operational summary" subtitle="What exactly was analyzed in this run">
         <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2">
@@ -170,7 +179,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         panes={[
           { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No assumptions were emitted for this run.", tone: "neutral" },
           { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
-          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
+          { key: "recommendations", label: "Recommendations", items: overviewRecommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
         ]}
       />
     </AnalysisPageFrame>

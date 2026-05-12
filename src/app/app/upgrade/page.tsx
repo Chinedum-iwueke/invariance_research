@@ -8,7 +8,7 @@ import { requireServerSession } from "@/lib/server/auth/session";
 
 export default async function UpgradePage() {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
+  const state = await accountService.getAccountState(session.account_id);
   const currentPlan = state?.account.plan_id ?? "explorer";
 
   return (

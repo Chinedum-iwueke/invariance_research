@@ -1,5 +1,5 @@
 import { enqueueAnalysisRun } from "@/lib/server/queue/analysis-queue";
 
-export function scheduleAnalysisJob(analysisId: string): void {
-  enqueueAnalysisRun(analysisId);
+export async function scheduleAnalysisJob(analysisId: string): Promise<void> {
+  await enqueueAnalysisRun(analysisId);
 }

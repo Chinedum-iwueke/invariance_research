@@ -43,6 +43,98 @@ export interface Verdict {
   summary: string;
 }
 
+export interface DeploymentReadinessInsight {
+  status: "not_advisable" | "conditional" | "advisable";
+  headline: string;
+  rationale: string;
+  next_actions: string[];
+}
+
+export interface ValidationVerdictInsight {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  benchmark_context: string;
+  confidence_notes: string;
+}
+
+export interface DeploymentReadinessAssessmentInsight {
+  summary: string;
+  deployment_risk_level: "low" | "moderate" | "high" | "critical";
+  readiness_status: "not_advisable" | "conditional" | "advisable";
+  strengths: string[];
+  blockers: string[];
+  next_experiments: string[];
+  confidence_notes: string;
+}
+
+export interface RecommendationBundleInsight {
+  summary: string;
+  overview: string[];
+  distribution: string[];
+  monte_carlo: string[];
+  execution: string[];
+  ruin: string[];
+  report: string[];
+}
+
+export interface ExecutionInterpretationInsight {
+  summary: string;
+  execution_warnings: string[];
+  fee_sensitivity: string;
+  fragility_signals: string[];
+  next_experiments: string[];
+}
+
+export interface DistributionInterpretationInsight {
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  fragility_signals: string[];
+  next_experiments: string[];
+}
+
+export interface MonteCarloInterpretationInsight {
+  summary: string;
+  fragility_signals: string[];
+  regime_dependency: string;
+  next_experiments: string[];
+  confidence_notes: string;
+}
+
+export interface RiskOfRuinInterpretationInsight {
+  summary: string;
+  fragility_signals: string[];
+  deployment_risk_level: "low" | "moderate" | "high" | "critical";
+  next_experiments: string[];
+  confidence_notes: string;
+}
+
+export interface LlmDiagnosticInsights {
+  overview_interpretation: string;
+  distribution_interpretation: string;
+  monte_carlo_interpretation: string;
+  execution_interpretation: string;
+  ruin_interpretation: string;
+  final_verdict: string;
+  deployment_readiness: DeploymentReadinessInsight;
+  recommendations_by_page: {
+    overview: string[];
+    distribution: string[];
+    monte_carlo: string[];
+    execution: string[];
+    ruin: string[];
+    report: string[];
+  };
+  validation_verdict?: ValidationVerdictInsight;
+  deployment_readiness_assessment?: DeploymentReadinessAssessmentInsight;
+  recommendation_bundle?: RecommendationBundleInsight;
+  execution_interpretation_detail?: ExecutionInterpretationInsight;
+  distribution_interpretation_detail?: DistributionInterpretationInsight;
+  monte_carlo_interpretation_detail?: MonteCarloInterpretationInsight;
+  risk_of_ruin_interpretation?: RiskOfRuinInterpretationInsight;
+}
+
 export interface WarningItem {
   code: string;
   severity: "info" | "warning" | "critical";
@@ -282,4 +374,9 @@ export interface AnalysisRecord {
   report: ReportPayload;
   access: AccessFlags;
   diagnostic_statuses: Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", NormalizedDiagnosticStatus>;
+  llm_insights?: LlmDiagnosticInsights;
+  llm_insights_model?: string;
+  llm_insights_generated_at?: string;
+  llm_insights_status?: "disabled" | "generated" | "fallback" | "failed" | "invalid";
+  llm_insights_error?: string;
 }

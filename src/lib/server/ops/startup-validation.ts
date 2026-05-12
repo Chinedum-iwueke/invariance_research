@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getBulletproofBridgeConfig, probeBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
 import { logger } from "@/lib/server/ops/logger";
@@ -15,7 +15,7 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
   const checks: StartupCheck[] = [];
 
   try {
-    getDb().prepare("SELECT 1").get();
+    getSqliteRuntimeDb().prepare("SELECT 1").get();
     checks.push({ name: "database", status: "healthy" });
   } catch (error) {
     checks.push({ name: "database", status: "unhealthy", detail: error instanceof Error ? error.message : "db_error" });
@@ -42,8 +42,8 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
   checks.push(...(await getEngineChecks()));
 
   checks.push(getQueueCheck());
-  checks.push(getWorkerCheck("analysis"));
-  checks.push(getWorkerCheck("export"));
+  checks.push(await getWorkerCheck("analysis"));
+  checks.push(await getWorkerCheck("export"));
 
   logger.info("startup.validation.completed", { checks });
   return checks;
@@ -88,7 +88,7 @@ async function getEngineChecks(): Promise<StartupCheck[]> {
 }
 
 function getQueueCheck(): StartupCheck {
-  const row = getDb().prepare(`SELECT
+  const row = getSqliteRuntimeDb().prepare(`SELECT
       (SELECT COUNT(*) FROM analysis_jobs WHERE status IN ('queued','processing')) as analysis_backlog,
       (SELECT COUNT(*) FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog`).get() as { analysis_backlog: number; export_backlog: number };
 
@@ -100,9 +100,9 @@ function getQueueCheck(): StartupCheck {
   return { name: "queue", status: "healthy", detail: "db_backed_queue", meta: { analysis_backlog: row.analysis_backlog, export_backlog: row.export_backlog } };
 }
 
-function getWorkerCheck(workerType: "analysis" | "export"): StartupCheck {
+async function getWorkerCheck(workerType: "analysis" | "export"): Promise<StartupCheck> {
   const staleMs = getWorkerHeartbeatStaleMs();
-  const heartbeats = workerHeartbeatRepository.list(workerType);
+  const heartbeats = await workerHeartbeatRepository.list(workerType);
   if (heartbeats.length === 0) {
     return { name: `${workerType}_worker`, status: "degraded", detail: "no_worker_heartbeat" };
   }
@@ -114,7 +114,7 @@ function getWorkerCheck(workerType: "analysis" | "export"): StartupCheck {
     status: isStale ? "degraded" : "healthy",
     detail: isStale ? "worker_heartbeat_stale" : "worker_heartbeat_fresh",
     meta: {
-      worker_id: freshest.worker_id,
+      worker_id: freshest.instance_id,
       last_seen_at: freshest.last_seen_at,
       status: freshest.status,
       active_instances: heartbeats.length,

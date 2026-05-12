@@ -50,7 +50,7 @@ export const analysisRepository: AnalysisRepository = {
     return analysis;
   },
   update(analysisId: string, updater: (current: AnalysisEntity) => AnalysisEntity): AnalysisEntity | undefined {
-    const current = this.findById(analysisId);
+    const current = this.findById(analysisId) as AnalysisEntity | undefined;
     if (!current) return undefined;
     const next = updater(current);
     getDb()

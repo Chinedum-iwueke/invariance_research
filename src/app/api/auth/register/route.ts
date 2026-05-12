@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const created = accountService.createUserAndAccountWithPassword({
+    const created = await accountService.createUserAndAccountWithPassword({
       email,
       name: name || undefined,
       password,

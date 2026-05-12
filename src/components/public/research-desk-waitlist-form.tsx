@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function ResearchDeskWaitlistForm({ sourcePage = "/research-desk" }: { sourcePage?: string }) {
+export function ResearchDeskWaitlistForm({
+  sourcePage = "/research-desk",
+  buttonLabel = "Join the Waitlist",
+  showNameField = false,
+}: {
+  sourcePage?: string;
+  buttonLabel?: string;
+  showNameField?: boolean;
+}) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string>("");
@@ -16,7 +25,7 @@ export function ResearchDeskWaitlistForm({ sourcePage = "/research-desk" }: { so
     const response = await fetch("/api/waitlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, sourcePage }),
+      body: JSON.stringify({ name: name.trim() || undefined, email, sourcePage }),
     }).catch(() => null);
 
     if (!response) {
@@ -34,12 +43,25 @@ export function ResearchDeskWaitlistForm({ sourcePage = "/research-desk" }: { so
 
     setStatus("success");
     setMessage(payload?.message ?? "You are on the waitlist.");
+    setName("");
     setEmail("");
   }
 
   return (
     <form className="space-y-4" onSubmit={onSubmit}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start">
+        {showNameField ? (
+          <label className="w-full space-y-1 text-sm">
+            <span className="text-text-neutral">Name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Optional"
+              className="h-11 w-full rounded-sm border border-border-subtle bg-surface-white px-3"
+            />
+          </label>
+        ) : null}
         <label className="w-full space-y-1 text-sm">
           <span className="text-text-neutral">
             Email <span className="text-brand">*</span>
@@ -54,7 +76,7 @@ export function ResearchDeskWaitlistForm({ sourcePage = "/research-desk" }: { so
           />
         </label>
         <Button className="md:mt-[1.35rem]" type="submit" disabled={status === "loading"}>
-          {status === "loading" ? "Submitting…" : "Join the Waitlist"}
+          {status === "loading" ? "Submitting..." : buttonLabel}
         </Button>
       </div>
       <div className="min-h-5">

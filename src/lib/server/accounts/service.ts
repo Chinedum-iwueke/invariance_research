@@ -1,97 +1,125 @@
 import type { PlanId, SubscriptionStatus } from "@/lib/contracts/account";
-import { accountRepository, entitlementRepository, subscriptionRepository, usageRepository, userRepository } from "@/lib/server/accounts/repositories";
-import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
 import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 function monthBucket(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+async function ensureDefaultUsageSnapshot(accountId: string) {
+  const repositories = getCoreRepositories();
+  await repositories.usage.increment({ account_id: accountId, kind: "analysis", increment: 0 });
+}
+
 export const accountService = {
-  ensureUserAndAccount(input: { email: string; name?: string }) {
-    let user = userRepository.findByEmail(input.email);
+  async ensureUserAndAccount(input: { email: string; name?: string }) {
+    const repositories = getCoreRepositories();
+    let user = await repositories.users.findByEmail(input.email);
     if (!user) {
-      user = userRepository.save(input);
+      user = await repositories.users.save(input);
     }
 
-    let account = accountRepository.findByOwnerUserId(user.user_id);
+    let account = await repositories.accounts.findByOwnerUserId(user.user_id);
     if (!account) {
-      account = accountRepository.save(user.user_id, "explorer");
+      account = await repositories.accounts.save(user.user_id, "explorer");
     }
+    await ensureDefaultUsageSnapshot(account.account_id);
 
     return { user, account };
   },
 
-  createUserAndAccountWithPassword(input: { email: string; name?: string; password: string }) {
+  async ensureAccountForUserId(userId: string) {
+    const repositories = getCoreRepositories();
+    const user = await repositories.users.findById(userId);
+    if (!user) return undefined;
+
+    let account = await repositories.accounts.findByOwnerUserId(user.user_id);
+    if (!account) {
+      account = await repositories.accounts.save(user.user_id, "explorer");
+    }
+    await ensureDefaultUsageSnapshot(account.account_id);
+    return { user, account };
+  },
+
+  async createUserAndAccountWithPassword(input: { email: string; name?: string; password: string }) {
+    const repositories = getCoreRepositories();
     const email = input.email.trim().toLowerCase();
     if (!email) {
       throw new Error("email_required");
     }
-    if (userRepository.findByEmail(email)) {
+    if (await repositories.users.findByEmail(email)) {
       throw new Error("email_already_registered");
     }
 
-    const user = userRepository.save({
+    const user = await repositories.users.save({
       email,
       name: input.name,
       password_hash: hashPassword(input.password),
     });
-    const account = accountRepository.save(user.user_id, "explorer");
+    const account = await repositories.accounts.save(user.user_id, "explorer");
+    await ensureDefaultUsageSnapshot(account.account_id);
     return { user, account };
   },
 
-  authenticateWithPassword(input: { email: string; password: string }) {
+  async authenticateWithPassword(input: { email: string; password: string }) {
+    const repositories = getCoreRepositories();
     const email = input.email.trim().toLowerCase();
     if (!email || !input.password) return undefined;
 
-    const user = userRepository.findByEmail(email);
+    const user = await repositories.users.findByEmail(email);
     if (!user || !verifyPassword(input.password, user.password_hash)) {
       return undefined;
     }
 
-    const account = accountRepository.findByOwnerUserId(user.user_id);
-    if (!account) return undefined;
+    let account = await repositories.accounts.findByOwnerUserId(user.user_id);
+    if (!account) {
+      account = await repositories.accounts.save(user.user_id, "explorer");
+    }
+    await ensureDefaultUsageSnapshot(account.account_id);
 
-    this.recordLogin(user.user_id);
+    await this.recordLogin(user.user_id);
     return { user, account };
   },
 
-  setPasswordForEmail(input: { email: string; password: string }) {
+  async setPasswordForEmail(input: { email: string; password: string }) {
+    const repositories = getCoreRepositories();
     const email = input.email.trim().toLowerCase();
-    const user = userRepository.findByEmail(email);
+    const user = await repositories.users.findByEmail(email);
     if (!user) {
       throw new Error("user_not_found");
     }
 
-    userRepository.updatePassword(user.user_id, hashPassword(input.password));
+    await repositories.users.updatePassword(user.user_id, hashPassword(input.password));
     return { user_id: user.user_id, email: user.email };
   },
 
-  recordLogin(userId: string) {
-    userRepository.touchLogin(userId);
+  async recordLogin(userId: string) {
+    await getCoreRepositories().users.touchLogin(userId);
   },
 
-  getAccountState(accountId: string) {
-    const account = accountRepository.findById(accountId);
+  async getAccountState(accountId: string) {
+    const repositories = getCoreRepositories();
+    const account = await repositories.accounts.findById(accountId);
     if (!account) return undefined;
-    const entitlements = entitlementRepository.get(accountId);
-    const subscription = subscriptionRepository.findByAccountId(accountId);
+    const entitlements = await repositories.entitlements.get(accountId);
+    const subscription = await repositories.subscriptions.findByAccountId(accountId);
     return { account, entitlements, subscription };
   },
 
-  getUsage(accountId: string) {
+  async getUsage(accountId: string) {
+    const repositories = getCoreRepositories();
     const now = new Date();
     const bucket = monthBucket(now);
-    const usage = usageRepository.get(accountId, bucket);
-    const completedAnalyses = analysisRepository.countCompletedForMonth(accountId, bucket);
+    const usage = await repositories.usage.get(accountId, bucket);
+    const completedAnalyses = await repositories.analyses.countCompletedForMonth(accountId, bucket);
     return { ...usage, analyses_created: completedAnalyses };
   },
 
-  incrementUsage(accountId: string, kind: "analysis" | "upload" | "export") {
-    return usageRepository.increment({ account_id: accountId, kind });
+  async incrementUsage(accountId: string, kind: "analysis" | "upload" | "export") {
+    return getCoreRepositories().usage.increment({ account_id: accountId, kind });
   },
 
-  applySubscription(input: {
+  async applySubscription(input: {
     account_id: string;
     provider_customer_id: string;
     provider_subscription_id: string;
@@ -101,7 +129,8 @@ export const accountService = {
     current_period_end?: string;
     cancel_at_period_end?: boolean;
   }) {
-    subscriptionRepository.upsert({
+    const repositories = getCoreRepositories();
+    await repositories.subscriptions.upsert({
       subscription_id: `${input.account_id}:${input.provider_subscription_id}`,
       account_id: input.account_id,
       provider: "stripe",
@@ -114,6 +143,6 @@ export const accountService = {
       cancel_at_period_end: Boolean(input.cancel_at_period_end),
     });
 
-    accountRepository.updatePlan(input.account_id, input.plan_id, input.status);
+    await repositories.accounts.updatePlan(input.account_id, input.plan_id, input.status);
   },
 };

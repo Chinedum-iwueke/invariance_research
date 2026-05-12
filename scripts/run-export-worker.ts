@@ -1,3 +1,3 @@
-import { runExportWorkerRuntime } from "../src/lib/server/workers/export-worker.ts";
+import { runExportWorkerRuntime } from "../src/lib/server/workers/export-worker";
 
 runExportWorkerRuntime();

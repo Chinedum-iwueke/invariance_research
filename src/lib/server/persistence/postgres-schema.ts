@@ -157,4 +157,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_entries_email_source ON waitlist_
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_claimable ON analysis_jobs(status, available_at, leased_until, created_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status_available_at ON analysis_jobs(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_dead_letter ON analysis_jobs(status, finished_at);
+
+CREATE TABLE IF NOT EXISTS worker_heartbeats (
+  worker_type TEXT NOT NULL,
+  instance_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  last_seen_at TIMESTAMPTZ NOT NULL,
+  last_job_id TEXT,
+  last_job_status TEXT,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (worker_type, instance_id)
+);
 `;

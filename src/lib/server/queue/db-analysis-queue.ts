@@ -1,4 +1,4 @@
-import { jobRepository } from "@/lib/server/repositories/job-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import type { AnalysisQueue } from "@/lib/server/queue/contracts";
 import { toQueueJobMetadata } from "@/lib/server/queue/contracts";
 
@@ -6,7 +6,7 @@ const BASE_BACKOFF_MS = 2_000;
 
 export const dbAnalysisQueue: AnalysisQueue = {
   enqueue(input) {
-    return jobRepository.updateByAnalysisId(input.analysisId, (current) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (current) => ({
       ...current,
       status: "queued",
       available_at: input.availableAt ?? new Date().toISOString(),
@@ -18,13 +18,13 @@ export const dbAnalysisQueue: AnalysisQueue = {
     }));
   },
   lease(input = {}) {
-    return jobRepository.claimNextQueued(input.nowIso ?? new Date().toISOString(), {
+    return getCoreRepositories().analysisJobs.claimNextQueued(input.nowIso ?? new Date().toISOString(), {
       leaseMs: input.leaseMs,
       workerId: input.workerId,
     });
   },
   ack(input) {
-    return jobRepository.updateByAnalysisId(input.analysisId, (current) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (current) => ({
       ...current,
       current_step: input.resultStep ?? current.current_step,
       leased_until: undefined,
@@ -33,7 +33,7 @@ export const dbAnalysisQueue: AnalysisQueue = {
   },
   complete(input) {
     const now = new Date().toISOString();
-    return jobRepository.updateByAnalysisId(input.analysisId, (current) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (current) => ({
       ...current,
       status: "completed",
       progress_pct: 100,
@@ -46,8 +46,8 @@ export const dbAnalysisQueue: AnalysisQueue = {
       updated_at: now,
     }));
   },
-  retry(input) {
-    const current = jobRepository.findByAnalysisId(input.analysisId);
+  async retry(input) {
+    const current = await getCoreRepositories().analysisJobs.findByAnalysisId(input.analysisId);
     if (!current) return undefined;
     const retryCount = input.retryCount ?? current.retry_count + 1;
     const maxAttempts = current.max_attempts ?? 3;
@@ -59,7 +59,7 @@ export const dbAnalysisQueue: AnalysisQueue = {
       });
     }
     const availableAt = input.availableAt ?? new Date(Date.now() + BASE_BACKOFF_MS * Math.max(1, retryCount)).toISOString();
-    return jobRepository.updateByAnalysisId(input.analysisId, (job) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (job) => ({
       ...job,
       status: "queued",
       retry_count: retryCount,
@@ -74,7 +74,7 @@ export const dbAnalysisQueue: AnalysisQueue = {
   },
   deadLetter(input) {
     const now = new Date().toISOString();
-    return jobRepository.updateByAnalysisId(input.analysisId, (current) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (current) => ({
       ...current,
       status: "dead_letter",
       current_step: "Dead-lettered",
@@ -93,20 +93,21 @@ export const dbAnalysisQueue: AnalysisQueue = {
   extendLease(input) {
     const now = input.nowIso ?? new Date().toISOString();
     const leasedUntil = new Date(Date.parse(now) + (input.leaseMs ?? 5 * 60 * 1000)).toISOString();
-    return jobRepository.updateByAnalysisId(input.analysisId, (current) => ({
+    return getCoreRepositories().analysisJobs.updateByAnalysisId(input.analysisId, (current) => ({
       ...current,
       leased_until: leasedUntil,
       updated_at: now,
     }));
   },
   getJobStatus(jobId) {
-    const job = jobRepository.findById(jobId);
+    const job = getCoreRepositories().analysisJobs.findById(jobId);
+    if (job instanceof Promise) return job.then((value) => (value ? toQueueJobMetadata(value) : undefined));
     return job ? toQueueJobMetadata(job) : undefined;
   },
-  listFailed(limit) {
-    return jobRepository.listFailed(limit).map(toQueueJobMetadata);
+  async listFailed(limit) {
+    return (await getCoreRepositories().analysisJobs.listFailed(limit)).map(toQueueJobMetadata);
   },
-  listDeadLetters(limit) {
-    return jobRepository.listDeadLetters(limit).map(toQueueJobMetadata);
+  async listDeadLetters(limit) {
+    return (await getCoreRepositories().analysisJobs.listDeadLetters(limit)).map(toQueueJobMetadata);
   },
 };

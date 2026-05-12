@@ -1,7 +1,7 @@
 import { logger } from "@/lib/server/ops/logger";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
 export async function cleanupExpiredExports(now = new Date()) {
   const expired = exportRepository.listExpired(now.toISOString());
@@ -19,7 +19,7 @@ export async function cleanupExpiredExports(now = new Date()) {
 
 export function cleanupStaleFailedJobs(now = new Date()) {
   const cutoff = new Date(now.getTime() - 3 * 86_400_000).toISOString();
-  const db = getDb();
+  const db = getSqliteRuntimeDb();
   const analysis = db.prepare("DELETE FROM analysis_jobs WHERE status = 'failed' AND finished_at IS NOT NULL AND finished_at < ?").run(cutoff);
   const exports = db.prepare("DELETE FROM export_jobs WHERE status = 'failed' AND finished_at IS NOT NULL AND finished_at < ?").run(cutoff);
   const removed = Number(analysis.changes ?? 0) + Number(exports.changes ?? 0);

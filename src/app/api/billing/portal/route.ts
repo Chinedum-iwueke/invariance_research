@@ -5,7 +5,7 @@ import { requireServerSession } from "@/lib/server/auth/session";
 
 export async function POST() {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
+  const state = await accountService.getAccountState(session.account_id);
   const customerId = state?.subscription?.provider_customer_id;
   if (!customerId) {
     return NextResponse.json({ error: { code: "no_active_billing", message: "No active billing customer found." } }, { status: 404 });

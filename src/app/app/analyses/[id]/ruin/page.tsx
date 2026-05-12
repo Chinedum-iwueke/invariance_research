@@ -5,6 +5,7 @@ import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-pane
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { getRenderableSeries } from "@/lib/app/figure-rendering";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { buildTruthContext } from "@/lib/app/context-truth";
@@ -12,8 +13,9 @@ import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
-import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
 function normalizeToken(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
@@ -92,12 +94,12 @@ function hasFigureId(figure: { figure_id?: string; id?: string }, targetId: stri
 
 export default async function RuinPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
+  const state = await accountService.getAccountState(session.account_id);
   const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
-  const artifact = artifactRepository.findById(analysis.artifact_id);
-  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "ruin", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
+  const artifact = await getCoreRepositories().artifacts.findById(analysis.artifact_id);
+  const access = await resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "ruin", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
 
   if (!access.allowed && access.reason !== "enabled") {
     const model = buildDiagnosticLockModel({
@@ -201,7 +203,8 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         ? "Current sizing is elevated but can be tolerable if drawdown tolerance is moderate."
         : "Current sizing is aggressive and may be intolerable for risk-averse users.";
 
-  const truthContext = buildTruthContext(record, "ruin");
+  const truthContext = buildTruthContext(record, "ruin", { benchmark: analysis.benchmark });
+  const ruinRecommendations = pageInsightRecommendations(record, "ruin", truthContext.recommendations);
 
   return (
     <AnalysisPageFrame title="Risk of Ruin" description="Decision-grade survivability view across drawdowns, streak burden, and execution stress.">
@@ -304,8 +307,18 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         </div>
       </WorkspaceCard>
 
+      <AiSynthesisPanel
+        title="Risk-of-ruin synthesis"
+        summary={record.llm_insights?.ruin_interpretation}
+        bullets={record.llm_insights?.risk_of_ruin_interpretation?.fragility_signals}
+        model={record.llm_insights_model}
+      />
+
       <WorkspaceCard title="Interpretation & Action" subtitle="Sizing-aware, risk-tolerance-aware decision framing.">
         <div className="space-y-3 text-sm text-text-neutral">
+          {record.llm_insights?.ruin_interpretation ? (
+            <p>{record.llm_insights.ruin_interpretation}</p>
+          ) : null}
           <p>
             {probabilityOfRuin !== undefined && probabilityOfRuin >= 25
               ? "At current sizing, survivability risk appears elevated: breach probabilities and tail-drawdown exposure are high enough to merit active de-risking."
@@ -334,7 +347,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
         panes={[
           { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No explicit assumptions were emitted for this run.", tone: "neutral" },
           { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
-          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
+          { key: "recommendations", label: "Recommendations", items: ruinRecommendations, empty: "No recommendations were emitted for this run.", tone: "positive" },
         ]}
       />
     </AnalysisPageFrame>

@@ -10,14 +10,14 @@ function toSubscriptionStatus(value: string): SubscriptionStatus {
   return allowed.includes(value as SubscriptionStatus) ? (value as SubscriptionStatus) : "incomplete";
 }
 
-function applyEvent(event: Stripe.Event) {
+async function applyEvent(event: Stripe.Event) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const accountId = session.metadata?.account_id;
     const planId = (session.metadata?.plan_id as PlanId | undefined) ?? "professional";
     if (!accountId || !session.customer || !session.subscription) return;
 
-    accountService.applySubscription({
+    await accountService.applySubscription({
       account_id: accountId,
       provider_customer_id: String(session.customer),
       provider_subscription_id: String(session.subscription),
@@ -33,7 +33,7 @@ function applyEvent(event: Stripe.Event) {
     const priceId = subscription.items.data[0]?.price?.id;
     if (!accountId || !subscription.customer || !priceId) return;
 
-    accountService.applySubscription({
+    await accountService.applySubscription({
       account_id: accountId,
       provider_customer_id: String(subscription.customer),
       provider_subscription_id: subscription.id,
@@ -51,7 +51,7 @@ function applyEvent(event: Stripe.Event) {
     const accountId = subscription.metadata?.account_id;
     if (!accountId || !subscription.customer) return;
 
-    accountService.applySubscription({
+    await accountService.applySubscription({
       account_id: accountId,
       provider_customer_id: String(subscription.customer),
       provider_subscription_id: subscription.id,
@@ -61,7 +61,7 @@ function applyEvent(event: Stripe.Event) {
   }
 }
 
-export function applyStripeWebhookEvent(event: Stripe.Event) {
+export async function applyStripeWebhookEvent(event: Stripe.Event) {
   const receipt = webhookEventRepository.saveReceived({
     provider_event_id: event.id,
     event_type: event.type,
@@ -74,7 +74,7 @@ export function applyStripeWebhookEvent(event: Stripe.Event) {
   }
 
   try {
-    applyEvent(event);
+    await applyEvent(event);
     webhookEventRepository.markProcessed(event.id);
     logger.info("webhook.stripe.processed", { event_id: event.id, event_type: event.type });
     return { idempotent: false };

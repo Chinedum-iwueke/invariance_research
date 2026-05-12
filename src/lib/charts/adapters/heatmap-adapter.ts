@@ -2,6 +2,8 @@ import type { FigureTypeAdapter } from "./types";
 import { buildBaseOption } from "./base-option";
 import { formatValue } from "./utils";
 
+type HeatmapTooltipParams = { value?: [number, number, number] };
+
 export const heatmapAdapter: FigureTypeAdapter = ({ figure, series }) => {
   if (!series.length) return undefined;
 
@@ -22,8 +24,8 @@ export const heatmapAdapter: FigureTypeAdapter = ({ figure, series }) => {
   option.tooltip = {
     ...(option.tooltip ?? {}),
     trigger: "item",
-    formatter: (params: { value?: [number, number, number] }) => {
-      const [xIndex, yIndex, value] = params.value ?? [0, 0, 0];
+    formatter: (params) => {
+      const [xIndex, yIndex, value] = (params as HeatmapTooltipParams).value ?? [0, 0, 0];
       return `${yCategories[yIndex]}<br/>${xCategories[xIndex]}: <b>${formatValue(value)}</b>`;
     },
   };

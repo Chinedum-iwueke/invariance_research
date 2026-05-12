@@ -5,7 +5,7 @@ import { createAnalysisFromArtifact, listAnalyses } from "@/lib/server/services/
 
 export async function GET() {
   const session = await requireServerSession();
-  return NextResponse.json({ items: listAnalyses(session.account_id) });
+  return NextResponse.json({ items: await listAnalyses(session.account_id) });
 }
 
 export async function POST(request: Request) {

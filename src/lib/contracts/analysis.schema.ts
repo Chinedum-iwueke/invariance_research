@@ -44,6 +44,101 @@ export const verdictSchema = z.object({
   summary: z.string(),
 });
 
+export const deploymentReadinessInsightSchema = z.object({
+  status: z.enum(["not_advisable", "conditional", "advisable"]),
+  headline: z.string().min(1).max(220),
+  rationale: z.string().min(1).max(900),
+  next_actions: z.array(z.string().min(1).max(220)).max(5),
+});
+
+const conciseStringSchema = z.string().min(1).max(900);
+const conciseListSchema = z.array(z.string().min(1).max(220)).max(5);
+
+export const validationVerdictInsightSchema = z.object({
+  summary: conciseStringSchema,
+  strengths: conciseListSchema,
+  weaknesses: conciseListSchema,
+  benchmark_context: conciseStringSchema,
+  confidence_notes: conciseStringSchema,
+});
+
+export const deploymentReadinessAssessmentInsightSchema = z.object({
+  summary: conciseStringSchema,
+  deployment_risk_level: z.enum(["low", "moderate", "high", "critical"]),
+  readiness_status: z.enum(["not_advisable", "conditional", "advisable"]),
+  strengths: conciseListSchema,
+  blockers: conciseListSchema,
+  next_experiments: conciseListSchema,
+  confidence_notes: conciseStringSchema,
+});
+
+export const recommendationBundleInsightSchema = z.object({
+  summary: conciseStringSchema,
+  overview: conciseListSchema,
+  distribution: conciseListSchema,
+  monte_carlo: conciseListSchema,
+  execution: conciseListSchema,
+  ruin: conciseListSchema,
+  report: conciseListSchema,
+});
+
+export const executionInterpretationInsightSchema = z.object({
+  summary: conciseStringSchema,
+  execution_warnings: conciseListSchema,
+  fee_sensitivity: conciseStringSchema,
+  fragility_signals: conciseListSchema,
+  next_experiments: conciseListSchema,
+});
+
+export const distributionInterpretationInsightSchema = z.object({
+  summary: conciseStringSchema,
+  strengths: conciseListSchema,
+  weaknesses: conciseListSchema,
+  fragility_signals: conciseListSchema,
+  next_experiments: conciseListSchema,
+});
+
+export const monteCarloInterpretationInsightSchema = z.object({
+  summary: conciseStringSchema,
+  fragility_signals: conciseListSchema,
+  regime_dependency: conciseStringSchema,
+  next_experiments: conciseListSchema,
+  confidence_notes: conciseStringSchema,
+});
+
+export const riskOfRuinInterpretationInsightSchema = z.object({
+  summary: conciseStringSchema,
+  fragility_signals: conciseListSchema,
+  deployment_risk_level: z.enum(["low", "moderate", "high", "critical"]),
+  next_experiments: conciseListSchema,
+  confidence_notes: conciseStringSchema,
+});
+
+export const llmDiagnosticInsightsSchema = z.object({
+  overview_interpretation: z.string().min(1).max(900),
+  distribution_interpretation: z.string().min(1).max(900),
+  monte_carlo_interpretation: z.string().min(1).max(900),
+  execution_interpretation: z.string().min(1).max(900),
+  ruin_interpretation: z.string().min(1).max(900),
+  final_verdict: z.string().min(1).max(900),
+  deployment_readiness: deploymentReadinessInsightSchema,
+  recommendations_by_page: z.object({
+    overview: z.array(z.string().min(1).max(220)).max(5),
+    distribution: z.array(z.string().min(1).max(220)).max(5),
+    monte_carlo: z.array(z.string().min(1).max(220)).max(5),
+    execution: z.array(z.string().min(1).max(220)).max(5),
+    ruin: z.array(z.string().min(1).max(220)).max(5),
+    report: z.array(z.string().min(1).max(220)).max(5),
+  }),
+  validation_verdict: validationVerdictInsightSchema.optional(),
+  deployment_readiness_assessment: deploymentReadinessAssessmentInsightSchema.optional(),
+  recommendation_bundle: recommendationBundleInsightSchema.optional(),
+  execution_interpretation_detail: executionInterpretationInsightSchema.optional(),
+  distribution_interpretation_detail: distributionInterpretationInsightSchema.optional(),
+  monte_carlo_interpretation_detail: monteCarloInterpretationInsightSchema.optional(),
+  risk_of_ruin_interpretation: riskOfRuinInterpretationInsightSchema.optional(),
+});
+
 export const warningItemSchema = z.object({
   code: z.string(),
   severity: z.enum(["info", "warning", "critical"]),
@@ -303,4 +398,9 @@ export const analysisRecordSchema = z.object({
     ruin: normalizedDiagnosticStatusSchema,
     report: normalizedDiagnosticStatusSchema,
   }),
+  llm_insights: llmDiagnosticInsightsSchema.optional(),
+  llm_insights_model: z.string().optional(),
+  llm_insights_generated_at: z.string().optional(),
+  llm_insights_status: z.enum(["disabled", "generated", "fallback", "failed", "invalid"]).optional(),
+  llm_insights_error: z.string().optional(),
 });

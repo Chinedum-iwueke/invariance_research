@@ -22,7 +22,7 @@ export const authConfig: NextAuthConfig = {
         const password = credentials?.password?.toString() ?? "";
         if (!email || !password) return null;
 
-        const authenticated = accountService.authenticateWithPassword({ email, password });
+        const authenticated = await accountService.authenticateWithPassword({ email, password });
         if (!authenticated) return null;
 
         return {
@@ -40,13 +40,19 @@ export const authConfig: NextAuthConfig = {
         token.sub = user.id;
         token.email = user.email;
         token.account_id = user.account_id;
+      } else if (token.sub && !token.account_id) {
+        const repaired = await accountService.ensureAccountForUserId(String(token.sub));
+        if (repaired) {
+          token.email = repaired.user.email;
+          token.account_id = repaired.account.account_id;
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.sub && token.account_id) {
         session.user.id = token.sub;
-        session.user.account_id = token.account_id;
+        session.user.account_id = String(token.account_id);
       }
       return session;
     },

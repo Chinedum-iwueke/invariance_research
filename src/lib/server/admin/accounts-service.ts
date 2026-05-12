@@ -1,6 +1,6 @@
 import { entitlementRepository, usageRepository } from "@/lib/server/accounts/repositories";
 import { accountService } from "@/lib/server/accounts/service";
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
 function monthBucket(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -21,8 +21,8 @@ export type AdminAccountOverview = {
   has_password: boolean;
 };
 
-export function listAdminAccounts(filter?: { plan?: string; status?: string; highUsage?: boolean }) {
-  const rows = getDb()
+export async function listAdminAccounts(filter?: { plan?: string; status?: string; highUsage?: boolean }) {
+  const rows = getSqliteRuntimeDb()
     .prepare(
       `SELECT a.*, u.email as owner_email, u.password_hash, s.provider_customer_id, s.provider_subscription_id, s.current_period_end, s.cancel_at_period_end
       FROM accounts a
@@ -34,11 +34,11 @@ export function listAdminAccounts(filter?: { plan?: string; status?: string; hig
 
   const bucket = monthBucket(new Date());
 
-  const accounts: AdminAccountOverview[] = rows
-    .map((row) => {
+  const accounts: AdminAccountOverview[] = await Promise.all(rows
+    .map(async (row) => {
       const accountId = String(row.account_id);
-      const usage = usageRepository.get(accountId, bucket);
-      const entitlements = entitlementRepository.get(accountId);
+      const usage = await usageRepository.get(accountId, bucket);
+      const entitlements = await entitlementRepository.get(accountId);
       return {
         account_id: accountId,
         owner_email: String(row.owner_email),
@@ -57,14 +57,16 @@ export function listAdminAccounts(filter?: { plan?: string; status?: string; hig
         stripe_subscription_id: row.provider_subscription_id ? String(row.provider_subscription_id) : undefined,
         has_password: Boolean(row.password_hash),
       };
-    })
+    }))
+  ;
+  const filtered = accounts
     .filter((item) => (filter?.plan ? item.plan_id === filter.plan : true))
     .filter((item) => (filter?.status ? item.subscription_status === filter.status : true))
     .filter((item) => (filter?.highUsage ? item.usage_this_month.analyses_created >= 8 : true));
 
   return {
-    rows: accounts,
-    summaryByPlan: accounts.reduce<Record<string, number>>((acc, item) => {
+    rows: filtered,
+    summaryByPlan: filtered.reduce<Record<string, number>>((acc, item) => {
       acc[item.plan_id] = (acc[item.plan_id] ?? 0) + 1;
       return acc;
     }, {}),
@@ -72,6 +74,6 @@ export function listAdminAccounts(filter?: { plan?: string; status?: string; hig
 }
 
 
-export function adminSetAccountPassword(input: { email: string; password: string }) {
+export async function adminSetAccountPassword(input: { email: string; password: string }) {
   return accountService.setPasswordForEmail(input);
 }

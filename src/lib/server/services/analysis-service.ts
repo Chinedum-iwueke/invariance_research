@@ -7,17 +7,16 @@ import type {
   CreateAnalysisResponse,
 } from "@/lib/contracts";
 import { assertUsageWithinPlan } from "@/lib/server/entitlements/usage";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { enqueueAnalysisRetry } from "@/lib/server/queue/analysis-queue";
-import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
-import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
-import { jobRepository } from "@/lib/server/repositories/job-repository";
 import { scheduleAnalysisJob } from "@/lib/server/services/analysis-job-runner";
 import { buildPersistedBenchmarkConfig, parseBenchmarkSelectionFromRequest } from "@/lib/analyses/create-analysis";
 
 export async function createAnalysisFromArtifact(
   payload: CreateAnalysisRequest & { owner_user_id: string; account_id: string },
 ): Promise<CreateAnalysisResponse> {
-  const artifact = artifactRepository.findById(payload.artifact_id);
+  const repositories = getCoreRepositories();
+  const artifact = await repositories.artifacts.findById(payload.artifact_id);
   if (!artifact || !artifact.eligibility_summary.accepted) {
     throw new Error("artifact_not_eligible");
   }
@@ -26,7 +25,7 @@ export async function createAnalysisFromArtifact(
     throw new Error("artifact_access_denied");
   }
 
-  assertUsageWithinPlan(payload.account_id);
+  await assertUsageWithinPlan(payload.account_id);
 
   const timestamp = new Date().toISOString();
   const analysisId = randomUUID();
@@ -37,7 +36,7 @@ export async function createAnalysisFromArtifact(
     parsedArtifact: artifact.parsed_artifact,
   });
 
-  analysisRepository.save({
+  await repositories.analyses.save({
     analysis_id: analysisId,
     owner_user_id: payload.owner_user_id,
     account_id: payload.account_id,
@@ -51,9 +50,9 @@ export async function createAnalysisFromArtifact(
     runtime_config: payload.runtime_config,
   });
 
-  artifactRepository.attachAnalysis(artifact.artifact_id, analysisId);
+  await repositories.artifacts.attachAnalysis(artifact.artifact_id, analysisId);
 
-  jobRepository.save({
+  await repositories.analysisJobs.save({
     job_id: jobId,
     analysis_id: analysisId,
     account_id: payload.account_id,
@@ -69,7 +68,7 @@ export async function createAnalysisFromArtifact(
     available_at: timestamp,
   });
 
-  scheduleAnalysisJob(analysisId);
+  await scheduleAnalysisJob(analysisId);
 
   return {
     analysis_id: analysisId,
@@ -86,15 +85,16 @@ export async function createAnalysisFromArtifact(
   };
 }
 
-export function getOwnedAnalysis(analysisId: string, accountId: string) {
-  const analysis = analysisRepository.findById(analysisId);
+export async function getOwnedAnalysis(analysisId: string, accountId: string) {
+  const analysis = await getCoreRepositories().analyses.findById(analysisId);
   if (!analysis || analysis.account_id !== accountId) return undefined;
   return analysis;
 }
 
-export function getAnalysisStatus(analysisId: string): AnalysisStatusResponse | undefined {
-  const analysis = analysisRepository.findById(analysisId);
-  const job = jobRepository.findByAnalysisId(analysisId);
+export async function getAnalysisStatus(analysisId: string): Promise<AnalysisStatusResponse | undefined> {
+  const repositories = getCoreRepositories();
+  const analysis = await repositories.analyses.findById(analysisId);
+  const job = await repositories.analysisJobs.findByAnalysisId(analysisId);
 
   if (!analysis || !job) return undefined;
 
@@ -117,8 +117,8 @@ export function getAnalysisStatus(analysisId: string): AnalysisStatusResponse | 
   };
 }
 
-export function getAnalysisDetail(analysisId: string): AnalysisDetailResponse | undefined {
-  const analysis = analysisRepository.findById(analysisId);
+export async function getAnalysisDetail(analysisId: string): Promise<AnalysisDetailResponse | undefined> {
+  const analysis = await getCoreRepositories().analyses.findById(analysisId);
   if (!analysis) return undefined;
   return {
     analysis_id: analysis.analysis_id,
@@ -131,12 +131,14 @@ export function getAnalysisDetail(analysisId: string): AnalysisDetailResponse | 
   };
 }
 
-export function listAnalyses(accountId?: string): AnalysisListItem[] {
-  return analysisRepository
-    .list()
+export async function listAnalyses(accountId?: string): Promise<AnalysisListItem[]> {
+  const repositories = getCoreRepositories();
+  const analyses = await repositories.analyses.list();
+  return Promise.all(
+    analyses
     .filter((analysis) => (accountId ? analysis.account_id === accountId : true))
-    .map((analysis) => {
-      const artifact = artifactRepository.findById(analysis.artifact_id);
+    .map(async (analysis) => {
+      const artifact = await repositories.artifacts.findById(analysis.artifact_id);
       const result = analysis.result;
       const runtimeStrategyName = analysis.strategy_name?.trim();
       return {
@@ -156,15 +158,17 @@ export function listAnalyses(accountId?: string): AnalysisListItem[] {
         status: analysis.status,
         robustness_score: result?.summary.robustness_score?.value ?? "Pending",
       };
-    });
+    }),
+  );
 }
 
-export function retryAnalysis(analysisId: string): AnalysisStatusResponse | undefined {
-  const analysis = analysisRepository.findById(analysisId);
-  const job = jobRepository.findByAnalysisId(analysisId);
+export async function retryAnalysis(analysisId: string): Promise<AnalysisStatusResponse | undefined> {
+  const repositories = getCoreRepositories();
+  const analysis = await repositories.analyses.findById(analysisId);
+  const job = await repositories.analysisJobs.findByAnalysisId(analysisId);
   if (!analysis || !job || analysis.status !== "failed") return undefined;
 
-  analysisRepository.update(analysisId, (current) => ({
+  await repositories.analyses.update(analysisId, (current) => ({
     ...current,
     status: "queued",
     updated_at: new Date().toISOString(),
@@ -173,7 +177,7 @@ export function retryAnalysis(analysisId: string): AnalysisStatusResponse | unde
   }));
 
   const retryCount = job.retry_count + 1;
-  enqueueAnalysisRetry(analysisId, retryCount);
+  await enqueueAnalysisRetry(analysisId, retryCount);
 
   return getAnalysisStatus(analysisId);
 }

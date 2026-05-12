@@ -44,8 +44,9 @@ export const fanChartAdapter: FigureTypeAdapter = ({ figure, series }) => {
         const index = typeof rows[0]?.dataIndex === "number" ? rows[0].dataIndex : 0;
         const at = (values?: Array<number | null>) => values?.[index];
         const show = (label: string, value?: number | null) => `${label}: <b>${typeof value === "number" ? formatValue(value) : "—"}</b>`;
+        const firstRow = rows[0] as (typeof rows)[number] & { axisValueLabel?: string };
         return [
-          `<div style=\"margin-bottom:4px\">${String(xAxisData[index] ?? rows[0]?.axisValueLabel ?? "")}</div>`,
+          `<div style=\"margin-bottom:4px\">${String(xAxisData[index] ?? firstRow.axisValueLabel ?? "")}</div>`,
           show("P5", at(p5)),
           show("P25", at(p25)),
           show("P50", at(p50)),

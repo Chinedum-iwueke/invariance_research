@@ -11,17 +11,17 @@ import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
-import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 export default async function StabilityPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
+  const state = await accountService.getAccountState(session.account_id);
   const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
-  const artifact = artifactRepository.findById(analysis.artifact_id);
-  const access = resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "stability", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
+  const artifact = await getCoreRepositories().artifacts.findById(analysis.artifact_id);
+  const access = await resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "stability", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
 
   if (!access.allowed && access.reason !== "enabled") {
     const model = buildDiagnosticLockModel({

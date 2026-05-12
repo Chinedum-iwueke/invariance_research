@@ -1,4 +1,4 @@
-import type { FigureTypeAdapter } from "./types";
+import type { ChartSeries, FigureTypeAdapter } from "./types";
 import { buildBaseOption } from "./base-option";
 import { denseCategoryAxisLabel, resolveAxisMeta } from "./utils";
 
@@ -9,9 +9,9 @@ export const lineAdapter: FigureTypeAdapter = ({ figure, series }) => {
   const axisMeta = resolveAxisMeta(series);
   const option = buildBaseOption(figure);
 
-  const chartSeries = series.map((item, index) => ({
+  const chartSeries: ChartSeries[] = series.map((item, index) => ({
     name: item.label,
-    type: "line",
+    type: "line" as const,
     smooth: false,
     symbol: "circle",
     symbolSize: 5,

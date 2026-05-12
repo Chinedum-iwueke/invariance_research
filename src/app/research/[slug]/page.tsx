@@ -4,6 +4,8 @@ import { PublicationArticle } from "@/components/public/publication-article";
 import { resolvePublicationContent } from "@/lib/publications/content";
 import { getPublicationBySlug } from "@/lib/server/publications/repository";
 
+export const dynamic = "force-dynamic";
+
 export default async function PublicationDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const publication = getPublicationBySlug(slug);

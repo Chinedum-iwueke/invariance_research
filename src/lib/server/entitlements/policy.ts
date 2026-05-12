@@ -21,8 +21,8 @@ function engineSupports(parsed: ParsedArtifact | undefined, diagnostic: Diagnost
   return true;
 }
 
-function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): boolean {
-  const state = accountService.getAccountState(accountId);
+async function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): Promise<boolean> {
+  const state = await accountService.getAccountState(accountId);
   if (!state) return false;
   if (diagnostic === "overview") return state.entitlements.can_view_overview;
   if (diagnostic === "distribution") return state.entitlements.can_view_distribution;
@@ -33,12 +33,12 @@ function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): boolean {
   return state.entitlements.can_view_stability;
 }
 
-export function resolveDiagnosticAccess(input: {
+export async function resolveDiagnosticAccess(input: {
   account_id: string;
   diagnostic: DiagnosticKey;
   parsed_artifact?: ParsedArtifact;
   is_admin?: boolean;
-}): { allowed: boolean; reason: DiagnosticAccessReason; message: string } {
+}): Promise<{ allowed: boolean; reason: DiagnosticAccessReason; message: string }> {
   if (!artifactSupports(input.parsed_artifact, input.diagnostic)) {
     return { allowed: false, reason: "artifact_unavailable", message: "This diagnostic requires richer artifact context." };
   }
@@ -47,15 +47,15 @@ export function resolveDiagnosticAccess(input: {
     return { allowed: false, reason: "engine_unavailable", message: "The current engine cannot compute this diagnostic credibly." };
   }
 
-  if (!input.is_admin && !isPlanEntitled(input.account_id, input.diagnostic)) {
+  if (!input.is_admin && !(await isPlanEntitled(input.account_id, input.diagnostic))) {
     return { allowed: false, reason: "plan_locked", message: "Available on a higher plan." };
   }
 
   return { allowed: true, reason: "enabled", message: "Enabled." };
 }
 
-export function assertUploadAllowed(accountId: string, artifactClass: "trade_csv" | "structured_bundle" | "research_bundle") {
-  const state = accountService.getAccountState(accountId);
+export async function assertUploadAllowed(accountId: string, artifactClass: "trade_csv" | "structured_bundle" | "research_bundle") {
+  const state = await accountService.getAccountState(accountId);
   if (!state) throw new Error("account_not_found");
 
   if (artifactClass === "trade_csv" && !state.entitlements.can_upload_trade_csv) throw new Error("upload_not_allowed");
@@ -64,9 +64,9 @@ export function assertUploadAllowed(accountId: string, artifactClass: "trade_csv
 }
 
 
-export function assertExportAllowed(accountId: string, isAdmin = false) {
+export async function assertExportAllowed(accountId: string, isAdmin = false) {
   if (isAdmin) return;
-  const state = accountService.getAccountState(accountId);
+  const state = await accountService.getAccountState(accountId);
   if (!state) throw new Error("account_not_found");
   if (!state.entitlements.can_export_report) {
     logger.warn("export.denied", { account_id: accountId, reason: "plan_restricted" });

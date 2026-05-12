@@ -42,7 +42,7 @@ export async function processNextExportJob(): Promise<boolean> {
 
   try {
     exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Rendering report", progress_pct: 60 }));
-    const analysis = analysisRepository.findById(exportRecord.analysis_id);
+    const analysis = await analysisRepository.findById(exportRecord.analysis_id);
     if (!analysis?.result) throw new Error("analysis_result_missing");
 
     const rendered = renderExport(analysis.result, exportRecord.format);

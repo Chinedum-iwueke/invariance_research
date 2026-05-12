@@ -4,6 +4,10 @@ import type { AxisMeta } from "./types";
 
 type LooseRecord = Record<string, unknown>;
 
+function isDefined<T>(value: T | undefined): value is T {
+  return value !== undefined;
+}
+
 export function asRecord(value: unknown): LooseRecord | undefined {
   return value && typeof value === "object" ? value as LooseRecord : undefined;
 }
@@ -49,7 +53,7 @@ export function seriesFromPoints(seriesLike: unknown, keyFallback: string): Figu
       : Array.isArray(item.values)
         ? item.values
         : [];
-  const points = pointsSource.map((point, index) => toPoint(point, index)).filter((point): point is FigurePoint => Boolean(point));
+  const points = pointsSource.map((point, index) => toPoint(point, index)).filter(isDefined);
   if (!points.length) return undefined;
   const key = typeof item.key === "string" ? item.key : keyFallback;
   const label = typeof item.label === "string"
@@ -66,7 +70,7 @@ export function seriesFromPoints(seriesLike: unknown, keyFallback: string): Figu
 export function normalizeStandardSeries(figure: FigurePayload): FigureSeries[] {
   const normalized = figure.series
     .map((series, index) => seriesFromPoints(series as unknown, `${figure.figure_id || "series"}-${index}`))
-    .filter((series): series is FigureSeries => Boolean(series));
+    .filter(isDefined);
   if (normalized.length) return normalized;
 
   const raw = figure as FigurePayload & LooseRecord;
@@ -87,13 +91,13 @@ export function normalizeStandardSeries(figure: FigurePayload): FigureSeries[] {
           if (y === undefined || (typeof xValue !== "number" && typeof xValue !== "string")) return undefined;
           return { x: xValue, y };
         })
-        .filter((point): point is FigurePoint => Boolean(point));
+        .filter(isDefined);
       if (!points.length) return undefined;
       const key = typeof item.key === "string" ? item.key : `series_${seriesIndex + 1}`;
       const label = typeof item.label === "string" ? item.label : typeof item.name === "string" ? item.name : key;
       return { key, label, series_type: "line" as const, points };
     })
-    .filter((entry): entry is FigureSeries => Boolean(entry));
+    .filter(isDefined);
 }
 
 export function normalizeHistogramSeries(figure: FigurePayload, fallback: FigureSeries[]): FigureSeries[] {
@@ -118,7 +122,7 @@ export function normalizeHistogramSeries(figure: FigurePayload, fallback: Figure
               : index + 1;
         return { x, y };
       })
-      .filter((point): point is FigurePoint => Boolean(point));
+      .filter(isDefined);
     if (points.length) return [{ key: "histogram", label: "Histogram", series_type: "bar", points }];
   }
 
@@ -129,7 +133,7 @@ export function normalizeHistogramSeries(figure: FigurePayload, fallback: Figure
       const y = toNumber(count);
       if (y === undefined) return undefined;
       return { x: `${edges[index]} - ${edges[index + 1]}`, y };
-    }).filter((point): point is FigurePoint => Boolean(point));
+    }).filter(isDefined);
 
     if (points.length) return [{ key: "histogram", label: "Histogram", series_type: "bar", points }];
   }
@@ -157,7 +161,7 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
         if (!label || count === undefined) return undefined;
         return { x: label, y: count, key: typeof entry.key === "string" ? entry.key : `group_${groupIndex}` };
       })
-      .filter((point): point is { x: string; y: number; key: string } => Boolean(point));
+      .filter(isDefined);
 
     if (directPoints.length) {
       return [{
@@ -181,9 +185,9 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
               const x = categories?.[valueIndex];
               if (y === undefined || (typeof x !== "string" && typeof x !== "number")) return undefined;
               return { x, y };
-            }).filter((point): point is FigurePoint => Boolean(point))
+            }).filter(isDefined)
           : Array.isArray(entry.points)
-            ? entry.points.map((point, pointIndex) => toPoint(point, pointIndex)).filter((point): point is FigurePoint => Boolean(point))
+            ? entry.points.map((point, pointIndex) => toPoint(point, pointIndex)).filter(isDefined)
             : [];
 
         if (!points.length) return undefined;
@@ -191,7 +195,7 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
         const label = typeof entry.label === "string" ? entry.label : key;
         return { key, label, series_type: "bar" as const, points };
       })
-      .filter((entry): entry is FigureSeries => Boolean(entry));
+      .filter(isDefined);
 
     if (mapped.length) return mapped;
   }
@@ -208,10 +212,10 @@ export function normalizeGroupedBarSeries(figure: FigurePayload, fallback: Figur
             const value = toNumber(entry[`${category}`]) ?? toNumber(entry[String(category)]);
             return value === undefined ? undefined : { x: category, y: value };
           })
-          .filter((point): point is FigurePoint => Boolean(point));
+          .filter(isDefined);
         return points.length ? { key, label, series_type: "bar" as const, points } : undefined;
       })
-      .filter((entry): entry is FigureSeries => Boolean(entry));
+      .filter(isDefined);
     if (mapped.length) return mapped;
   }
 
@@ -228,7 +232,7 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
   if (x?.length && objectBands) {
     const normalizedFromObject = supportedPercentiles
       .map((percentile) => {
-        const values = Array.isArray(objectBands[`p${percentile}`]) ? objectBands[`p${percentile}`] : undefined;
+        const values = Array.isArray(objectBands[`p${percentile}`]) ? objectBands[`p${percentile}`] as unknown[] : undefined;
         if (!values?.length) return undefined;
         const points = x
           .map((xValue, index) => {
@@ -236,11 +240,11 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
             if (y === undefined || (typeof xValue !== "number" && typeof xValue !== "string")) return undefined;
             return { x: xValue, y };
           })
-          .filter((point): point is FigurePoint => Boolean(point));
+          .filter(isDefined);
         if (!points.length) return undefined;
         return { key: `p${percentile}`, label: `P${percentile}`, series_type: "line" as const, points };
       })
-      .filter((entry): entry is FigureSeries => Boolean(entry));
+      .filter(isDefined);
 
     if (normalizedFromObject.length) return normalizedFromObject;
   }
@@ -272,11 +276,11 @@ export function normalizeFanSeries(figure: FigurePayload, fallback: FigureSeries
           return { x: xValue, y };
         }
         return toPoint(value, pointIndex);
-      }).filter((point): point is FigurePoint => Boolean(point));
+      }).filter(isDefined);
       if (!points.length) return undefined;
       return { key, label, series_type: "line" as const, points };
     })
-    .filter((entry): entry is FigureSeries => Boolean(entry));
+    .filter(isDefined);
 }
 
 export function normalizeFigureSeries(figure: FigurePayload): FigureSeries[] {
@@ -288,7 +292,7 @@ export function normalizeFigureSeries(figure: FigurePayload): FigureSeries[] {
     if (base.length) return base;
     const pointsSource = Array.isArray(raw.points) ? raw.points : undefined;
     if (!pointsSource) return [];
-    const points = pointsSource.map((point, index) => toPoint(point, index)).filter((point): point is FigurePoint => Boolean(point));
+    const points = pointsSource.map((point, index) => toPoint(point, index)).filter(isDefined);
     return points.length ? [{ key: "scatter", label: "Points", series_type: "scatter", points }] : [];
   }
   if (figure.type === "fan" || figure.type === "fan_chart") return normalizeFanSeries(figure, base);
@@ -354,11 +358,13 @@ export function denseCategoryAxisLabel(categoryCount: number, maxVisible = 12): 
 export function tooltipRows(params: TooltipComponentFormatterCallbackParams | TooltipComponentFormatterCallbackParams[]): string {
   const rows = Array.isArray(params) ? params : [params];
   if (!rows.length) return "No datapoint";
-  const axis = rows[0]?.axisValueLabel ?? String(rows[0]?.name ?? "");
+  const first = rows[0] as TooltipComponentFormatterCallbackParams & { axisValueLabel?: string; name?: string };
+  const axis = first.axisValueLabel ?? String(first.name ?? "");
   const lines = rows.map((row) => {
-    const value = Array.isArray(row.value) ? row.value[row.value.length - 1] : row.value;
+    const item = row as TooltipComponentFormatterCallbackParams & { value?: unknown; marker?: string; seriesName?: string };
+    const value = Array.isArray(item.value) ? item.value[item.value.length - 1] : item.value;
     const numeric = typeof value === "number" ? value : toNumber(value);
-    return `${row.marker}${row.seriesName}: <b>${numeric !== undefined ? formatValue(numeric) : "—"}</b>`;
+    return `${item.marker ?? ""}${item.seriesName ?? "Series"}: <b>${numeric !== undefined ? formatValue(numeric) : "—"}</b>`;
   }).join("<br/>");
   return `<div><div style=\"margin-bottom:4px\">${axis}</div>${lines}</div>`;
 }

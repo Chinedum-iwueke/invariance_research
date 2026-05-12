@@ -22,11 +22,14 @@ export interface ConfidenceModel {
 
 export interface DeploymentGuidanceModel {
   advisable: boolean;
-  advisoryLabel: "Deployment Advisable" | "Deployment Not Yet Advisable";
+  status: "not_advisable" | "conditional" | "advisable";
+  advisoryLabel: "Deployment Readiness Supported" | "Conditional / Requires Further Validation" | "Deployment Not Yet Advisable";
+  headline: string;
   summary: string;
   suitableContexts: string[];
   requiredConditions: string[];
   blockers: string[];
+  nextActions: string[];
 }
 
 export interface ReportViewModel {
@@ -136,6 +139,26 @@ function preferredMetrics(record: AnalysisRecord): ScoreBand[] {
   return filtered.length ? filtered : selectOverviewTopMetrics(record.diagnostics.overview.metrics, 6);
 }
 
+export function mapDeploymentReadinessStatus(record: AnalysisRecord, verdict: ReportVerdictModel): "not_advisable" | "conditional" | "advisable" {
+  const ruin = record.diagnostics.ruin.metrics.find((metric) => /probability of ruin|risk-of-ruin|p\(ruin\)/i.test(metric.label));
+  const ruinValue = ruin ? Number.parseFloat(ruin.value.replace(/[%,$]/g, "")) : undefined;
+  const criticalMetric = [
+    ...record.diagnostics.monte_carlo.metrics,
+    ...record.diagnostics.ruin.metrics,
+    ...record.diagnostics.execution.metrics,
+  ].some((metric) => metric.band === "critical");
+  if (verdict.statusLabel === "Not deployment-ready" || verdict.posture === "fragile" || criticalMetric || (ruinValue !== undefined && ruinValue >= 12)) {
+    return "not_advisable";
+  }
+  const blockers = record.report.limitations.some((item) => /missing|limited|unavailable|insufficient|absent/i.test(item));
+  const deterministicStatus = verdict.posture === "robust" && !blockers ? "advisable" : "conditional";
+  const llmStatus = record.llm_insights?.deployment_readiness.status;
+  if (!llmStatus) return deterministicStatus;
+  if (llmStatus === "not_advisable") return "not_advisable";
+  if (deterministicStatus === "conditional" && llmStatus === "advisable") return "conditional";
+  return llmStatus;
+}
+
 function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdictModel): DeploymentGuidanceModel {
   const recommendationRows = uniqueRows([
     ...record.report.recommendations,
@@ -167,17 +190,34 @@ function deriveDeploymentGuidance(record: AnalysisRecord, verdict: ReportVerdict
     record.diagnostic_statuses.report.status !== "available" ? "Report diagnostic envelope is not fully available." : "",
   ], 4);
 
-  const advisable = verdict.posture === "robust" && blockers.length === 0;
+  const status = mapDeploymentReadinessStatus(record, verdict);
+  const advisable = status === "advisable";
+  const llmReadiness = record.llm_insights?.deployment_readiness;
+  const label = status === "advisable"
+    ? "Deployment Readiness Supported"
+    : status === "conditional"
+      ? "Conditional / Requires Further Validation"
+      : "Deployment Not Yet Advisable";
+  const fallbackHeadline = status === "advisable"
+    ? "Readiness is supported under current controls."
+    : status === "conditional"
+      ? "Further validation is required before scaling."
+      : "Broad deployment is not yet supported.";
 
   return {
     advisable,
-    advisoryLabel: advisable ? "Deployment Advisable" : "Deployment Not Yet Advisable",
-    summary: advisable
+    status,
+    advisoryLabel: label,
+    headline: llmReadiness?.headline ?? fallbackHeadline,
+    summary: llmReadiness?.rationale ?? (advisable
       ? "Proceed with phased capital allocation only under documented risk controls and monitoring triggers."
-      : "Defer broad deployment until diagnostic gaps and explicit blocker conditions are resolved.",
+      : status === "conditional"
+        ? "Treat the result as promising but conditional until remaining diagnostics, execution assumptions, and capital buffers are validated."
+        : "Defer broad deployment until diagnostic gaps and explicit blocker conditions are resolved."),
     suitableContexts,
     requiredConditions,
     blockers,
+    nextActions: uniqueRows([...(llmReadiness?.next_actions ?? []), ...requiredConditions, ...blockers], 5),
   };
 }
 
@@ -319,13 +359,15 @@ export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
   const verdict = deriveReportVerdict(record);
   const curatedCharts = deriveCuratedCharts(record);
   return {
-    verdict,
+    verdict: record.llm_insights?.final_verdict
+      ? { ...verdict, summary: record.llm_insights.final_verdict }
+      : verdict,
     confidence: deriveConfidenceModel(record),
     keyMetrics: preferredMetrics(record),
     diagnosticsSummary: uniqueRows(record.report.diagnostics_summary, 8),
     methodology: uniqueRows(record.report.methodology_assumptions, 8),
     limitations: uniqueRows(record.report.limitations, 8),
-    recommendations: uniqueRows(record.report.recommendations, 8),
+    recommendations: uniqueRows([...(record.llm_insights?.recommendations_by_page.report ?? []), ...record.report.recommendations], 8),
     deploymentGuidance: deriveDeploymentGuidance(record, verdict),
     charts: curatedCharts,
     prioritizedFigures: derivePrioritizedFigures(record, curatedCharts),

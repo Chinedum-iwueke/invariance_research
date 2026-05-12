@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   try {
     const stripe = getStripeClient();
     const event = stripe.webhooks.constructEvent(payload, signature, secret);
-    applyStripeWebhookEvent(event);
+    await applyStripeWebhookEvent(event);
     return NextResponse.json({ received: true });
   } catch {
     return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });

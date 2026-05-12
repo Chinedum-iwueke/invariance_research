@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 
 export default async function AppHomePage() {
   const session = await requireServerSession();
-  const usage = accountService.getUsage(session.account_id);
-  const analyses = listAnalyses(session.account_id);
+  const usage = await accountService.getUsage(session.account_id);
+  const analyses = await listAnalyses(session.account_id);
 
   if (analyses.length === 0) {
     redirect("/app/new-analysis");

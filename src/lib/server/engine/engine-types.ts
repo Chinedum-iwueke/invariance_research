@@ -12,6 +12,9 @@ export type EngineRunContext = {
   engine_name: string;
   engine_version?: string;
   seam: "run_analysis_from_parsed_artifact";
+  benchmark_config?: Record<string, unknown>;
+  account_size?: number;
+  risk_per_trade_pct?: number;
   degraded: boolean;
   degradation_reasons: string[];
 };

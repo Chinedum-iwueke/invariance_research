@@ -1,6 +1,6 @@
 import { cleanupExpiredExports } from "@/lib/server/maintenance/retention-service";
 import { exportQueue } from "@/lib/server/queue/export-queue";
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 
@@ -24,7 +24,7 @@ export type AdminExportView = {
 };
 
 export function listAdminExports(filter?: "failed" | "expired" | "recent") {
-  const rows = getDb()
+  const rows = getSqliteRuntimeDb()
     .prepare(
       `SELECT e.*, u.email as owner_email, j.retry_count, j.current_step, j.last_attempt_at
        FROM exports e

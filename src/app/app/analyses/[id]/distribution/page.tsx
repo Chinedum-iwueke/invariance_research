@@ -5,11 +5,13 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectDistributionTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
 function normalizeText(value: string): string {
   return value.trim().toLowerCase();
@@ -26,7 +28,7 @@ function toBoolean(value: unknown): boolean | undefined {
 export default async function DistributionPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
   if (!record) {
     return (
@@ -42,7 +44,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const renderedMetrics = availableMetrics.length >= 3 ? availableMetrics : metrics;
 
   const figures = distribution.figures;
-  const fallbackDistributionFigure = distribution.figure;
+  const fallbackDistributionFigure = (distribution as typeof distribution & { figure?: (typeof distribution.figures)[number] }).figure;
   const selectedFigures = figures.length ? figures : (fallbackDistributionFigure ? [fallbackDistributionFigure] : []);
   const distributionBranch = figures.length
     ? "native_figures_branch"
@@ -73,7 +75,8 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
   const hasExcursion = toBoolean(distribution.metadata?.has_excursion) ?? figures.some((figure) => figure.title.toLowerCase().includes("mae") || figure.title.toLowerCase().includes("mfe"));
   const hasDuration = toBoolean(distribution.metadata?.has_duration) ?? distribution.metrics.some((metric) => metric.label.toLowerCase().includes("duration") && !isUnavailable(metric.value));
 
-  const truthContext = buildTruthContext(record, "distribution");
+  const truthContext = buildTruthContext(record, "distribution", { benchmark: analysis.benchmark });
+  const distributionRecommendations = pageInsightRecommendations(record, "distribution", truthContext.recommendations);
   const keyShapeFindings = Array.from(new Set([
     ...(distribution.interpretation.bullets ?? []),
     ...record.summary.key_findings.filter((item) => /win|loss|tail|skew|expectancy|distribution|payoff/i.test(item)),
@@ -116,8 +119,18 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         ) : <DiagnosticFigure figure={undefined} emptyMessage="No persisted distribution figures are currently available for this run." />}
       </div>
 
+      {record.llm_insights?.distribution_interpretation ? (
+        <AiSynthesisPanel
+          title="Distribution shape synthesis"
+          summary={record.llm_insights.distribution_interpretation}
+          bullets={record.llm_insights.distribution_interpretation_detail?.fragility_signals}
+          model={record.llm_insights_model}
+        />
+      ) : (
       <WorkspaceCard title="Distribution shape insights" subtitle="How outcomes cluster and where asymmetry appears in this run.">
-        {keyShapeFindings.length ? (
+        {record.llm_insights?.distribution_interpretation ? (
+          <p className="text-sm leading-relaxed text-text-neutral">{record.llm_insights.distribution_interpretation}</p>
+        ) : keyShapeFindings.length ? (
           <ul className="space-y-1.5 text-sm text-text-neutral">
             {keyShapeFindings.map((item, index) => <li key={`shape-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
           </ul>
@@ -125,6 +138,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
           <p className="text-sm text-text-neutral">No shape-specific interpretation was emitted for this run. Upload richer trade annotations to unlock stronger tail and asymmetry commentary.</p>
         )}
       </WorkspaceCard>
+      )}
 
       <WorkspaceCard title="Trade-level summary" subtitle="Exact distribution evidence available in the persisted run payload.">
         <ul className="space-y-2 text-sm text-text-neutral">
@@ -143,7 +157,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         panes={[
           { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No explicit assumptions were emitted for this run.", tone: "neutral" },
           { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No explicit limitations were emitted for this run.", tone: "warning" },
-          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No explicit recommendations were emitted for this run.", tone: "positive" },
+          { key: "recommendations", label: "Recommendations", items: distributionRecommendations, empty: "No explicit recommendations were emitted for this run.", tone: "positive" },
         ]}
       />
 

@@ -167,6 +167,20 @@ const localObjectStorage: ObjectStorage = {
   },
 };
 
+export class ObjectStorageConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ObjectStorageConfigurationError";
+  }
+}
+
+export class ObjectStorageOperationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ObjectStorageOperationError";
+  }
+}
+
 type S3Dependencies = {
   S3Client: new (config: Record<string, unknown>) => S3ClientLike;
   PutObjectCommand: new (input: Record<string, unknown>) => CommandLike;
@@ -226,13 +240,81 @@ export type S3CompatibleObjectStorageConfig = {
   secretAccessKey?: string;
   publicBaseUrl?: string;
   forcePathStyle?: boolean;
+  sendChecksum?: boolean;
 };
+
+function requireS3ConfigValue(name: string, value: string | undefined) {
+  if (!value?.trim()) {
+    throw new ObjectStorageConfigurationError(`${name} is required for S3-compatible object storage.`);
+  }
+  return value.trim();
+}
+
+function getR2AccountId(endpoint: string | undefined) {
+  if (!endpoint) return undefined;
+  try {
+    const host = new URL(endpoint).hostname;
+    const match = /^([a-f0-9]{32})\.r2\.cloudflarestorage\.com$/i.exec(host);
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+export function validateS3CompatibleObjectStorageConfig(config: S3CompatibleObjectStorageConfig) {
+  requireS3ConfigValue("OBJECT_STORAGE_BUCKET", config.bucket);
+  const accessKeyId = requireS3ConfigValue("OBJECT_STORAGE_ACCESS_KEY_ID", config.accessKeyId);
+  const secretAccessKey = requireS3ConfigValue("OBJECT_STORAGE_SECRET_ACCESS_KEY", config.secretAccessKey);
+
+  if (config.endpoint) {
+    try {
+      const url = new URL(config.endpoint);
+      if (url.protocol !== "https:") {
+        throw new ObjectStorageConfigurationError("OBJECT_STORAGE_ENDPOINT must use https:// for production object storage.");
+      }
+    } catch (error) {
+      if (error instanceof ObjectStorageConfigurationError) throw error;
+      throw new ObjectStorageConfigurationError("OBJECT_STORAGE_ENDPOINT must be a valid absolute URL.");
+    }
+  }
+
+  if (config.provider === "s3" && !config.region?.trim()) {
+    throw new ObjectStorageConfigurationError("OBJECT_STORAGE_REGION is required when OBJECT_STORAGE_PROVIDER=s3.");
+  }
+
+  if (config.provider === "r2") {
+    const endpoint = requireS3ConfigValue("OBJECT_STORAGE_ENDPOINT", config.endpoint);
+    const accountId = getR2AccountId(endpoint);
+    if (accountId && accessKeyId.toLowerCase() === accountId.toLowerCase()) {
+      throw new ObjectStorageConfigurationError(
+        "OBJECT_STORAGE_ACCESS_KEY_ID is set to the Cloudflare account id. Create an R2 API token and use its S3 access key id instead.",
+      );
+    }
+    if (secretAccessKey.startsWith("cfat_")) {
+      throw new ObjectStorageConfigurationError(
+        "OBJECT_STORAGE_SECRET_ACCESS_KEY looks like a Cloudflare API token. Use the R2 S3 secret access key from an R2 API token.",
+      );
+    }
+  }
+}
+
+function describeS3StorageError(error: unknown, provider: S3CompatibleObjectStorageConfig["provider"]) {
+  const candidate = error as { name?: string; Code?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+  const code = candidate.Code ?? candidate.name;
+  const status = candidate.$metadata?.httpStatusCode;
+  if (code === "Unauthorized" || code === "InvalidAccessKeyId" || code === "SignatureDoesNotMatch" || status === 401 || status === 403) {
+    const providerName = provider === "r2" ? "Cloudflare R2" : "S3";
+    return `${providerName} rejected the object-storage credentials. Verify OBJECT_STORAGE_ACCESS_KEY_ID and OBJECT_STORAGE_SECRET_ACCESS_KEY are an S3-compatible access key pair with read/write access to OBJECT_STORAGE_BUCKET.`;
+  }
+  return undefined;
+}
 
 export class S3CompatibleObjectStorage implements ObjectStorage {
   private readonly deps = loadS3Dependencies();
   private readonly client: S3ClientLike;
 
   constructor(private readonly config: S3CompatibleObjectStorageConfig) {
+    validateS3CompatibleObjectStorageConfig(config);
     this.client = new this.deps.S3Client({
       region: config.region,
       endpoint: config.endpoint,
@@ -250,15 +332,22 @@ export class S3CompatibleObjectStorage implements ObjectStorage {
   async putObject(input: ObjectStoragePutInput): Promise<StoredObject> {
     const storageKey = input.storage_key ?? `${input.bucket}/${input.file_name}`;
     const digest = checksum(input.bytes);
-    await this.client.send(
-      new this.deps.PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: storageKey,
-        Body: Buffer.from(input.bytes),
-        ContentType: input.content_type,
-        ChecksumSHA256: Buffer.from(digest, "hex").toString("base64"),
-      }),
-    );
+    const commandInput: Record<string, unknown> = {
+      Bucket: this.config.bucket,
+      Key: storageKey,
+      Body: Buffer.from(input.bytes),
+      ContentType: input.content_type,
+    };
+    if (this.config.sendChecksum) {
+      commandInput.ChecksumSHA256 = Buffer.from(digest, "hex").toString("base64");
+    }
+    try {
+      await this.client.send(new this.deps.PutObjectCommand(commandInput));
+    } catch (error) {
+      const detail = describeS3StorageError(error, this.config.provider);
+      if (detail) throw new ObjectStorageOperationError(detail);
+      throw error;
+    }
     const now = new Date().toISOString();
     return normalizeStoredObject({
       storageKey,
@@ -369,19 +458,16 @@ function parseBool(value: string | undefined, fallback = false) {
 
 function createS3CompatibleStorage(provider: Extract<ObjectStorageProvider, "s3" | "r2">) {
   const bucket = process.env.OBJECT_STORAGE_BUCKET;
-  if (!bucket) throw new Error("OBJECT_STORAGE_BUCKET is required for S3-compatible object storage.");
-  if (provider === "r2" && !process.env.OBJECT_STORAGE_ENDPOINT) {
-    throw new Error("OBJECT_STORAGE_ENDPOINT is required for Cloudflare R2.");
-  }
   return new S3CompatibleObjectStorage({
     provider,
-    bucket,
-    region: process.env.OBJECT_STORAGE_REGION,
+    bucket: bucket ?? "",
+    region: process.env.OBJECT_STORAGE_REGION ?? (provider === "r2" ? "auto" : undefined),
     endpoint: process.env.OBJECT_STORAGE_ENDPOINT,
     accessKeyId: process.env.OBJECT_STORAGE_ACCESS_KEY_ID,
     secretAccessKey: process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY,
     publicBaseUrl: process.env.OBJECT_STORAGE_PUBLIC_BASE_URL,
     forcePathStyle: parseBool(process.env.OBJECT_STORAGE_FORCE_PATH_STYLE, provider === "r2"),
+    sendChecksum: parseBool(process.env.OBJECT_STORAGE_SEND_CHECKSUM, provider === "s3"),
   });
 }
 

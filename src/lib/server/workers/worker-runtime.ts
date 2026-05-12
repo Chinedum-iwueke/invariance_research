@@ -27,7 +27,7 @@ export async function runWorkerLoop(input: WorkerRunInput) {
     try {
       const didWork = await input.processNext();
       const now = new Date().toISOString();
-      workerHeartbeatRepository.upsert({
+      await workerHeartbeatRepository.upsert({
         worker_type: input.workerType,
         instance_id: instanceId,
         status: didWork ? "processing" : "idle",
@@ -44,7 +44,7 @@ export async function runWorkerLoop(input: WorkerRunInput) {
     }
   }
 
-  workerHeartbeatRepository.upsert({
+  await workerHeartbeatRepository.upsert({
     worker_type: input.workerType,
     instance_id: instanceId,
     status: "idle",

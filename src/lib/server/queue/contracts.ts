@@ -18,17 +18,17 @@ export type QueueJobMetadata = {
 };
 
 export interface AnalysisQueue {
-  enqueue(input: { analysisId: string; availableAt?: string }): AnalysisJob | undefined;
+  enqueue(input: { analysisId: string; availableAt?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
   lease(input?: { nowIso?: string; leaseMs?: number; workerId?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
-  ack(input: { analysisId: string; resultStep?: string }): AnalysisJob | undefined;
-  complete(input: { analysisId: string }): AnalysisJob | undefined;
-  retry(input: { analysisId: string; retryCount?: number; availableAt?: string; lastError?: string }): AnalysisJob | undefined;
-  deadLetter(input: { analysisId: string; errorCode?: string; errorMessage?: string }): AnalysisJob | undefined;
-  heartbeat(input: { analysisId: string; leaseMs?: number; nowIso?: string }): AnalysisJob | undefined;
-  extendLease(input: { analysisId: string; leaseMs?: number; nowIso?: string }): AnalysisJob | undefined;
-  getJobStatus(jobId: string): QueueJobMetadata | undefined;
-  listFailed(limit?: number): QueueJobMetadata[];
-  listDeadLetters(limit?: number): QueueJobMetadata[];
+  ack(input: { analysisId: string; resultStep?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  complete(input: { analysisId: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  retry(input: { analysisId: string; retryCount?: number; availableAt?: string; lastError?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  deadLetter(input: { analysisId: string; errorCode?: string; errorMessage?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  heartbeat(input: { analysisId: string; leaseMs?: number; nowIso?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  extendLease(input: { analysisId: string; leaseMs?: number; nowIso?: string }): AnalysisJob | undefined | Promise<AnalysisJob | undefined>;
+  getJobStatus(jobId: string): QueueJobMetadata | undefined | Promise<QueueJobMetadata | undefined>;
+  listFailed(limit?: number): QueueJobMetadata[] | Promise<QueueJobMetadata[]>;
+  listDeadLetters(limit?: number): QueueJobMetadata[] | Promise<QueueJobMetadata[]>;
 }
 
 export function toQueueJobMetadata(job: AnalysisJob): QueueJobMetadata {

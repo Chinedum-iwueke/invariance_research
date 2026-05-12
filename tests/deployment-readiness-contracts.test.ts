@@ -16,7 +16,12 @@ import { analysisRepository } from "../src/lib/server/repositories/analysis-repo
 import { artifactRepository } from "../src/lib/server/repositories/artifact-repository";
 import { jobRepository } from "../src/lib/server/repositories/job-repository";
 import { getAnalysisQueue, getQueueProvider, resetAnalysisQueueForTests } from "../src/lib/server/queue/provider";
-import { getObjectStorage, getObjectStorageProvider } from "../src/lib/server/storage/object-storage";
+import {
+  ObjectStorageConfigurationError,
+  getObjectStorage,
+  getObjectStorageProvider,
+  validateS3CompatibleObjectStorageConfig,
+} from "../src/lib/server/storage/object-storage";
 import { getDatabaseProvider, closeDbForTests, getDb } from "../src/lib/server/persistence/database";
 
 function resetDb() {
@@ -72,8 +77,8 @@ function seedArtifact(accountId: string, userId: string, artifactId: string) {
   });
 }
 
-function seedAnalysisLifecycle(id = "analysis-contract-1") {
-  const { user, account } = accountService.ensureUserAndAccount({ email: `${id}@example.com` });
+async function seedAnalysisLifecycle(id = "analysis-contract-1") {
+  const { user, account } = await accountService.ensureUserAndAccount({ email: `${id}@example.com` });
   const artifact = seedArtifact(account.account_id, user.user_id, `${id}-artifact`);
   const now = "2026-01-01T00:00:00.000Z";
   analysisRepository.save({
@@ -125,6 +130,50 @@ test("provider selection stays explicit for db, queue, and object storage", asyn
   assert.equal(stored.size_bytes, 3);
 });
 
+test("R2 object storage config rejects Cloudflare account API credentials", () => {
+  assert.throws(
+    () =>
+      validateS3CompatibleObjectStorageConfig({
+        provider: "r2",
+        bucket: "invariance-research-prod",
+        region: "auto",
+        endpoint: "https://81d4d0dbc62757493bcaec69b0356e69.r2.cloudflarestorage.com",
+        accessKeyId: "81d4d0dbc62757493bcaec69b0356e69",
+        secretAccessKey: "cfat_not_an_r2_s3_secret",
+        forcePathStyle: true,
+      }),
+    /Cloudflare account id/,
+  );
+
+  assert.throws(
+    () =>
+      validateS3CompatibleObjectStorageConfig({
+        provider: "r2",
+        bucket: "invariance-research-prod",
+        region: "auto",
+        endpoint: "https://81d4d0dbc62757493bcaec69b0356e69.r2.cloudflarestorage.com",
+        accessKeyId: "r2-access-key-id",
+        secretAccessKey: "cfat_not_an_r2_s3_secret",
+        forcePathStyle: true,
+      }),
+    /Cloudflare API token/,
+  );
+});
+
+test("S3-compatible production storage requires explicit credentials", () => {
+  assert.throws(
+    () =>
+      validateS3CompatibleObjectStorageConfig({
+        provider: "r2",
+        bucket: "bucket",
+        endpoint: "https://example.r2.cloudflarestorage.com",
+        accessKeyId: "key",
+        secretAccessKey: "",
+      }),
+    ObjectStorageConfigurationError,
+  );
+});
+
 test("Postgres mode prevents accidental SQLite access", () => {
   process.env.DATABASE_PROVIDER = "postgres";
   assert.equal(getDatabaseProvider(), "postgres");
@@ -132,11 +181,34 @@ test("Postgres mode prevents accidental SQLite access", () => {
   process.env.DATABASE_PROVIDER = "sqlite";
 });
 
+test("Postgres account/session/workspace runtime paths do not import SQLite getDb", () => {
+  const runtimePaths = [
+    "src/lib/server/accounts/service.ts",
+    "src/lib/server/auth/auth.ts",
+    "src/lib/server/auth/session.ts",
+    "src/lib/server/entitlements/usage.ts",
+    "src/lib/server/entitlements/policy.ts",
+    "src/lib/server/services/analysis-service.ts",
+    "src/lib/server/services/analysis-view-service.ts",
+    "src/app/app/page.tsx",
+    "src/app/app/billing/page.tsx",
+    "src/app/app/upgrade/page.tsx",
+    "src/app/api/usage/route.ts",
+    "src/app/api/auth/register/route.ts",
+  ];
+
+  for (const relativePath of runtimePaths) {
+    const source = fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+    assert.equal(source.includes("getDb("), false, `${relativePath} must not call getDb()`);
+    assert.equal(source.includes("persistence/database"), false, `${relativePath} must not import the SQLite database helper`);
+  }
+});
+
 test("analysis lifecycle contract covers create, enqueue, atomic lease, metadata persist, and complete", async () => {
-  const { analysisId, jobId } = seedAnalysisLifecycle();
+  const { analysisId, jobId } = await seedAnalysisLifecycle();
   const queue = getAnalysisQueue();
 
-  queue.enqueue({ analysisId, availableAt: "2026-01-01T00:00:00.000Z" });
+  await queue.enqueue({ analysisId, availableAt: "2026-01-01T00:00:00.000Z" });
   const firstClaim = await queue.lease({ nowIso: "2026-01-01T00:00:01.000Z", leaseMs: 60_000, workerId: "worker-a" });
   const secondClaim = await queue.lease({ nowIso: "2026-01-01T00:00:01.000Z", leaseMs: 60_000, workerId: "worker-b" });
   assert.equal(firstClaim?.job_id, jobId);
@@ -149,17 +221,17 @@ test("analysis lifecycle contract covers create, enqueue, atomic lease, metadata
     result: { analysis_id: analysisId, generated_at: "2026-01-01T00:00:02.000Z" } as any,
     updated_at: "2026-01-01T00:00:02.000Z",
   }));
-  queue.complete({ analysisId });
+  await queue.complete({ analysisId });
 
   const analysis = analysisRepository.findById(analysisId);
-  const status = queue.getJobStatus(jobId);
+  const status = await queue.getJobStatus(jobId);
   assert.equal(analysis?.status, "completed");
   assert.ok(analysis?.result);
   assert.equal(status?.status, "completed");
 });
 
 test("expired leases are reclaimable, failed jobs retry, and max attempts dead-letter", async () => {
-  const { analysisId, jobId } = seedAnalysisLifecycle("analysis-contract-failure");
+  const { analysisId, jobId } = await seedAnalysisLifecycle("analysis-contract-failure");
   const queue = getAnalysisQueue();
 
   const first = await queue.lease({ nowIso: "2026-01-01T00:00:01.000Z", leaseMs: 1_000 });
@@ -174,18 +246,18 @@ test("expired leases are reclaimable, failed jobs retry, and max attempts dead-l
     error_message: "boom",
     last_error: "boom",
   }));
-  queue.retry({ analysisId, retryCount: 1, availableAt: "2026-01-01T00:00:04.000Z", lastError: "boom" });
-  assert.equal(queue.getJobStatus(jobId)?.status, "queued");
+  await queue.retry({ analysisId, retryCount: 1, availableAt: "2026-01-01T00:00:04.000Z", lastError: "boom" });
+  assert.equal((await queue.getJobStatus(jobId))?.status, "queued");
 
-  queue.retry({ analysisId, retryCount: 2, availableAt: "2026-01-01T00:00:05.000Z", lastError: "boom again" });
-  assert.equal(queue.getJobStatus(jobId)?.status, "dead_letter");
-  assert.equal(queue.listDeadLetters().length, 1);
+  await queue.retry({ analysisId, retryCount: 2, availableAt: "2026-01-01T00:00:05.000Z", lastError: "boom again" });
+  assert.equal((await queue.getJobStatus(jobId))?.status, "dead_letter");
+  assert.equal((await queue.listDeadLetters()).length, 1);
 });
 
-test("enqueue is idempotent for an existing analysis job", () => {
-  const { analysisId, jobId } = seedAnalysisLifecycle("analysis-contract-idempotent");
+test("enqueue is idempotent for an existing analysis job", async () => {
+  const { analysisId, jobId } = await seedAnalysisLifecycle("analysis-contract-idempotent");
   const queue = getAnalysisQueue();
-  queue.enqueue({ analysisId });
-  queue.enqueue({ analysisId });
-  assert.equal(queue.getJobStatus(jobId)?.job_id, jobId);
+  await queue.enqueue({ analysisId });
+  await queue.enqueue({ analysisId });
+  assert.equal((await queue.getJobStatus(jobId))?.job_id, jobId);
 });

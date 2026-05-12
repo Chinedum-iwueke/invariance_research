@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
@@ -7,7 +7,9 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { buttonVariants } from "@/components/ui/button";
+import { ResearchDeskWaitlistForm } from "@/components/public/research-desk-waitlist-form";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
@@ -48,7 +50,7 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
   if (!record) {
     return (
@@ -62,7 +64,31 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
-  const truthContext = buildTruthContext(record, "report");
+  const truthContext = buildTruthContext(record, "report", { benchmark: analysis.benchmark });
+  const readinessTone = view.deploymentGuidance.status === "advisable"
+    ? {
+        border: "border-chart-positive/35",
+        bg: "bg-chart-positive/10",
+        text: "text-chart-positive",
+        badge: "border-chart-positive/25 bg-chart-positive/10 text-chart-positive",
+        icon: CheckCircle2,
+      }
+    : view.deploymentGuidance.status === "conditional"
+      ? {
+          border: "border-amber-500/35",
+          bg: "bg-amber-500/10",
+          text: "text-amber-700",
+          badge: "border-amber-500/25 bg-amber-500/10 text-amber-800",
+          icon: AlertTriangle,
+        }
+      : {
+          border: "border-chart-negative/35",
+          bg: "bg-chart-negative/10",
+          text: "text-chart-negative",
+          badge: "border-chart-negative/25 bg-chart-negative/10 text-chart-negative",
+          icon: ShieldAlert,
+        };
+  const ReadinessIcon = readinessTone.icon;
 
   logAnalysisPageDebug({
     analysis_id: record.analysis_id,
@@ -108,18 +134,47 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Verdict & Deployment Readiness" subtitle="Decision framing for allocators and risk committees">
-        <div className={cn("rounded-md border px-5 py-4", view.deploymentGuidance.advisable ? "border-chart-positive/25 bg-chart-positive/10" : "border-chart-negative/25 bg-chart-negative/10")}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-xl font-semibold text-text-institutional">{view.verdict.statusLabel}: {view.verdict.headline}</h3>
-            <span className="inline-flex items-center gap-2 rounded-full border border-text-institutional/20 bg-surface-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-text-institutional">
-              {view.verdict.posture === "robust" ? <ShieldCheck className="h-4 w-4" /> : view.verdict.posture === "moderate" ? <BadgeCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-              {view.deploymentGuidance.advisoryLabel}
-            </span>
+        <div className={cn("rounded-md border px-5 py-5 shadow-sm", readinessTone.border, readinessTone.bg)}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex gap-3">
+              <div className={cn("mt-0.5 flex h-10 w-10 items-center justify-center rounded-md border bg-surface-white", readinessTone.border, readinessTone.text)}>
+                <ReadinessIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em]", readinessTone.badge)}>
+                  {view.deploymentGuidance.advisoryLabel}
+                </span>
+                {record.llm_insights_status === "generated" ? (
+                  <span className="ml-2 inline-flex items-center rounded-full border border-teal-700/20 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
+                    AI-assisted synthesis · {record.llm_insights_model}
+                  </span>
+                ) : null}
+                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-text-institutional">{view.deploymentGuidance.headline}</h3>
+                <p className="mt-2 max-w-4xl text-sm leading-relaxed text-text-neutral">{view.deploymentGuidance.summary}</p>
+              </div>
+            </div>
           </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Next actions</p>
+              <BulletList items={view.deploymentGuidance.nextActions} empty="No next actions were emitted." />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Metrics driving posture</p>
+              <BulletList items={decisionMetrics.slice(0, 5).map((metric) => `${metric.label}: ${metric.value}`)} empty="No decision metrics were available." />
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-text-neutral"><span className="font-medium text-text-graphite">Deterministic verdict:</span> {view.verdict.statusLabel} — {view.verdict.headline}</p>
           <p className="mt-2 text-sm text-text-neutral">{view.verdict.summary}</p>
-          <p className="mt-3 text-sm text-text-neutral"><span className="font-medium text-text-graphite">What this means:</span> {view.deploymentGuidance.summary}</p>
         </div>
       </WorkspaceCard>
+
+      <AiSynthesisPanel
+        title="Validation synthesis"
+        summary={record.llm_insights?.final_verdict}
+        bullets={record.llm_insights?.deployment_readiness_assessment?.blockers}
+        model={record.llm_insights_model}
+      />
 
       <WorkspaceCard title="Top-line Performance & Benchmark" subtitle="Return profile, benchmark-relative context, and normalization basis">
         <div className="grid grid-cols-1 gap-6 2xl:grid-cols-1">
@@ -225,10 +280,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
       <WorkspaceCard title="Invariance Research Desk" subtitle="Forthcoming research environment for deeper validation">
         <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">
-          Research Desk will bring AI-assisted research workflows to deeper validation, edge research iteration, and the process of turning strategy ideas into structured evidence.
+          Research Desk will support AI-assisted research workflows, deeper validation, and iterative edge research without leaving the report context.
         </p>
-        <div className="mt-4">
-          <Link href="/research-desk#waitlist" className={buttonVariants()}>Join Research Desk Waitlist</Link>
+        <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-4">
+          <ResearchDeskWaitlistForm sourcePage="validation_report" buttonLabel="Join Research Desk Waitlist" showNameField />
         </div>
       </WorkspaceCard>
     </AnalysisPageFrame>

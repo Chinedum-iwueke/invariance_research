@@ -1,4 +1,5 @@
 import type { AnalysisRecord } from "@/lib/contracts";
+import type { AnalysisBenchmarkConfig } from "@/lib/analyses/analysis-types";
 
 function normalizeItem(item: unknown): string | undefined {
   if (typeof item === "string") {
@@ -30,7 +31,31 @@ function unique(items: unknown[], limit = 8): string[] {
   return deduped;
 }
 
-export function buildTruthContext(record: AnalysisRecord, diagnostic: "overview" | "distribution" | "monte_carlo" | "ruin" | "report" | "regimes" | "stability") {
+function isAuditLevelMissingRecommendation(value: string): boolean {
+  return /ohlcv|regime context|regime labels|parameter sweep|parameter metadata|parameter stability/i.test(value);
+}
+
+function isBenchmarkMissingRecommendation(value: string): boolean {
+  return /benchmark-compatible|configure a benchmark|benchmark config|benchmark context/i.test(value);
+}
+
+function pageSpecificRecommendations(diagnostic: string, items: unknown[]): string[] {
+  const normalized = unique(items, 12);
+  const filtered = normalized.filter((item) => {
+    if (diagnostic !== "report" && isAuditLevelMissingRecommendation(item)) return false;
+    if (diagnostic === "distribution" && /monte carlo|ruin|capital buffer|deployment/i.test(item)) return false;
+    if (diagnostic === "monte_carlo" && /trade distribution|win\/loss|duration|skew|parameter/i.test(item)) return false;
+    if (diagnostic === "overview" && normalized.length > 3 && isAuditLevelMissingRecommendation(item)) return false;
+    return true;
+  });
+  return filtered.slice(0, diagnostic === "overview" ? 4 : 6);
+}
+
+export function buildTruthContext(
+  record: AnalysisRecord,
+  diagnostic: "overview" | "distribution" | "monte_carlo" | "execution" | "ruin" | "report" | "regimes" | "stability",
+  options?: { benchmark?: AnalysisBenchmarkConfig },
+) {
   const benchmark = record.engine_payload.diagnostics.overview?.benchmark_comparison;
   const benchmarkReason = typeof benchmark?.reason === "string" ? benchmark.reason : undefined;
   const benchmarkMetadata = benchmark?.metadata && typeof benchmark.metadata === "object"
@@ -41,8 +66,9 @@ export function buildTruthContext(record: AnalysisRecord, diagnostic: "overview"
     : undefined;
   const benchmarkWasSelected = typeof benchmarkSummary?.benchmark_selected === "string"
     || typeof benchmarkMetadata?.benchmark_id === "string";
+  const benchmarkWasConfigured = Boolean(options?.benchmark?.enabled || benchmarkWasSelected);
   const benchmarkEnabled = benchmarkReason !== "benchmark_disabled" && benchmarkReason !== "benchmark_not_configured" && benchmarkReason !== "invalid_benchmark_config";
-  const hasBenchmark = benchmarkReason === "available" || benchmarkReason === undefined;
+  const hasBenchmark = benchmark?.status === "available" || benchmarkReason === "available";
   const hasRegimes = record.diagnostic_statuses.regimes.status === "available";
   const hasStability = record.diagnostic_statuses.stability.status === "available";
   const hasExecution = record.diagnostic_statuses.execution.status === "available";
@@ -72,19 +98,19 @@ export function buildTruthContext(record: AnalysisRecord, diagnostic: "overview"
       : undefined,
   ]);
 
-  const recommendations = unique([
+  const recommendations = pageSpecificRecommendations(diagnostic, [
     ...("recommendations" in source && Array.isArray(source.recommendations) ? source.recommendations : []),
     ...(diagnostic === "report" ? record.report.recommendations : []),
-    !hasBenchmark && !benchmarkWasSelected
+    !hasBenchmark && !benchmarkWasConfigured
       ? "Upload benchmark-compatible data or configure a benchmark explicitly before relying on relative-performance claims."
       : !hasBenchmark && benchmarkReason === "no_benchmark_overlap"
         ? "Benchmark was selected, but overlap with strategy timestamps was insufficient for reliable relative-performance claims."
         : !hasBenchmark
           ? "Benchmark context is configured but currently unavailable; resolve benchmark data/alignment issues before relying on relative-performance claims."
           : undefined,
-    !hasRegimes ? "Add OHLCV/regime context to unlock conditional deployment analysis by market state." : undefined,
-    !hasStability ? "Upload parameter sweep metadata to validate robustness across parameter neighborhoods." : undefined,
-  ]);
+    diagnostic === "report" && !hasRegimes ? "Audit-level diagnostic gap: add OHLCV or explicit regime labels to unlock conditional deployment analysis by market state." : undefined,
+    diagnostic === "report" && !hasStability ? "Audit-level diagnostic gap: upload parameter sweep metadata to validate robustness across parameter neighborhoods." : undefined,
+  ]).filter((item) => !((hasBenchmark || benchmarkWasConfigured) && isBenchmarkMissingRecommendation(item)));
 
   return { assumptions, limitations, recommendations };
 }

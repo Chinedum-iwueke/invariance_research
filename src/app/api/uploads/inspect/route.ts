@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { inspectUpload } from "@/lib/server/services/upload-intake-service";
+import { ObjectStorageConfigurationError, ObjectStorageOperationError } from "@/lib/server/storage/object-storage";
 
 export async function POST(request: Request) {
   const session = await requireServerSession();
@@ -30,7 +31,22 @@ export async function POST(request: Request) {
     bytes,
     owner_user_id: session.user_id,
     account_id: session.account_id,
+  }).catch((error) => {
+    if (error instanceof ObjectStorageConfigurationError || error instanceof ObjectStorageOperationError) {
+      return {
+        accepted: false,
+        parser_notes: [error.message],
+        validation_errors: [{ code: "object_storage_unavailable", message: "Object storage is not available." }],
+        diagnostics_available: [],
+        diagnostics_limited: [],
+        diagnostics_unavailable: [],
+        limitation_reasons: ["object_storage_unavailable"],
+        upload_summary_text: "Upload could not be stored. Object storage is not available.",
+      } as const;
+    }
+    throw error;
   });
 
-  return NextResponse.json(inspection, { status: inspection.accepted ? 200 : 422 });
+  const status = inspection.validation_errors.some((error) => error.code === "object_storage_unavailable") ? 503 : inspection.accepted ? 200 : 422;
+  return NextResponse.json(inspection, { status });
 }

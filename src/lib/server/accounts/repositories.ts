@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Account, PlanId, Subscription, User } from "@/lib/contracts/account";
 import type { EntitlementSnapshot, UsageSnapshot } from "@/lib/contracts/entitlements";
-import type { UsageInput, UsageRepository } from "@/lib/server/accounts/models";
+import type { UsageInput } from "@/lib/server/accounts/models";
 import { resolveEntitlementsForPlan } from "@/lib/server/entitlements/entitlements";
 import { getDb } from "@/lib/server/persistence/database";
 import type { AccountRepository, EntitlementRepository, SubscriptionRepository, UsageSnapshotRepository, UserRepository } from "@/lib/server/persistence/contracts";
@@ -64,7 +64,7 @@ export const accountRepository: AccountRepository = {
       account_id: randomUUID(),
       owner_user_id: ownerUserId,
       plan_id: planId,
-      subscription_status: "trialing",
+      subscription_status: "active",
       created_at: now,
       updated_at: now,
     };
@@ -155,7 +155,7 @@ export const usageRepository: UsageSnapshotRepository = {
   },
   increment(input: UsageInput) {
     const bucket = monthBucket(input.at ?? new Date());
-    const existing = this.get(input.account_id, bucket);
+    const existing = this.get(input.account_id, bucket) as UsageSnapshot;
     const inc = input.increment ?? 1;
     const next: UsageSnapshot = {
       ...existing,

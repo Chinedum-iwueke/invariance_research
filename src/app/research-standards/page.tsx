@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Research Standards | Invariance Research",
   description: "Institutional validation standards for execution-aware strategy evaluation and robustness diagnostics.",
 };
+export const dynamic = "force-dynamic";
 
 export default function ResearchStandardsPage() {
   const activeStandard = resolveActiveResearchStandard();

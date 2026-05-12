@@ -6,11 +6,11 @@ import { listAdminWebhookReceipts } from "@/lib/server/admin/webhooks-service";
 import { listAdminExports } from "@/lib/server/admin/exports-service";
 import { listAdminAccounts } from "@/lib/server/admin/accounts-service";
 
-export default function AdminOverviewPage() {
+export default async function AdminOverviewPage() {
   const jobs = listAdminJobs();
   const webhooks = listAdminWebhookReceipts();
   const exportsView = listAdminExports();
-  const accounts = listAdminAccounts();
+  const accounts = await listAdminAccounts();
 
   return (
     <AdminPageShell title="Admin / Ops Console" description="Internal operations visibility and safe controls.">

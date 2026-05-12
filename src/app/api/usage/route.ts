@@ -4,6 +4,6 @@ import { requireServerSession } from "@/lib/server/auth/session";
 
 export async function GET() {
   const session = await requireServerSession();
-  const usage = accountService.getUsage(session.account_id);
+  const usage = await accountService.getUsage(session.account_id);
   return NextResponse.json({ usage });
 }

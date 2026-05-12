@@ -12,8 +12,8 @@ import { requireServerSession } from "@/lib/server/auth/session";
 
 export default async function BillingPage() {
   const session = await requireServerSession();
-  const state = accountService.getAccountState(session.account_id);
-  const usage = accountService.getUsage(session.account_id);
+  const state = await accountService.getAccountState(session.account_id);
+  const usage = await accountService.getUsage(session.account_id);
   const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
   const limit = state?.entitlements.analyses_per_month ?? 3;
   const retentionDays = state?.entitlements.history_retention_days ?? 30;

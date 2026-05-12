@@ -234,7 +234,7 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
 
 type ProcessStep = { title: string; body: string; note?: string };
 
-export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: string; subtitle?: string; steps: ProcessStep[] }) {
+export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: string; subtitle?: string; steps: readonly ProcessStep[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [flipState, setFlipState] = useState<"idle" | "out" | "in">("idle");
   const activeStep = steps[activeIndex];

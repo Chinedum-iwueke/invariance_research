@@ -7,7 +7,7 @@ import { parseUploadArtifact } from "@/lib/server/ingestion/parsers";
 import { validateFileBasics } from "@/lib/server/ingestion/validators/file";
 import { extractZipEntries } from "@/lib/server/ingestion/utils/zip";
 import { assertUploadAllowed } from "@/lib/server/entitlements/policy";
-import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -87,7 +87,7 @@ export async function inspectUpload(input: {
         : "structured_bundle";
 
   try {
-    assertUploadAllowed(input.account_id, artifactClass);
+    await assertUploadAllowed(input.account_id, artifactClass);
   } catch {
     return failedInspection([{ code: "plan_upload_locked", message: "Current plan does not allow this artifact class." }]);
   }
@@ -102,7 +102,7 @@ export async function inspectUpload(input: {
     contentType: input.contentType || "application/octet-stream",
   });
 
-  artifactRepository.save({
+  await getCoreRepositories().artifacts.save({
     artifact_id: artifactId,
     owner_user_id: input.owner_user_id,
     account_id: input.account_id,
@@ -118,7 +118,7 @@ export async function inspectUpload(input: {
     eligibility_summary: eligibility,
   });
 
-  accountService.incrementUsage(input.account_id, "upload");
+  await accountService.incrementUsage(input.account_id, "upload");
 
   return {
     artifact_id: artifactId,

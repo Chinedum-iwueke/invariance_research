@@ -10,6 +10,7 @@ import { ResearchVideoLibrary } from "@/components/public/research-video-library
 import type { PublicationRecord } from "@/lib/publications/model";
 
 export const metadata: Metadata = { title: "Research & Education | Invariance Research", description: "Execution-aware backtesting, diagnostics, and research workflows." };
+export const dynamic = "force-dynamic";
 
 function titleizeCategory(category: string) {
   if (category === "research_standard") return "Research Standards";

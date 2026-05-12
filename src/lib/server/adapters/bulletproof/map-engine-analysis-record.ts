@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { analysisRecordSchema, type AnalysisRecord, type FigurePayload, type ScoreBand, type WarningItem } from "@/lib/contracts";
+import { analysisRecordSchema, type AnalysisRecord, type FigurePayload, type FigureSeries, type ScoreBand, type WarningItem } from "@/lib/contracts";
 import type { EngineCapabilityProfile, EngineRunContext, EngineAnalysisResult } from "@/lib/server/engine/engine-types";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
@@ -390,12 +390,12 @@ function extractInitialEquityFromFanFigure(figure: FigurePayload | undefined): n
     }
   }
 
-  const firstSeriesPoint = figure.series?.[0]?.points?.[0]?.y;
+  const firstSeriesPoint = toFigureSeries(figure.series)[0]?.points[0]?.y;
   if (typeof firstSeriesPoint === "number" && Number.isFinite(firstSeriesPoint)) return firstSeriesPoint;
   return undefined;
 }
 
-function toFigureSeries(items: unknown): FigurePayload["series"] {
+function toFigureSeries(items: unknown): FigureSeries[] {
   if (!Array.isArray(items)) return [];
 
   return items
@@ -440,7 +440,7 @@ function toFigureSeries(items: unknown): FigurePayload["series"] {
         points,
       };
     })
-    .filter((entry): entry is FigurePayload["series"][number] => Boolean(entry));
+    .filter((entry): entry is FigureSeries => Boolean(entry));
 }
 
 function normalizeFigureType(value: string | undefined, fallback: FigurePayload["type"]): FigurePayload["type"] {
@@ -627,6 +627,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const reportConfidence = extractReportConfidence(canonicalReport, summaryRaw);
   const derivedStats = buildTradeDerivedStats(parsedArtifact);
   const engineContextRecord = asRecord(engineContext as unknown as UnknownRecord);
+  const distributionHasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
+  const distributionHasExcursion = parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number");
 
   const warnings: WarningItem[] = [
     ...eligibility.limitation_reasons.map((reason, idx) => ({
@@ -993,7 +995,8 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ...richDiagnosticsAvailability,
     sharpeAssumption,
     ...(parsedArtifact.parser_notes?.map((note) => `parser_note=${note}`) ?? []),
-  ].filter((item, idx, arr) => item.length > 0 && arr.indexOf(item) === idx);
+  ].filter((item): item is string => typeof item === "string" && item.length > 0)
+    .filter((item, idx, arr) => arr.indexOf(item) === idx);
   const reportLimitations = [
     ...getStringArray(canonicalReport, ["limitations"]),
     ...getStringArray(reportRaw, ["limitations"]),
@@ -1028,16 +1031,14 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   );
 
   if (envelopeByDiagnostic.distribution) {
-    const hasDuration = parsedArtifact.trades.some((trade) => typeof trade.duration_seconds === "number" && Number.isFinite(trade.duration_seconds));
-    const hasExcursion = parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number");
     envelopeByDiagnostic.distribution.metadata = {
       ...(envelopeByDiagnostic.distribution.metadata ?? {}),
       histogram_provenance: distributionHistogramProvenance,
       trade_count: parsedArtifact.trades.length,
       coverage_start: firstTrade?.entry_time,
       coverage_end: lastTrade?.exit_time,
-      has_duration: hasDuration,
-      has_excursion: hasExcursion,
+      has_duration: distributionHasDuration,
+      has_excursion: distributionHasExcursion,
       has_win_loss_profile: parsedArtifact.trades.some((trade) => typeof trade.pnl === "number" && Number.isFinite(trade.pnl)),
     };
   }
@@ -1214,7 +1215,14 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         },
         assumptions: envelopeByDiagnostic.distribution?.assumptions ?? [],
         limitations: envelopeByDiagnostic.distribution?.limitations ?? [],
-        recommendations: envelopeByDiagnostic.distribution?.recommendations ?? [],
+        recommendations: envelopeByDiagnostic.distribution?.recommendations.length
+          ? envelopeByDiagnostic.distribution.recommendations
+          : [
+              "Inspect whether expectancy is concentrated in a small number of outsized winners before treating the average trade as stable.",
+              "Compare median trade outcome with mean expectancy to identify payoff asymmetry and tail dependence.",
+              distributionHasDuration ? "Segment distribution by holding duration to confirm whether longer trades improve or dilute trade quality." : "Add duration fields to separate quick-loss behavior from longer-hold payoff contribution.",
+              distributionHasExcursion ? "Use MAE/MFE dispersion to test whether winners show efficient capture versus excessive adverse excursion." : "Add MAE/MFE fields to quantify adverse excursion, capture efficiency, and stop-distance quality.",
+            ],
         metadata: envelopeByDiagnostic.distribution?.metadata,
       },
       monte_carlo: {
@@ -1248,7 +1256,16 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
           : warnings.filter((warning) => /monte|simulation|bootstrap|iid|serial|regime|liquidity|ruin/i.test(warning.message)),
         assumptions: envelopeByDiagnostic.monte_carlo?.assumptions ?? [],
         limitations: envelopeByDiagnostic.monte_carlo?.limitations ?? [],
-        recommendations: envelopeByDiagnostic.monte_carlo?.recommendations ?? [],
+        recommendations: envelopeByDiagnostic.monte_carlo?.recommendations.length
+          ? envelopeByDiagnostic.monte_carlo.recommendations
+          : [
+              "Size capital buffers against the 95th percentile drawdown, not the median path.",
+              "Treat worst simulated drawdown as a deployment stress boundary and define stop-deployment triggers before scaling.",
+              ruinProbability === undefined
+                ? "Request or compute a ruin probability under explicit drawdown thresholds before making survivability claims."
+                : "Re-test ruin probability after reducing risk per trade to confirm whether survivability improves materially.",
+              "Repeat the crash test with serial-correlation and regime-aware assumptions when path dependence is a known risk.",
+            ],
         metadata: envelopeByDiagnostic.monte_carlo?.metadata,
       },
       stability: {

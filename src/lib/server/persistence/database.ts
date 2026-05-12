@@ -2,19 +2,12 @@ import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import fs from "node:fs";
 import { migrations } from "@/lib/server/persistence/migrations";
+export { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 
 const DB_PATH = process.env.INVARIANCE_DB_PATH ?? path.join(process.cwd(), ".data", "invariance.sqlite");
-export type DatabaseProvider = "sqlite" | "postgres";
 
 let db: DatabaseSync | undefined;
-
-export function getDatabaseProvider(): DatabaseProvider {
-  const provider = process.env.DATABASE_PROVIDER ?? "sqlite";
-  if (provider !== "sqlite" && provider !== "postgres") {
-    throw new Error(`Unsupported DATABASE_PROVIDER "${provider}". Expected sqlite or postgres.`);
-  }
-  return provider;
-}
 
 function ensureDbDir() {
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });

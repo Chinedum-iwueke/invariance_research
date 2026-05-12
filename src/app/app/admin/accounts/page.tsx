@@ -8,7 +8,7 @@ import { adminSetAccountPassword, listAdminAccounts } from "@/lib/server/admin/a
 
 export default async function AdminAccountsPage({ searchParams }: { searchParams: Promise<{ plan?: string; status?: string; highUsage?: string }> }) {
   const params = await searchParams;
-  const view = listAdminAccounts({
+  const view = await listAdminAccounts({
     plan: params.plan,
     status: params.status,
     highUsage: params.highUsage === "1",
@@ -23,7 +23,7 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
       return;
     }
 
-    adminSetAccountPassword({ email, password });
+    await adminSetAccountPassword({ email, password });
     revalidatePath("/app/admin/accounts");
   }
 

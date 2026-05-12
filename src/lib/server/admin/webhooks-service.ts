@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { applyStripeWebhookEvent } from "@/lib/server/billing/stripe-webhooks";
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
 export type AdminWebhookReceiptView = {
   webhook_event_id: string;
@@ -16,7 +16,7 @@ export type AdminWebhookReceiptView = {
 };
 
 export function listAdminWebhookReceipts(filter?: "failed" | "unprocessed" | "recent") {
-  const rows = getDb()
+  const rows = getSqliteRuntimeDb()
     .prepare("SELECT * FROM webhook_events ORDER BY received_at DESC")
     .all() as Record<string, unknown>[];
 
@@ -52,7 +52,7 @@ export function listAdminWebhookReceipts(filter?: "failed" | "unprocessed" | "re
 }
 
 export function reprocessAdminWebhook(providerEventId: string) {
-  const row = getDb().prepare("SELECT payload_json FROM webhook_events WHERE provider_event_id = ?").get(providerEventId) as
+  const row = getSqliteRuntimeDb().prepare("SELECT payload_json FROM webhook_events WHERE provider_event_id = ?").get(providerEventId) as
     | { payload_json: string }
     | undefined;
   if (!row) throw new Error("not_found");

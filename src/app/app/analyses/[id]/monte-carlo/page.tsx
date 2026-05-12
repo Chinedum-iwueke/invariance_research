@@ -5,16 +5,18 @@ import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectMonteCarloTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
 export default async function MonteCarloPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const { analysis, record } = requireOwnedAnalysisView(id, session.account_id);
+  const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
   if (!record) {
     return (
@@ -86,7 +88,8 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     return "Low";
   })();
 
-  const truthContext = buildTruthContext(record, "monte_carlo");
+  const truthContext = buildTruthContext(record, "monte_carlo", { benchmark: analysis.benchmark });
+  const monteCarloRecommendations = pageInsightRecommendations(record, "monte_carlo", truthContext.recommendations);
 
   return (
     <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">
@@ -141,13 +144,22 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
       <MetricRow metrics={metrics} cols={4} />
 
+      {record.llm_insights?.monte_carlo_interpretation ? (
+        <AiSynthesisPanel
+          title="Path-risk synthesis"
+          summary={record.llm_insights.monte_carlo_interpretation}
+          bullets={record.llm_insights.monte_carlo_interpretation_detail?.fragility_signals}
+          model={record.llm_insights_model}
+        />
+      ) : null}
+
       <ContextFlipCard
         title="Simulation assumptions, limitations & recommendations"
         subtitle="Truth-based methodology and guidance for this run."
         panes={[
           { key: "assumptions", label: "Assumptions", items: truthContext.assumptions, empty: "No assumptions were explicitly emitted.", tone: "neutral" },
           { key: "limitations", label: "Limitations", items: truthContext.limitations, empty: "No additional limitations were emitted.", tone: "warning" },
-          { key: "recommendations", label: "Recommendations", items: truthContext.recommendations, empty: "No recommendations were emitted.", tone: "positive" },
+          { key: "recommendations", label: "Recommendations", items: monteCarloRecommendations, empty: "No recommendations were emitted.", tone: "positive" },
         ]}
       />
     </AnalysisPageFrame>

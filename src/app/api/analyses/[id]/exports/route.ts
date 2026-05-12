@@ -7,7 +7,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const session = await requireServerSession();
   const { id } = await params;
   try {
-    const items = listExportsForAnalysis(id, session.account_id);
+    const items = await listExportsForAnalysis(id, session.account_id);
     return NextResponse.json({ items });
   } catch {
     return NextResponse.json({ error: { code: "not_found", message: "Analysis not found" } }, { status: 404 });
@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };
 
   try {
-    const created = requestExport({ analysis_id: id, account_id: session.account_id, user_id: session.user_id, format: body.format, is_admin: isAdmin });
+    const created = await requestExport({ analysis_id: id, account_id: session.account_id, user_id: session.user_id, format: body.format, is_admin: isAdmin });
     return NextResponse.json(created, { status: 202 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "export_request_failed";

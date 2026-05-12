@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/server/persistence/database";
+import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { retryAnalysis } from "@/lib/server/services/analysis-service";
 import { exportQueue } from "@/lib/server/queue/export-queue";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
@@ -22,7 +22,7 @@ export type AdminJobView = {
 };
 
 export function listAdminJobs(filters: { status?: string; type?: "analysis" | "export" } = {}) {
-  const db = getDb();
+  const db = getSqliteRuntimeDb();
   const analysisRows = (db
     .prepare(`SELECT 'analysis' as kind, job_id, analysis_id as linked_id, status, job_type, current_step, progress_pct, retry_count, available_at, last_attempt_at, created_at, COALESCE(finished_at, started_at, created_at) as updated_at, error_code, error_message as error_summary FROM analysis_jobs`)
     .all() ?? []) as Record<string, unknown>[];
