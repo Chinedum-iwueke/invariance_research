@@ -140,6 +140,21 @@ CREATE TABLE IF NOT EXISTS publications (
   seo_description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS videos (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL,
+  youtube_url TEXT NOT NULL,
+  category TEXT NOT NULL,
+  episode_number INTEGER NOT NULL,
+  duration TEXT,
+  thumbnail_override_url TEXT,
+  status TEXT NOT NULL,
+  published_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS waitlist_entries (
   waitlist_entry_id TEXT PRIMARY KEY,
   email TEXT NOT NULL,
@@ -154,6 +169,10 @@ CREATE TABLE IF NOT EXISTS waitlist_entries (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_entries_email_source ON waitlist_entries(normalized_email, source_page);
+CREATE INDEX IF NOT EXISTS idx_publications_category_status ON publications(category, status);
+CREATE INDEX IF NOT EXISTS idx_publications_published_at ON publications(published_at);
+CREATE INDEX IF NOT EXISTS idx_videos_status_category ON videos(status, category);
+CREATE INDEX IF NOT EXISTS idx_videos_episode_published ON videos(episode_number, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_claimable ON analysis_jobs(status, available_at, leased_until, created_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status_available_at ON analysis_jobs(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_dead_letter ON analysis_jobs(status, finished_at);

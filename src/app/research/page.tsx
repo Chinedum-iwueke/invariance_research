@@ -52,10 +52,10 @@ function ResearchReportCard({ article }: { article: PublicationRecord }) {
   );
 }
 
-export default function ResearchPage() {
+export default async function ResearchPage() {
   const sectionIds = ["hero", "video-library", "reports", "cta"];
-  const library = listResearchLibrary();
-  const videos = listPublishedVideos().map((v) => ({ ...v, thumbnail: resolveYouTubeThumbnail(v.youtube_url, v.thumbnail_override_url) }));
+  const library = await listResearchLibrary();
+  const videos = (await listPublishedVideos()).map((v) => ({ ...v, thumbnail: resolveYouTubeThumbnail(v.youtube_url, v.thumbnail_override_url) }));
   return <PublicShell><main className="relative"><ScrollspyRail sectionIds={sectionIds} />
     <section id="hero" className="bg-brand px-6 py-20 text-white"><div className="container-shell space-y-6"><p className="text-xs font-semibold uppercase tracking-[0.16em]">Research & Education</p><h1 className="max-w-3xl text-4xl font-semibold">Learn to validate strategies like a professional.</h1><p className="max-w-3xl text-lg text-white/90">Execution-aware backtesting, robustness diagnostics, and research workflows for traders who want evidence before deployment.</p><div className="flex flex-wrap gap-3"><a href="#video-library" className="rounded-sm bg-white px-4 py-2 text-sm font-medium text-brand">Browse Video Library</a><a href="#reports" className="rounded-sm border border-white/50 px-4 py-2 text-sm">View Research Reports</a><Link href="/contact" className="rounded-sm border border-white/50 px-4 py-2 text-sm">Request Validation Audit</Link></div></div></section>
     <section id="video-library" className="container-shell space-y-6 py-section-sm"><SectionHeader title="Video Library" description="Structured walkthroughs on execution-aware strategy validation, research methodology, and diagnostic workflows." /><ResearchVideoLibrary videos={videos} /></section>

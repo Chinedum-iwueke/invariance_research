@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     storePublicationAsset({ file: cover, kind: "cover", slug, publicationId }),
   ]);
 
-  const created = createPublication({
+  const created = await createPublication({
     id: publicationId,
     title,
     slug,

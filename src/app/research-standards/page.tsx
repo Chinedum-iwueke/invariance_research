@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default function ResearchStandardsPage() {
-  const activeStandard = resolveActiveResearchStandard();
+export default async function ResearchStandardsPage() {
+  const activeStandard = await resolveActiveResearchStandard();
 
   return (
     <PublicShell>

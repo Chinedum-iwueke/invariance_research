@@ -9,7 +9,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const body = await request.formData();
   const intent = String(body.get("intent") ?? "save");
 
-  const existing = getPublicationById(id);
+  const existing = await getPublicationById(id);
   if (!existing) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (intent === "publish" || intent === "unpublish" || intent === "archive") {
     const status = intent === "publish" ? "published" : intent === "archive" ? "archived" : "draft";
     const publishedAt = intent === "publish" ? (existing.published_at ?? new Date().toISOString()) : existing.published_at;
-    const updated = updatePublication(id, { status, published_at: publishedAt });
+    const updated = await updatePublication(id, { status, published_at: publishedAt });
     revalidatePath("/research");
     revalidatePath("/research-standards");
     revalidatePath(`/research/${updated.slug}`);
@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const coverAsset = cover instanceof File && cover.size > 0 ? await storePublicationAsset({ file: cover, kind: "cover", slug, publicationId: existing.id }) : undefined;
 
   const publishedAtRaw = String(body.get("published_at") ?? "").trim();
-  const updated = updatePublication(id, {
+  const updated = await updatePublication(id, {
     title: String(body.get("title") ?? existing.title).trim(),
     slug,
     category: parseCategory(String(body.get("category") ?? existing.category)),

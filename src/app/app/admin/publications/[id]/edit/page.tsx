@@ -5,7 +5,7 @@ import { getPublicationById } from "@/lib/server/publications/repository";
 
 export default async function EditPublicationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const publication = getPublicationById(id);
+  const publication = await getPublicationById(id);
   if (!publication) notFound();
 
   return (

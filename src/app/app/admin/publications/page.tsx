@@ -3,8 +3,8 @@ import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { AdminTable } from "@/components/admin/admin-table";
 import { listPublications } from "@/lib/server/publications/repository";
 
-export default function AdminPublicationsPage() {
-  const publications = listPublications();
+export default async function AdminPublicationsPage() {
+  const publications = await listPublications();
 
   return (
     <AdminPageShell title="Publications" description="Small operational workflow for creating, publishing, and archiving publications.">

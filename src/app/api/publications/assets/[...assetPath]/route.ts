@@ -31,7 +31,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ assetPath:
   }
 
   if (publicationId && fileName) {
-    const publication = getPublicationById(publicationId);
+    const publication = await getPublicationById(publicationId);
     if (!publication) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }

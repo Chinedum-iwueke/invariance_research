@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { getDb } from "@/lib/server/persistence/database";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { manualPublications } from "@/content/publications";
 import { publicationCategories, publicationStatuses, type PublicationCategory, type PublicationInput, type PublicationRecord, type PublicationStatus } from "@/lib/publications/model";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
@@ -14,23 +16,28 @@ type PublicationRow = {
   category: PublicationCategory;
   summary: string;
   status: PublicationStatus;
-  published_at: string | null;
-  updated_at: string;
+  published_at: string | Date | null;
+  updated_at: string | Date;
   cover_image_url: string;
   pdf_url: string;
   cover_storage_key: string | null;
   pdf_storage_key: string | null;
   viewer_url: string | null;
-  featured: number;
+  featured: number | boolean;
   author_label: string | null;
   estimated_read_time: string | null;
-  tags_json: string | null;
+  tags_json: string[] | string | null;
   sort_order: number | null;
   seo_title: string | null;
   seo_description: string | null;
 };
 
+function toIsoString(value: string | Date | null) {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
 function fromRow(row: PublicationRow): PublicationRecord {
+  const tags = Array.isArray(row.tags_json) ? row.tags_json : row.tags_json ? (JSON.parse(row.tags_json) as string[]) : undefined;
   return toCanonicalPublication({
     id: row.id,
     title: row.title,
@@ -38,17 +45,17 @@ function fromRow(row: PublicationRow): PublicationRecord {
     category: row.category,
     summary: row.summary,
     status: row.status,
-    published_at: row.published_at,
-    updated_at: row.updated_at,
+    published_at: toIsoString(row.published_at),
+    updated_at: toIsoString(row.updated_at) ?? new Date().toISOString(),
     cover_image_url: row.cover_image_url,
     pdf_url: row.pdf_url,
     cover_storage_key: row.cover_storage_key ?? undefined,
     pdf_storage_key: row.pdf_storage_key ?? undefined,
     viewer_url: row.viewer_url ?? undefined,
-    featured: Boolean(row.featured),
+    featured: row.featured === true || row.featured === 1,
     author_label: row.author_label ?? undefined,
     estimated_read_time: row.estimated_read_time ?? undefined,
-    tags: row.tags_json ? (JSON.parse(row.tags_json) as string[]) : undefined,
+    tags,
     sort_order: row.sort_order ?? undefined,
     seo_title: row.seo_title ?? undefined,
     seo_description: row.seo_description ?? undefined,
@@ -56,12 +63,18 @@ function fromRow(row: PublicationRow): PublicationRecord {
   });
 }
 
-function listAdminRows() {
+async function listAdminRows() {
+  if (getDatabaseProvider() === "postgres") {
+    const result = await getPostgresPool().query<PublicationRow>(
+      "SELECT * FROM publications ORDER BY COALESCE(sort_order, 999999) ASC, COALESCE(published_at, updated_at) DESC",
+    );
+    return result.rows;
+  }
   return getDb().prepare("SELECT * FROM publications ORDER BY COALESCE(sort_order, 999999) ASC, COALESCE(published_at, updated_at) DESC").all() as PublicationRow[];
 }
 
-export function listPublications() {
-  const admin = listAdminRows().map(fromRow);
+export async function listPublications() {
+  const admin = (await listAdminRows()).map(fromRow);
   const manual = manualPublications.map((item) => toCanonicalPublication({ ...item, source: "manual" }));
   return [...admin, ...manual].sort((a, b) => {
     const aOrder = a.sort_order ?? 999999;
@@ -71,22 +84,22 @@ export function listPublications() {
   });
 }
 
-export function listPublishedPublications() {
-  return listPublications().filter((item) => item.status === "published");
+export async function listPublishedPublications() {
+  return (await listPublications()).filter((item) => item.status === "published");
 }
 
-export function getPublicationBySlug(slug: string) {
-  return listPublications().find((item) => item.slug === slug);
+export async function getPublicationBySlug(slug: string) {
+  return (await listPublications()).find((item) => item.slug === slug);
 }
 
-export function resolveActiveResearchStandard() {
-  const standards = listPublications().filter((item) => item.category === "research_standard" && item.status === "published");
+export async function resolveActiveResearchStandard() {
+  const standards = (await listPublications()).filter((item) => item.category === "research_standard" && item.status === "published");
   return standards.sort((a, b) => (b.published_at ?? b.updated_at).localeCompare(a.published_at ?? a.updated_at))[0];
 }
 
-export function createPublication(input: Omit<PublicationInput, "updated_at" | "viewer_url" | "source"> & { id?: string }) {
+export async function createPublication(input: Omit<PublicationInput, "updated_at" | "viewer_url" | "source"> & { id?: string }) {
   const publicationId = input.id ?? randomUUID();
-  ensureUniqueSlug(input.slug, publicationId);
+  await ensureUniqueSlug(input.slug, publicationId);
   const now = new Date().toISOString();
   const publication = toCanonicalPublication({
     ...input,
@@ -95,40 +108,50 @@ export function createPublication(input: Omit<PublicationInput, "updated_at" | "
     source: "admin",
   });
 
-  getDb()
-    .prepare(`INSERT INTO publications (id, title, slug, category, summary, status, published_at, updated_at, cover_image_url, pdf_url, cover_storage_key, pdf_storage_key, viewer_url, featured, author_label, estimated_read_time, tags_json, sort_order, seo_title, seo_description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(
-      publication.id,
-      publication.title,
-      publication.slug,
-      publication.category,
-      publication.summary,
-      publication.status,
-      publication.published_at,
-      publication.updated_at,
-      publication.cover_image_url,
-      publication.pdf_url,
-      publication.cover_storage_key ?? null,
-      publication.pdf_storage_key ?? null,
-      publication.viewer_url,
-      publication.featured ? 1 : 0,
-      publication.author_label ?? null,
-      publication.estimated_read_time ?? null,
-      publication.tags?.length ? JSON.stringify(publication.tags) : null,
-      publication.sort_order ?? null,
-      publication.seo_title ?? null,
-      publication.seo_description ?? null,
+  const values = [
+    publication.id,
+    publication.title,
+    publication.slug,
+    publication.category,
+    publication.summary,
+    publication.status,
+    publication.published_at,
+    publication.updated_at,
+    publication.cover_image_url,
+    publication.pdf_url,
+    publication.cover_storage_key ?? null,
+    publication.pdf_storage_key ?? null,
+    publication.viewer_url,
+    publication.featured,
+    publication.author_label ?? null,
+    publication.estimated_read_time ?? null,
+    publication.tags?.length ? JSON.stringify(publication.tags) : null,
+    publication.sort_order ?? null,
+    publication.seo_title ?? null,
+    publication.seo_description ?? null,
+  ];
+
+  if (getDatabaseProvider() === "postgres") {
+    await getPostgresPool().query(
+      `INSERT INTO publications (id, title, slug, category, summary, status, published_at, updated_at, cover_image_url, pdf_url, cover_storage_key, pdf_storage_key, viewer_url, featured, author_label, estimated_read_time, tags_json, sort_order, seo_title, seo_description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb, $18, $19, $20)`,
+      values,
     );
+  } else {
+    getDb()
+      .prepare(`INSERT INTO publications (id, title, slug, category, summary, status, published_at, updated_at, cover_image_url, pdf_url, cover_storage_key, pdf_storage_key, viewer_url, featured, author_label, estimated_read_time, tags_json, sort_order, seo_title, seo_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(...values.map((value, index) => (index === 13 ? (value ? 1 : 0) : typeof value === "boolean" ? (value ? 1 : 0) : value)));
+  }
 
   return publication;
 }
 
-export function updatePublication(id: string, input: Partial<Omit<PublicationInput, "id" | "source" | "updated_at">>) {
-  const existing = getPublicationById(id);
+export async function updatePublication(id: string, input: Partial<Omit<PublicationInput, "id" | "source" | "updated_at">>) {
+  const existing = await getPublicationById(id);
   if (!existing) throw new Error("publication_not_found");
   if (input.slug && input.slug !== existing.slug) {
-    ensureUniqueSlug(input.slug, existing.id);
+    await ensureUniqueSlug(input.slug, existing.id);
   }
 
   const merged = toCanonicalPublication({
@@ -139,41 +162,58 @@ export function updatePublication(id: string, input: Partial<Omit<PublicationInp
     source: "admin",
   });
 
-  getDb()
-    .prepare(`UPDATE publications SET title = ?, slug = ?, category = ?, summary = ?, status = ?, published_at = ?, updated_at = ?, cover_image_url = ?, pdf_url = ?, cover_storage_key = ?, pdf_storage_key = ?, viewer_url = ?, featured = ?, author_label = ?, estimated_read_time = ?, tags_json = ?, sort_order = ?, seo_title = ?, seo_description = ? WHERE id = ?`)
-    .run(
-      merged.title,
-      merged.slug,
-      merged.category,
-      merged.summary,
-      merged.status,
-      merged.published_at,
-      merged.updated_at,
-      merged.cover_image_url,
-      merged.pdf_url,
-      merged.cover_storage_key ?? null,
-      merged.pdf_storage_key ?? null,
-      merged.viewer_url,
-      merged.featured ? 1 : 0,
-      merged.author_label ?? null,
-      merged.estimated_read_time ?? null,
-      merged.tags?.length ? JSON.stringify(merged.tags) : null,
-      merged.sort_order ?? null,
-      merged.seo_title ?? null,
-      merged.seo_description ?? null,
-      id,
+  const values = [
+    merged.title,
+    merged.slug,
+    merged.category,
+    merged.summary,
+    merged.status,
+    merged.published_at,
+    merged.updated_at,
+    merged.cover_image_url,
+    merged.pdf_url,
+    merged.cover_storage_key ?? null,
+    merged.pdf_storage_key ?? null,
+    merged.viewer_url,
+    merged.featured,
+    merged.author_label ?? null,
+    merged.estimated_read_time ?? null,
+    merged.tags?.length ? JSON.stringify(merged.tags) : null,
+    merged.sort_order ?? null,
+    merged.seo_title ?? null,
+    merged.seo_description ?? null,
+    id,
+  ];
+
+  if (getDatabaseProvider() === "postgres") {
+    await getPostgresPool().query(
+      `UPDATE publications SET title = $1, slug = $2, category = $3, summary = $4, status = $5, published_at = $6, updated_at = $7, cover_image_url = $8, pdf_url = $9, cover_storage_key = $10, pdf_storage_key = $11, viewer_url = $12, featured = $13, author_label = $14, estimated_read_time = $15, tags_json = $16::jsonb, sort_order = $17, seo_title = $18, seo_description = $19 WHERE id = $20`,
+      values,
     );
+  } else {
+    getDb()
+      .prepare(`UPDATE publications SET title = ?, slug = ?, category = ?, summary = ?, status = ?, published_at = ?, updated_at = ?, cover_image_url = ?, pdf_url = ?, cover_storage_key = ?, pdf_storage_key = ?, viewer_url = ?, featured = ?, author_label = ?, estimated_read_time = ?, tags_json = ?, sort_order = ?, seo_title = ?, seo_description = ? WHERE id = ?`)
+      .run(...values.map((value, index) => (index === 12 ? (value ? 1 : 0) : typeof value === "boolean" ? (value ? 1 : 0) : value)));
+  }
 
   return merged;
 }
 
-export function getPublicationById(id: string) {
+export async function getPublicationById(id: string) {
+  if (getDatabaseProvider() === "postgres") {
+    const result = await getPostgresPool().query<PublicationRow>("SELECT * FROM publications WHERE id = $1", [id]);
+    const row = result.rows[0];
+    return row ? fromRow(row) : undefined;
+  }
   const row = getDb().prepare("SELECT * FROM publications WHERE id = ?").get(id) as PublicationRow | undefined;
   return row ? fromRow(row) : undefined;
 }
 
-function ensureUniqueSlug(slug: string, existingId?: string) {
-  const fromDb = getDb().prepare("SELECT id FROM publications WHERE slug = ?").get(slug) as { id?: string } | undefined;
+async function ensureUniqueSlug(slug: string, existingId?: string) {
+  const fromDb =
+    getDatabaseProvider() === "postgres"
+      ? (await getPostgresPool().query<{ id?: string }>("SELECT id FROM publications WHERE slug = $1", [slug])).rows[0]
+      : (getDb().prepare("SELECT id FROM publications WHERE slug = ?").get(slug) as { id?: string } | undefined);
   if (fromDb?.id && fromDb.id !== existingId) throw new Error("slug_conflict");
   const fromManual = manualPublications.find((item) => item.slug === slug && item.id !== existingId);
   if (fromManual) throw new Error("slug_conflict");
@@ -219,8 +259,8 @@ export async function storePublicationAsset(input: { file: File; kind: "pdf" | "
   };
 }
 
-export function listResearchLibrary() {
-  const published = listPublishedPublications();
+export async function listResearchLibrary() {
+  const published = await listPublishedPublications();
   return {
     featured: published.filter((item) => item.featured),
     collection: published,

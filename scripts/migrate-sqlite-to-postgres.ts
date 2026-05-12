@@ -6,6 +6,7 @@ import { postgresSchemaSql } from "../src/lib/server/persistence/postgres-schema
 type TablePlan = {
   name: string;
   columns: string[];
+  conflictColumns?: string[];
   jsonColumns?: string[];
   booleanColumns?: string[];
 };
@@ -19,7 +20,7 @@ const tables: TablePlan[] = [
     booleanColumns: ["cancel_at_period_end"],
   },
   { name: "entitlement_snapshots", columns: ["account_id", "snapshot_json", "updated_at"], jsonColumns: ["snapshot_json"] },
-  { name: "usage_snapshots", columns: ["account_id", "month_bucket", "analyses_created", "artifacts_uploaded", "report_exports"] },
+  { name: "usage_snapshots", columns: ["account_id", "month_bucket", "analyses_created", "artifacts_uploaded", "report_exports"], conflictColumns: ["account_id", "month_bucket"] },
   {
     name: "artifacts",
     columns: ["artifact_id", "owner_user_id", "account_id", "analysis_id", "file_name", "file_type", "file_size_bytes", "storage_key", "checksum_sha256", "artifact_kind", "richness", "uploaded_at", "parsed_artifact_json", "eligibility_summary_json"],
@@ -40,6 +41,10 @@ const tables: TablePlan[] = [
     columns: ["id", "title", "slug", "category", "summary", "status", "published_at", "updated_at", "cover_image_url", "pdf_url", "cover_storage_key", "pdf_storage_key", "viewer_url", "featured", "author_label", "estimated_read_time", "tags_json", "sort_order", "seo_title", "seo_description"],
     jsonColumns: ["tags_json"],
     booleanColumns: ["featured"],
+  },
+  {
+    name: "videos",
+    columns: ["id", "title", "slug", "description", "youtube_url", "category", "episode_number", "duration", "thumbnail_override_url", "status", "published_at", "updated_at"],
   },
   { name: "waitlist_entries", columns: ["waitlist_entry_id", "email", "normalized_email", "name", "source_page", "role_or_team", "status", "note", "created_at", "updated_at"] },
 ];
@@ -94,8 +99,8 @@ async function main() {
 
     const placeholders = columns.map((_, index) => `$${index + 1}`).join(", ");
     const assignments = columns.map((column) => `${column}=EXCLUDED.${column}`).join(", ");
-    const primary = columns[0];
-    const sql = `INSERT INTO ${plan.name} (${columns.join(", ")}) VALUES (${placeholders}) ON CONFLICT (${primary}) DO UPDATE SET ${assignments}`;
+    const conflictColumns = plan.conflictColumns ?? [columns[0]];
+    const sql = `INSERT INTO ${plan.name} (${columns.join(", ")}) VALUES (${placeholders}) ON CONFLICT (${conflictColumns.join(", ")}) DO UPDATE SET ${assignments}`;
 
     for (const row of rows) {
       await getPostgresPool().query(sql, columns.map((column) => normalizeValue(plan, column, row[column])));

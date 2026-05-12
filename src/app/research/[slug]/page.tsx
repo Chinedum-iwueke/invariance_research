@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PublicationDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const publication = getPublicationBySlug(slug);
+  const publication = await getPublicationBySlug(slug);
   if (!publication || publication.status !== "published") notFound();
 
   return (

@@ -115,7 +115,25 @@ async function migratePublications(db: DatabaseSync, dryRun: boolean, counters: 
 
     for (const target of publicationTargets) {
       if (target.currentKey === target.nextKey) {
-        counters.skipped += 1;
+        const remoteExists = await getObjectStorage().objectExists(target.nextKey);
+        if (remoteExists) {
+          counters.skipped += 1;
+          continue;
+        }
+        if (!fileExists(target.localPath)) {
+          counters.missing += 1;
+          continue;
+        }
+        if (!dryRun) {
+          await getObjectStorage().putObject({
+            bucket: target.kind === "pdf" ? "publications" : "publication-covers",
+            file_name: path.basename(target.localPath),
+            content_type: target.kind === "pdf" ? "application/pdf" : "image/png",
+            bytes: new Uint8Array(fs.readFileSync(target.localPath)),
+            storage_key: target.nextKey,
+          });
+        }
+        counters.migrated += 1;
         continue;
       }
       if (!fileExists(target.localPath)) {
