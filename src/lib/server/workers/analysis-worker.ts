@@ -25,6 +25,8 @@ const STEPS = {
 
 
 function writeDebugSnapshot(name: string, analysisId: string, payload: unknown) {
+  if (process.env.ANALYSIS_DEBUG_SNAPSHOTS !== "1") return;
+
   const dir = path.join(process.cwd(), ".debug-analysis");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
