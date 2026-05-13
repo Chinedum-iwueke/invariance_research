@@ -14,7 +14,7 @@ import { analysisRepository } from "../src/lib/server/repositories/analysis-repo
 import { assertUsageWithinPlan } from "../src/lib/server/entitlements/usage";
 import { createAnalysisFromArtifact } from "../src/lib/server/services/analysis-service";
 import { getAppSecondaryItems } from "../src/lib/app/navigation";
-import { authConfig } from "../src/lib/server/auth/auth";
+import { authConfig, getMissingAuthEnvVars, provisionGoogleOAuthUser } from "../src/lib/server/auth/auth";
 import { getDb, closeDbForTests } from "../src/lib/server/persistence/database";
 
 function resetDb() {
@@ -72,9 +72,9 @@ function seedArtifact(accountId: string, userId: string, artifactId: string) {
   });
 }
 
-function createAndMark(accountId: string, userId: string, artifactId: string, status: "completed" | "failed" | "processing") {
+async function createAndMark(accountId: string, userId: string, artifactId: string, status: "completed" | "failed" | "processing") {
   seedArtifact(accountId, userId, artifactId);
-  const created = createAnalysisFromArtifact({ artifact_id: artifactId, owner_user_id: userId, account_id: accountId });
+  const created = await createAnalysisFromArtifact({ artifact_id: artifactId, owner_user_id: userId, account_id: accountId });
   analysisRepository.update(created.analysis_id, (current) => ({ ...current, status, updated_at: new Date().toISOString() }));
   return created;
 }
@@ -85,38 +85,38 @@ test.after(() => {
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
-test("failed and processing analyses do not consume monthly quota", () => {
-  const { user, account } = accountService.ensureUserAndAccount({ email: "trial@example.com" });
+test("failed and processing analyses do not consume monthly quota", async () => {
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "trial@example.com" });
 
-  createAndMark(account.account_id, user.user_id, "artifact-f1", "failed");
-  createAndMark(account.account_id, user.user_id, "artifact-f2", "failed");
-  createAndMark(account.account_id, user.user_id, "artifact-p1", "processing");
+  await createAndMark(account.account_id, user.user_id, "artifact-f1", "failed");
+  await createAndMark(account.account_id, user.user_id, "artifact-f2", "failed");
+  await createAndMark(account.account_id, user.user_id, "artifact-p1", "processing");
 
-  const usage = accountService.getUsage(account.account_id);
+  const usage = await accountService.getUsage(account.account_id);
   assert.equal(usage.analyses_created, 0);
-  assert.doesNotThrow(() => assertUsageWithinPlan(account.account_id));
+  await assert.doesNotReject(() => assertUsageWithinPlan(account.account_id));
 });
 
-test("completed analyses consume quota and enforce cap", () => {
-  const { user, account } = accountService.ensureUserAndAccount({ email: "quota@example.com" });
+test("completed analyses consume quota and enforce cap", async () => {
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "quota@example.com" });
 
-  createAndMark(account.account_id, user.user_id, "artifact-c1", "completed");
-  createAndMark(account.account_id, user.user_id, "artifact-c2", "completed");
-  createAndMark(account.account_id, user.user_id, "artifact-c3", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-c1", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-c2", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-c3", "completed");
 
-  const usage = accountService.getUsage(account.account_id);
+  const usage = await accountService.getUsage(account.account_id);
   assert.equal(usage.analyses_created, 3);
-  assert.throws(() => assertUsageWithinPlan(account.account_id), /monthly_analysis_limit_reached/);
+  await assert.rejects(() => assertUsageWithinPlan(account.account_id), /monthly_analysis_limit_reached/);
 });
 
-test("admin accounts bypass run cap", () => {
-  const { user, account } = accountService.ensureUserAndAccount({ email: "admin@example.com" });
-  createAndMark(account.account_id, user.user_id, "artifact-a1", "completed");
-  createAndMark(account.account_id, user.user_id, "artifact-a2", "completed");
-  createAndMark(account.account_id, user.user_id, "artifact-a3", "completed");
-  createAndMark(account.account_id, user.user_id, "artifact-a4", "completed");
+test("admin accounts bypass run cap", async () => {
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "admin@example.com" });
+  await createAndMark(account.account_id, user.user_id, "artifact-a1", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-a2", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-a3", "completed");
+  await createAndMark(account.account_id, user.user_id, "artifact-a4", "completed");
 
-  assert.doesNotThrow(() => assertUsageWithinPlan(account.account_id));
+  await assert.doesNotReject(() => assertUsageWithinPlan(account.account_id));
 });
 
 test("admin nav item only appears for admin users", () => {
@@ -133,6 +133,55 @@ test("auth session config persists login and jwt/session callbacks preserve iden
 
   assert.equal(session.user.id, "u-1");
   assert.equal(session.user.account_id, "acct-1");
+});
+
+test("google oauth provisioning creates internal user/account and a valid session token", async () => {
+  const provisioned = await provisionGoogleOAuthUser({ email: "Google.User@Example.com", name: "Google User" });
+
+  const userRow = getDb().prepare("SELECT * FROM users WHERE email = ?").get("google.user@example.com") as { user_id: string; email: string; last_login_at: string };
+  const accountRow = getDb().prepare("SELECT * FROM accounts WHERE owner_user_id = ?").get(provisioned.user.user_id) as { account_id: string; owner_user_id: string };
+
+  assert.equal(userRow.user_id, provisioned.user.user_id);
+  assert.equal(accountRow.account_id, provisioned.account.account_id);
+
+  const token = await authConfig.callbacks.jwt!({
+    token: {},
+    user: {
+      id: provisioned.user.user_id,
+      email: provisioned.user.email,
+      name: provisioned.user.name,
+      account_id: provisioned.account.account_id,
+    } as any,
+  } as any);
+  const session = await authConfig.callbacks.session!({ session: { user: { email: provisioned.user.email } }, token } as any);
+
+  assert.equal(session.user.id, provisioned.user.user_id);
+  assert.equal(session.user.account_id, provisioned.account.account_id);
+});
+
+test("google oauth provisioning failure is controlled when email is missing", async () => {
+  await assert.rejects(() => provisionGoogleOAuthUser({ email: undefined, name: "No Email" }), /oauth_email_required/);
+});
+
+test("auth env validation requires app, nextauth, secret, and google oauth settings", () => {
+  assert.deepEqual(
+    getMissingAuthEnvVars({
+      NEXTAUTH_URL: "https://example.com",
+      APP_URL: "https://example.com",
+      AUTH_SECRET: "secret",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+    } as NodeJS.ProcessEnv),
+    [],
+  );
+
+  assert.deepEqual(getMissingAuthEnvVars({} as NodeJS.ProcessEnv), [
+    "NEXTAUTH_URL",
+    "APP_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEXTAUTH_SECRET/AUTH_SECRET",
+  ]);
 });
 
 test("auth redirect callback normalizes post-logout and cross-site redirects", async () => {

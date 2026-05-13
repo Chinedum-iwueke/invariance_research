@@ -1,0 +1,44 @@
+name: invariance-worker
+
+services:
+  analysis-worker:
+    container_name: invariance-analysis-worker
+    build:
+      context: /home/omenka/Projects
+      dockerfile: invariance_research/Dockerfile.worker
+    env_file:
+      - .env.worker
+    environment:
+      NODE_ENV: production
+      WORKER_MODE: external
+      OLLAMA_BASE_URL: http://ollama:11434
+      INVARIANCE_PYTHON_BIN: /opt/venv/bin/python
+      INVARIANCE_BULLETPROOF_BRIDGE_SCRIPT: /opt/invariance_research/scripts/run_bulletproof_engine.py
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
+      interval: 30s
+      timeout: 10s
+      start_period: 45s
+      retries: 3
+
+  ollama:
+    container_name: invariance-ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+
+volumes:
+  ollama-models:

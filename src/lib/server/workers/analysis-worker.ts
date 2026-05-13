@@ -1,14 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getAnalysisQueue, getQueueProvider } from "@/lib/server/queue/provider";
 import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bulletproof-runner";
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
-import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
+import { createWorkerInstanceId, runWorkerLoop } from "@/lib/server/workers/worker-runtime";
 import { accountService } from "@/lib/server/accounts/service";
 import { readArtifact } from "@/lib/server/storage/artifact-storage";
-import { getObjectStorageProvider } from "@/lib/server/storage/object-storage";
+import { getObjectStorage, getObjectStorageProvider } from "@/lib/server/storage/object-storage";
 import { assertWorkerRuntimeConfig } from "@/lib/server/queue/runtime-config";
 import { generateLlmInsightsForRecord, mergeLlmInsightResult } from "@/lib/server/llm-insights";
 
@@ -55,12 +57,76 @@ export async function runAnalysisWorkerRuntime() {
   if (config.mode !== "external") {
     throw new Error("Analysis worker runtime requires WORKER_MODE=external.");
   }
+  const workerInstanceId = process.env.INVARIANCE_WORKER_INSTANCE_ID || createWorkerInstanceId();
+  const databaseProvider = getDatabaseProvider();
+  const storageProvider = getObjectStorageProvider();
+  const llmProvider = process.env.LLM_PROVIDER?.trim().toLowerCase() || "ollama";
   logger.info("analysis.worker.startup", {
-    database_provider: getCoreRepositories().provider,
+    database_provider: databaseProvider,
     queue_provider: getQueueProvider(),
-    storage_provider: getObjectStorageProvider(),
+    object_storage_provider: storageProvider,
+    llm_provider: llmProvider,
+    worker_instance_id: workerInstanceId,
   });
-  await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob });
+  await validateAnalysisWorkerDependencies({ databaseProvider, storageProvider, llmProvider, workerInstanceId });
+  await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob, instanceId: workerInstanceId });
+}
+
+async function validateAnalysisWorkerDependencies(context: {
+  databaseProvider: string;
+  storageProvider: string;
+  llmProvider: string;
+  workerInstanceId: string;
+}) {
+  try {
+    if (context.databaseProvider !== "postgres") {
+      throw new Error(`analysis_worker_requires_postgres:${context.databaseProvider}`);
+    }
+    await getPostgresPool().query("SELECT 1");
+    logger.info("analysis.worker.health.database", {
+      status: "healthy",
+      database_provider: context.databaseProvider,
+      worker_instance_id: context.workerInstanceId,
+    });
+  } catch (error) {
+    logger.error("analysis.worker.health.database", {
+      status: "unhealthy",
+      database_provider: context.databaseProvider,
+      worker_instance_id: context.workerInstanceId,
+      message: error instanceof Error ? error.message : "database_healthcheck_failed",
+    });
+    throw error;
+  }
+
+  try {
+    const storage = getObjectStorage();
+    if (context.storageProvider === "r2" || context.storageProvider === "s3") {
+      await storage.listObjects?.("");
+    } else {
+      await storage.objectExists("healthcheck");
+    }
+    logger.info("analysis.worker.health.object_storage", {
+      status: "healthy",
+      object_storage_provider: context.storageProvider,
+      worker_instance_id: context.workerInstanceId,
+    });
+  } catch (error) {
+    logger.error("analysis.worker.health.object_storage", {
+      status: "unhealthy",
+      object_storage_provider: context.storageProvider,
+      worker_instance_id: context.workerInstanceId,
+      message: error instanceof Error ? error.message : "object_storage_healthcheck_failed",
+    });
+    throw error;
+  }
+
+  logger.info("analysis.worker.health.llm", {
+    status: process.env.LLM_INSIGHTS_ENABLED?.trim().toLowerCase() === "true" ? "configured" : "disabled",
+    llm_provider: context.llmProvider,
+    ollama_base_url: process.env.OLLAMA_BASE_URL,
+    ollama_model: process.env.OLLAMA_MODEL,
+    worker_instance_id: context.workerInstanceId,
+  });
 }
 
 export async function processNextAnalysisJob(): Promise<boolean> {

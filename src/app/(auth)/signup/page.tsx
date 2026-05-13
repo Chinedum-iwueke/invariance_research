@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LogoMonogram } from "@/components/ui/logo";
 
 function GoogleMark() {
@@ -24,8 +24,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState(false);
   const [busy, setBusy] = useState(false);
   const mismatch = useMemo(() => confirmPassword.length > 0 && password !== confirmPassword, [password, confirmPassword]);
+
+  useEffect(() => {
+    setOauthError(new URLSearchParams(window.location.search).get("error") === "OAuthProvisioning");
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) { /* unchanged */
     event.preventDefault();
@@ -63,6 +68,9 @@ export default function SignupPage() {
           <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 w-full rounded-lg border p-2" /></label>
           <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required minLength={10} className="mt-1 w-full rounded-lg border p-2" /></label>
           <label className="block text-sm">Confirm password<input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} name="confirm_password" type="password" required minLength={10} className="mt-1 w-full rounded-lg border p-2" /></label>
+          {oauthError ? (
+            <p className="text-xs text-red-600">Google sign-in succeeded, but we could not finish creating your workspace. Please try again.</p>
+          ) : null}
           {mismatch ? <p className="text-xs text-red-600">Passwords do not match.</p> : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
           <button disabled={busy || mismatch} className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-70">{busy ? "Creating account..." : "Sign up for free"}</button>

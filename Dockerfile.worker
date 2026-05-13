@@ -1,0 +1,38 @@
+FROM node:20-bookworm
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:${PATH}" \
+    INVARIANCE_PYTHON_BIN=/opt/venv/bin/python \
+    INVARIANCE_BULLETPROOF_BRIDGE_SCRIPT=/opt/invariance_research/scripts/run_bulletproof_engine.py
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      build-essential \
+      curl \
+      git \
+      python3 \
+      python3-pip \
+      python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/invariance_research
+
+COPY invariance_research/package.json invariance_research/package-lock.json ./
+RUN npm ci --include=dev
+
+COPY bulletproof_bt /opt/bulletproof_bt
+COPY invariance_research /opt/invariance_research
+
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
+    && /opt/venv/bin/pip install -e /opt/bulletproof_bt \
+    && /opt/venv/bin/python /opt/invariance_research/scripts/run_bulletproof_engine.py --probe
+
+RUN npm run build
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+  CMD ./node_modules/.bin/tsx scripts/healthcheck-worker.ts
+
+CMD ["npm", "run", "worker:analysis"]

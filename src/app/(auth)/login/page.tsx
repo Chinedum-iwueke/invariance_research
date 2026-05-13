@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogoMonogram } from "@/components/ui/logo";
 
 function GoogleMark() {
@@ -22,7 +22,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setOauthError(new URLSearchParams(window.location.search).get("error") === "OAuthProvisioning");
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,6 +71,9 @@ export default function LoginPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 w-full rounded-lg border p-2" /></label>
           <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required className="mt-1 w-full rounded-lg border p-2" /></label>
+          {oauthError ? (
+            <p className="text-xs text-red-600">Google sign-in succeeded, but we could not finish creating your workspace. Please try again.</p>
+          ) : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
           <button disabled={busy} className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
         </form>

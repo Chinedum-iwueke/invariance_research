@@ -9,10 +9,15 @@ type WorkerType = "analysis" | "export";
 type WorkerRunInput = {
   workerType: WorkerType;
   processNext: () => Promise<boolean>;
+  instanceId?: string;
 };
 
+export function createWorkerInstanceId() {
+  return `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
+}
+
 export async function runWorkerLoop(input: WorkerRunInput) {
-  const instanceId = `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
+  const instanceId = input.instanceId ?? createWorkerInstanceId();
   const pollMs = getWorkerPollIntervalMs(input.workerType);
   let stopping = false;
   const stop = (signal: string) => {
