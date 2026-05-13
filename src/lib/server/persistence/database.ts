@@ -1,17 +1,24 @@
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import { migrations } from "@/lib/server/persistence/migrations";
 export { getDatabaseProvider } from "@/lib/server/persistence/provider";
 import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 
 const DB_PATH = process.env.INVARIANCE_DB_PATH ?? path.join(process.cwd(), ".data", "invariance.sqlite");
 
+type SqliteRow = Record<string, unknown>;
+type SqliteRunResult = {
+  changes?: number;
+  lastInsertRowid?: number | bigint;
+};
+
 type SqliteDatabase = {
   exec(sql: string): void;
   prepare(sql: string): {
-    get(...params: unknown[]): any;
-    run(...params: unknown[]): any;
-    all(...params: unknown[]): any[];
+    get(...params: unknown[]): SqliteRow | undefined;
+    run(...params: unknown[]): SqliteRunResult;
+    all(...params: unknown[]): SqliteRow[];
   };
   close(): void;
 };
@@ -24,6 +31,7 @@ let DatabaseSync: DatabaseSyncConstructor | undefined;
 
 function getDatabaseSyncConstructor(): DatabaseSyncConstructor {
   if (DatabaseSync) return DatabaseSync;
+  const require = createRequire(import.meta.url);
   try {
     // node:sqlite is unavailable in the Node 20 worker image and should only be
     // loaded for local SQLite mode, never for DATABASE_PROVIDER=postgres.
