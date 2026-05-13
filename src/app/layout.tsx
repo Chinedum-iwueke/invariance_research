@@ -17,6 +17,17 @@ export const metadata: Metadata = {
     template: "%s | Invariance Research",
   },
   description: "Independent quantitative validation studio for execution-aware strategy evaluation.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    other: [{ rel: "mask-icon", url: "/icon.svg", color: "#B00020" }],
+  },
   openGraph: {
     title: "Invariance Research",
     description: "Execution-aware strategy validation and robustness diagnostics.",

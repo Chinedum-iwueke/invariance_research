@@ -124,6 +124,11 @@ test("admin nav item only appears for admin users", () => {
   assert.equal(getAppSecondaryItems(true).some((item) => item.label === "Admin Ops"), true);
 });
 
+test("settings stays dormant until real account controls exist", () => {
+  assert.equal(getAppSecondaryItems(false).some((item) => item.href === "/app/settings"), false);
+  assert.equal(getAppSecondaryItems(true).some((item) => item.href === "/app/settings"), false);
+});
+
 test("auth session config persists login and jwt/session callbacks preserve identity across navigation", async () => {
   assert.equal(authConfig.session.strategy, "jwt");
   assert.equal(authConfig.session.maxAge, 60 * 60 * 24 * 30);

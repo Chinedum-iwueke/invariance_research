@@ -5,7 +5,6 @@ import {
   FileText,
   Gauge,
   ListChecks ,
-  Settings,
   ShieldAlert,
   Sigma,
   Sparkles,
@@ -24,7 +23,6 @@ const baseSecondaryItems: AppNavItem[] = [
   { key: "workspace:home", label: "Workspace Home", href: "/app", icon: Sigma },
   { key: "workspace:new-analysis", label: "New Analysis", href: "/app/new-analysis", icon: Sparkles },
   { key: "workspace:analyses", label: "Analyses", href: "/app/analyses", icon: ListChecks },
-  { key: "workspace:settings", label: "Settings", href: "/app/settings", icon: Settings },
 ];
 
 const adminSecondaryItem: AppNavItem = { key: "workspace:admin", label: "Admin Ops", href: "/app/admin", icon: ShieldAlert };

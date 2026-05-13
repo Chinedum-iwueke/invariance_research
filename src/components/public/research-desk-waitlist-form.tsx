@@ -51,7 +51,7 @@ export function ResearchDeskWaitlistForm({
     <form className="space-y-4" onSubmit={onSubmit}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start">
         {showNameField ? (
-          <label className="w-full space-y-1 text-sm">
+          <label className="min-w-0 flex-1 space-y-1 text-sm">
             <span className="text-text-neutral">Name</span>
             <input
               type="text"
@@ -62,7 +62,7 @@ export function ResearchDeskWaitlistForm({
             />
           </label>
         ) : null}
-        <label className="w-full space-y-1 text-sm">
+        <label className="min-w-0 flex-1 space-y-1 text-sm">
           <span className="text-text-neutral">
             Email <span className="text-brand">*</span>
           </span>
@@ -75,7 +75,7 @@ export function ResearchDeskWaitlistForm({
             className="h-11 w-full rounded-sm border border-border-subtle bg-surface-white px-3"
           />
         </label>
-        <Button className="md:mt-[1.35rem]" type="submit" disabled={status === "loading"}>
+        <Button className="w-full whitespace-nowrap md:mt-[1.35rem] md:w-auto md:shrink-0" type="submit" disabled={status === "loading"}>
           {status === "loading" ? "Submitting..." : buttonLabel}
         </Button>
       </div>
