@@ -67,7 +67,7 @@ export function PricingCards() {
         <Card key={plan.title} className={cn("space-y-5 p-card-lg", plan.highlight && "border-brand shadow-[0_0_0_1px_rgba(185,0,42,0.25)]") }>
           <div>
             <p className="text-lg font-semibold">{plan.title}</p>
-            <p className="mt-3 text-4xl font-medium">{plan.price}</p>
+            <p className="mt-3 text-3xl font-medium md:text-4xl">{plan.price}</p>
             <p className="text-sm text-text-neutral">{plan.billing}</p>
           </div>
           <ul className="space-y-2">

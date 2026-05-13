@@ -7,31 +7,33 @@ interface FooterGroup {
 
 export function SiteFooter({ groups }: { groups: readonly FooterGroup[] }) {
   return (
-    <footer className="mt-section-xl border-t bg-surface-panel/30">
-      <div className="container-shell py-section-md">
-        <div className="grid gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold tracking-wide">Invariance Research</p>
-            <p className="max-w-md text-sm text-text-neutral">
+    <footer className="mt-section-lg border-t bg-surface-panel/30 md:mt-section-xl">
+      <div className="container-shell py-10 md:py-section-md">
+        <div className="grid gap-8 md:grid-cols-[2fr_1fr_1fr_1fr] md:gap-10">
+          <div className="space-y-3 border-b border-border-subtle/70 pb-6 md:border-b-0 md:pb-0">
+            <p className="text-sm font-semibold tracking-[0.04em]">Invariance Research</p>
+            <p className="max-w-md text-sm leading-relaxed text-text-neutral">
               Independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics.
             </p>
           </div>
-          {groups.map((group) => (
-            <div key={group.title} className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">{group.title}</p>
-              <ul className="space-y-2">
-                {group.links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-text-graphite hover:text-brand">
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:contents">
+            {groups.map((group) => (
+              <div key={group.title} className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-text-neutral">{group.title}</p>
+                <ul className="space-y-2.5">
+                  {group.links.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="text-sm leading-snug text-text-graphite hover:text-brand">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-12 border-t pt-6 text-xs text-text-neutral">© {new Date().getFullYear()} Invariance Research. All rights reserved.</div>
+        <div className="mt-8 border-t pt-5 text-xs leading-relaxed text-text-neutral md:mt-12 md:pt-6">© {new Date().getFullYear()} Invariance Research. All rights reserved.</div>
       </div>
     </footer>
   );

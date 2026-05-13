@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactElement } from "react";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-normal disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-sm border text-center text-sm font-medium leading-tight transition-colors duration-normal disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
@@ -13,9 +13,9 @@ export const buttonVariants = cva(
         destructive: "border-chart-negative bg-chart-negative text-white hover:bg-[#a92222]",
       },
       size: {
-        sm: "h-8 px-3",
-        md: "h-10 px-4",
-        lg: "h-12 px-6",
+        sm: "min-h-8 px-3 py-1.5",
+        md: "min-h-10 px-4 py-2",
+        lg: "min-h-12 px-6 py-3",
       },
     },
     defaultVariants: {

@@ -61,7 +61,7 @@ export function BrandLogoLink({ compact = false, className }: { compact?: boolea
       href="/"
       aria-label="Invariance Research home"
       className={cn(
-        "inline-flex h-16 items-center rounded-sm px-1.5 opacity-100 transition-opacity duration-normal hover:opacity-85 focus-visible:ring-brand",
+        "inline-flex h-16 min-w-0 items-center rounded-sm px-1.5 opacity-100 transition-opacity duration-normal hover:opacity-85 focus-visible:ring-brand",
         className,
       )}
     >

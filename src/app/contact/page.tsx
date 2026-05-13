@@ -25,10 +25,10 @@ export default function ContactPage() {
           />
         </section>
 
-        <section id="contact" className="container-shell grid gap-6 py-section-sm md:grid-cols-[1.2fr_0.8fr]">
+        <section id="contact" className="container-shell grid gap-5 py-section-sm md:grid-cols-[1.2fr_0.8fr] md:gap-6">
           <ContactForm />
           <Card className="h-fit space-y-4 p-card-md">
-            <h2 className="text-lg font-semibold">Alternative contact</h2>
+            <h2 className="text-lg font-semibold leading-tight">Alternative contact</h2>
             <p className="text-sm text-text-neutral">For mandate scoping, partnership inquiries, or standards publications.</p>
             <div className="text-sm text-text-graphite">
               <p>

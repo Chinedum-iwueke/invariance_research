@@ -116,7 +116,7 @@ export default function HomePage() {
               description="Diagnostics focused on whether a strategy remains credible under realistic execution and adverse market states."
             />
 
-            <div className="flex flex-wrap gap-3">
+            <div className="mobile-cta-row">
               <Button asChild>
                 <Link href="/signup">Sign up for free</Link>
               </Button>
@@ -179,12 +179,12 @@ export default function HomePage() {
               steps={frameworkSteps}
             />
 
-            <Card className="bg-surface-panel/65 p-8 text-center">
-              <h3 className="text-2xl font-semibold text-text-graphite">Validate Your Strategy Before Capital Is Deployed</h3>
+            <Card className="bg-surface-panel/65 p-5 text-center md:p-8">
+              <h3 className="text-xl font-semibold leading-tight text-text-graphite md:text-2xl">Validate Your Strategy Before Capital Is Deployed</h3>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-text-neutral">
                 Most strategies appear profitable until tested under realistic conditions. The validation framework identifies fragility before capital is exposed.
               </p>
-              <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <div className="mobile-cta-row mt-5 justify-center">
                 <Button asChild>
                   <Link href="/robustness-lab">Run Strategy Diagnostics</Link>
                 </Button>

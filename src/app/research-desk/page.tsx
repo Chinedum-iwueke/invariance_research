@@ -19,15 +19,15 @@ export default function ResearchDeskPage() {
       <main className="bg-surface-white">
         <section className="relative isolate overflow-hidden border-b border-border-subtle/70">
           <HeroOverlayBackground src="/overlay_graphic_2.png" />
-          <div className="container-shell relative z-10 py-section-md md:py-section-lg">
-            <div className="max-w-3xl space-y-5">
+          <div className="container-shell relative z-10 py-12 md:py-section-lg">
+            <div className="max-w-3xl space-y-4 md:space-y-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">COMING SOON</p>
-              <h1 className="max-w-[14ch] text-4xl font-semibold tracking-tight text-text-institutional md:text-5xl">Invariance Research Desk</h1>
-              <p className="max-w-2xl text-xl text-text-graphite">The AI-native research environment for turning trading ideas into audited, execution-realistic evidence.</p>
-              <p className="max-w-3xl text-base leading-relaxed text-text-neutral">
+              <h1 className="max-w-[14ch] text-[clamp(2.15rem,10vw,2.8rem)] font-semibold leading-[1.06] tracking-tight text-text-institutional md:text-5xl">Invariance Research Desk</h1>
+              <p className="max-w-2xl text-lg leading-snug text-text-graphite md:text-xl">The AI-native research environment for turning trading ideas into audited, execution-realistic evidence.</p>
+              <p className="max-w-3xl text-[0.95rem] leading-[1.72] text-text-neutral md:text-base md:leading-relaxed">
                 Invariance Research Desk is a forthcoming product built for traders and researchers who want more than idea generation. It combines AI assistants, structured research agents, and execution-aware validation workflows to help transform market intuition into formal hypotheses, realistic backtests, deeper diagnostics, and clearer deployment decisions.
               </p>
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="mobile-cta-row pt-1">
                 <Button asChild>
                   <a href="#waitlist">Join the Waitlist</a>
                 </Button>
@@ -46,12 +46,12 @@ export default function ResearchDeskPage() {
         <section className="container-shell py-section-sm">
           <Card className="grid gap-5 border-border-subtle bg-surface-panel/30 p-card-md md:grid-cols-[1fr_auto] md:items-start md:p-card-lg">
             <div className="max-w-3xl space-y-3">
-              <h2 className="text-2xl font-semibold text-text-institutional">Why it matters</h2>
+              <h2 className="text-xl font-semibold leading-tight text-text-institutional md:text-2xl">Why it matters</h2>
               <p className="text-base leading-relaxed text-text-neutral">
                 Most strategies do not fail because traders lack ideas. They fail because ideas are formulated too loosely, tested on the wrong assumptions, or judged too shallowly. Research Desk is being built to reduce that gap by combining AI assistance with structured research discipline and execution-aware validation.
               </p>
             </div>
-            <aside className="rounded-sm border border-border-subtle bg-surface-white/85 p-4 text-xs uppercase tracking-[0.14em] text-text-neutral">
+            <aside className="rounded-sm border border-border-subtle bg-surface-white/85 p-4 text-xs uppercase leading-relaxed tracking-[0.12em] text-text-neutral md:tracking-[0.14em]">
               Evidence quality compounds.
             </aside>
           </Card>
@@ -60,7 +60,7 @@ export default function ResearchDeskPage() {
         <section id="waitlist" className="container-shell py-section-md">
           <Card className="space-y-5 border-border-subtle bg-surface-panel/50 p-card-lg">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold text-text-institutional">Get early access when Research Desk opens</h2>
+              <h2 className="text-xl font-semibold leading-tight text-text-institutional md:text-2xl">Get early access when Research Desk opens</h2>
               <p className="max-w-3xl text-sm text-text-neutral">
                 Join the waitlist for launch updates, product previews, and limited early-access invitations as the next generation of Invariance Research takes shape.
               </p>

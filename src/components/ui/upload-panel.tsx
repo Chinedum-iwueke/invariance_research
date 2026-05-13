@@ -10,7 +10,7 @@ export function UploadPanel() {
         <p className="mt-1 text-sm text-text-neutral">Submit datasets, logs, and model notes for validation intake.</p>
         <Link href="/docs/lab" className="mt-2 inline-block text-xs font-medium text-brand hover:underline">View Docs</Link>
       </div>
-      <div className="rounded-md border border-dashed bg-surface-panel/50 p-8 text-center">
+      <div className="rounded-md border border-dashed bg-surface-panel/50 p-5 text-center md:p-8">
         <FileUp className="mx-auto h-6 w-6 text-brand" />
         <p className="mt-3 text-sm font-medium">Drag and drop files here</p>
         <p className="mt-1 text-xs text-text-neutral">CSV, Parquet, JSON, PDF · max 100MB per file</p>

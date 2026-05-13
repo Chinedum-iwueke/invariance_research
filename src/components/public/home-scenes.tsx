@@ -24,10 +24,10 @@ export function SectionSceneWrapper({ id, tone = "base", transition = "standard"
   }[tone];
 
   return (
-    <section id={id} style={style} className={cn("relative isolate min-h-screen border-t border-border-subtle", toneClass, className)}>
+    <section id={id} style={style} className={cn("relative isolate min-h-[auto] border-t border-border-subtle md:min-h-screen", toneClass, className)}>
       {transition === "sheet-reveal" ? (
         <div className="relative overflow-hidden rounded-t-[2rem] border-t border-border-subtle/80 bg-surface-white shadow-raised">
-          <div className="container-shell pt-10 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
+          <div className="container-shell pt-8 pb-section-md md:pt-12 md:pb-section-lg">{children}</div>
         </div>
       ) : null}
       {transition === "standard" ? <div className="container-shell py-section-md md:py-section-lg">{children}</div> : null}
@@ -63,7 +63,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
   }, []);
 
   return (
-    <section id="hero" style={style} className="relative isolate flex min-h-screen items-center overflow-hidden bg-surface-white">
+    <section id="hero" style={style} className="relative isolate flex min-h-[calc(100svh-4.75rem)] items-center overflow-hidden bg-surface-white md:min-h-screen">
       <div className="absolute inset-0">
         <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 0 ? "opacity-100" : "opacity-0")}>
           <HeroOverlayBackground />
@@ -73,27 +73,27 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
         </div>
       </div>
 
-      <div className="container-shell relative z-10 flex h-[90svh] min-h-[40rem] flex-col pt-[max(3.9rem,7svh)] pb-[max(1.1rem,2.5svh)]">
+      <div className="container-shell relative z-10 flex min-h-[calc(100svh-4.75rem)] flex-col pt-[max(2.75rem,6svh)] pb-4 md:h-[90svh] md:min-h-[40rem] md:pt-[max(3.9rem,7svh)] md:pb-[max(1.1rem,2.5svh)]">
         <div className="relative flex flex-1 items-center">
-          <div className={cn("absolute inset-0 flex items-center transition-all duration-700 ease-out", activeScene === 0 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0")}>
-            <div className="max-w-[42rem] space-y-4 md:space-y-[1.125rem]">
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-neutral/88">Independent Quantitative Validation Studio</p>
-              <h1 className="max-w-[14ch] text-4xl font-semibold leading-[1.06] text-text-graphite md:text-5xl lg:text-6xl">
+          <div className={cn("absolute inset-0 flex min-w-0 items-center transition-all duration-700 ease-out", activeScene === 0 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0")}>
+            <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-[1.125rem]">
+              <p className="max-w-full text-[10px] font-medium uppercase leading-relaxed tracking-[0.12em] text-text-neutral/88 md:text-[11px] md:tracking-[0.16em]">Independent Quantitative Validation Studio</p>
+              <h1 className="max-w-[13.5ch] text-[clamp(2.15rem,10vw,2.9rem)] font-semibold leading-[1.04] text-text-graphite md:text-5xl lg:text-6xl">
                 Independent Quantitative Strategy Validation
               </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-text-neutral">
+              <p className="max-w-[18.75rem] text-[1rem] leading-[1.7] text-text-neutral sm:max-w-xl md:text-lg md:leading-relaxed">
                 Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
               </p>
-              <div className="space-y-6 pt-1">
-                <div className="flex flex-wrap gap-3">
-                  <Button asChild>
+              <div className="space-y-4 pt-1 md:space-y-6">
+                <div className="mobile-cta-row max-w-[18.75rem] sm:max-w-none">
+                  <Button asChild className="max-w-full">
                     <Link href="/lab">Explore Strategy Robustness Lab</Link>
                   </Button>
-                  <Button asChild variant="secondary">
+                  <Button asChild variant="secondary" className="max-w-full">
                     <Link href="/strategy-validation">Validate Your Strategy</Link>
                   </Button>
                 </div>
-                <p className="max-w-xl text-sm text-text-neutral">
+                <p className="max-w-[18.75rem] text-xs leading-relaxed text-text-neutral sm:max-w-xl md:text-sm">
                   Institutional-style validation framework designed to eliminate false edge before capital deployment.
                 </p>
               </div>
@@ -106,14 +106,14 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               activeScene === 1 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
             )}
           >
-            <div className="max-w-[42rem] space-y-5">
+            <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">COMING SOON</p>
-              <h2 className="max-w-[13ch] text-4xl font-semibold leading-[1.08] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
-              <p className="text-xl text-text-graphite">From intuition to audited backtest.</p>
-              <p className="max-w-2xl text-base leading-relaxed text-text-neutral">
+              <h2 className="max-w-[13ch] text-[clamp(2.1rem,10vw,2.75rem)] font-semibold leading-[1.07] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
+              <p className="text-lg text-text-graphite md:text-xl">From intuition to audited backtest.</p>
+              <p className="max-w-[18.75rem] text-[0.95rem] leading-[1.7] text-text-neutral sm:max-w-2xl md:text-base md:leading-relaxed">
                 A new AI-native research environment built to help you formalize ideas, run execution-aware tests, and diagnose what actually survives scrutiny — with AI assistants and research agents guiding you through the process.
               </p>
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="mobile-cta-row max-w-[18.75rem] pt-1 sm:max-w-none">
                 <Button asChild>
                   <Link href="/research-desk#waitlist">Join the Waitlist</Link>
                 </Button>
@@ -126,7 +126,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           </div>
         </div>
 
-        <div className="flex min-h-[4.75rem] items-end justify-between pb-1">
+        <div className="flex min-h-[4rem] items-end justify-between gap-4 pb-1 md:min-h-[4.75rem]">
           <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-white/75 p-1 backdrop-blur-sm">
             {[0, 1].map((scene) => (
               <button
@@ -139,7 +139,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               />
             ))}
           </div>
-          <SceneScrollCue href="#problem" />
+          <SceneScrollCue href="#problem" className="hidden sm:inline-flex" />
         </div>
       </div>
     </section>
@@ -204,15 +204,15 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
-    <div className="rounded-md border border-border-subtle bg-surface-white p-6 shadow-soft">
-      <div className="inline-flex rounded-full border border-border-subtle bg-surface-panel/70 p-1">
+    <div className="rounded-md border border-border-subtle bg-surface-white p-4 shadow-soft md:p-6">
+      <div className="grid grid-cols-1 gap-1 rounded-sm border border-border-subtle bg-surface-panel/70 p-1 sm:inline-flex sm:rounded-full">
         {items.map((item, index) => (
           <button
             key={item.label}
             type="button"
             onClick={() => setActiveIndex(index)}
             className={cn(
-              "rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] transition",
+              "rounded-sm px-3 py-2 text-xs font-medium uppercase tracking-[0.1em] transition sm:rounded-full sm:px-4 sm:tracking-[0.12em]",
               index === activeIndex ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite",
             )}
           >
@@ -220,11 +220,11 @@ export function ComparisonTogglePanel({ items }: { items: ComparisonItem[] }) {
           </button>
         ))}
       </div>
-      <div className="mt-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-sm border border-border-subtle bg-surface-panel/50 p-4">{items[activeIndex]?.visual}</div>
+      <div className="mt-5 grid gap-5 md:mt-6 md:gap-6 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-sm border border-border-subtle bg-surface-panel/50 p-2.5 md:p-4">{items[activeIndex]?.visual}</div>
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{items[activeIndex]?.label}</p>
-          <h3 className="text-2xl font-semibold text-text-graphite">{items[activeIndex]?.title}</h3>
+          <h3 className="text-xl font-semibold leading-tight text-text-graphite md:text-2xl">{items[activeIndex]?.title}</h3>
           <p className="text-sm leading-relaxed text-text-neutral">{items[activeIndex]?.body}</p>
         </div>
       </div>
@@ -277,20 +277,20 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
         : "opacity-100";
 
   return (
-    <div className="rounded-md border border-border-subtle bg-surface-white p-6 shadow-soft">
+    <div className="rounded-md border border-border-subtle bg-surface-white p-4 shadow-soft md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">{title}</p>
           {subtitle ? <p className="mt-1 text-sm text-text-neutral">{subtitle}</p> : null}
         </div>
-        <div className="inline-flex rounded-full border border-border-subtle bg-surface-panel/70 p-1">
+        <div className="grid grid-cols-5 gap-1 rounded-full border border-border-subtle bg-surface-panel/70 p-1">
           {steps.map((step, index) => (
             <button
               key={step.title}
               type="button"
               onClick={() => handleDirectStepChange(index)}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-medium transition",
+                "min-h-9 rounded-full px-2 py-1.5 text-xs font-medium transition md:min-h-0 md:px-3",
                 index === activeIndex ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite",
               )}
               aria-label={`View step ${index + 1}`}
@@ -300,12 +300,12 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
           ))}
         </div>
       </div>
-      <div className={cn("mt-6 grid gap-6 md:grid-cols-[0.7fr_1.3fr]", "transform-gpu transition-all duration-[280ms] ease-out", flipMotionClass)}>
-        <div className="rounded-sm border border-brand/30 bg-brand/[0.08] px-6 py-5">
-          <p className="text-4xl font-semibold text-brand">{activeStepNumber}</p>
-          <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80">{activeStepIcon}</div>
+      <div className={cn("mt-5 grid gap-4 md:mt-6 md:gap-6 md:grid-cols-[0.7fr_1.3fr]", "transform-gpu transition-all duration-[280ms] ease-out", flipMotionClass)}>
+        <div className="flex items-center justify-between rounded-sm border border-brand/30 bg-brand/[0.08] px-4 py-4 md:block md:px-6 md:py-5">
+          <p className="text-3xl font-semibold text-brand md:text-4xl">{activeStepNumber}</p>
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-brand/25 bg-surface-white/80 md:mt-5 md:h-11 md:w-11">{activeStepIcon}</div>
         </div>
-        <div className="relative space-y-2 rounded-sm border border-border-subtle/70 bg-surface-panel/25 p-5">
+        <div className="relative space-y-2 rounded-sm border border-border-subtle/70 bg-surface-panel/25 p-4 md:p-5">
           <button
             type="button"
             onClick={handleArrowAdvance}
@@ -314,7 +314,7 @@ export function ProcessStepperCarouselCard({ title, subtitle, steps }: { title: 
           >
             <ArrowRight className="h-4 w-4" strokeWidth={2} />
           </button>
-          <h3 className="pr-12 text-2xl font-semibold text-text-graphite">{activeStep?.title}</h3>
+          <h3 className="pr-12 text-xl font-semibold leading-tight text-text-graphite md:text-2xl">{activeStep?.title}</h3>
           <p className="text-sm leading-relaxed text-text-neutral">{activeStep?.body}</p>
           {activeStep?.note ? <p className="pt-2 text-xs uppercase tracking-[0.13em] text-text-neutral">{activeStep.note}</p> : null}
         </div>
@@ -386,7 +386,7 @@ export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: bo
   const baselinePath = executionAware ? "M72 210 L468 156" : "M72 210 L468 96";
 
   return (
-    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-4">
+    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-2 md:p-4">
       <svg className="h-full w-full" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label={executionAware ? "Execution-aware equity curve diagnostics" : "Naive backtest equity curve diagnostics"}>
         {[72, 138, 204, 270, 336, 402, 468].map((x) => (
           <line key={`v-${x}`} x1={x} y1={28} x2={x} y2={216} stroke="rgba(113,113,122,0.16)" strokeWidth="1" />
@@ -420,7 +420,7 @@ export function NaiveVsExecutionVisual({ executionAware }: { executionAware?: bo
         </text>
       </svg>
 
-      <div className="absolute left-4 top-4 rounded-sm border border-border-subtle bg-surface-white/95 px-3 py-2 text-xs backdrop-blur-sm">
+      <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-sm border border-border-subtle bg-surface-white/95 px-2.5 py-2 text-[11px] backdrop-blur-sm md:left-4 md:top-4 md:px-3 md:text-xs">
         <div className="inline-flex items-center gap-2">
           <span className="h-[2px] w-6 bg-brand" aria-hidden />
           <span className="text-text-graphite">{executionAware ? "Strategy Equity (Execution-Aware)" : "Strategy Equity (Naïve)"}</span>
@@ -439,7 +439,7 @@ export function StrategyBenchmarkVisual() {
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-brand" />Strategy</span>
         <span className="inline-flex items-center gap-2"><span className="h-[2px] w-6 bg-[#4f6b95]" />Benchmark</span>
       </div>
-      <div className="relative h-64 rounded-sm border border-border-subtle bg-surface-panel/45 p-4">
+      <div className="relative h-[15rem] rounded-sm border border-border-subtle bg-surface-panel/45 p-2 md:h-64 md:p-4">
         <svg className="h-full w-full" viewBox="0 0 460 260" preserveAspectRatio="xMidYMid meet">
           <text x="8" y="20" fill="#666" fontSize="12">Cumulative Return (%)</text>
           <text x="395" y="238" fill="#666" fontSize="12">Quarter</text>
@@ -465,19 +465,19 @@ export function RegimeHeatmapVisual() {
   return (
     <div className="space-y-3">
       <div className="text-xs text-text-neutral">Score legend: pale = weak robustness, deep red = resilient regime performance</div>
-      <div className="grid grid-cols-[120px_1fr] gap-2">
-        <div className="grid gap-1 text-[10px] uppercase tracking-[0.1em] text-text-neutral">
+      <div className="grid grid-cols-[5.25rem_1fr] gap-2 md:grid-cols-[120px_1fr]">
+        <div className="grid gap-1 text-[9px] uppercase tracking-[0.04em] text-text-neutral md:text-[10px] md:tracking-[0.1em]">
           {rows.map((row) => (
-            <div key={row} className="flex h-9 items-center justify-end pr-2">{row}</div>
+            <div key={row} className="flex h-8 items-center justify-end pr-1.5 md:h-9 md:pr-2">{row}</div>
           ))}
         </div>
         <div className="grid grid-cols-5 gap-1">
           {Array.from({ length: rows.length * cols.length }).map((_, i) => (
-            <div key={i} className="h-9 rounded-[2px]" style={{ backgroundColor: `rgba(176,0,32,${0.1 + ((i % 5) + Math.floor(i / 5)) * 0.11})` }} />
+            <div key={i} className="h-8 rounded-[2px] md:h-9" style={{ backgroundColor: `rgba(176,0,32,${0.1 + ((i % 5) + Math.floor(i / 5)) * 0.11})` }} />
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-5 gap-1 text-center text-[10px] uppercase tracking-[0.1em] text-text-neutral">
+      <div className="ml-[5.75rem] grid grid-cols-5 gap-1 text-center text-[9px] uppercase tracking-[0.04em] text-text-neutral md:ml-[8rem] md:text-[10px] md:tracking-[0.1em]">
         {cols.map((col) => (
           <span key={col}>{col}</span>
         ))}

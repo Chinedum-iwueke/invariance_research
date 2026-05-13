@@ -23,8 +23,8 @@ export function SectionHeader({ eyebrow, title, description, align }: SectionHea
   return (
     <header className={cn(sectionHeaderVariants({ align }))}>
       {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-      <h2 className="text-3xl font-semibold leading-tight">{title}</h2>
-      {description ? <p className="max-w-3xl text-base leading-relaxed text-text-neutral">{description}</p> : null}
+      <h2 className="text-[1.7rem] font-semibold leading-[1.14] md:text-3xl md:leading-tight">{title}</h2>
+      {description ? <p className="max-w-3xl text-[0.95rem] leading-relaxed text-text-neutral md:text-base">{description}</p> : null}
     </header>
   );
 }

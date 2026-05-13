@@ -89,10 +89,17 @@
   @apply border-border-subtle;
 }
 
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
 body {
   @apply bg-surface-white text-text-institutional antialiased;
   font-family: var(--font-montserrat), sans-serif;
   font-feature-settings: "ss01" on, "cv01" on;
+  overflow-x: hidden;
 }
 
 h1,
@@ -119,6 +126,14 @@ h4 {
   .card-shell {
     @apply rounded-md border border-border-subtle bg-surface-white shadow-soft;
   }
+
+  .mobile-cta-row {
+    @apply flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3;
+  }
+
+  .mobile-cta-row > * {
+    @apply min-w-0 max-w-full w-full break-words whitespace-normal sm:w-auto;
+  }
 }
 
 @layer utilities {
@@ -143,5 +158,36 @@ h4 {
       transform: translateY(2px);
       opacity: 0.7;
     }
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --container-inline-padding: 1.125rem;
+    --section-xs: 1.5rem;
+    --section-sm: 2.25rem;
+    --section-md: 3rem;
+    --section-lg: 3.5rem;
+    --section-xl: 4rem;
+    --card-padding-md: 1.125rem;
+    --card-padding-lg: 1.375rem;
+    --chart-height-sm: 11rem;
+    --chart-height-md: 14.25rem;
+    --chart-height-lg: 17rem;
+  }
+
+  .container-shell {
+    @apply px-[var(--container-inline-padding)];
+  }
+
+  .eyebrow {
+    @apply text-[10px] leading-relaxed tracking-[0.13em];
+  }
+}
+
+@media (max-width: 374px) {
+  :root {
+    --container-inline-padding: 1rem;
+    --chart-height-md: 13.5rem;
   }
 }

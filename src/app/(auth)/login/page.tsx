@@ -44,10 +44,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-border-subtle bg-surface-white p-8">
-        <div className="flex flex-col items-center gap-5 text-center">
-          <LogoMonogram className="h-14 w-auto md:h-16" priority />
+    <main className="flex min-h-screen items-center justify-center bg-surface-panel/30 px-4 py-6 sm:px-6 md:py-10">
+      <div className="w-full max-w-md space-y-5 rounded-lg border border-border-subtle bg-surface-white p-5 shadow-soft sm:p-8">
+        <div className="flex flex-col items-center gap-4 text-center md:gap-5">
+          <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <div>
             <h1 className="text-2xl font-semibold">Sign in</h1>
             <p className="mt-1 text-sm text-text-neutral">Access your validation workspace.</p>
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         <button
           onClick={() => signIn("google", { callbackUrl: "/app" })}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-subtle bg-white px-4 py-2.5 text-sm font-medium text-text-strong transition hover:border-neutral-300 hover:shadow-sm"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-sm border border-border-subtle bg-white px-4 py-2.5 text-sm font-medium text-text-graphite transition hover:border-neutral-300 hover:shadow-sm"
         >
           <GoogleMark />
           <span>Continue with Google</span>
@@ -64,18 +64,18 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border-subtle" />
-          <span className="text-xs uppercase tracking-[0.14em] text-text-muted">or</span>
+          <span className="text-xs uppercase tracking-[0.14em] text-text-neutral">or</span>
           <div className="h-px flex-1 bg-border-subtle" />
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 w-full rounded-lg border p-2" /></label>
-          <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required className="mt-1 w-full rounded-lg border p-2" /></label>
+          <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
+          <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           {oauthError ? (
             <p className="text-xs text-red-600">Google sign-in succeeded, but we could not finish creating your workspace. Please try again.</p>
           ) : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
-          <button disabled={busy} className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
+          <button disabled={busy} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
         </form>
         <p className="text-sm text-neutral-600">New to the platform? <Link href="/signup" className="underline">Create account</Link></p>
       </div>

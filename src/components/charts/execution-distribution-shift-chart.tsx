@@ -3,7 +3,7 @@ export function ExecutionDistributionShiftChart() {
   const yTicks = [0, 0.05, 0.1, 0.15, 0.2].map((value, idx) => ({ value, y: 216 - idx * 39 }));
 
   return (
-    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-4">
+    <div className="relative h-[var(--chart-height-md)] overflow-hidden rounded-sm border border-border-subtle bg-surface-white p-2 md:p-4">
       <svg className="h-full w-full" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Expected return distribution comparison for naive and execution-aware assumptions">
         <rect x="0" y="0" width="520" height="280" fill="transparent" />
 

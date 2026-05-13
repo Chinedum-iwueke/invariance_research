@@ -14,7 +14,7 @@ export function FeatureGrid({ columns = 3 }: { columns?: 2 | 3 | 4 }) {
 
   return (
     <div
-      className={cn("grid gap-6", {
+      className={cn("grid gap-4 md:gap-6", {
         "md:grid-cols-2": columns === 2,
         "md:grid-cols-3": columns === 3,
         "md:grid-cols-4": columns === 4,
@@ -23,7 +23,7 @@ export function FeatureGrid({ columns = 3 }: { columns?: 2 | 3 | 4 }) {
       {features.slice(0, columns === 4 ? 4 : columns === 2 ? 2 : 3).map(([title, description], index) => {
         const Icon = iconMap[index];
         return (
-          <Card key={title} className="space-y-4 p-card-md">
+          <Card key={title} className="space-y-3 p-card-md md:space-y-4">
             <Icon className="h-5 w-5 text-brand" />
             <h4 className="text-lg font-semibold">{title}</h4>
             <p className="text-sm leading-relaxed text-text-neutral">{description}</p>

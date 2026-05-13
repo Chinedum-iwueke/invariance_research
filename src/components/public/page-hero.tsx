@@ -15,13 +15,13 @@ interface PageHeroProps {
 
 export function PageHero({ eyebrow, title, description, primaryCta, secondaryCta, tertiaryCta, credibilityLine, rightSlot }: PageHeroProps) {
   return (
-    <section className="container-shell grid gap-10 py-section-lg md:grid-cols-[1.2fr_1fr] md:items-center">
-      <div className="space-y-5">
+    <section className="container-shell grid gap-8 py-section-md md:gap-10 md:py-section-lg md:grid-cols-[1.2fr_1fr] md:items-center">
+      <div className="space-y-4 md:space-y-5">
         {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-        <h1 className="max-w-3xl text-[clamp(2rem,4.6vw,3.25rem)] font-semibold leading-[1.08]">{title}</h1>
-        <p className="max-w-2xl text-lg leading-relaxed text-text-neutral">{description}</p>
+        <h1 className="max-w-3xl text-[clamp(2rem,9vw,2.55rem)] font-semibold leading-[1.08] md:text-[clamp(2.45rem,4.6vw,3.25rem)]">{title}</h1>
+        <p className="max-w-2xl text-[1rem] leading-[1.72] text-text-neutral md:text-lg md:leading-relaxed">{description}</p>
         {(primaryCta || secondaryCta) && (
-          <div className="flex flex-wrap gap-3">
+          <div className="mobile-cta-row">
             {primaryCta ? <Link href={primaryCta.href} className={buttonVariants()}>{primaryCta.label}</Link> : null}
             {secondaryCta ? <Link href={secondaryCta.href} className={buttonVariants({ variant: "secondary" })}>{secondaryCta.label}</Link> : null}
           </div>

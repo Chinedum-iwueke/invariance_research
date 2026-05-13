@@ -22,6 +22,12 @@ export function HeroOverlayBackground({ src = DEFAULT_HERO_OVERLAY_SRC }: { src?
   const baseGradientClass = isDarkTheme
     ? "bg-gradient-to-br from-[#0f1216] via-[#15191e] to-[#111419]"
     : "bg-gradient-to-br from-[#ffffff] via-[#fcfbf9] to-[#f6f1eb]";
+  const imageFocalClass = src.includes("overlay_graphic_2")
+    ? "object-[62%_50%] sm:object-[68%_50%] md:object-center"
+    : "object-[58%_50%] sm:object-[64%_50%] md:object-center";
+  const mobileRevealClass = isDarkTheme
+    ? "bg-[linear-gradient(180deg,rgba(18,20,24,0.12)_0%,rgba(18,20,24,0.00)_34%,rgba(18,20,24,0.24)_100%)] md:hidden"
+    : "bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.00)_34%,rgba(255,255,255,0.24)_100%)] md:hidden";
 
   return (
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -34,12 +40,13 @@ export function HeroOverlayBackground({ src = DEFAULT_HERO_OVERLAY_SRC }: { src?
           fill
           priority
           sizes="100vw"
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass}`}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${mediaOpacityClass} ${imageFocalClass}`}
           onError={() => setImageUnavailable(true)}
         />
       ) : null}
       <div className={`absolute inset-0 transition-colors duration-300 ${globalWashClass}`} />
       <div className={`absolute inset-0 transition-colors duration-300 ${directionalWashClass}`} />
+      <div className={`absolute inset-0 transition-colors duration-300 ${mobileRevealClass}`} />
       <div className={`absolute inset-0 transition-colors duration-300 ${rightRevealClass}`} />
       {imageUnavailable ? (
         <div

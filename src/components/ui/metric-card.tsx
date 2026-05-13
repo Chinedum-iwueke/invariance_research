@@ -27,7 +27,7 @@ export function MetricCard({ label, value, helper, delta, tone }: MetricCardProp
   return (
     <Card className="space-y-3 p-card-md">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">{label}</p>
-      <p className="text-4xl font-medium tracking-tight">{value}</p>
+      <p className="text-3xl font-medium tracking-tight md:text-4xl">{value}</p>
       <div className="flex items-center justify-between text-sm">
         <p className="text-text-neutral">{helper}</p>
         {delta ? <p className={cn("font-medium", toneStyles({ tone }))}>{delta}</p> : null}

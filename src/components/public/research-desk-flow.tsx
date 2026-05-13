@@ -28,15 +28,15 @@ export function ResearchDeskFlow() {
 
   return (
     <section className="container-shell py-section-sm">
-      <div className="rounded-lg border border-border-subtle bg-surface-white p-5 md:p-7">
+      <div className="rounded-lg border border-border-subtle bg-surface-white p-4 md:p-7">
         <div className="mb-6 max-w-3xl space-y-2">
-          <h2 className="text-2xl font-semibold text-text-institutional md:text-3xl">From idea to evidence</h2>
-          <p className="text-base text-text-neutral">Research Desk is designed to turn vague market intuition into a disciplined, AI-assisted research process.</p>
+          <h2 className="text-xl font-semibold leading-tight text-text-institutional md:text-3xl">From idea to evidence</h2>
+          <p className="text-sm leading-relaxed text-text-neutral md:text-base">Research Desk is designed to turn vague market intuition into a disciplined, AI-assisted research process.</p>
         </div>
 
         <div className="space-y-6">
           <div className="relative overflow-x-auto pb-2">
-            <div className="relative min-w-[48rem]">
+            <div className="relative min-w-[42rem] md:min-w-0">
               <div className="absolute left-0 right-0 top-4 h-px bg-border-subtle" />
               <div className="absolute left-0 top-4 h-px bg-gradient-to-r from-brand/75 via-brand/45 to-brand/15 transition-all duration-500" style={{ width: traceWidth }} />
               <div className="grid grid-cols-7 gap-3">

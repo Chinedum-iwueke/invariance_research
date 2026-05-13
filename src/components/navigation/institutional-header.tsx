@@ -67,6 +67,7 @@ function AccountArea({ authenticated }: { authenticated: boolean }) {
 
 export function InstitutionalHeader({ authenticated = false }: { authenticated?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "OUR APPROACH": true });
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -106,22 +107,52 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
         </button>
       </div>
 
-      <div className={cn("border-t lg:hidden", mobileOpen ? "block" : "hidden")}>
-        <div className="container-shell space-y-3 py-4">
+      <div className={cn("overflow-hidden border-t bg-surface-white/98 shadow-soft backdrop-blur lg:hidden", mobileOpen ? "max-h-[calc(100svh-5rem)] opacity-100" : "max-h-0 opacity-0", "transition-[max-height,opacity] duration-300 ease-out")}>
+        <div className="container-shell max-h-[calc(100svh-5rem)] overflow-y-auto py-3">
           {headerNavGroups.map((group) => (
-            <div key={group.label} className="space-y-1">
-              <p className="text-[11px] font-bold tracking-[0.12em] text-text-neutral">{group.label}</p>
-              {group.items.map((item) => (
-                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className="block rounded-sm px-2 py-1 text-sm hover:bg-surface-panel">
-                  {item.label}
-                </Link>
-              ))}
+            <div key={group.label} className="border-b border-border-subtle/70 last:border-b-0">
+              <button
+                type="button"
+                onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))}
+                className="flex min-h-12 w-full items-center justify-between gap-4 py-2 text-left"
+                aria-expanded={Boolean(openGroups[group.label])}
+              >
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-neutral">{group.label}</span>
+                <ChevronDown className={cn("h-4 w-4 text-brand transition-transform duration-300", openGroups[group.label] && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out", openGroups[group.label] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                <div className="overflow-hidden">
+                  <div className="space-y-1 pb-3">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="block rounded-sm border-l-2 border-transparent px-3 py-2.5 text-sm text-text-graphite transition-colors hover:border-brand hover:bg-surface-panel"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
-          <div className="flex items-center gap-2 pt-2">
-            <Link href="/contact" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm" })}>
+          <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 pt-4">
+            <Link href="/contact" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", className: "w-full" })}>
               Request Audit
             </Link>
+            {authenticated ? (
+              <Link href="/account" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full gap-2" })}>
+                <CircleUserRound className="h-4 w-4" />
+                Account
+              </Link>
+            ) : (
+              <Link href="/login" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full gap-2" })}>
+                <LogIn className="h-4 w-4" />
+                Sign In
+              </Link>
+            )}
             <ThemeToggle />
           </div>
         </div>
