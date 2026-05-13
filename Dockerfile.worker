@@ -30,8 +30,6 @@ RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install -e /opt/bulletproof_bt \
     && /opt/venv/bin/python /opt/invariance_research/scripts/run_bulletproof_engine.py --probe
 
-RUN npm run build
-
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
   CMD ./node_modules/.bin/tsx scripts/healthcheck-worker.ts
 
