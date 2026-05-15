@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { PublicShell } from "@/components/public/public-shell";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -80,11 +81,12 @@ function SpecTable({ rows, required = false }: { rows: readonly { field: string;
 
 export default function LabDocsPage() {
   return (
+    <PublicShell>
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-12 lg:px-10">
-      <section className="space-y-4 rounded-md border border-border-subtle bg-surface-white p-8">
+      <section className="public-hero-band space-y-4 rounded-sm border border-border-subtle p-8">
         <div className="h-1 w-20 rounded-full bg-brand" />
-        <p className="inline-flex rounded-full border border-brand/30 bg-brand/5 px-3 py-1 text-xs font-medium uppercase tracking-wide text-brand">Canonical Upload Specification</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-text-institutional">Strategy Robustness Lab Docs</h1>
+        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Canonical Upload Specification</p>
+        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Strategy Robustness Lab Docs</h1>
         <p className="text-base text-text-neutral">Accepted upload formats, supported fields, runtime assumptions, and what each artifact unlocks.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
           The lab can analyze multiple artifact classes, but richer uploads unlock deeper diagnostics and stronger interpretation fidelity. Treat this page as the canonical upload and runtime specification for Strategy Robustness Lab.
@@ -109,15 +111,15 @@ export default function LabDocsPage() {
           value: "Benchmark + account size + risk %",
           detail: "Set before running analysis",
         }].map((item) => (
-          <article key={item.label} className="rounded-md border border-border-subtle bg-surface-white p-4">
-            <p className="text-xs uppercase tracking-wide text-text-neutral">{item.label}</p>
+          <article key={item.label} className="artifact-surface p-4">
+            <p className="font-provenance text-xs uppercase tracking-wide text-brand">{item.label}</p>
             <p className="mt-1 text-sm font-semibold text-text-institutional">{item.value}</p>
             <p className="mt-1 text-xs text-text-neutral">{item.detail}</p>
           </article>
         ))}
       </section>
 
-      <section className="space-y-4 rounded-md border border-border-subtle bg-surface-white p-8">
+      <section className="space-y-4 rounded-sm border border-border-subtle bg-surface-paper p-8">
         <h2 className="text-xl font-semibold text-text-institutional">Accepted Upload Types</h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <article className="rounded-md border border-border-subtle p-4">
@@ -262,5 +264,6 @@ export default function LabDocsPage() {
         </div>
       </section>
     </main>
+    </PublicShell>
   );
 }

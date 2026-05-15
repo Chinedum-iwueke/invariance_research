@@ -15,6 +15,10 @@ import { assertUsageWithinPlan } from "../src/lib/server/entitlements/usage";
 import { createAnalysisFromArtifact } from "../src/lib/server/services/analysis-service";
 import { getAppSecondaryItems } from "../src/lib/app/navigation";
 import { authConfig, getMissingAuthEnvVars, provisionGoogleOAuthUser } from "../src/lib/server/auth/auth";
+import { authTokenRepository, generateAuthToken, hashAuthToken } from "../src/lib/server/auth/tokens";
+import { assignUserRole } from "../src/lib/server/admin/roles";
+import { isAdminIdentity } from "../src/lib/server/admin/guards";
+import { listAdminAuditLog, writeAdminAuditLog } from "../src/lib/server/admin/audit-log";
 import { getDb, closeDbForTests } from "../src/lib/server/persistence/database";
 
 function resetDb() {
@@ -29,6 +33,9 @@ function resetDb() {
     DELETE FROM usage_snapshots;
     DELETE FROM entitlement_snapshots;
     DELETE FROM subscriptions;
+    DELETE FROM admin_audit_log;
+    DELETE FROM user_roles;
+    DELETE FROM auth_tokens;
     DELETE FROM accounts;
     DELETE FROM users;
   `);
@@ -124,9 +131,98 @@ test("admin nav item only appears for admin users", () => {
   assert.equal(getAppSecondaryItems(true).some((item) => item.label === "Admin Ops"), true);
 });
 
-test("settings stays dormant until real account controls exist", () => {
-  assert.equal(getAppSecondaryItems(false).some((item) => item.href === "/app/settings"), false);
-  assert.equal(getAppSecondaryItems(true).some((item) => item.href === "/app/settings"), false);
+test("settings appears once real account controls exist", () => {
+  assert.equal(getAppSecondaryItems(false).some((item) => item.href === "/app/settings"), true);
+  assert.equal(getAppSecondaryItems(true).some((item) => item.href === "/app/settings"), true);
+});
+
+test("signup creates unverified password user and blocks credentials until verification", async () => {
+  const created = await accountService.createUserAndAccountWithPassword({
+    email: "verify@example.com",
+    password: "StrongPass123",
+  });
+
+  const row = getDb().prepare("SELECT email_verified_at FROM users WHERE user_id = ?").get(created.user.user_id) as { email_verified_at: string | null };
+  assert.equal(row.email_verified_at, null);
+  assert.equal(await accountService.authenticateWithPassword({ email: "verify@example.com", password: "StrongPass123" }), undefined);
+
+  const tokenRow = getDb().prepare("SELECT token_hash FROM auth_tokens WHERE user_id = ? AND purpose = ? AND consumed_at IS NULL").get(created.user.user_id, "email_verification") as { token_hash: string } | undefined;
+  assert.ok(tokenRow?.token_hash);
+});
+
+test("verification token validates once and expired token is rejected", async () => {
+  const { user } = await accountService.createUserAndAccountWithPassword({ email: "token@example.com", password: "StrongPass123" });
+  const { token, tokenHash } = generateAuthToken();
+  await authTokenRepository.create({ userId: user.user_id, purpose: "email_verification", tokenHash, expiresAt: new Date(Date.now() + 60_000).toISOString() });
+
+  const verified = await accountService.verifyEmailToken(token);
+  assert.equal(verified.ok, true);
+  const updated = getDb().prepare("SELECT email_verified_at FROM users WHERE user_id = ?").get(user.user_id) as { email_verified_at: string | null };
+  assert.ok(updated.email_verified_at);
+  assert.equal((await accountService.verifyEmailToken(token)).ok, false);
+
+  const expired = generateAuthToken();
+  await authTokenRepository.create({ userId: user.user_id, purpose: "email_verification", tokenHash: expired.tokenHash, expiresAt: new Date(Date.now() - 60_000).toISOString() });
+  assert.equal((await accountService.verifyEmailToken(expired.token)).ok, false);
+});
+
+test("resend verification replaces outstanding verification token", async () => {
+  const { user } = await accountService.createUserAndAccountWithPassword({ email: "resend@example.com", password: "StrongPass123" });
+  await accountService.resendVerificationEmail({ email: user.email });
+  const rows = getDb().prepare("SELECT consumed_at FROM auth_tokens WHERE user_id = ? AND purpose = ?").all(user.user_id, "email_verification") as Array<{ consumed_at: string | null }>;
+  assert.equal(rows.filter((row) => !row.consumed_at).length, 1);
+  assert.ok(rows.some((row) => row.consumed_at));
+});
+
+test("forgot and reset password flow is neutral and invalidates old password", async () => {
+  const { user } = await accountService.createUserAndAccountWithPassword({ email: "reset@example.com", password: "StrongPass123" });
+  getDb().prepare("UPDATE users SET email_verified_at = ? WHERE user_id = ?").run(new Date().toISOString(), user.user_id);
+
+  assert.deepEqual(await accountService.requestPasswordReset({ email: "missing@example.com" }), { ok: true });
+  assert.deepEqual(await accountService.requestPasswordReset({ email: "reset@example.com" }), { ok: true });
+
+  const { token, tokenHash } = generateAuthToken();
+  await authTokenRepository.create({ userId: user.user_id, purpose: "password_reset", tokenHash, expiresAt: new Date(Date.now() + 60_000).toISOString() });
+  assert.equal((await accountService.resetPassword({ token, password: "NewStrongPass123" })).ok, true);
+  assert.equal(await accountService.authenticateWithPassword({ email: "reset@example.com", password: "StrongPass123" }), undefined);
+  assert.ok(await accountService.authenticateWithPassword({ email: "reset@example.com", password: "NewStrongPass123" }));
+});
+
+test("google oauth verified email is marked verified", async () => {
+  const provisioned = await provisionGoogleOAuthUser({ email: "verified.google@example.com", name: "Verified Google", emailVerified: true });
+  const row = getDb().prepare("SELECT email_verified_at FROM users WHERE user_id = ?").get(provisioned.user.user_id) as { email_verified_at: string | null };
+  assert.ok(row.email_verified_at);
+});
+
+test("admin bootstrap and db-backed admin roles authorize without persistent allowlist dependence", async () => {
+  const { user } = await accountService.ensureUserAndAccount({ email: "admin@example.com" });
+  assert.equal(await isAdminIdentity({ user_id: user.user_id, email: user.email }), true);
+  const role = getDb().prepare("SELECT role FROM user_roles WHERE user_id = ?").get(user.user_id) as { role: string } | undefined;
+  assert.equal(role?.role, "owner");
+
+  process.env.ADMIN_EMAILS = "";
+  const { user: dbAdmin } = await accountService.ensureUserAndAccount({ email: "db-admin@example.com" });
+  await assignUserRole({ userId: dbAdmin.user_id, role: "admin", createdBy: user.user_id });
+  assert.equal(await isAdminIdentity({ user_id: dbAdmin.user_id, email: dbAdmin.email }), true);
+  const { user: normal } = await accountService.ensureUserAndAccount({ email: "normal@example.com" });
+  assert.equal(await isAdminIdentity({ user_id: normal.user_id, email: normal.email }), false);
+  process.env.ADMIN_EMAILS = "admin@example.com";
+});
+
+test("audit log records admin action metadata without token material", async () => {
+  const { user } = await accountService.ensureUserAndAccount({ email: "auditor@example.com" });
+  await writeAdminAuditLog({
+    actor: { user_id: user.user_id, email: user.email },
+    action: "role.change",
+    resourceType: "user",
+    resourceId: "target-user",
+    metadata: { role: "admin", token_hash: hashAuthToken("not-logged-token") },
+  });
+  const rows = await listAdminAuditLog();
+  assert.equal(rows[0]?.action, "role.change");
+  assert.equal(rows[0]?.resource_type, "user");
+  assert.equal((rows[0]?.metadata as any).role, "admin");
+  assert.doesNotMatch(JSON.stringify(rows[0]), /not-logged-token/);
 });
 
 test("auth session config persists login and jwt/session callbacks preserve identity across navigation", async () => {

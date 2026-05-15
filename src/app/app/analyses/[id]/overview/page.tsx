@@ -6,6 +6,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
+import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
 import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { metricsFromScoreBands, selectOverviewTopMetrics } from "@/lib/app/analysis-ui";
@@ -102,7 +103,30 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
 
   return (
-    <AnalysisPageFrame title="Overview" description="Immediate robustness and risk posture for this strategy under execution-aware validation.">
+    <AnalysisPageFrame title="Overview" description="Case-file cover sheet for this strategy: verdict, evidence coverage, diagnostic support, and the next experiment.">
+      <section className="grid gap-5 rounded-md border border-border-subtle bg-surface-paper p-card-lg shadow-soft xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-4">
+          <p className="eyebrow text-brand">Analysis case file</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-[clamp(2.25rem,5vw,4rem)] leading-none tracking-normal text-text-institutional">{record.strategy.strategy_name}</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-text-neutral">{record.summary.headline_verdict.summary}</p>
+            </div>
+            <EvidenceStatusBadge state={normalizeEvidenceState(record.summary.headline_verdict.status)} label={toTitleCase(record.summary.headline_verdict.status)} />
+          </div>
+          <div className="grid gap-3 border-t border-border-subtle pt-4 text-sm text-text-neutral md:grid-cols-3">
+            <p><span className="font-medium text-text-graphite">Artifact:</span> {toTitleCase(artifactRichness)}</p>
+            <p><span className="font-medium text-text-graphite">Evidence coverage:</span> {completeness}/8 diagnostics</p>
+            <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+          <EvidenceStatePanel state={completeness >= 5 ? "supported" : "limited"} title="Strongest support" body={record.diagnostics.overview.interpretation.summary} reasonCode="overview.verdict" />
+          <EvidenceStatePanel state={executionContextLevel === "available" ? "supported" : "limited"} title="Strongest doubt" body={`Execution context is ${toTitleCase(executionContextLevel)} for this artifact.`} reasonCode="execution.context" />
+          <EvidenceStatePanel state={benchmarkStatus === "available" ? "supported" : "unsupported"} title="Next experiment" body={benchmarkStatus === "available" ? "Review benchmark-relative evidence and report limitations." : "Add benchmark or market-context data before relying on relative-performance claims."} reasonCode="next.experiment" />
+        </div>
+      </section>
+
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill label="Artifact" value={toTitleCase(artifactRichness)} tone="neutral" />
         <StatusPill label="Benchmark" value={benchmarkStatusLabel(benchmarkStatus)} tone={benchmarkStatus === "available" ? "positive" : "warning"} />
@@ -163,11 +187,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           {diagnosticRows(record).map((row, index) => (
             <div key={`${row.name}-${index}`} className="flex items-center justify-between rounded-md border border-border-subtle bg-surface-muted px-3 py-2 text-sm">
               <span className="font-medium text-text-graphite">{toTitleCase(row.name)}</span>
-              <StatusPill
-                label=""
-                value={toTitleCase(row.status)}
-                tone={row.status === "available" ? "positive" : row.status === "limited" ? "warning" : "neutral"}
-              />
+              <EvidenceStatusBadge state={normalizeEvidenceState(row.status)} label={toTitleCase(row.status)} compact />
             </div>
           ))}
         </div>

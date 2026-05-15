@@ -44,13 +44,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-panel/30 px-4 py-6 sm:px-6 md:py-10">
-      <div className="w-full max-w-md space-y-5 rounded-lg border border-border-subtle bg-surface-white p-5 shadow-soft sm:p-8">
+    <main className="public-hero-band flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 md:py-10">
+      <div className="artifact-surface w-full max-w-md space-y-5 overflow-hidden p-5 sm:p-8">
+        <div className="-mx-5 -mt-5 h-1 bg-brand sm:-mx-8 sm:-mt-8" />
         <div className="flex flex-col items-center gap-4 text-center md:gap-5">
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <div>
-            <h1 className="text-2xl font-semibold">Sign in</h1>
-            <p className="mt-1 text-sm text-text-neutral">Access your validation workspace.</p>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Workspace access</p>
+            <h1 className="font-display mt-2 text-4xl font-medium leading-none">Sign in</h1>
+            <p className="mt-2 text-sm text-text-neutral">Access your validation workspace.</p>
           </div>
         </div>
 
@@ -77,7 +79,10 @@ export default function LoginPage() {
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
           <button disabled={busy} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
         </form>
-        <p className="text-sm text-neutral-600">New to the platform? <Link href="/signup" className="underline">Create account</Link></p>
+        <div className="flex flex-wrap justify-between gap-2 text-sm text-neutral-600">
+          <span>New to the platform? <Link href="/signup" className="underline">Create account</Link></span>
+          <Link href="/account/forgot-password" className="underline">Forgot password?</Link>
+        </div>
       </div>
     </main>
   );

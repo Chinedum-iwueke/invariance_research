@@ -1,24 +1,35 @@
 import type { AnalysisRecord, FigurePayload, ScoreBand } from "@/lib/contracts";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
-import type { ExportFormat } from "@/lib/server/exports/models";
+import type { ExportFormat, ReportSnapshotRecord } from "@/lib/server/exports/models";
 
 export function renderExport(record: AnalysisRecord, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
+  return renderExportPayload({ record, snapshot: undefined }, format);
+}
+
+export function renderExportFromSnapshot(snapshot: ReportSnapshotRecord, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
+  return renderExportPayload({ record: snapshot.payload.record, snapshot }, format);
+}
+
+function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportSnapshotRecord }, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
+  const { record, snapshot } = input;
   if (format === "json") {
-    const json = JSON.stringify(record, null, 2);
-    return { bytes: new Uint8Array(Buffer.from(json, "utf-8")), content_type: "application/json", file_name: `${record.analysis_id}.json` };
+    const json = JSON.stringify(snapshot?.payload ?? record, null, 2);
+    const suffix = snapshot ? `report-snapshot-${snapshot.snapshot_id.slice(0, 8)}` : "report";
+    return { bytes: new Uint8Array(Buffer.from(json, "utf-8")), content_type: "application/json", file_name: `${record.analysis_id}-${suffix}.json` };
   }
 
-  const report = buildReportViewModel(record);
+  const report = snapshot?.payload.report_view ?? buildReportViewModel(record);
 
   if (format === "pdf") {
-    const pdf = buildInstitutionalPdf(record, report);
-    return { bytes: pdf, content_type: "application/pdf", file_name: `${record.analysis_id}-validation-report.pdf` };
+    const pdf = buildInstitutionalPdf(record, report, snapshot);
+    return { bytes: pdf, content_type: "application/pdf", file_name: `${record.analysis_id}-validation-report-${snapshot?.snapshot_id.slice(0, 8) ?? "live"}.pdf` };
   }
 
   const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
   const md = [
     `# Invariance Research Validation Report — ${record.strategy.strategy_name}`,
+    snapshot ? `Snapshot: ${snapshot.snapshot_id}` : undefined,
     `Generated: ${record.report.generated_at ?? new Date().toISOString()}`,
     "",
     "## Executive Summary",
@@ -35,9 +46,9 @@ export function renderExport(record: AnalysisRecord, format: ExportFormat): { by
     benchmark?.available
       ? `Strategy return: ${benchmark.summary_metrics?.strategy_return ?? "N/A"} | Benchmark return: ${benchmark.summary_metrics?.benchmark_return ?? "N/A"} | Excess return: ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}`
       : `Unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}`,
-  ].join("\n");
+  ].filter((line): line is string => line !== undefined).join("\n");
 
-  return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}.md` };
+  return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}-validation-report-${snapshot?.snapshot_id.slice(0, 8) ?? "live"}.md` };
 }
 
 interface PdfOp {
@@ -58,7 +69,7 @@ interface WrappedLine {
 
 const PAGE = { width: 612, height: 792, margin: 44 };
 
-function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>): Uint8Array {
+function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>, snapshot?: ReportSnapshotRecord): Uint8Array {
   const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const pages: PdfPage[] = [{ ops: [], charts: [] }];
@@ -116,6 +127,7 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   y -= 36;
 
   write("Institutional Validation Report", { size: 21, leading: 26, bold: true });
+  if (snapshot) write(`Snapshot: ${snapshot.snapshot_id}`, { size: 9, leading: 13 });
   write(`Strategy: ${record.strategy.strategy_name}`, { size: 11, leading: 16 });
   write(`Coverage: ${record.dataset.start_date ?? "N/A"} to ${record.dataset.end_date ?? "N/A"} | Trades: ${record.dataset.trade_count}`, { size: 10, leading: 14 });
   write(`Verdict: ${report.verdict.statusLabel} — ${report.verdict.headline}`, { size: 11, leading: 16, bold: true });

@@ -23,6 +23,12 @@ export type AnalysisEngineContext = {
   engine_name: string;
   engine_version?: string;
   seam?: string;
+  seam_name?: string;
+  seam_version?: string;
+  adapter_version?: string;
+  parser_version?: string;
+  capability_profile_version?: string;
+  diagnostic_contract_version?: string;
   degraded?: boolean;
   degradation_reasons?: string[];
   benchmark_config?: Record<string, unknown>;

@@ -35,6 +35,14 @@ const tables: TablePlan[] = [
     name: "analysis_jobs",
     columns: ["job_id", "analysis_id", "account_id", "job_type", "status", "progress_pct", "current_step", "error_code", "error_message", "created_at", "updated_at", "started_at", "finished_at", "retry_count", "attempts", "max_attempts", "available_at", "last_attempt_at", "leased_until", "last_error"],
   },
+  {
+    name: "export_jobs",
+    columns: ["export_job_id", "export_id", "analysis_id", "account_id", "status", "format", "progress_pct", "current_step", "error_code", "error_message", "retry_count", "created_at", "started_at", "finished_at", "available_at", "last_attempt_at"],
+  },
+  {
+    name: "exports",
+    columns: ["export_id", "analysis_id", "account_id", "requested_by_user_id", "format", "status", "storage_key", "content_type", "file_size_bytes", "checksum_sha256", "error_code", "error_message", "requested_at", "expires_at", "created_at", "updated_at"],
+  },
   { name: "webhook_events", columns: ["webhook_event_id", "provider", "provider_event_id", "event_type", "received_at", "processed_at", "status", "attempt_count", "error_summary", "payload_json"], jsonColumns: ["payload_json"] },
   {
     name: "publications",

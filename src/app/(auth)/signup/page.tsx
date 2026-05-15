@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LogoMonogram } from "@/components/ui/logo";
 
@@ -18,7 +17,6 @@ function GoogleMark() {
 }
 
 export default function SignupPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +24,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState(false);
   const mismatch = useMemo(() => confirmPassword.length > 0 && password !== confirmPassword, [password, confirmPassword]);
 
   useEffect(() => {
@@ -39,17 +38,21 @@ export default function SignupPage() {
     const signupResponse = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password, confirm_password: confirmPassword }) });
     const signupPayload = (await signupResponse.json()) as { error?: { message?: string } };
     if (!signupResponse.ok) return void (setError(signupPayload.error?.message ?? "Unable to create account."), setBusy(false));
-    const loginResult = await signIn("credentials", { email, password, redirect: false });
-    if (loginResult?.error) return void (setError("Account created, but automatic sign-in failed. Please sign in manually."), setBusy(false));
-    router.push("/app"); router.refresh();
+    setCreated(true);
+    setBusy(false);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-panel/30 px-4 py-5 sm:px-6 md:py-10">
-      <div className="w-full max-w-md space-y-5 rounded-lg border border-border-subtle bg-surface-white p-5 shadow-soft sm:p-8">
+    <main className="public-hero-band flex min-h-screen items-center justify-center px-4 py-5 sm:px-6 md:py-10">
+      <div className="artifact-surface w-full max-w-md space-y-5 overflow-hidden p-5 sm:p-8">
+        <div className="-mx-5 -mt-5 h-1 bg-brand sm:-mx-8 sm:-mt-8" />
         <div className="flex flex-col items-center gap-4 text-center md:gap-5">
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
-          <div><h1 className="text-2xl font-semibold">Create account</h1><p className="mt-1 text-sm text-text-neutral">Start with free diagnostics and request an audit for full validation depth.</p></div>
+          <div>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Lab intake</p>
+            <h1 className="font-display mt-2 text-4xl font-medium leading-none">Create account</h1>
+            <p className="mt-2 text-sm text-text-neutral">Start with free diagnostics and request an audit for full validation depth.</p>
+          </div>
         </div>
         <button
           onClick={() => signIn("google", { callbackUrl: "/app" })}
@@ -64,6 +67,11 @@ export default function SignupPage() {
           <div className="h-px flex-1 bg-border-subtle" />
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
+          {created ? (
+            <p className="rounded-sm border border-border-subtle bg-surface-panel px-3 py-2 text-sm text-text-graphite">
+              Account created. Check your email to verify your address before signing in.
+            </p>
+          ) : null}
           <label className="block text-sm">Name<input value={name} onChange={(event) => setName(event.target.value)} name="name" type="text" className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required minLength={10} className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
@@ -73,7 +81,7 @@ export default function SignupPage() {
           ) : null}
           {mismatch ? <p className="text-xs text-red-600">Passwords do not match.</p> : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
-          <button disabled={busy || mismatch} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Creating account..." : "Sign up for free"}</button>
+          <button disabled={busy || mismatch || created} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Creating account..." : created ? "Verification email sent" : "Sign up for free"}</button>
         </form>
         <p className="text-sm text-neutral-600">Already have an account? <Link href="/login" className="underline">Sign in</Link></p>
       </div>

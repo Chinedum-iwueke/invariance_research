@@ -23,7 +23,7 @@ export const userRepository: UserRepository = {
     const row = getDb().prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase()) as User | undefined;
     return row;
   },
-  save(input: { email: string; name?: string; password_hash?: string }) {
+  save(input: { email: string; name?: string; password_hash?: string; email_verified_at?: string }) {
     const now = new Date().toISOString();
     const user: User = {
       user_id: randomUUID(),
@@ -33,12 +33,14 @@ export const userRepository: UserRepository = {
       last_login_at: now,
       password_hash: input.password_hash,
       password_updated_at: input.password_hash ? now : undefined,
+      email_verified_at: input.email_verified_at,
+      session_version: 0,
     };
     getDb()
       .prepare(
-        "INSERT INTO users (user_id, email, name, created_at, last_login_at, password_hash, password_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (user_id, email, name, created_at, last_login_at, password_hash, password_updated_at, email_verified_at, session_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
-      .run(user.user_id, user.email, user.name ?? null, user.created_at, now, user.password_hash ?? null, user.password_updated_at ?? null);
+      .run(user.user_id, user.email, user.name ?? null, user.created_at, now, user.password_hash ?? null, user.password_updated_at ?? null, user.email_verified_at ?? null, user.session_version);
     return user;
   },
   touchLogin(userId: string) {
@@ -47,6 +49,12 @@ export const userRepository: UserRepository = {
   updatePassword(userId: string, passwordHash: string) {
     const now = new Date().toISOString();
     getDb().prepare("UPDATE users SET password_hash = ?, password_updated_at = ? WHERE user_id = ?").run(passwordHash, now, userId);
+  },
+  markEmailVerified(userId: string, verifiedAt = new Date().toISOString()) {
+    getDb().prepare("UPDATE users SET email_verified_at = ? WHERE user_id = ?").run(verifiedAt, userId);
+  },
+  incrementSessionVersion(userId: string) {
+    getDb().prepare("UPDATE users SET session_version = COALESCE(session_version, 0) + 1 WHERE user_id = ?").run(userId);
   },
 };
 

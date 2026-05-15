@@ -58,6 +58,8 @@ export async function runAnalysisWorkerRuntime() {
     throw new Error("Analysis worker runtime requires WORKER_MODE=external.");
   }
   const workerInstanceId = process.env.INVARIANCE_WORKER_INSTANCE_ID || createWorkerInstanceId();
+  const concurrency = positiveIntegerEnv("INVARIANCE_ANALYSIS_WORKER_CONCURRENCY", 1);
+  const maxActive = positiveIntegerEnv("INVARIANCE_ANALYSIS_WORKER_MAX_ACTIVE", concurrency);
   const databaseProvider = getDatabaseProvider();
   const storageProvider = getObjectStorageProvider();
   const llmProvider = process.env.LLM_PROVIDER?.trim().toLowerCase() || "ollama";
@@ -67,9 +69,16 @@ export async function runAnalysisWorkerRuntime() {
     object_storage_provider: storageProvider,
     llm_provider: llmProvider,
     worker_instance_id: workerInstanceId,
+    concurrency,
+    max_active: maxActive,
   });
   await validateAnalysisWorkerDependencies({ databaseProvider, storageProvider, llmProvider, workerInstanceId });
-  await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob, instanceId: workerInstanceId });
+  await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob, instanceId: workerInstanceId, concurrency, maxActive });
+}
+
+function positiveIntegerEnv(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
 async function validateAnalysisWorkerDependencies(context: {
@@ -130,8 +139,12 @@ async function validateAnalysisWorkerDependencies(context: {
 }
 
 export async function processNextAnalysisJob(): Promise<boolean> {
-  const claimed = await getAnalysisQueue().lease({ nowIso: new Date().toISOString() });
-  if (claimed) logger.info("analysis.worker.claimed", { analysis_id: claimed.analysis_id, job_id: claimed.job_id });
+  const leaseMs = positiveIntegerEnv("INVARIANCE_ANALYSIS_JOB_TIMEOUT_MS", 5 * 60 * 1000);
+  const claimed = await getAnalysisQueue().lease({ nowIso: new Date().toISOString(), leaseMs });
+  if (claimed) {
+    logger.info("analysis.worker.claimed", { analysis_id: claimed.analysis_id, job_id: claimed.job_id });
+    logger.info("job.claimed", { analysis_id: claimed.analysis_id, job_id: claimed.job_id, lease_ms: leaseMs });
+  }
   if (!claimed) return false;
   const repositories = getCoreRepositories();
   const analysisId = claimed.analysis_id;
@@ -217,6 +230,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
 
     await getAnalysisQueue().complete({ analysisId });
     logger.info("analysis.worker.completed", { analysis_id: analysisId });
+    logger.info("job.completed", { analysis_id: analysisId });
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Analysis execution failed.";
@@ -265,6 +279,7 @@ function normalizeErrorMessage(code: string): string {
 }
 
 async function markFailed(analysisId: string, code: string, message: string): Promise<boolean> {
+  logger.error("job.failed", { analysis_id: analysisId, code });
   const repositories = getCoreRepositories();
   await repositories.analyses.update(analysisId, (current) => ({
     ...current,

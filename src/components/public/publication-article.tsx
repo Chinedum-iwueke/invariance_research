@@ -66,8 +66,8 @@ type PublicationFigureBlockProps = {
 function PublicationFigureBlock({ block }: PublicationFigureBlockProps) {
   return (
     <figure className="my-9 space-y-4 border-y border-border-subtle py-6 md:my-12 md:py-7">
-      {block.label ? <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-text-neutral">{block.label}</p> : null}
-      <figcaption className="text-lg font-semibold leading-tight text-text-institutional">{block.title}</figcaption>
+      {block.label ? <p className="font-provenance text-[0.68rem] uppercase tracking-[0.16em] text-brand">{block.label}</p> : null}
+      <figcaption className="font-display text-2xl font-medium leading-tight text-text-institutional">{block.title}</figcaption>
       <div className="rounded-md border border-border-subtle bg-surface-panel/40 p-4 md:p-5">
         <p className="text-sm leading-7 text-text-graphite">{block.media}</p>
       </div>
@@ -82,7 +82,7 @@ type PublicationCalloutProps = {
 
 function PublicationCallout({ block }: PublicationCalloutProps) {
   return (
-    <aside className="my-8 border-l-2 border-brand bg-surface-panel/35 px-4 py-4 md:my-10 md:px-5">
+    <aside className="my-8 border-l-2 border-brand bg-brand/5 px-4 py-4 md:my-10 md:px-5">
       <p className="text-sm leading-7 text-text-graphite md:text-base">{block.text}</p>
     </aside>
   );
@@ -124,7 +124,7 @@ function renderSectionHeading(section: PublicationArticleSection) {
   if (section.level === 3) {
     return <h3 className="text-xl font-semibold leading-tight md:text-2xl">{section.title}</h3>;
   }
-  return <h2 className="text-[1.55rem] font-semibold leading-tight md:text-[2rem]">{section.title}</h2>;
+  return <h2 className="font-display text-[2rem] font-medium leading-none md:text-[2.75rem]">{section.title}</h2>;
 }
 
 export function PublicationArticle({ publication, content, showBackToLibrary = true }: PublicationArticleProps) {
@@ -143,9 +143,10 @@ export function PublicationArticle({ publication, content, showBackToLibrary = t
           </Link>
         ) : null}
 
-        <header className="space-y-5">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-text-neutral">{titleizeCategory(publication.category)}</p>
-          <h1 className="max-w-[20ch] text-[clamp(2rem,9vw,2.8rem)] font-semibold leading-[1.06] md:text-6xl">{publication.title}</h1>
+        <header className="public-hero-band -mx-[var(--container-inline-padding)] border-b border-border-subtle px-[var(--container-inline-padding)] py-section-sm md:py-section-md">
+          <div className="space-y-5">
+          <p className="eyebrow text-brand">{titleizeCategory(publication.category)}</p>
+          <h1 className="font-display max-w-[20ch] text-[clamp(2.55rem,12vw,4.2rem)] font-medium leading-[0.96] md:text-[clamp(4rem,6.4vw,5.6rem)]">{publication.title}</h1>
           <p className="max-w-[68ch] text-base leading-8 text-text-neutral md:text-lg">{publication.summary}</p>
           <PublicationMetaBar publication={publication} />
           <div className="mobile-cta-row">
@@ -153,6 +154,7 @@ export function PublicationArticle({ publication, content, showBackToLibrary = t
               Download PDF
             </Link>
             <PublicationCopyLinkButton className="inline-flex rounded-sm border border-border-subtle px-4 py-2 text-center text-sm font-medium text-text-neutral transition hover:bg-surface-panel hover:text-text-institutional" />
+          </div>
           </div>
         </header>
 

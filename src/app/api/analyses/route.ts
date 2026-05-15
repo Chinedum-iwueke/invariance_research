@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { isBenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 import { createAnalysisFromArtifact, listAnalyses } from "@/lib/server/services/analysis-service";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 
 export async function GET() {
   const session = await requireServerSession();
@@ -10,6 +11,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "analysis_create", kind: "analysis_create", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const body = (await request.json()) as {
     artifact_id?: string;
     strategy_name?: string;

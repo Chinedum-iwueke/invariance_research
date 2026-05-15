@@ -34,6 +34,13 @@ export const footerGroups = [
       { label: "LinkedIn", href: "#" },
     ],
   },
+  {
+    title: "Legal",
+    links: [
+      { label: "Terms", href: "/terms" },
+      { label: "Privacy", href: "/privacy" },
+    ],
+  },
 ] as const;
 
 export const featuredResearch = [

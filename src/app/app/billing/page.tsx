@@ -14,7 +14,7 @@ export default async function BillingPage() {
   const session = await requireServerSession();
   const state = await accountService.getAccountState(session.account_id);
   const usage = await accountService.getUsage(session.account_id);
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
+  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const limit = state?.entitlements.analyses_per_month ?? 3;
   const retentionDays = state?.entitlements.history_retention_days ?? 30;
   const remaining = isAdmin ? "Unlimited" : String(Math.max(0, limit - usage.analyses_created));

@@ -30,10 +30,13 @@ export default function RobustnessLabPage() {
             title="Strategy Robustness Lab"
             description="A research instrument that tests whether strategies survive realistic execution and adverse market conditions."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
+            secondaryCta={{ label: "View methodology", href: "/methodology" }}
+            artifactVariant="lab"
           />
         </section>
 
-        <section id="demo" className="container-shell space-y-6 py-section-sm">
+        <section id="demo" className="evidence-section-band">
+          <div className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             title="See the Lab in Use"
             description="A walkthrough of the lightweight diagnostic flow used before formal validation."
@@ -60,6 +63,7 @@ export default function RobustnessLabPage() {
               )}
             </div>
           </Card>
+          </div>
         </section>
 
         <section id="intake" className="container-shell space-y-6 py-section-sm">

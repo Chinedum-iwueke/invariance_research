@@ -16,6 +16,8 @@ export interface User {
   last_login_at?: string;
   password_hash?: string;
   password_updated_at?: string;
+  email_verified_at?: string;
+  session_version?: number;
 }
 
 export interface Account {

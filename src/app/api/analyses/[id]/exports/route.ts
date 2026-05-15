@@ -16,7 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
+  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };
 

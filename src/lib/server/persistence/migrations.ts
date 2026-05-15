@@ -303,5 +303,148 @@ export const migrations = [
       ALTER TABLE publications ADD COLUMN pdf_storage_key TEXT;
     `,
   },
+  {
+    version: 12,
+    name: "auth_admin_hardening",
+    sql: `
+      ALTER TABLE users ADD COLUMN email_verified_at TEXT;
+      ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0;
+
+      CREATE TABLE IF NOT EXISTS auth_tokens (
+        token_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(user_id),
+        purpose TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        expires_at TEXT NOT NULL,
+        consumed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_purpose
+        ON auth_tokens(user_id, purpose, expires_at);
+
+      CREATE TABLE IF NOT EXISTS user_roles (
+        user_id TEXT NOT NULL REFERENCES users(user_id),
+        role TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        created_by TEXT,
+        PRIMARY KEY (user_id, role)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
+
+      CREATE TABLE IF NOT EXISTS admin_audit_log (
+        id TEXT PRIMARY KEY,
+        actor_user_id TEXT,
+        actor_email TEXT,
+        action TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT,
+        metadata_json TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at
+        ON admin_audit_log(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_log_actor
+        ON admin_audit_log(actor_user_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS rate_limit_buckets (
+        key TEXT NOT NULL,
+        route TEXT NOT NULL,
+        window_start TEXT NOT NULL,
+        count INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (key, route, window_start)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_rate_limit_buckets_route_window
+        ON rate_limit_buckets(route, window_start);
+    `,
+  },
+  {
+    version: 13,
+    name: "rate_limit_buckets",
+    sql: `
+      CREATE TABLE IF NOT EXISTS rate_limit_buckets (
+        key TEXT NOT NULL,
+        route TEXT NOT NULL,
+        window_start TEXT NOT NULL,
+        count INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (key, route, window_start)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_rate_limit_buckets_route_window
+        ON rate_limit_buckets(route, window_start);
+    `,
+  },
+  {
+    version: 14,
+    name: "report_snapshot_foundation",
+    sql: `
+      CREATE TABLE IF NOT EXISTS report_snapshots (
+        snapshot_id TEXT PRIMARY KEY,
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        status TEXT NOT NULL,
+        source_analysis_updated_at TEXT NOT NULL,
+        source_result_checksum TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        warning_count INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        superseded_at TEXT
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_report_snapshots_analysis_checksum
+        ON report_snapshots(analysis_id, source_result_checksum);
+      CREATE INDEX IF NOT EXISTS idx_report_snapshots_analysis_status
+        ON report_snapshots(analysis_id, status, created_at DESC);
+
+      ALTER TABLE exports ADD COLUMN report_snapshot_id TEXT REFERENCES report_snapshots(snapshot_id);
+      CREATE INDEX IF NOT EXISTS idx_exports_report_snapshot
+        ON exports(report_snapshot_id);
+    `,
+  },
+  {
+    version: 15,
+    name: "share_room_trust_boundary",
+    sql: `
+      CREATE TABLE IF NOT EXISTS share_tokens (
+        share_id TEXT PRIMARY KEY,
+        token_hash TEXT NOT NULL UNIQUE,
+        report_snapshot_id TEXT NOT NULL REFERENCES report_snapshots(snapshot_id),
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        status TEXT NOT NULL,
+        expires_at TEXT,
+        revoked_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS share_access_events (
+        event_id TEXT PRIMARY KEY,
+        share_id TEXT,
+        token_hash_prefix TEXT NOT NULL,
+        report_snapshot_id TEXT,
+        outcome TEXT NOT NULL,
+        ip_hash TEXT,
+        user_agent_hash TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_share_tokens_hash ON share_tokens(token_hash);
+      CREATE INDEX IF NOT EXISTS idx_share_tokens_snapshot_status ON share_tokens(report_snapshot_id, status);
+      CREATE INDEX IF NOT EXISTS idx_share_tokens_expiry ON share_tokens(expires_at, status);
+      CREATE INDEX IF NOT EXISTS idx_share_tokens_revoked ON share_tokens(revoked_at);
+      CREATE INDEX IF NOT EXISTS idx_share_access_events_share_created ON share_access_events(share_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_share_access_events_snapshot_created ON share_access_events(report_snapshot_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_share_access_events_created ON share_access_events(created_at);
+    `,
+  },
 
 ];

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { inspectUpload } from "@/lib/server/services/upload-intake-service";
 import { ObjectStorageConfigurationError, ObjectStorageOperationError } from "@/lib/server/storage/object-storage";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 
 export async function POST(request: Request) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "upload_inspect", kind: "upload", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const formData = await request.formData();
   const file = formData.get("file");
 

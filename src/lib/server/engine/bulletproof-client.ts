@@ -2,7 +2,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 
 import type { ParsedArtifact } from "@/lib/server/ingestion";
-import type { EngineAnalysisResult } from "@/lib/server/engine/engine-types";
+import type { EngineAnalysisResult, EngineEnvelopeV1 } from "@/lib/server/engine/engine-types";
 
 const PYTHON_BIN = process.env.INVARIANCE_PYTHON_BIN ?? "python3";
 const BRIDGE_SCRIPT_PATH = process.env.INVARIANCE_BULLETPROOF_BRIDGE_SCRIPT ?? path.join(process.cwd(), "scripts", "run_bulletproof_engine.py");
@@ -12,9 +12,11 @@ export type BulletproofProbeResult = {
   ok: boolean;
   engine_name: string;
   engine_version?: string;
+  envelope?: EngineEnvelopeV1;
 };
 
 type BulletproofBridgeRunResponse = BulletproofProbeResult & {
+  envelope?: EngineEnvelopeV1;
   result: EngineAnalysisResult;
 };
 

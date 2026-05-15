@@ -8,7 +8,7 @@ import { listAdminWebhookReceipts } from "@/lib/server/admin/webhooks-service";
 
 export default async function AdminWebhooksPage({ searchParams }: { searchParams: Promise<{ filter?: "failed" | "unprocessed" | "recent" }> }) {
   const params = await searchParams;
-  const view = listAdminWebhookReceipts(params.filter);
+  const view = await listAdminWebhookReceipts(params.filter);
 
   return (
     <AdminPageShell title="Webhook Receipts" description="Stripe webhook receipt processing and idempotency visibility.">

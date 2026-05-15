@@ -78,7 +78,7 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
   }, []);
 
   return (
-    <header className="sticky top-0 z-[var(--z-sticky)] border-b bg-surface-white/95 backdrop-blur">
+    <header className="sticky top-0 z-[var(--z-sticky)] border-b border-border-strong/70 bg-surface-paper/94 backdrop-blur">
       <div className={cn("container-shell flex items-center gap-3 transition-[height,padding] duration-normal", compact ? "h-20" : "h-[5.5rem]")}>
         <div className="flex min-w-0 items-center">
           <BrandLogoLink compact={compact} className={cn("-ml-1", compact ? "h-14" : "h-16")} />

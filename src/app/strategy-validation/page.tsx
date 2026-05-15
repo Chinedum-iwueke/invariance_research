@@ -26,6 +26,7 @@ export default function StrategyValidationPage() {
             description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
             primaryCta={{ label: "Request Consultation", href: "#request" }}
             secondaryCta={{ label: "View Methodology", href: "/methodology" }}
+            artifactVariant="report"
           />
         </section>
 

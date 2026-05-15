@@ -27,8 +27,17 @@ export function cleanupStaleFailedJobs(now = new Date()) {
   return { removed };
 }
 
+export function cleanupShareAccessEvents(now = new Date(), retentionDays = 90) {
+  const cutoff = new Date(now.getTime() - retentionDays * 86_400_000).toISOString();
+  const result = getSqliteRuntimeDb().prepare("DELETE FROM share_access_events WHERE created_at < ?").run(cutoff);
+  const removed = Number(result.changes ?? 0);
+  logger.info("maintenance.cleanup_share_access_events", { removed, retention_days: retentionDays });
+  return { removed };
+}
+
 export async function runMaintenanceSweep() {
   const expired = await cleanupExpiredExports();
   const stale = cleanupStaleFailedJobs();
-  return { expired_exports_removed: expired.removed, stale_jobs_removed: stale.removed };
+  const shareAccess = cleanupShareAccessEvents();
+  return { expired_exports_removed: expired.removed, stale_jobs_removed: stale.removed, share_access_events_removed: shareAccess.removed };
 }

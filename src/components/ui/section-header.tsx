@@ -22,8 +22,8 @@ interface SectionHeaderProps extends VariantProps<typeof sectionHeaderVariants> 
 export function SectionHeader({ eyebrow, title, description, align }: SectionHeaderProps) {
   return (
     <header className={cn(sectionHeaderVariants({ align }))}>
-      {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-      <h2 className="text-[1.7rem] font-semibold leading-[1.14] md:text-3xl md:leading-tight">{title}</h2>
+      {eyebrow ? <p className="eyebrow text-brand">{eyebrow}</p> : null}
+      <h2 className="text-[1.9rem] font-semibold leading-[1.08] md:text-4xl md:leading-tight">{title}</h2>
       {description ? <p className="max-w-3xl text-[0.95rem] leading-relaxed text-text-neutral md:text-base">{description}</p> : null}
     </header>
   );

@@ -6,7 +6,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   await requireAdminSession();
   const { id } = await params;
   try {
-    return NextResponse.json(retryAdminExport(id));
+    return NextResponse.json(await retryAdminExport(id));
   } catch {
     return NextResponse.json({ error: "retry_not_allowed" }, { status: 422 });
   }

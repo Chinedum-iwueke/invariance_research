@@ -6,7 +6,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   await requireAdminSession();
   const { id } = await params;
   try {
-    const result = reprocessAdminWebhook(id);
+    const result = await reprocessAdminWebhook(id);
     return NextResponse.json({ ok: true, ...result });
   } catch {
     return NextResponse.json({ error: "reprocess_failed" }, { status: 422 });

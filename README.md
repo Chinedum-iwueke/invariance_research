@@ -220,6 +220,9 @@ Key environment variables currently used:
 - `INVARIANCE_STORAGE_ROOT` – local object storage root.
 - `INVARIANCE_EMBEDDED_WORKERS` – enable embedded workers (`true` default).
 - `INVARIANCE_ANALYSIS_WORKER_POLL_MS` – analysis worker poll interval.
+- `INVARIANCE_ANALYSIS_WORKER_CONCURRENCY` – concurrent analysis jobs per worker (`1` default).
+- `INVARIANCE_ANALYSIS_WORKER_MAX_ACTIVE` – optional cap for active analysis jobs.
+- `INVARIANCE_ANALYSIS_JOB_TIMEOUT_MS` – analysis job lease duration.
 - `INVARIANCE_EXPORT_WORKER_POLL_MS` – export worker poll interval.
 - `INVARIANCE_WORKER_STALE_MS` – heartbeat freshness threshold.
 - `INVARIANCE_PYTHON_BIN` – Python executable for bridge.
@@ -228,8 +231,16 @@ Key environment variables currently used:
 - `INVARIANCE_BENCHMARK_LIBRARY_ROOT` – benchmark manifest/dataset root.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` – Stripe API/webhook keys.
 - `STRIPE_PRICE_PROFESSIONAL`, `STRIPE_PRICE_RESEARCH_LAB` – Stripe price IDs.
-- `ADMIN_EMAILS`, `ADMIN_USER_IDS` – admin allowlists.
+- `ADMIN_EMAILS`, `ADMIN_USER_IDS` – bootstrap-only admin allowlists; matching users are granted DB-backed roles.
 - `APP_URL` – checkout/portal return URLs.
+- `BENCHMARK_PROVIDER` – benchmark manifest source (`local` for dev, `object_storage` for production).
+- `BENCHMARK_MANIFEST_OBJECT_KEY` – object storage key for the benchmark manifest (`benchmarks/manifest.v1.yaml` default).
+- `BENCHMARK_MANIFEST_CACHE_TTL_MS` – in-memory benchmark manifest cache TTL (`300000` default).
+- `RATE_LIMITS_ENABLED`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_UPLOAD_MAX`, `RATE_LIMIT_ANALYSIS_CREATE_MAX`, `RATE_LIMIT_WAITLIST_MAX` – Postgres/SQLite-backed route rate limits.
+- `EMAIL_PROVIDER` – transactional email provider (`resend` supported).
+- `EMAIL_FROM` – sender address for verification and password reset emails.
+- `RESEND_API_KEY` – Resend API key when `EMAIL_PROVIDER=resend`.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` – reserved placeholders if SMTP is wired later.
 
 ---
 
@@ -243,6 +254,14 @@ Key environment variables currently used:
 ### Object storage
 
 - `ObjectStorage` interface is implemented with local filesystem backing.
+
+### Production benchmark manifest
+
+- Local development can continue using `INVARIANCE_BENCHMARK_LIBRARY_ROOT`.
+- Production should set `BENCHMARK_PROVIDER=object_storage` and upload the manifest to R2/S3 at `BENCHMARK_MANIFEST_OBJECT_KEY` (default `benchmarks/manifest.v1.yaml`).
+- Upload with the same object storage credentials used by the app, for example by placing `manifest.v1.yaml` under the configured bucket key `benchmarks/manifest.v1.yaml`.
+- Vercel should not depend on workstation paths such as `/home/omenka/...`; local paths are treated as development-only and emit a production warning.
+- Workers may use local scratch/cache for downloaded benchmark files, but object storage remains the production source of truth for the manifest.
 - Uploads and exports both persist file metadata (size/content-type/checksum) in DB records.
 - Design is adapter-ready for future S3-compatible backend migration.
 
@@ -333,4 +352,3 @@ Implemented but still intentionally limited/evolving:
 - export/report visual polish and PDF sophistication,
 - benchmark and advanced diagnostic depth depending on artifact richness and engine payload coverage,
 - public-site sections that still use controlled demo/placeholder content modules.
-

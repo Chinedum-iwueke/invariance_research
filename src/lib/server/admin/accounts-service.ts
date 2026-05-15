@@ -1,9 +1,16 @@
 import { entitlementRepository, usageRepository } from "@/lib/server/accounts/repositories";
 import { accountService } from "@/lib/server/accounts/service";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 function monthBucket(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function iso(value: unknown) {
+  return value instanceof Date ? value.toISOString() : String(value);
 }
 
 export type AdminAccountOverview = {
@@ -21,8 +28,19 @@ export type AdminAccountOverview = {
   has_password: boolean;
 };
 
-export async function listAdminAccounts(filter?: { plan?: string; status?: string; highUsage?: boolean }) {
-  const rows = getSqliteRuntimeDb()
+async function readAccountRows() {
+  const sql = `SELECT a.*, u.email as owner_email, u.password_hash, s.provider_customer_id, s.provider_subscription_id, s.current_period_end, s.cancel_at_period_end
+      FROM accounts a
+      JOIN users u ON u.user_id = a.owner_user_id
+      LEFT JOIN subscriptions s ON s.account_id = a.account_id
+      ORDER BY a.created_at DESC`;
+
+  if (getDatabaseProvider() === "postgres") {
+    const result = await getPostgresPool().query<Record<string, unknown>>(sql);
+    return result.rows;
+  }
+
+  return getSqliteRuntimeDb()
     .prepare(
       `SELECT a.*, u.email as owner_email, u.password_hash, s.provider_customer_id, s.provider_subscription_id, s.current_period_end, s.cancel_at_period_end
       FROM accounts a
@@ -31,14 +49,19 @@ export async function listAdminAccounts(filter?: { plan?: string; status?: strin
       ORDER BY a.created_at DESC`,
     )
     .all() as Record<string, unknown>[];
+}
+
+export async function listAdminAccounts(filter?: { plan?: string; status?: string; highUsage?: boolean }) {
+  const rows = await readAccountRows();
 
   const bucket = monthBucket(new Date());
+  const repositories = getDatabaseProvider() === "postgres" ? getCoreRepositories() : undefined;
 
   const accounts: AdminAccountOverview[] = await Promise.all(rows
     .map(async (row) => {
       const accountId = String(row.account_id);
-      const usage = await usageRepository.get(accountId, bucket);
-      const entitlements = await entitlementRepository.get(accountId);
+      const usage = repositories ? await repositories.usage.get(accountId, bucket) : await usageRepository.get(accountId, bucket);
+      const entitlements = repositories ? await repositories.entitlements.get(accountId) : await entitlementRepository.get(accountId);
       return {
         account_id: accountId,
         owner_email: String(row.owner_email),
@@ -50,8 +73,8 @@ export async function listAdminAccounts(filter?: { plan?: string; status?: strin
           report_exports: usage.report_exports,
         },
         entitlement_summary: `${entitlements.analyses_per_month}/mo analyses, exports ${entitlements.can_export_report ? "enabled" : "disabled"}`,
-        created_at: String(row.created_at),
-        current_period_end: row.current_period_end ? String(row.current_period_end) : undefined,
+        created_at: iso(row.created_at),
+        current_period_end: row.current_period_end ? iso(row.current_period_end) : undefined,
         cancel_at_period_end: Boolean(row.cancel_at_period_end),
         stripe_customer_id: row.provider_customer_id ? String(row.provider_customer_id) : undefined,
         stripe_subscription_id: row.provider_subscription_id ? String(row.provider_subscription_id) : undefined,

@@ -9,7 +9,7 @@ export async function assertUsageWithinPlan(accountId: string) {
   const repositories = getCoreRepositories();
   const owner = await repositories.accounts.findById(accountId);
   const accountOwnerUser = owner ? await repositories.users.findById(owner.owner_user_id) : undefined;
-  if (accountOwnerUser && isAdminIdentity({ user_id: accountOwnerUser.user_id, email: accountOwnerUser.email })) {
+  if (accountOwnerUser && await isAdminIdentity({ user_id: accountOwnerUser.user_id, email: accountOwnerUser.email })) {
     return accountService.getUsage(accountId);
   }
 

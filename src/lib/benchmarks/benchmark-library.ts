@@ -1,9 +1,11 @@
 import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 import { loadBenchmarkManifest } from "@/server/benchmark-library/load-manifest";
+import { getBenchmarkManifestCacheStatus } from "@/server/benchmark-library/load-manifest";
 import { getBenchmarkLibraryHealth } from "@/server/benchmark-library/healthcheck";
 import { getBenchmarkDatasetPath as resolveBenchmarkDatasetPath, getBenchmarkLibraryRoot, getBenchmarkManifestPath } from "@/server/benchmark-library/paths";
 
 export { getBenchmarkLibraryRoot, getBenchmarkManifestPath };
+export { getBenchmarkManifestCacheStatus };
 
 export async function getBenchmarkManifest() {
   return loadBenchmarkManifest();

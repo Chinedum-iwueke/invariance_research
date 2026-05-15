@@ -28,6 +28,7 @@ export default function PricingPage() {
             description="Choose self-serve lab access for recurring validation or advisory scope for analyst-led, institutional review."
             primaryCta={{ label: "Request Audit", href: "/contact" }}
             secondaryCta={{ label: "Explore Lab", href: "/signup" }}
+            artifactVariant="lab"
           />
         </section>
 

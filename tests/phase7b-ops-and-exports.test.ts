@@ -33,6 +33,9 @@ function resetDb() {
     DELETE FROM usage_snapshots;
     DELETE FROM entitlement_snapshots;
     DELETE FROM subscriptions;
+    DELETE FROM admin_audit_log;
+    DELETE FROM user_roles;
+    DELETE FROM auth_tokens;
     DELETE FROM accounts;
     DELETE FROM users;
   `);

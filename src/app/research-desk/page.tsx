@@ -7,6 +7,7 @@ import { HeroOverlayBackground } from "@/components/public/hero-overlay-backgrou
 import { ResearchDeskWaitlistForm } from "@/components/public/research-desk-waitlist-form";
 import { ResearchDeskCapabilityStage } from "@/components/public/research-desk-capability-stage";
 import { ResearchDeskFlow } from "@/components/public/research-desk-flow";
+import { EvidenceArtifactPreview } from "@/components/public/evidence-artifact-preview";
 
 export const metadata: Metadata = {
   title: "Invariance Research Desk | Coming Soon",
@@ -17,12 +18,12 @@ export default function ResearchDeskPage() {
   return (
     <PublicShell>
       <main className="bg-surface-white">
-        <section className="relative isolate overflow-hidden border-b border-border-subtle/70">
+        <section className="public-hero-band relative isolate overflow-hidden border-b border-border-subtle/70">
           <HeroOverlayBackground src="/overlay_graphic_2.png" />
-          <div className="container-shell relative z-10 py-12 md:py-section-lg">
+          <div className="container-shell relative z-10 grid gap-8 py-section-md md:grid-cols-[1fr_0.9fr] md:items-center md:gap-12 md:py-section-lg">
             <div className="max-w-3xl space-y-4 md:space-y-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">COMING SOON</p>
-              <h1 className="max-w-[14ch] text-[clamp(2.15rem,10vw,2.8rem)] font-semibold leading-[1.06] tracking-tight text-text-institutional md:text-5xl">Invariance Research Desk</h1>
+              <p className="eyebrow text-brand">COMING SOON</p>
+              <h1 className="font-display max-w-[14ch] text-[clamp(2.55rem,12vw,4.2rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.6rem)]">Invariance Research Desk</h1>
               <p className="max-w-2xl text-lg leading-snug text-text-graphite md:text-xl">The AI-native research environment for turning trading ideas into audited, execution-realistic evidence.</p>
               <p className="max-w-3xl text-[0.95rem] leading-[1.72] text-text-neutral md:text-base md:leading-relaxed">
                 Invariance Research Desk is a forthcoming product built for traders and researchers who want more than idea generation. It combines AI assistants, structured research agents, and execution-aware validation workflows to help transform market intuition into formal hypotheses, realistic backtests, deeper diagnostics, and clearer deployment decisions.
@@ -36,6 +37,7 @@ export default function ResearchDeskPage() {
                 </Button>
               </div>
             </div>
+            <EvidenceArtifactPreview variant="desk" />
           </div>
         </section>
 
@@ -44,16 +46,13 @@ export default function ResearchDeskPage() {
         <ResearchDeskFlow />
 
         <section className="container-shell py-section-sm">
-          <Card className="grid gap-5 border-border-subtle bg-surface-panel/30 p-card-md md:grid-cols-[1fr_auto] md:items-start md:p-card-lg">
+          <Card className="border-border-subtle bg-surface-panel/30 p-card-md md:p-card-lg">
             <div className="max-w-3xl space-y-3">
               <h2 className="text-xl font-semibold leading-tight text-text-institutional md:text-2xl">Why it matters</h2>
               <p className="text-base leading-relaxed text-text-neutral">
                 Most strategies do not fail because traders lack ideas. They fail because ideas are formulated too loosely, tested on the wrong assumptions, or judged too shallowly. Research Desk is being built to reduce that gap by combining AI assistance with structured research discipline and execution-aware validation.
               </p>
             </div>
-            <aside className="rounded-sm border border-border-subtle bg-surface-white/85 p-4 text-xs uppercase leading-relaxed tracking-[0.12em] text-text-neutral md:tracking-[0.14em]">
-              Evidence quality compounds.
-            </aside>
           </Card>
         </section>
 

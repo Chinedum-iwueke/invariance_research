@@ -28,7 +28,7 @@ function regimeBadge(classification?: "regime_dependent" | "regime_agnostic" | "
 export default async function RegimesPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const state = await accountService.getAccountState(session.account_id);
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
+  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
   const artifact = await getCoreRepositories().artifacts.findById(analysis.artifact_id);

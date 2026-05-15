@@ -25,6 +25,7 @@ export default function AboutPage() {
             description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation, robustness diagnostics, and research systems built around disciplined methodology. The firm develops tools that reflect its validation philosophy — from the Strategy Robustness Lab already available today to the forthcoming Invariance Research Desk, an AI-native research environment designed to make backtesting more structured, realistic, and decision-grade."
             primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
             secondaryCta={{ label: "Contact", href: "/contact" }}
+            artifactVariant="report"
           />
         </section>
 
@@ -47,7 +48,7 @@ export default function AboutPage() {
           <div className="grid items-center gap-5 md:max-w-[46rem] md:gap-6">
             <div className="space-y-2.5 md:space-y-3">
               <p className="eyebrow">Founder</p>
-              <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Chinedum Iwueke</h2>
+                <h2 className="font-display text-4xl font-medium leading-none md:text-5xl">Chinedum Iwueke</h2>
               <p className="text-sm text-text-neutral md:text-base">Quantitative Validation Specialist</p>
               <p className="max-w-2xl text-xs leading-relaxed text-text-neutral md:text-sm">
                 The validation framework is developed and operated with emphasis on transparent assumptions, reproducible diagnostics, and institutional-grade review standards.

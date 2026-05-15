@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createWaitlistEntry } from "@/lib/server/waitlist/repository";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 
 const waitlistSubmissionSchema = z.object({
   email: z.string().trim().email(),
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
+  const limited = await enforceRateLimit({ request, route: "waitlist", kind: "waitlist", email: parsed.data.email });
+  if (limited) return limited;
 
   const created = createWaitlistEntry(parsed.data);
 

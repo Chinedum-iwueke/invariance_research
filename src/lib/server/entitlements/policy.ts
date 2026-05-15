@@ -1,25 +1,10 @@
 import type { DiagnosticAccessReason } from "@/lib/contracts/entitlements";
-import type { ParsedArtifact } from "@/lib/server/ingestion";
+import { toUploadEligibilitySummary, type ParsedArtifact } from "@/lib/server/ingestion";
 import { accountService } from "@/lib/server/accounts/service";
+import { buildEvidenceLedger, overlayEvidenceEntitlements, type EvidenceLedgerEntry } from "@/lib/server/evidence/evidence-ledger-service";
 import { logger } from "@/lib/server/ops/logger";
 
 export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin" | "execution" | "regimes" | "stability";
-
-function artifactSupports(parsed: ParsedArtifact | undefined, diagnostic: DiagnosticKey): boolean {
-  if (!parsed) return false;
-  if (diagnostic === "overview" || diagnostic === "distribution" || diagnostic === "monte_carlo") return true;
-  if (diagnostic === "ruin" || diagnostic === "execution") return true;
-  if (diagnostic === "regimes") return parsed.richness === "trade_plus_context" || parsed.richness === "research_complete";
-  if (diagnostic === "stability") return parsed.richness === "research_complete";
-  return false;
-}
-
-function engineSupports(parsed: ParsedArtifact | undefined, diagnostic: DiagnosticKey): boolean {
-  if (!parsed) return false;
-  if (diagnostic === "stability") return parsed.richness === "research_complete";
-  if (diagnostic === "regimes") return parsed.richness !== "trade_only";
-  return true;
-}
 
 async function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): Promise<boolean> {
   const state = await accountService.getAccountState(accountId);
@@ -39,19 +24,36 @@ export async function resolveDiagnosticAccess(input: {
   parsed_artifact?: ParsedArtifact;
   is_admin?: boolean;
 }): Promise<{ allowed: boolean; reason: DiagnosticAccessReason; message: string }> {
-  if (!artifactSupports(input.parsed_artifact, input.diagnostic)) {
-    return { allowed: false, reason: "artifact_unavailable", message: "This diagnostic requires richer artifact context." };
+  const evidenceEntry = input.parsed_artifact ? buildAccessEvidenceEntry(input.parsed_artifact, input.diagnostic) : undefined;
+
+  if (!evidenceEntry || evidenceEntry.artifact_status === "unavailable") {
+    return {
+      allowed: false,
+      reason: "artifact_unavailable",
+      message: evidenceEntry?.artifact_reason ?? "This diagnostic requires richer artifact context.",
+    };
   }
 
-  if (!engineSupports(input.parsed_artifact, input.diagnostic)) {
-    return { allowed: false, reason: "engine_unavailable", message: "The current engine cannot compute this diagnostic credibly." };
+  if (evidenceEntry.engine_status === "unavailable" || evidenceEntry.final_status === "skipped") {
+    return {
+      allowed: false,
+      reason: "engine_unavailable",
+      message: evidenceEntry.engine_reason ?? "The current engine cannot compute this diagnostic credibly.",
+    };
   }
 
-  if (!input.is_admin && !(await isPlanEntitled(input.account_id, input.diagnostic))) {
+  const planEntitled = input.is_admin || (await isPlanEntitled(input.account_id, input.diagnostic));
+  if (!planEntitled) {
     return { allowed: false, reason: "plan_locked", message: "Available on a higher plan." };
   }
 
   return { allowed: true, reason: "enabled", message: "Enabled." };
+}
+
+function buildAccessEvidenceEntry(parsedArtifact: ParsedArtifact, diagnostic: DiagnosticKey): EvidenceLedgerEntry {
+  const ledger = buildEvidenceLedger({ eligibility: toUploadEligibilitySummary(parsedArtifact) });
+  const projected = overlayEvidenceEntitlements(ledger, { [diagnostic]: true });
+  return projected.by_diagnostic[diagnostic];
 }
 
 export async function assertUploadAllowed(accountId: string, artifactClass: "trade_csv" | "structured_bundle" | "research_bundle") {

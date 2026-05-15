@@ -16,7 +16,7 @@ const contentTypeByKind: Record<"pdf" | "cover", string> = {
 async function canAccessUnpublishedPublication() {
   const session = await getServerSession();
   if (!session?.user?.email || !session.user.id) return false;
-  return isAdminIdentity({ user_id: session.user.id, email: session.user.email });
+  return await isAdminIdentity({ user_id: session.user.id, email: session.user.email });
 }
 
 function resolveLegacyPublicationPath(kind: "pdf" | "cover", fileName: string) {

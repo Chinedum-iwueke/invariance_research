@@ -8,6 +8,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
+import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
 import { buttonVariants } from "@/components/ui/button";
 import { ResearchDeskWaitlistForm } from "@/components/public/research-desk-waitlist-form";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { buildTruthContext } from "@/lib/app/context-truth";
 import type { FigurePayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { getReportSnapshotState } from "@/lib/server/exports/report-snapshot-service";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 function BulletList({ items, empty }: { items: string[]; empty: string }) {
@@ -61,6 +63,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
 
   const view = buildReportViewModel(record);
+  const snapshotState = getReportSnapshotState(analysis);
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
@@ -106,7 +109,35 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   });
 
   return (
-    <AnalysisPageFrame title="Validation Report" description="Institutional validation deliverable with executive posture, confidence, survivability diagnostics, and benchmark context.">
+    <AnalysisPageFrame title="Validation Report" description="Immutable-style validation artifact with executive posture, evidence boundaries, survivability diagnostics, and benchmark context.">
+      <section className="artifact-surface overflow-hidden">
+        <div className="grid gap-6 border-b border-border-subtle bg-surface-subtle px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-start">
+          <div>
+            <p className="font-provenance text-[11px] uppercase tracking-[0.12em] text-text-neutral">
+              Report snapshot / {snapshotState.active ? snapshotState.active.snapshot_id.slice(0, 8) : "not generated"}
+            </p>
+            <h2 className="font-display mt-2 text-[clamp(2.4rem,5vw,4.5rem)] leading-none tracking-normal text-text-institutional">{record.strategy.strategy_name}</h2>
+            <p className="mt-4 max-w-4xl text-sm leading-7 text-text-neutral">{record.report.executive_summary}</p>
+          </div>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <EvidenceStatusBadge state={normalizeEvidenceState(view.deploymentGuidance.status)} label={view.deploymentGuidance.advisoryLabel} />
+            <code className="font-provenance rounded-sm border border-border-subtle bg-surface-paper px-2 py-1 text-[11px] text-text-neutral">analysis={record.analysis_id.slice(0, 8)}</code>
+          </div>
+        </div>
+        <div className="grid gap-3 px-6 py-4 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
+          <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
+          <p><span className="font-medium text-text-graphite">Coverage:</span> {record.dataset.start_date ?? "N/A"} &rarr; {record.dataset.end_date ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count.toLocaleString()}</p>
+          <p><span className="font-medium text-text-graphite">Engine seam:</span> {analysis.engine_context?.seam ?? "N/A"}</p>
+        </div>
+        {snapshotState.warnings.length ? (
+          <div className="border-t border-border-subtle bg-evidence-limited-wash px-6 py-3 text-sm text-evidence-limited">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em]">Snapshot warning</p>
+            <p className="mt-1">{snapshotState.warnings[0]}</p>
+          </div>
+        ) : null}
+      </section>
+
       <WorkspaceCard title="Executive Summary" subtitle="Institutional validation memo — final deployment decision artifact">
         <div className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -132,6 +163,12 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">
         <MetricRow metrics={metricsFromScoreBands(decisionMetrics)} cols={6} />
       </WorkspaceCard>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <EvidenceStatePanel state={normalizeEvidenceState(view.verdict.posture)} title="Verdict evidence" body={view.verdict.summary} reasonCode="report.verdict" />
+        <EvidenceStatePanel state={view.limitations.length ? "limited" : "supported"} title="Primary limitation" body={view.limitations[0] ?? "No explicit report limitations were emitted."} reasonCode="report.limitation" />
+        <EvidenceStatePanel state="processing" title="Next action" body={view.deploymentGuidance.nextActions[0] ?? "Generate a share-safe report snapshot or request deeper validation."} reasonCode="report.next" />
+      </div>
 
       <WorkspaceCard title="Verdict & Deployment Readiness" subtitle="Decision framing for allocators and risk committees">
         <div className={cn("rounded-md border px-5 py-5 shadow-sm", readinessTone.border, readinessTone.bg)}>

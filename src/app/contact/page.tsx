@@ -22,6 +22,7 @@ export default function ContactPage() {
           <PageHero
             title="Request Strategy Validation"
             description="Share your strategy type and review goals. Engagements are handled with institutional confidentiality standards."
+            artifactVariant="legal"
           />
         </section>
 

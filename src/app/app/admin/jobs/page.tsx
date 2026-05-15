@@ -8,7 +8,7 @@ import { listAdminJobs } from "@/lib/server/admin/jobs-service";
 
 export default async function AdminJobsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: "analysis" | "export" }> }) {
   const params = await searchParams;
-  const view = listAdminJobs({ status: params.status, type: params.type });
+  const view = await listAdminJobs({ status: params.status, type: params.type });
 
   return (
     <AdminPageShell title="Jobs Dashboard" description="Analysis and export job queue visibility with safe retry controls.">

@@ -1,5 +1,8 @@
 import type { PlanId, SubscriptionStatus } from "@/lib/contracts/account";
+import type { User } from "@/lib/contracts/account";
 import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
+import { authTokenRepository, generateAuthToken, hashAuthToken } from "@/lib/server/auth/tokens";
+import { sendTransactionalEmail } from "@/lib/server/email/email-service";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 function monthBucket(date: Date) {
@@ -11,12 +14,57 @@ async function ensureDefaultUsageSnapshot(accountId: string) {
   await repositories.usage.increment({ account_id: accountId, kind: "analysis", increment: 0 });
 }
 
+function appUrl() {
+  return (process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
+function hoursFromNow(hours: number) {
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+async function sendVerificationEmail(user: User) {
+  const { token, tokenHash } = generateAuthToken();
+  await authTokenRepository.consumeOutstanding(user.user_id, "email_verification");
+  await authTokenRepository.create({ userId: user.user_id, purpose: "email_verification", tokenHash, expiresAt: hoursFromNow(24) });
+  const link = `${appUrl()}/account/verify-email?token=${encodeURIComponent(token)}`;
+  await sendTransactionalEmail({
+    to: user.email,
+    kind: "email_verification",
+    subject: "Verify your Invariance Research account",
+    text: `Verify your Invariance Research account: ${link}`,
+    html: `<p>Verify your Invariance Research account.</p><p><a href="${link}">Verify email</a></p>`,
+    devLink: link,
+  });
+}
+
+async function sendPasswordResetEmail(user: User) {
+  const { token, tokenHash } = generateAuthToken();
+  await authTokenRepository.consumeOutstanding(user.user_id, "password_reset");
+  await authTokenRepository.create({ userId: user.user_id, purpose: "password_reset", tokenHash, expiresAt: hoursFromNow(2) });
+  const link = `${appUrl()}/account/reset-password?token=${encodeURIComponent(token)}`;
+  await sendTransactionalEmail({
+    to: user.email,
+    kind: "password_reset",
+    subject: "Reset your Invariance Research password",
+    text: `Reset your Invariance Research password: ${link}`,
+    html: `<p>Reset your Invariance Research password.</p><p><a href="${link}">Reset password</a></p>`,
+    devLink: link,
+  });
+}
+
 export const accountService = {
-  async ensureUserAndAccount(input: { email: string; name?: string }) {
+  async ensureUserAndAccount(input: { email: string; name?: string; emailVerified?: boolean }) {
     const repositories = getCoreRepositories();
     let user = await repositories.users.findByEmail(input.email);
     if (!user) {
-      user = await repositories.users.save(input);
+      user = await repositories.users.save({
+        email: input.email,
+        name: input.name,
+        email_verified_at: input.emailVerified ? new Date().toISOString() : undefined,
+      });
+    } else if (input.emailVerified && !user.email_verified_at) {
+      await repositories.users.markEmailVerified(user.user_id);
+      user = await repositories.users.findById(user.user_id) ?? user;
     }
 
     let account = await repositories.accounts.findByOwnerUserId(user.user_id);
@@ -58,6 +106,7 @@ export const accountService = {
     });
     const account = await repositories.accounts.save(user.user_id, "explorer");
     await ensureDefaultUsageSnapshot(account.account_id);
+    await sendVerificationEmail(user);
     return { user, account };
   },
 
@@ -67,7 +116,7 @@ export const accountService = {
     if (!email || !input.password) return undefined;
 
     const user = await repositories.users.findByEmail(email);
-    if (!user || !verifyPassword(input.password, user.password_hash)) {
+    if (!user || !verifyPassword(input.password, user.password_hash) || !user.email_verified_at) {
       return undefined;
     }
 
@@ -90,7 +139,44 @@ export const accountService = {
     }
 
     await repositories.users.updatePassword(user.user_id, hashPassword(input.password));
+    await repositories.users.incrementSessionVersion(user.user_id);
     return { user_id: user.user_id, email: user.email };
+  },
+
+  async resendVerificationEmail(input: { email: string }) {
+    const repositories = getCoreRepositories();
+    const user = await repositories.users.findByEmail(input.email.trim().toLowerCase());
+    if (!user || user.email_verified_at || !user.password_hash) return { ok: true };
+    await sendVerificationEmail(user);
+    return { ok: true };
+  },
+
+  async verifyEmailToken(token: string) {
+    const repositories = getCoreRepositories();
+    const record = await authTokenRepository.findActiveByHash(hashAuthToken(token), "email_verification");
+    if (!record) return { ok: false as const, reason: "invalid_or_expired" as const };
+    await repositories.users.markEmailVerified(record.user_id);
+    await authTokenRepository.consume(record.token_id);
+    return { ok: true as const };
+  },
+
+  async requestPasswordReset(input: { email: string }) {
+    const repositories = getCoreRepositories();
+    const user = await repositories.users.findByEmail(input.email.trim().toLowerCase());
+    if (user?.password_hash) {
+      await sendPasswordResetEmail(user);
+    }
+    return { ok: true };
+  },
+
+  async resetPassword(input: { token: string; password: string }) {
+    const repositories = getCoreRepositories();
+    const record = await authTokenRepository.findActiveByHash(hashAuthToken(input.token), "password_reset");
+    if (!record) return { ok: false as const, reason: "invalid_or_expired" as const };
+    await repositories.users.updatePassword(record.user_id, hashPassword(input.password));
+    await repositories.users.incrementSessionVersion(record.user_id);
+    await authTokenRepository.consumeOutstanding(record.user_id, "password_reset");
+    return { ok: true as const };
   },
 
   async recordLogin(userId: string) {

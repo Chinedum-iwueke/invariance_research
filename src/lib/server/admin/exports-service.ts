@@ -1,5 +1,7 @@
 import { cleanupExpiredExports } from "@/lib/server/maintenance/retention-service";
 import { exportQueue } from "@/lib/server/queue/export-queue";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
@@ -23,8 +25,24 @@ export type AdminExportView = {
   error_summary?: string;
 };
 
-export function listAdminExports(filter?: "failed" | "expired" | "recent") {
-  const rows = getSqliteRuntimeDb()
+function iso(value: unknown) {
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+async function readExportRows() {
+  const sql = `SELECT e.*, u.email as owner_email, j.retry_count, j.current_step, j.last_attempt_at
+       FROM exports e
+       JOIN accounts a ON a.account_id = e.account_id
+       JOIN users u ON u.user_id = a.owner_user_id
+       LEFT JOIN export_jobs j ON j.export_id = e.export_id
+       ORDER BY e.created_at DESC`;
+
+  if (getDatabaseProvider() === "postgres") {
+    const result = await getPostgresPool().query<Record<string, unknown>>(sql);
+    return result.rows;
+  }
+
+  return getSqliteRuntimeDb()
     .prepare(
       `SELECT e.*, u.email as owner_email, j.retry_count, j.current_step, j.last_attempt_at
        FROM exports e
@@ -34,6 +52,10 @@ export function listAdminExports(filter?: "failed" | "expired" | "recent") {
        ORDER BY e.created_at DESC`,
     )
     .all() as Record<string, unknown>[];
+}
+
+export async function listAdminExports(filter?: "failed" | "expired" | "recent") {
+  const rows = await readExportRows();
 
   const mapped: AdminExportView[] = rows.map((row) => ({
     export_id: String(row.export_id),
@@ -48,9 +70,9 @@ export function listAdminExports(filter?: "failed" | "expired" | "recent") {
     checksum_sha256: row.checksum_sha256 ? String(row.checksum_sha256) : undefined,
     retry_count: Number(row.retry_count ?? 0),
     current_step: row.current_step ? String(row.current_step) : undefined,
-    last_attempt_at: row.last_attempt_at ? String(row.last_attempt_at) : undefined,
-    created_at: String(row.created_at),
-    expires_at: row.expires_at ? String(row.expires_at) : undefined,
+    last_attempt_at: row.last_attempt_at ? iso(row.last_attempt_at) : undefined,
+    created_at: iso(row.created_at),
+    expires_at: row.expires_at ? iso(row.expires_at) : undefined,
     error_summary: row.error_message ? String(row.error_message) : undefined,
   }));
 
@@ -73,7 +95,29 @@ export function listAdminExports(filter?: "failed" | "expired" | "recent") {
   };
 }
 
-export function retryAdminExport(exportId: string) {
+export async function retryAdminExport(exportId: string) {
+  if (getDatabaseProvider() === "postgres") {
+    const pool = getPostgresPool();
+    const [{ rows: jobRows }, { rows: exportRows }] = await Promise.all([
+      pool.query<Record<string, unknown>>("SELECT * FROM export_jobs WHERE export_id = $1", [exportId]),
+      pool.query<Record<string, unknown>>("SELECT * FROM exports WHERE export_id = $1", [exportId]),
+    ]);
+    const job = jobRows[0];
+    const record = exportRows[0];
+    if (!job || !record || record.status !== "failed") throw new Error("retry_not_allowed");
+    const retryCount = Number(job.retry_count ?? 0) + 1;
+    const now = new Date().toISOString();
+    const availableAt = new Date(Date.now() + 2_000 * Math.max(1, retryCount)).toISOString();
+    await Promise.all([
+      pool.query("UPDATE exports SET status='queued', error_code=NULL, error_message=NULL, updated_at=$1 WHERE export_id=$2", [now, exportId]),
+      pool.query(
+        "UPDATE export_jobs SET status='queued', available_at=$1, retry_count=$2, current_step='Queued for retry', progress_pct=0, finished_at=NULL WHERE export_id=$3",
+        [availableAt, retryCount, exportId],
+      ),
+    ]);
+    return { ok: true, export_id: exportId };
+  }
+
   const job = exportJobRepository.findByExportId(exportId);
   const record = exportRepository.findById(exportId);
   if (!job || !record || record.status !== "failed") throw new Error("retry_not_allowed");

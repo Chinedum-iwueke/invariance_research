@@ -2,10 +2,13 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/server/admin/guards";
+import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
+import { assertSameOrigin } from "@/lib/server/auth/security";
 import { createPublication, parseCategory, parseStatus, storePublicationAsset } from "@/lib/server/publications/repository";
 
 export async function POST(request: Request) {
-  await requireAdminSession();
+  assertSameOrigin(request);
+  const actor = await requireAdminSession();
   const body = await request.formData();
 
   const title = String(body.get("title") ?? "").trim();
@@ -64,5 +67,13 @@ export async function POST(request: Request) {
   revalidatePath("/research");
   revalidatePath("/research-standards");
   revalidatePath(`/research/${created.slug}`);
+  await writeAdminAuditLog({
+    actor,
+    action: created.status === "published" ? "publication.publish" : "publication.create",
+    resourceType: "publication",
+    resourceId: created.id,
+    metadata: { status: created.status, slug: created.slug },
+    request,
+  });
   return NextResponse.redirect(new URL("/app/admin/publications", request.url));
 }

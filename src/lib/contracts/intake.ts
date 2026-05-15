@@ -1,5 +1,6 @@
 import type { AnalysisRecord, AnalysisStatus } from "@/lib/contracts/analysis";
 import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
+import type { EvidenceLedger } from "@/lib/server/evidence/evidence-ledger-service";
 import type {
   ArtifactKind,
   ArtifactRichness,
@@ -55,6 +56,7 @@ export type UploadInspectionResponse = {
   diagnostics_unavailable: DiagnosticName[];
   limitation_reasons: string[];
   upload_summary_text: string;
+  evidence_ledger?: EvidenceLedger;
   upload_review?: UploadReview;
 };
 

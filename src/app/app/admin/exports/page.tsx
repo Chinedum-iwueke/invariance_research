@@ -8,7 +8,7 @@ import { listAdminExports } from "@/lib/server/admin/exports-service";
 
 export default async function AdminExportsPage({ searchParams }: { searchParams: Promise<{ filter?: "failed" | "expired" | "recent" }> }) {
   const params = await searchParams;
-  const view = listAdminExports(params.filter);
+  const view = await listAdminExports(params.filter);
 
   return (
     <AdminPageShell title="Exports Dashboard" description="Export lifecycle, storage metadata, and retry/cleanup controls.">

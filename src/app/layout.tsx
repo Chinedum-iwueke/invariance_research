@@ -1,13 +1,25 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans, Instrument_Serif } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
-const montserrat = Montserrat({
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-montserrat",
+  variable: "--font-interface",
   weight: ["400", "500", "600"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +51,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
-      <body className={montserrat.variable}>
+      <body className={`${plexSans.variable} ${plexMono.variable} ${instrumentSerif.variable}`}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

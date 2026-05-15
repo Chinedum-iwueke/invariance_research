@@ -7,10 +7,12 @@ import { listAdminExports } from "@/lib/server/admin/exports-service";
 import { listAdminAccounts } from "@/lib/server/admin/accounts-service";
 
 export default async function AdminOverviewPage() {
-  const jobs = listAdminJobs();
-  const webhooks = listAdminWebhookReceipts();
-  const exportsView = listAdminExports();
-  const accounts = await listAdminAccounts();
+  const [jobs, webhooks, exportsView, accounts] = await Promise.all([
+    listAdminJobs(),
+    listAdminWebhookReceipts(),
+    listAdminExports(),
+    listAdminAccounts(),
+  ]);
 
   return (
     <AdminPageShell title="Admin / Ops Console" description="Internal operations visibility and safe controls.">

@@ -2,6 +2,8 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminSession } from "@/lib/server/admin/guards";
+import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
+import { assertSameOrigin } from "@/lib/server/auth/security";
 import { isValidWaitlistStatus, updateWaitlistEntry } from "@/lib/server/waitlist/repository";
 import type { WaitlistStatus } from "@/lib/server/waitlist/repository";
 
@@ -11,7 +13,8 @@ const waitlistUpdateSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await requireAdminSession();
+  assertSameOrigin(request);
+  const actor = await requireAdminSession();
   const { id } = await params;
 
   const json = await request.json().catch(() => null);
@@ -41,5 +44,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   revalidatePath("/app/admin/waitlist");
+  await writeAdminAuditLog({
+    actor,
+    action: "waitlist.update",
+    resourceType: "waitlist_entry",
+    resourceId: id,
+    metadata: { status, note_updated: parsed.data.note !== undefined },
+    request,
+  });
   return NextResponse.json({ ok: true });
 }

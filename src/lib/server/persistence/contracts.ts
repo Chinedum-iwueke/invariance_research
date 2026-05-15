@@ -17,9 +17,11 @@ export interface UserRepository {
   readonly mode: RepositoryMode;
   findById(userId: string): User | undefined;
   findByEmail(email: string): User | undefined;
-  save(input: { email: string; name?: string; password_hash?: string }): User;
+  save(input: { email: string; name?: string; password_hash?: string; email_verified_at?: string }): User;
   touchLogin(userId: string): void;
   updatePassword(userId: string, passwordHash: string): void;
+  markEmailVerified(userId: string, verifiedAt?: string): void;
+  incrementSessionVersion(userId: string): void;
 }
 
 export interface AccountRepository {

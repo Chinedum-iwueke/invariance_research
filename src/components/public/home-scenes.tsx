@@ -7,6 +7,7 @@ import { Activity, ArrowRight, ChevronDown, FileCheck2, FileOutput, FileText, Ga
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroOverlayBackground } from "@/components/public/hero-overlay-background";
+import { EvidenceArtifactPreview } from "@/components/public/evidence-artifact-preview";
 
 type SectionSceneWrapperProps = {
   id: string;
@@ -78,7 +79,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           <div className={cn("absolute inset-0 flex min-w-0 items-center transition-all duration-700 ease-out", activeScene === 0 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0")}>
             <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-[1.125rem]">
               <p className="max-w-full text-[10px] font-medium uppercase leading-relaxed tracking-[0.12em] text-text-neutral/88 md:text-[11px] md:tracking-[0.16em]">Independent Quantitative Validation Studio</p>
-              <h1 className="max-w-[13.5ch] text-[clamp(2.15rem,10vw,2.9rem)] font-semibold leading-[1.04] text-text-graphite md:text-5xl lg:text-6xl">
+              <h1 className="font-display max-w-[13.5ch] text-[clamp(2.55rem,12vw,4rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.7rem)]">
                 Independent Quantitative Strategy Validation
               </h1>
               <p className="max-w-[18.75rem] text-[1rem] leading-[1.7] text-text-neutral sm:max-w-xl md:text-lg md:leading-relaxed">
@@ -108,7 +109,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           >
             <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">COMING SOON</p>
-              <h2 className="max-w-[13ch] text-[clamp(2.1rem,10vw,2.75rem)] font-semibold leading-[1.07] text-text-graphite md:text-5xl">Invariance Research Desk</h2>
+              <h2 className="font-display max-w-[13ch] text-[clamp(2.55rem,12vw,4rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.7rem)]">Invariance Research Desk</h2>
               <p className="text-lg text-text-graphite md:text-xl">From intuition to audited backtest.</p>
               <p className="max-w-[18.75rem] text-[0.95rem] leading-[1.7] text-text-neutral sm:max-w-2xl md:text-base md:leading-relaxed">
                 A new AI-native research environment built to help you formalize ideas, run execution-aware tests, and diagnose what actually survives scrutiny — with AI assistants and research agents guiding you through the process.
@@ -122,7 +123,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
                 </Button>
               </div>
             </div>
-
+            <EvidenceArtifactPreview variant="desk" className="hidden w-[24rem] lg:block" />
           </div>
         </div>
 

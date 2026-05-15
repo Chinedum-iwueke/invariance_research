@@ -11,9 +11,11 @@ interface CtaBannerProps {
 
 export function CtaBanner({ title, description, primary, secondary }: CtaBannerProps) {
   return (
-    <Card className="rounded-lg bg-surface-panel p-card-lg">
+    <Card className="relative overflow-hidden rounded-sm border-border-strong bg-surface-paper p-card-lg">
+      <div className="absolute inset-x-0 top-0 h-1 bg-brand" />
       <div className="mx-auto max-w-3xl space-y-4 text-center">
-        <h2 className="text-[1.65rem] font-semibold leading-[1.16] md:text-3xl md:leading-tight">{title}</h2>
+        <p className="eyebrow text-brand">Next evidence step</p>
+        <h2 className="font-display text-[2rem] font-medium leading-[1] md:text-5xl">{title}</h2>
         <p className="text-sm leading-relaxed text-text-neutral md:text-base">{description}</p>
         <div className="mobile-cta-row justify-center">
           <Link href={primary.href} className={buttonVariants()}>{primary.label}</Link>

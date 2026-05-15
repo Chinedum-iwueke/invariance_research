@@ -27,6 +27,8 @@ function mapUser(row: Record<string, unknown>): User {
     last_login_at: iso(row.last_login_at),
     password_hash: row.password_hash ? String(row.password_hash) : undefined,
     password_updated_at: optionalIso(row.password_updated_at),
+    email_verified_at: optionalIso(row.email_verified_at),
+    session_version: Number(row.session_version ?? 0),
   };
 }
 
@@ -66,7 +68,7 @@ export const postgresUserRepository = {
     const result = await getPostgresPool().query("SELECT * FROM users WHERE email = $1", [email.toLowerCase()]);
     return result.rows[0] ? mapUser(result.rows[0]) : undefined;
   },
-  async save(input: { email: string; name?: string; password_hash?: string }) {
+  async save(input: { email: string; name?: string; password_hash?: string; email_verified_at?: string }) {
     const now = new Date().toISOString();
     const user: User = {
       user_id: randomUUID(),
@@ -76,10 +78,12 @@ export const postgresUserRepository = {
       last_login_at: now,
       password_hash: input.password_hash,
       password_updated_at: input.password_hash ? now : undefined,
+      email_verified_at: input.email_verified_at,
+      session_version: 0,
     };
     await getPostgresPool().query(
-      "INSERT INTO users (user_id, email, name, created_at, last_login_at, password_hash, password_updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7)",
-      [user.user_id, user.email, user.name ?? null, user.created_at, user.last_login_at, user.password_hash ?? null, user.password_updated_at ?? null],
+      "INSERT INTO users (user_id, email, name, created_at, last_login_at, password_hash, password_updated_at, email_verified_at, session_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+      [user.user_id, user.email, user.name ?? null, user.created_at, user.last_login_at, user.password_hash ?? null, user.password_updated_at ?? null, user.email_verified_at ?? null, user.session_version],
     );
     return user;
   },
@@ -89,6 +93,12 @@ export const postgresUserRepository = {
   async updatePassword(userId: string, passwordHash: string) {
     const now = new Date().toISOString();
     await getPostgresPool().query("UPDATE users SET password_hash = $1, password_updated_at = $2 WHERE user_id = $3", [passwordHash, now, userId]);
+  },
+  async markEmailVerified(userId: string, verifiedAt = new Date().toISOString()) {
+    await getPostgresPool().query("UPDATE users SET email_verified_at = $1 WHERE user_id = $2", [verifiedAt, userId]);
+  },
+  async incrementSessionVersion(userId: string) {
+    await getPostgresPool().query("UPDATE users SET session_version = COALESCE(session_version, 0) + 1 WHERE user_id = $1", [userId]);
   },
 } as unknown as UserRepository;
 

@@ -1,10 +1,13 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/server/admin/guards";
+import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
+import { assertSameOrigin } from "@/lib/server/auth/security";
 import { getPublicationById, parseCategory, parseStatus, storePublicationAsset, updatePublication } from "@/lib/server/publications/repository";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await requireAdminSession();
+  assertSameOrigin(request);
+  const actor = await requireAdminSession();
   const { id } = await params;
   const body = await request.formData();
   const intent = String(body.get("intent") ?? "save");
@@ -21,6 +24,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     revalidatePath("/research");
     revalidatePath("/research-standards");
     revalidatePath(`/research/${updated.slug}`);
+    await writeAdminAuditLog({
+      actor,
+      action: intent === "publish" ? "publication.publish" : intent === "unpublish" ? "publication.unpublish" : "publication.archive",
+      resourceType: "publication",
+      resourceId: updated.id,
+      metadata: { status: updated.status, slug: updated.slug },
+      request,
+    });
     return NextResponse.redirect(new URL("/app/admin/publications", request.url));
   }
 
@@ -55,5 +66,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   revalidatePath("/research");
   revalidatePath("/research-standards");
   revalidatePath(`/research/${updated.slug}`);
+  await writeAdminAuditLog({
+    actor,
+    action: updated.status !== existing.status && updated.status === "published" ? "publication.publish" : updated.status !== existing.status && existing.status === "published" ? "publication.unpublish" : "publication.update",
+    resourceType: "publication",
+    resourceId: updated.id,
+    metadata: { previous_status: existing.status, status: updated.status, slug: updated.slug },
+    request,
+  });
   return NextResponse.redirect(new URL(`/app/admin/publications/${id}/edit`, request.url));
 }

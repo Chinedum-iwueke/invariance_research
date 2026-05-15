@@ -7,6 +7,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { listPublishedVideos, resolveYouTubeThumbnail } from "@/lib/server/videos/repository";
 import { listResearchLibrary } from "@/lib/server/publications/repository";
 import { ResearchVideoLibrary } from "@/components/public/research-video-library";
+import { EvidenceArtifactPreview } from "@/components/public/evidence-artifact-preview";
 import type { PublicationRecord } from "@/lib/publications/model";
 
 export const metadata: Metadata = { title: "Research & Education | Invariance Research", description: "Execution-aware backtesting, diagnostics, and research workflows." };
@@ -27,14 +28,14 @@ function formatPublishedDate(publishedAt: string | null) {
 
 function ResearchReportCard({ article }: { article: PublicationRecord }) {
   return (
-    <article className="flex min-h-full flex-col justify-between rounded-sm border border-border-subtle bg-surface-white p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-raised md:p-5">
+    <article className="flex min-h-full flex-col justify-between rounded-sm border border-border-subtle bg-surface-paper p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-raised md:p-5">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-neutral">{titleizeCategory(article.category)}</p>
           <p className="text-xs text-text-neutral">{formatPublishedDate(article.published_at)}</p>
         </div>
         <div className="space-y-3">
-          <h3 className="text-xl font-semibold leading-tight">{article.title}</h3>
+          <h3 className="font-display text-2xl font-medium leading-tight">{article.title}</h3>
           <p className="text-sm leading-6 text-text-neutral">{article.summary}</p>
         </div>
       </div>
@@ -60,24 +61,27 @@ export default async function ResearchPage() {
     <PublicShell>
       <main className="relative">
         <ScrollspyRail sectionIds={sectionIds} />
-        <section id="hero" className="bg-brand text-white">
-          <div className="container-shell space-y-5 py-14 md:space-y-6 md:py-20">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]">Research & Education</p>
-            <h1 className="max-w-3xl text-[clamp(2.05rem,9vw,2.75rem)] font-semibold leading-[1.08] text-white md:text-4xl">Learn to validate strategies like a professional.</h1>
-            <p className="max-w-3xl text-base leading-relaxed text-white/90 md:text-lg">
+        <section id="hero" className="public-hero-band border-b border-border-subtle">
+          <div className="container-shell grid gap-8 py-section-md md:grid-cols-[1fr_0.9fr] md:items-center md:gap-12 md:py-section-lg">
+            <div className="space-y-5">
+            <p className="eyebrow text-brand">Research & Education</p>
+            <h1 className="font-display max-w-3xl text-[clamp(2.55rem,12vw,4.2rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.6rem)]">Learn to validate strategies like a professional.</h1>
+            <p className="max-w-3xl text-base leading-relaxed text-text-neutral md:text-lg">
               Execution-aware backtesting, robustness diagnostics, and research workflows for traders who want evidence before deployment.
             </p>
             <div className="mobile-cta-row">
-              <a href="#video-library" className="rounded-sm bg-white px-4 py-2.5 text-center text-sm font-medium text-brand">
+              <a href="#video-library" className="rounded-sm bg-brand px-4 py-2.5 text-center text-sm font-medium text-white">
                 Browse Video Library
               </a>
-              <a href="#reports" className="rounded-sm border border-white/50 px-4 py-2.5 text-center text-sm">
+              <a href="#reports" className="rounded-sm border border-border-subtle bg-surface-panel px-4 py-2.5 text-center text-sm text-text-graphite">
                 View Research Reports
               </a>
-              <Link href="/contact" className="rounded-sm border border-white/50 px-4 py-2.5 text-center text-sm">
+              <Link href="/contact" className="rounded-sm border border-border-subtle bg-surface-panel px-4 py-2.5 text-center text-sm text-text-graphite">
                 Request Validation Audit
               </Link>
             </div>
+            </div>
+            <EvidenceArtifactPreview variant="report" />
           </div>
         </section>
 

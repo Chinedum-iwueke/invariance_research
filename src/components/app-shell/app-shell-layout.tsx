@@ -16,7 +16,7 @@ interface AppShellLayoutProps {
 
 export async function AppShellLayout({ children, rightRail, context }: AppShellLayoutProps) {
   const session = await requireServerSession();
-  const isAdmin = isAdminIdentity({ user_id: session.user_id, email: session.email });
+  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
 
   async function logoutAction(formData: FormData) {
     "use server";

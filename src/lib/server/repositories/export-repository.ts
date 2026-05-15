@@ -7,6 +7,7 @@ function mapRow(row: Record<string, unknown>): ExportRecord {
     analysis_id: String(row.analysis_id),
     account_id: String(row.account_id),
     requested_by_user_id: String(row.requested_by_user_id),
+    report_snapshot_id: row.report_snapshot_id ? String(row.report_snapshot_id) : undefined,
     format: row.format as ExportRecord["format"],
     status: row.status as ExportRecord["status"],
     storage_key: row.storage_key ? String(row.storage_key) : undefined,
@@ -25,13 +26,14 @@ function mapRow(row: Record<string, unknown>): ExportRecord {
 export const exportRepository = {
   save(record: ExportRecord) {
     getDb()
-      .prepare(`INSERT INTO exports (export_id, analysis_id, account_id, requested_by_user_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .prepare(`INSERT INTO exports (export_id, analysis_id, account_id, requested_by_user_id, report_snapshot_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         record.export_id,
         record.analysis_id,
         record.account_id,
         record.requested_by_user_id,
+        record.report_snapshot_id ?? null,
         record.format,
         record.status,
         record.storage_key ?? null,
@@ -60,9 +62,10 @@ export const exportRepository = {
     if (!current) return undefined;
     const next = updater(current);
     getDb()
-      .prepare(`UPDATE exports SET status=?, storage_key=?, content_type=?, file_size_bytes=?, checksum_sha256=?, error_code=?, error_message=?, expires_at=?, updated_at=? WHERE export_id=?`)
+      .prepare(`UPDATE exports SET status=?, report_snapshot_id=?, storage_key=?, content_type=?, file_size_bytes=?, checksum_sha256=?, error_code=?, error_message=?, expires_at=?, updated_at=? WHERE export_id=?`)
       .run(
         next.status,
+        next.report_snapshot_id ?? null,
         next.storage_key ?? null,
         next.content_type ?? null,
         next.file_size_bytes ?? null,

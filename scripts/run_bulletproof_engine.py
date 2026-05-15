@@ -12,6 +12,16 @@ from enum import Enum
 from types import ModuleType
 from typing import Any, Literal, get_args, get_origin
 
+ENGINE_ENVELOPE_V1 = {
+    "engine_name": "bt",
+    "seam_name": "run_analysis_from_parsed_artifact",
+    "seam_version": "1.0.0",
+    "adapter_version": "1.0.0",
+    "parser_version": "1.0.0",
+    "capability_profile_version": "1.0.0",
+    "diagnostic_contract_version": "1.0.0",
+}
+
 
 def _read_payload(stdin: str) -> dict[str, Any]:
     try:
@@ -87,6 +97,17 @@ def _invoke_engine_seam(seam: Any, parsed_artifact: Any, config: Any) -> Any:
     if "config" in signature.parameters:
         return seam(parsed_artifact, config=config)
     return seam(parsed_artifact)
+
+
+def _engine_envelope(engine_version: str | None, result_payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    existing = result_payload.get("envelope") if result_payload else None
+    envelope = dict(ENGINE_ENVELOPE_V1)
+    if isinstance(existing, dict):
+        envelope.update(existing)
+    envelope["engine_name"] = str(envelope.get("engine_name") or "bt")
+    envelope["engine_version"] = envelope.get("engine_version") or engine_version
+    envelope["seam_name"] = "run_analysis_from_parsed_artifact"
+    return envelope
 
 
 class EngineInputValidationError(ValueError):
@@ -472,14 +493,20 @@ def main() -> int:
     version = getattr(bt, "__version__", None)
 
     if args.probe:
-        _emit_json({"ok": True, "engine_name": "bt", "engine_version": version})
+        envelope = _engine_envelope(version)
+        _emit_json({"ok": True, "engine_name": "bt", "engine_version": version, "envelope": envelope})
         return 0
 
     try:
         payload = _read_payload(sys.stdin.read())
         parsed_artifact, config = _build_seam_inputs(bt, payload)
         result = _invoke_engine_seam(seam, parsed_artifact, config)
-        _emit_json({"ok": True, "engine_name": "bt", "engine_version": version, "result": result})
+        result_payload = _to_json_compatible(result)
+        if not isinstance(result_payload, dict):
+            raise EngineContractMismatchError("engine_result_non_object")
+        envelope = _engine_envelope(version, result_payload)
+        result_payload["envelope"] = envelope
+        _emit_json({"ok": True, "engine_name": "bt", "engine_version": version, "envelope": envelope, "result": result_payload})
         return 0
     except EngineInputValidationError as exc:
         _emit_error(f"engine_input_validation_failed:{exc}")

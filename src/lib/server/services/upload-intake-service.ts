@@ -7,6 +7,7 @@ import { parseUploadArtifact } from "@/lib/server/ingestion/parsers";
 import { validateFileBasics } from "@/lib/server/ingestion/validators/file";
 import { extractZipEntries } from "@/lib/server/ingestion/utils/zip";
 import { assertUploadAllowed } from "@/lib/server/entitlements/policy";
+import { buildUploadEvidenceProjection } from "@/lib/server/evidence/evidence-ledger-service";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
 
@@ -94,6 +95,7 @@ export async function inspectUpload(input: {
 
   const artifactId = randomUUID();
   const eligibility = toUploadEligibilitySummary(parsedResult.parsed);
+  const evidenceLedger = buildUploadEvidenceProjection(eligibility);
   const storage = await saveUploadedArtifact({
     accountId: input.account_id,
     artifactId,
@@ -133,6 +135,7 @@ export async function inspectUpload(input: {
     diagnostics_unavailable: eligibility.diagnostics_unavailable,
     limitation_reasons: eligibility.limitation_reasons,
     upload_summary_text: eligibility.summary_text,
+    evidence_ledger: evidenceLedger,
     upload_review: extension === "csv"
       ? {
           kind: "csv",

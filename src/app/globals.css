@@ -4,30 +4,58 @@
 
 :root,
 [data-theme="light"] {
-  --font-montserrat: "Montserrat";
+  --font-interface: "IBM Plex Sans";
+  --font-display: "Instrument Serif";
+  --font-mono: "IBM Plex Mono";
 
   --brand-research-red: #b00020;
+  --brand-red-dark: #6e0014;
+  --brand-red-wash: #f7e8eb;
 
-  --text-institutional: #111111;
-  --text-graphite: #2c2c2c;
-  --text-neutral: #6b6b6b;
+  --text-institutional: #11100f;
+  --text-graphite: #272321;
+  --text-neutral: #56504c;
+  --text-muted: #8a837e;
 
-  --surface-white: #ffffff;
-  --surface-panel: #f7f7f7;
+  --surface-white: #fbfaf7;
+  --surface-paper: #ffffff;
+  --surface-panel: #f4f1ec;
+  --surface-muted: #efebe7;
+  --surface-subtle: #f8f5f1;
 
-  --border-divider: #e5e5e5;
+  --border-divider: #ded8d1;
+  --border-strong: #c8bfb6;
+
+  --evidence-supported: #24734d;
+  --evidence-supported-wash: #e7f2ec;
+  --evidence-limited: #a66400;
+  --evidence-limited-wash: #f8eedc;
+  --evidence-unsupported: #5e6670;
+  --evidence-unsupported-wash: #eceff2;
+  --evidence-contradicted: #b00020;
+  --evidence-contradicted-wash: #f7e8eb;
+  --evidence-locked: #6a625d;
+  --evidence-locked-wash: #efebe7;
+  --evidence-processing: #326a8c;
+  --evidence-processing-wash: #e6f0f5;
 
   --chart-primary: #b00020;
-  --chart-positive: #2e7d32;
-  --chart-negative: #c62828;
-  --chart-benchmark: #1a73e8;
+  --chart-positive: #24734d;
+  --chart-negative: #9b1c31;
+  --chart-benchmark: #235a97;
+  --chart-warning: #a66400;
+  --chart-regime-1: #485c78;
+  --chart-regime-2: #7a6854;
+  --chart-regime-3: #5f7561;
+  --chart-neutral: #8a837e;
+  --chart-grid: #e6e0d9;
 
   --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
 
-  --shadow-soft: 0 2px 6px rgba(17, 17, 17, 0.04);
-  --shadow-raised: 0 8px 18px rgba(17, 17, 17, 0.08);
+  --shadow-soft: 0 2px 8px rgba(39, 35, 33, 0.05);
+  --shadow-raised: 0 16px 36px rgba(39, 35, 33, 0.10);
   --focus-ring-offset: var(--surface-white);
 
   --container-max: 84rem;
@@ -54,8 +82,8 @@
   --z-sticky: 20;
   --z-overlay: 40;
 
-  --motion-fast: 120ms;
-  --motion-normal: 220ms;
+  --motion-fast: 100ms;
+  --motion-normal: 200ms;
   --motion-slow: 320ms;
 
   --chart-height-sm: 12rem;
@@ -64,24 +92,50 @@
 }
 
 [data-theme="dark"] {
-  --brand-research-red: #b64658;
+  --brand-research-red: #d05266;
+  --brand-red-dark: #f08a9a;
+  --brand-red-wash: #341920;
 
-  --text-institutional: #ece9e7;
-  --text-graphite: #cfcbc8;
-  --text-neutral: #948e8a;
+  --text-institutional: #f1ece6;
+  --text-graphite: #d9d1ca;
+  --text-neutral: #b2a9a1;
+  --text-muted: #897f77;
 
-  --surface-white: #121416;
-  --surface-panel: #1a1d21;
+  --surface-white: #12100f;
+  --surface-paper: #1b1816;
+  --surface-panel: #24201d;
+  --surface-muted: #2b2622;
+  --surface-subtle: #1a1715;
 
-  --border-divider: #2a2f35;
+  --border-divider: #39332f;
+  --border-strong: #514841;
 
-  --chart-primary: #b64658;
-  --chart-positive: #6fb08b;
+  --evidence-supported: #73b88f;
+  --evidence-supported-wash: #183126;
+  --evidence-limited: #d39b45;
+  --evidence-limited-wash: #342817;
+  --evidence-unsupported: #a5afba;
+  --evidence-unsupported-wash: #252a2f;
+  --evidence-contradicted: #d05266;
+  --evidence-contradicted-wash: #341920;
+  --evidence-locked: #b2a9a1;
+  --evidence-locked-wash: #2b2622;
+  --evidence-processing: #78a8c6;
+  --evidence-processing-wash: #172b36;
+
+  --chart-primary: #d05266;
+  --chart-positive: #73b88f;
   --chart-negative: #d97575;
-  --chart-benchmark: #6f9bcf;
+  --chart-benchmark: #7fa9da;
+  --chart-warning: #d39b45;
+  --chart-regime-1: #879bb9;
+  --chart-regime-2: #b09b80;
+  --chart-regime-3: #8fb091;
+  --chart-neutral: #a79d96;
+  --chart-grid: #39332f;
 
-  --shadow-soft: 0 2px 12px rgba(5, 6, 8, 0.45);
-  --shadow-raised: 0 14px 28px rgba(2, 4, 7, 0.55);
+  --shadow-soft: 0 2px 12px rgba(5, 4, 4, 0.45);
+  --shadow-raised: 0 18px 38px rgba(2, 2, 2, 0.58);
   --focus-ring-offset: var(--surface-white);
 }
 
@@ -97,7 +151,7 @@
 
 body {
   @apply bg-surface-white text-text-institutional antialiased;
-  font-family: var(--font-montserrat), sans-serif;
+  font-family: var(--font-interface), sans-serif;
   font-feature-settings: "ss01" on, "cv01" on;
   overflow-x: hidden;
 }
@@ -124,7 +178,7 @@ h4 {
   }
 
   .card-shell {
-    @apply rounded-md border border-border-subtle bg-surface-white shadow-soft;
+    @apply rounded-md border border-border-subtle bg-surface-paper shadow-soft;
   }
 
   .mobile-cta-row {
@@ -133,6 +187,49 @@ h4 {
 
   .mobile-cta-row > * {
     @apply min-w-0 max-w-full w-full break-words whitespace-normal sm:w-auto;
+  }
+
+  .font-display {
+    font-family: var(--font-display), serif;
+  }
+
+  .font-provenance {
+    font-family: var(--font-mono), monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .artifact-surface {
+    @apply rounded-sm border border-border-subtle bg-surface-paper shadow-soft;
+  }
+
+  .workbench-rule {
+    @apply border-t border-border-subtle;
+  }
+
+  .public-hero-band {
+    background:
+      linear-gradient(90deg, rgba(176, 0, 32, 0.075), transparent 28%),
+      linear-gradient(180deg, var(--surface-paper), var(--surface-white) 62%, var(--surface-panel));
+  }
+
+  .public-artifact-preview {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 241, 236, 0.74)),
+      var(--surface-paper);
+  }
+
+  .evidence-section-band {
+    @apply border-y border-border-subtle;
+    background-color: color-mix(in srgb, var(--surface-panel) 45%, transparent);
+  }
+
+  .editorial-panel {
+    @apply rounded-sm border border-border-subtle bg-surface-paper shadow-soft;
+  }
+
+  .public-legal-doc {
+    @apply mx-auto max-w-4xl border-border-subtle bg-surface-paper p-card-md md:p-card-lg;
+    box-shadow: 0 24px 70px rgba(39, 35, 33, 0.08);
   }
 }
 

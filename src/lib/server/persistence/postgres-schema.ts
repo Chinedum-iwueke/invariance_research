@@ -6,8 +6,15 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL,
   last_login_at TIMESTAMPTZ NOT NULL,
   password_hash TEXT,
-  password_updated_at TIMESTAMPTZ
+  password_updated_at TIMESTAMPTZ,
+  email_verified_at TIMESTAMPTZ,
+  session_version INTEGER NOT NULL DEFAULT 0
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_updated_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS accounts (
   account_id TEXT PRIMARY KEY,
@@ -176,6 +183,149 @@ CREATE INDEX IF NOT EXISTS idx_videos_episode_published ON videos(episode_number
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_claimable ON analysis_jobs(status, available_at, leased_until, created_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status_available_at ON analysis_jobs(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_dead_letter ON analysis_jobs(status, finished_at);
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  token_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(user_id),
+  purpose TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_purpose ON auth_tokens(user_id, purpose, expires_at);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id TEXT NOT NULL REFERENCES users(user_id),
+  role TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  created_by TEXT,
+  PRIMARY KEY (user_id, role)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id TEXT PRIMARY KEY,
+  actor_user_id TEXT,
+  actor_email TEXT,
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_id TEXT,
+  metadata_json JSONB,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON admin_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_actor ON admin_audit_log(actor_user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS rate_limit_buckets (
+  key TEXT NOT NULL,
+  route TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL,
+  count INTEGER NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (key, route, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_buckets_route_window ON rate_limit_buckets(route, window_start);
+
+CREATE TABLE IF NOT EXISTS export_jobs (
+  export_job_id TEXT PRIMARY KEY,
+  export_id TEXT NOT NULL UNIQUE,
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  status TEXT NOT NULL,
+  format TEXT NOT NULL,
+  progress_pct INTEGER,
+  current_step TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  retry_count INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  available_at TIMESTAMPTZ,
+  last_attempt_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS exports (
+  export_id TEXT PRIMARY KEY,
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  requested_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  report_snapshot_id TEXT,
+  format TEXT NOT NULL,
+  status TEXT NOT NULL,
+  storage_key TEXT,
+  content_type TEXT,
+  file_size_bytes BIGINT,
+  checksum_sha256 TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  requested_at TIMESTAMPTZ NOT NULL,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_export_jobs_status_available_at ON export_jobs(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_exports_account_analysis ON exports(account_id, analysis_id);
+
+CREATE TABLE IF NOT EXISTS report_snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  status TEXT NOT NULL,
+  source_analysis_updated_at TIMESTAMPTZ NOT NULL,
+  source_result_checksum TEXT NOT NULL,
+  payload_json JSONB NOT NULL,
+  warning_count INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  superseded_at TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_report_snapshots_analysis_checksum
+  ON report_snapshots(analysis_id, source_result_checksum);
+CREATE INDEX IF NOT EXISTS idx_report_snapshots_analysis_status
+  ON report_snapshots(analysis_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_exports_report_snapshot ON exports(report_snapshot_id);
+
+CREATE TABLE IF NOT EXISTS share_tokens (
+  share_id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL UNIQUE,
+  report_snapshot_id TEXT NOT NULL REFERENCES report_snapshots(snapshot_id),
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  status TEXT NOT NULL,
+  expires_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS share_access_events (
+  event_id TEXT PRIMARY KEY,
+  share_id TEXT,
+  token_hash_prefix TEXT NOT NULL,
+  report_snapshot_id TEXT,
+  outcome TEXT NOT NULL,
+  ip_hash TEXT,
+  user_agent_hash TEXT,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_share_tokens_hash ON share_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_share_tokens_snapshot_status ON share_tokens(report_snapshot_id, status);
+CREATE INDEX IF NOT EXISTS idx_share_tokens_expiry ON share_tokens(expires_at, status);
+CREATE INDEX IF NOT EXISTS idx_share_tokens_revoked ON share_tokens(revoked_at);
+CREATE INDEX IF NOT EXISTS idx_share_access_events_share_created ON share_access_events(share_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_share_access_events_snapshot_created ON share_access_events(report_snapshot_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_share_access_events_created ON share_access_events(created_at);
 
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
   worker_type TEXT NOT NULL,

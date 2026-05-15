@@ -6,6 +6,7 @@ import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { exportQueue } from "@/lib/server/queue/export-queue";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
+import { ensureReportSnapshotForAnalysis } from "@/lib/server/exports/report-snapshot-service";
 import { logger } from "@/lib/server/ops/logger";
 
 const EXPORT_TTL_DAYS = 14;
@@ -22,6 +23,7 @@ export async function requestExport(input: { analysis_id: string; account_id: st
   }
 
   await assertExportAllowed(input.account_id, input.is_admin);
+  const snapshot = ensureReportSnapshotForAnalysis(analysis);
 
   const now = new Date();
   const exportId = randomUUID();
@@ -33,6 +35,7 @@ export async function requestExport(input: { analysis_id: string; account_id: st
     analysis_id: analysis.analysis_id,
     account_id: input.account_id,
     requested_by_user_id: input.user_id,
+    report_snapshot_id: snapshot.snapshot_id,
     format,
     status: "queued",
     requested_at: createdAt,
@@ -57,9 +60,9 @@ export async function requestExport(input: { analysis_id: string; account_id: st
 
   await accountService.incrementUsage(input.account_id, "export");
   exportQueue.enqueueRun(exportId);
-  logger.info("export.requested", { export_id: exportId, analysis_id: analysis.analysis_id, account_id: input.account_id, format });
+  logger.info("export.requested", { export_id: exportId, analysis_id: analysis.analysis_id, account_id: input.account_id, report_snapshot_id: snapshot.snapshot_id, format });
 
-  return { export_id: exportId, status: "queued", format, expires_at: expiresAt };
+  return { export_id: exportId, status: "queued", format, expires_at: expiresAt, report_snapshot_id: snapshot.snapshot_id };
 }
 
 export function getExportOwned(exportId: string, accountId: string) {

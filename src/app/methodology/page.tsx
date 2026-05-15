@@ -48,6 +48,7 @@ export default function MethodologyPage() {
             description="A five-step framework designed for repeatable, execution-aware strategy evaluation."
             primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
             secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
+            artifactVariant="report"
           />
         </section>
 

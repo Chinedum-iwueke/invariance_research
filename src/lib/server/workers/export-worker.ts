@@ -1,8 +1,10 @@
-import { renderExport } from "@/lib/server/exports/export-renderer";
+import { renderExportFromSnapshot } from "@/lib/server/exports/export-renderer";
 import { logger } from "@/lib/server/ops/logger";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
+import { ensureReportSnapshotForAnalysis } from "@/lib/server/exports/report-snapshot-service";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { buildReportObjectKey } from "@/lib/server/storage/object-keys";
 import { runWorkerLoop } from "@/lib/server/workers/worker-runtime";
@@ -44,8 +46,12 @@ export async function processNextExportJob(): Promise<boolean> {
     exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Rendering report", progress_pct: 60 }));
     const analysis = await analysisRepository.findById(exportRecord.analysis_id);
     if (!analysis?.result) throw new Error("analysis_result_missing");
+    const snapshot = exportRecord.report_snapshot_id
+      ? reportSnapshotRepository.findById(exportRecord.report_snapshot_id)
+      : ensureReportSnapshotForAnalysis(analysis);
+    if (!snapshot) throw new Error("report_snapshot_missing");
 
-    const rendered = renderExport(analysis.result, exportRecord.format);
+    const rendered = renderExportFromSnapshot(snapshot, exportRecord.format);
     exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Persisting export", progress_pct: 85 }));
 
     const stored = await getObjectStorage().putObject({
@@ -63,6 +69,7 @@ export async function processNextExportJob(): Promise<boolean> {
     exportRepository.update(claimed.export_id, (current) => ({
       ...current,
       status: "completed",
+      report_snapshot_id: snapshot.snapshot_id,
       storage_key: stored.storage_key,
       content_type: stored.content_type,
       file_size_bytes: stored.size_bytes,
@@ -82,7 +89,7 @@ export async function processNextExportJob(): Promise<boolean> {
       error_message: undefined,
     }));
 
-    logger.info("export.completed", { export_id: claimed.export_id, analysis_id: claimed.analysis_id, account_id: claimed.account_id });
+    logger.info("export.completed", { export_id: claimed.export_id, analysis_id: claimed.analysis_id, account_id: claimed.account_id, report_snapshot_id: snapshot.snapshot_id });
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "export_failed";

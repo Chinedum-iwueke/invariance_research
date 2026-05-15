@@ -4,6 +4,8 @@ import { AdminFilterBar } from "@/components/admin/admin-filter-bar";
 import { AdminPageShell } from "@/components/admin/admin-page-shell";
 import { AdminTable } from "@/components/admin/admin-table";
 import { AccountPlanBadge, WebhookStatusBadge } from "@/components/admin/status-badges";
+import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
+import { requireAdminSession } from "@/lib/server/admin/guards";
 import { adminSetAccountPassword, listAdminAccounts } from "@/lib/server/admin/accounts-service";
 
 export default async function AdminAccountsPage({ searchParams }: { searchParams: Promise<{ plan?: string; status?: string; highUsage?: string }> }) {
@@ -23,7 +25,15 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
       return;
     }
 
-    await adminSetAccountPassword({ email, password });
+    const actor = await requireAdminSession();
+    const updated = await adminSetAccountPassword({ email, password });
+    await writeAdminAuditLog({
+      actor,
+      action: "account.password_set",
+      resourceType: "user",
+      resourceId: updated.user_id,
+      metadata: { email: updated.email },
+    });
     revalidatePath("/app/admin/accounts");
   }
 

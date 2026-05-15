@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const kind = body.get("kind") === "export" ? "export" : "analysis";
   const { id } = await params;
   try {
-    const result = retryAdminJob({ kind, linked_id: id });
+    const result = await retryAdminJob({ kind, linked_id: id });
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "retry_not_allowed" }, { status: 422 });

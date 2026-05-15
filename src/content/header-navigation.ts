@@ -28,7 +28,10 @@ export const headerNavGroups: HeaderNavGroup[] = [
     label: "OUR FIRM",
     items: [
       { label: "About Us", href: "/about" },
-      { label: "Contact Us", href: "/contact" },
+      { label: "Methodology", href: "/methodology" },
+      { label: "Research Standards", href: "/research-standards" },
+      { label: "Terms of Use", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
     ],
   },
 ];

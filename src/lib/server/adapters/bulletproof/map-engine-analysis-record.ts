@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { analysisRecordSchema, type AnalysisRecord, type FigurePayload, type FigureSeries, type ScoreBand, type WarningItem } from "@/lib/contracts";
+import { reconcileDiagnosticStatus as reconcileEvidenceDiagnosticStatus } from "@/lib/server/evidence/evidence-ledger-service";
 import type { EngineCapabilityProfile, EngineRunContext, EngineAnalysisResult } from "@/lib/server/engine/engine-types";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
@@ -538,23 +539,6 @@ function statusText(status: FinalStatus | undefined, availableText: string, unav
   return status === "available" ? availableText : unavailableText;
 }
 
-function reconcileDiagnosticStatus(eligibility: UploadEligibilitySummary, capability?: EngineCapabilityProfile) {
-  const base = new Map<DiagnosticName, FinalStatus>();
-
-  for (const name of DIAGNOSTICS) {
-    if (eligibility.diagnostics_unavailable.includes(name)) base.set(name, "unavailable");
-    else if (eligibility.diagnostics_limited.includes(name)) base.set(name, "limited");
-    else if (eligibility.diagnostics_available.includes(name)) base.set(name, "available");
-    else base.set(name, "unavailable");
-
-    const engineStatus = capability?.[name]?.status;
-    if (engineStatus === "unavailable" || engineStatus === "skipped") base.set(name, engineStatus);
-    else if (engineStatus === "limited" && base.get(name) === "available") base.set(name, "limited");
-  }
-
-  return base;
-}
-
 function pickDiagnosticEnvelope(raw: UnknownRecord | undefined): UnknownRecord | undefined {
   if (!raw) return undefined;
   return pickFirstRecord(raw, ["diagnostic_envelope", "envelope", "payload"]) ?? raw;
@@ -609,7 +593,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const now = new Date().toISOString();
   const firstTrade = parsedArtifact.trades[0];
   const lastTrade = parsedArtifact.trades[parsedArtifact.trades.length - 1];
-  const statusByDiagnostic = reconcileDiagnosticStatus(eligibility, engine.capability_profile);
+  const statusByDiagnostic = reconcileEvidenceDiagnosticStatus(eligibility, engine.capability_profile);
   const skippedNotes = engine.skipped_diagnostics?.map((item) => `${item.diagnostic}: ${item.reason}`) ?? [];
 
   const diagnostics = asRecord(engine.diagnostics);

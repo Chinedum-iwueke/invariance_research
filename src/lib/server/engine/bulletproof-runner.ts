@@ -1,6 +1,16 @@
 import { buildAnalysisEngineDispatchPayload } from "@/lib/analyses/analysis-engine-dispatch";
 import { runBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
-import type { BulletproofRunResponse, RunBulletproofAnalysisParams } from "@/lib/server/engine/engine-types";
+import {
+  CAPABILITY_PROFILE_VERSION,
+  DIAGNOSTIC_CONTRACT_VERSION,
+  ENGINE_ADAPTER_VERSION,
+  ENGINE_PARSER_VERSION,
+  ENGINE_SEAM_NAME,
+  ENGINE_SEAM_VERSION,
+  type BulletproofRunResponse,
+  type EngineEnvelopeV1,
+  type RunBulletproofAnalysisParams,
+} from "@/lib/server/engine/engine-types";
 
 export async function runBulletproofAnalysisFromParsedArtifact(params: RunBulletproofAnalysisParams): Promise<BulletproofRunResponse> {
   const { analysis, parsedArtifact, eligibility } = params;
@@ -10,6 +20,16 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
 
   const engineResponse = await runBulletproofEngine(parsedArtifact, dispatch.config);
   const result = engineResponse.result;
+  const envelope: EngineEnvelopeV1 = {
+    engine_name: engineResponse.envelope?.engine_name ?? "bt",
+    engine_version: engineResponse.envelope?.engine_version ?? result.envelope?.engine_version ?? engineResponse.engine_version,
+    seam_name: ENGINE_SEAM_NAME,
+    seam_version: engineResponse.envelope?.seam_version ?? ENGINE_SEAM_VERSION,
+    adapter_version: engineResponse.envelope?.adapter_version ?? ENGINE_ADAPTER_VERSION,
+    parser_version: engineResponse.envelope?.parser_version ?? ENGINE_PARSER_VERSION,
+    capability_profile_version: engineResponse.envelope?.capability_profile_version ?? CAPABILITY_PROFILE_VERSION,
+    diagnostic_contract_version: engineResponse.envelope?.diagnostic_contract_version ?? DIAGNOSTIC_CONTRACT_VERSION,
+  };
   const degradationReasons = [
     ...(result.skipped_diagnostics?.map((item) => `${item.diagnostic}: ${item.reason}`) ?? []),
     ...dispatch.warnings,
@@ -18,9 +38,15 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
   return {
     result,
     context: {
-      engine_name: "bt",
-      engine_version: result.run_context?.engine_version ?? engineResponse.engine_version,
-      seam: "run_analysis_from_parsed_artifact",
+      engine_name: envelope.engine_name,
+      engine_version: envelope.engine_version ?? result.run_context?.engine_version ?? engineResponse.engine_version,
+      seam: ENGINE_SEAM_NAME,
+      seam_name: envelope.seam_name,
+      seam_version: envelope.seam_version,
+      adapter_version: envelope.adapter_version,
+      parser_version: envelope.parser_version,
+      capability_profile_version: envelope.capability_profile_version,
+      diagnostic_contract_version: envelope.diagnostic_contract_version,
       benchmark_config: dispatch.config.benchmark,
       account_size: dispatch.config.account_size,
       risk_per_trade_pct: dispatch.config.risk_per_trade_pct,

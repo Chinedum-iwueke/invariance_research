@@ -12,7 +12,17 @@ export default async function AdminHealthPage() {
         <AdminStatCard label="Overall" value={snapshot.status} />
         <AdminStatCard label="Startup validation" value={snapshot.startup_validation_state} />
         <AdminStatCard label="Engine version" value={snapshot.engine_version} />
+        <AdminStatCard label="Queued jobs" value={String(snapshot.jobs.queued)} />
+        <AdminStatCard label="Running jobs" value={String(snapshot.jobs.processing)} />
+        <AdminStatCard label="Failed jobs" value={String(snapshot.jobs.failed)} />
+        <AdminStatCard label="Dead-letter jobs" value={String((snapshot.jobs as { dead_letter?: number }).dead_letter ?? 0)} />
+        <AdminStatCard label="Rate-limit events (1h)" value={String(snapshot.rate_limit_events_last_hour)} />
+        <AdminStatCard label="Benchmark cache" value={snapshot.benchmark_manifest_cache.cached ? "warm" : "cold"} />
       </div>
+      <p className="text-xs text-text-neutral">
+        Benchmark provider: {snapshot.benchmark_manifest_cache.provider}
+        {snapshot.benchmark_manifest_cache.source ? ` (${snapshot.benchmark_manifest_cache.source})` : ""}
+      </p>
       <p className="text-xs text-text-neutral">Last checked: {snapshot.timestamp}</p>
       <div className="grid gap-3 md:grid-cols-2">
         {snapshot.checks.map((check) => <HealthStatusCard key={check.name} name={check.name} status={check.status} detail={check.detail} />)}

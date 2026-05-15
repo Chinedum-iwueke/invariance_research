@@ -7,14 +7,15 @@ interface FooterGroup {
 
 export function SiteFooter({ groups }: { groups: readonly FooterGroup[] }) {
   return (
-    <footer className="mt-section-lg border-t bg-surface-panel/30 md:mt-section-xl">
+    <footer className="mt-section-lg border-t border-border-strong bg-surface-panel/55 md:mt-section-xl">
       <div className="container-shell py-10 md:py-section-md">
-        <div className="grid gap-8 md:grid-cols-[2fr_1fr_1fr_1fr] md:gap-10">
+        <div className="grid gap-8 md:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))] md:gap-8 lg:gap-10">
           <div className="space-y-3 border-b border-border-subtle/70 pb-6 md:border-b-0 md:pb-0">
-            <p className="text-sm font-semibold tracking-[0.04em]">Invariance Research</p>
+            <p className="font-display text-3xl leading-none">Invariance Research</p>
             <p className="max-w-md text-sm leading-relaxed text-text-neutral">
-              Independent quantitative validation studio focused on execution-aware strategy evaluation and robustness diagnostics.
+              Evidence-led strategy validation for teams that need every claim, limitation, and diagnostic traceable before capital is deployed.
             </p>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Research red retained. Everything else earned by evidence.</p>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:contents">
             {groups.map((group) => (
