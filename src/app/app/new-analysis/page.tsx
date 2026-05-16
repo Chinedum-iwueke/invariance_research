@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function NewAnalysisPage() {
   return (
-    <AnalysisPageFrame title="New Analysis">
+    <AnalysisPageFrame title="New Analysis" description="Submit a strategy artifact, inspect what the system can and cannot prove, then launch a validation run with explicit benchmark and risk assumptions.">
       <NewAnalysisIntake />
     </AnalysisPageFrame>
   );

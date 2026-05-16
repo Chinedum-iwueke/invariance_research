@@ -51,4 +51,5 @@ export type SharedReportViewModel = {
   deployment_guidance: ReportSnapshotRecord["payload"]["report_view"]["deploymentGuidance"];
   evidence_ledger: Pick<EvidenceLedgerEntry, "diagnostic" | "final_status" | "display_status" | "artifact_reason" | "engine_reason">[];
   warnings: string[];
+  reviewer_addenda: Array<{ addendum_id: string; public_addendum: string; approved_at?: string }>;
 };

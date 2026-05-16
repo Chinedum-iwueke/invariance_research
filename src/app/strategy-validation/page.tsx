@@ -5,7 +5,7 @@ import { ContactForm } from "@/components/public/contact-form";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
 import { ProcessStepperCarouselCard, ScrollspyRail } from "@/components/public/home-scenes";
-import { Card } from "@/components/ui/card";
+import { DeliverableLedger, StrategyValidationHeroInstrument, StrategyValidationScopeBoard } from "@/components/public/validation-page-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
@@ -23,51 +23,48 @@ export default function StrategyValidationPage() {
         <section id="hero">
           <PageHero
             title="Independent Strategy Validation"
-            description="Structured advisory engagements for teams requiring deeper analyst-led evaluation than automated diagnostics alone."
+            description="Analyst-led validation for teams that need more than automated diagnostics: a scoped evidence review, execution-aware pressure testing, and a committee-ready report."
             primaryCta={{ label: "Request Consultation", href: "#request" }}
             secondaryCta={{ label: "View Methodology", href: "/methodology" }}
-            artifactVariant="report"
+            credibilityLine="Use when capital, investors, or internal review need decision-grade evidence."
+            rightSlot={<StrategyValidationHeroInstrument />}
           />
         </section>
 
         <section id="tiers" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Audit Tiers" description="Tiered scope for exploratory, institutional, and bespoke validation mandates." />
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              ["Audit Foundation", "Single-strategy diagnostic baseline", "2–3 weeks"],
-              ["Institutional Audit", "Multi-layer robustness and capital-risk review", "3–5 weeks"],
-              ["Bespoke Engagement", "Custom mandate for complex portfolios", "Variable"],
-            ].map(([tier, summary, window]) => (
-              <Card key={tier} className="space-y-3 p-card-md">
-                <h3 className="text-lg font-semibold">{tier}</h3>
-                <p className="text-sm text-text-neutral">{summary}</p>
-                <p className="text-xs uppercase tracking-[0.12em] text-text-neutral">Typical window: {window}</p>
-              </Card>
-            ))}
-          </div>
+          <SectionHeader
+            eyebrow="Mandate Design"
+            title="Choose the level of scrutiny the decision deserves."
+            description="The engagement tiers are not pricing cards. They are scopes of evidence: how much uncertainty needs to be reduced before the strategy moves forward."
+          />
+          <StrategyValidationScopeBoard />
         </section>
 
         <section id="deliverables" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Core Deliverables" />
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
+          <SectionHeader
+            eyebrow="Deliverable Ledger"
+            title="Each deliverable maps to a decision risk."
+            description="The page should make analyst-led validation feel like a structured evidence program, not a generic consulting package."
+          />
+          <DeliverableLedger
+            items={[
               "Execution-aware backtest review",
               "Monte Carlo robustness testing",
               "Parameter stability analysis",
               "Regime performance diagnostics",
               "Capital risk modeling",
               "Structured validation report",
-            ].map((item, index) => (
-              <Card key={`validation-item-${index}-${item.slice(0, 24)}`} className="p-card-md text-sm text-text-graphite">
-                {item}
-              </Card>
-            ))}
-          </div>
+            ]}
+          />
           <ConfidentialityCallout />
         </section>
 
         <section id="process" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Engagement Process" description="A structured analyst-led sequence from scoping through final delivery." />
+          <SectionHeader
+            eyebrow="Engagement Flow"
+            title="The process mirrors the product: scope, evidence, pressure, report."
+            description="A structured analyst-led sequence from scoping through final delivery."
+          />
           <ProcessStepperCarouselCard
             title="Engagement Process"
             subtitle="Each phase is designed to produce decision-ready evidence for teams evaluating live deployment."

@@ -3,7 +3,28 @@
 import Link from "next/link";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { Activity, ArrowRight, ChevronDown, FileCheck2, FileOutput, FileText, Gauge, Inbox, ListChecks, ShieldAlert, Users, Waypoints } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
+  FileCheck2,
+  FileOutput,
+  FileText,
+  Fingerprint,
+  Gauge,
+  Inbox,
+  Layers3,
+  ListChecks,
+  Scale,
+  SearchCheck,
+  Share2,
+  ShieldAlert,
+  Users,
+  Waypoints,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroOverlayBackground } from "@/components/public/hero-overlay-background";
@@ -56,94 +77,529 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
 }
 
 export function HeroScene({ style }: { style?: CSSProperties }) {
-  const [activeScene, setActiveScene] = useState(0);
+  const [activeDocket, setActiveDocket] = useState(0);
+
+  const dockets = [
+    {
+      label: "Claim",
+      title: "Mean reversion edge survives out of sample.",
+      status: "Under review",
+      score: "62",
+      tone: "limited",
+      finding: "Execution costs erase 31% of modeled edge.",
+    },
+    {
+      label: "Evidence",
+      title: "Strategy remains stable through volatility regime changes.",
+      status: "Supported",
+      score: "81",
+      tone: "supported",
+      finding: "Regime stress passes across 4 of 5 slices.",
+    },
+    {
+      label: "Report",
+      title: "Deployment should remain capped until slippage proof improves.",
+      status: "Conditional",
+      score: "74",
+      tone: "limited",
+      finding: "Shareable artifact ready with explicit limits.",
+    },
+  ] as const;
+
+  const active = dockets[activeDocket];
 
   useEffect(() => {
-    const timer = window.setInterval(() => setActiveScene((prev) => (prev + 1) % 2), 8000);
+    const timer = window.setInterval(() => setActiveDocket((prev) => (prev + 1) % dockets.length), 6200);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [dockets.length]);
 
   return (
     <section id="hero" style={style} className="relative isolate flex min-h-[calc(100svh-4.75rem)] items-center overflow-hidden bg-surface-white md:min-h-screen">
       <div className="absolute inset-0">
-        <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 0 ? "opacity-100" : "opacity-0")}>
-          <HeroOverlayBackground />
-        </div>
-        <div className={cn("absolute inset-0 transition-opacity duration-700 ease-out", activeScene === 1 ? "opacity-100" : "opacity-0")}>
-          <HeroOverlayBackground src="/overlay_graphic_2.png" />
-        </div>
+        <HeroOverlayBackground />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--surface-white)_0%,rgba(251,250,247,0.9)_38%,rgba(251,250,247,0.3)_100%)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-surface-white to-transparent" />
       </div>
 
-      <div className="container-shell relative z-10 flex min-h-[calc(100svh-4.75rem)] flex-col pt-[max(2.75rem,6svh)] pb-4 md:h-[90svh] md:min-h-[40rem] md:pt-[max(3.9rem,7svh)] md:pb-[max(1.1rem,2.5svh)]">
-        <div className="relative flex flex-1 items-center">
-          <div className={cn("absolute inset-0 flex min-w-0 items-center transition-all duration-700 ease-out", activeScene === 0 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0")}>
-            <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-[1.125rem]">
-              <p className="max-w-full text-[10px] font-medium uppercase leading-relaxed tracking-[0.12em] text-text-neutral/88 md:text-[11px] md:tracking-[0.16em]">Independent Quantitative Validation Studio</p>
-              <h1 className="font-display max-w-[13.5ch] text-[clamp(2.55rem,12vw,4rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.7rem)]">
-                Independent Quantitative Strategy Validation
-              </h1>
-              <p className="max-w-[18.75rem] text-[1rem] leading-[1.7] text-text-neutral sm:max-w-xl md:text-lg md:leading-relaxed">
-                Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.
-              </p>
-              <div className="space-y-4 pt-1 md:space-y-6">
-                <div className="mobile-cta-row max-w-[18.75rem] sm:max-w-none">
-                  <Button asChild className="max-w-full">
-                    <Link href="/lab">Explore Strategy Robustness Lab</Link>
-                  </Button>
-                  <Button asChild variant="secondary" className="max-w-full">
-                    <Link href="/strategy-validation">Validate Your Strategy</Link>
-                  </Button>
-                </div>
-                <p className="max-w-[18.75rem] text-xs leading-relaxed text-text-neutral sm:max-w-xl md:text-sm">
-                  Institutional-style validation framework designed to eliminate false edge before capital deployment.
-                </p>
-              </div>
-            </div>
+      <div className="container-shell relative z-10 grid min-h-[calc(100svh-4.75rem)] items-center gap-8 pt-[max(2.75rem,6svh)] pb-5 md:min-h-screen md:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.72fr)] md:gap-12 md:pt-[max(4rem,7svh)]">
+        <div className="max-w-[46rem] space-y-5">
+          <div className="inline-flex items-center gap-2 border-y border-brand/30 bg-brand/[0.06] px-3 py-2 font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">
+            <Fingerprint className="h-3.5 w-3.5" strokeWidth={1.8} />
+            Evidence-first strategy validation
+          </div>
+          <div className="space-y-4">
+            <h1 className="font-display max-w-[11.5ch] text-[clamp(3rem,13vw,4.7rem)] font-medium leading-[0.92] text-text-institutional md:text-[clamp(5.2rem,7.2vw,7rem)]">
+              Put the strategy claim on trial.
+            </h1>
+            <p className="max-w-2xl text-base leading-7 text-text-neutral md:text-xl md:leading-8">
+              Invariance Research turns backtests, assumptions, and diagnostic evidence into a shareable record of what survives realistic market pressure.
+            </p>
           </div>
 
-          <div
-            className={cn(
-              "absolute inset-0 grid items-center transition-all duration-700 ease-out lg:grid-cols-[1fr_auto] lg:gap-9",
-              activeScene === 1 ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0",
-            )}
-          >
-            <div className="w-full min-w-0 max-w-[42rem] space-y-3.5 md:space-y-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">COMING SOON</p>
-              <h2 className="font-display max-w-[13ch] text-[clamp(2.55rem,12vw,4rem)] font-medium leading-[0.96] text-text-institutional md:text-[clamp(4rem,6.4vw,5.7rem)]">Invariance Research Desk</h2>
-              <p className="text-lg text-text-graphite md:text-xl">From intuition to audited backtest.</p>
-              <p className="max-w-[18.75rem] text-[0.95rem] leading-[1.7] text-text-neutral sm:max-w-2xl md:text-base md:leading-relaxed">
-                A new AI-native research environment built to help you formalize ideas, run execution-aware tests, and diagnose what actually survives scrutiny — with AI assistants and research agents guiding you through the process.
-              </p>
-              <div className="mobile-cta-row max-w-[18.75rem] pt-1 sm:max-w-none">
-                <Button asChild>
-                  <Link href="/research-desk#waitlist">Join the Waitlist</Link>
-                </Button>
-                <Button asChild variant="secondary">
-                  <Link href="/research-desk">Learn More</Link>
-                </Button>
+          <div className="mobile-cta-row max-w-[22rem] sm:max-w-none">
+            <Button asChild className="max-w-full">
+              <Link href="/robustness-lab">Enter the Robustness Lab</Link>
+            </Button>
+            <Button asChild variant="secondary" className="max-w-full">
+              <Link href="/strategy-validation">See validation method</Link>
+            </Button>
+          </div>
+
+          <div className="grid max-w-2xl gap-2 border-l border-border-strong pl-4 text-sm text-text-neutral sm:grid-cols-3">
+            {["Execution friction", "Regime sensitivity", "Shareable report"].map((item) => (
+              <div key={item} className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                {item}
               </div>
-            </div>
-            <EvidenceArtifactPreview variant="desk" className="hidden w-[24rem] lg:block" />
+            ))}
           </div>
         </div>
 
-        <div className="flex min-h-[4rem] items-end justify-between gap-4 pb-1 md:min-h-[4.75rem]">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-white/75 p-1 backdrop-blur-sm">
-            {[0, 1].map((scene) => (
+        <div className="relative hidden min-h-[38rem] lg:block">
+          <div className="absolute right-0 top-1/2 grid w-full max-w-[34rem] -translate-y-1/2 gap-4">
+            <div className="artifact-surface relative z-10 overflow-hidden p-4 shadow-raised">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                <div>
+                  <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Live evidence docket</p>
+                  <p className="mt-1 text-sm text-text-neutral">Strategy Robustness Lab preview</p>
+                </div>
+                <div className="font-provenance text-right">
+                  <p className="text-3xl leading-none text-text-institutional">{active.score}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-text-neutral">Readiness</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 py-4">
+                {dockets.map((docket, index) => {
+                  const selected = index === activeDocket;
+                  const toneClass = docket.tone === "supported" ? "border-evidence-supported/35 bg-evidence-supported-wash/70" : "border-evidence-limited/35 bg-evidence-limited-wash/70";
+                  return (
+                    <button
+                      key={docket.label}
+                      type="button"
+                      onClick={() => setActiveDocket(index)}
+                      className={cn(
+                        "group rounded-sm border p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft",
+                        selected ? toneClass : "border-border-subtle bg-surface-panel/45",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{docket.label}</p>
+                        <span className={cn("rounded-full border px-2 py-0.5 font-provenance text-[9px] uppercase tracking-[0.1em]", selected ? "border-current text-text-graphite" : "border-border-subtle text-text-neutral")}>
+                          {docket.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-base font-semibold leading-snug text-text-graphite">{docket.title}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-text-neutral">{docket.finding}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 border-t border-border-subtle pt-3">
+                {[
+                  ["MC", "available"],
+                  ["Regime", "locked"],
+                  ["Report", "ready"],
+                ].map(([label, status]) => (
+                  <div key={label} className="rounded-sm border border-border-subtle bg-surface-panel/55 px-3 py-2">
+                    <p className="font-provenance text-[10px] uppercase tracking-[0.1em] text-text-neutral">{label}</p>
+                    <p className="mt-1 text-sm font-medium text-text-graphite">{status}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative ml-auto grid w-[min(26rem,88%)] grid-cols-[auto_1fr] items-start gap-3">
+              <div className="mt-6 hidden h-px w-16 bg-border-strong xl:block" />
+              <div className="relative">
+                <div className="absolute -left-3 -top-3 h-full w-full rounded-sm border border-border-subtle bg-surface-panel/60" aria-hidden />
+                <div className="relative">
+                  <div className="mb-2 flex items-center justify-between border-y border-border-subtle bg-surface-paper/85 px-3 py-2 backdrop-blur-sm">
+                    <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Lab snapshot</p>
+                    <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">pinned report</p>
+                  </div>
+                  <EvidenceArtifactPreview className="w-full shadow-raised" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-5 left-1/2 hidden w-[calc(100%-3rem)] max-w-container -translate-x-1/2 items-end justify-between gap-4 md:flex">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-white/80 p-1 backdrop-blur-sm">
+            {dockets.map((docket, index) => (
               <button
-                key={scene}
+                key={docket.label}
                 type="button"
-                onClick={() => setActiveScene(scene)}
-                className={cn("h-2.5 w-7 rounded-full transition-all duration-300", activeScene === scene ? "bg-brand" : "bg-text-neutral/30 hover:bg-text-neutral/45")}
-                aria-label={`Switch to hero scene ${scene + 1}`}
-                aria-current={activeScene === scene ? "true" : undefined}
+                onClick={() => setActiveDocket(index)}
+                className={cn("h-2.5 w-7 rounded-full transition-all duration-300", activeDocket === index ? "bg-brand" : "bg-text-neutral/30 hover:bg-text-neutral/45")}
+                aria-label={`Switch to ${docket.label} hero docket`}
+                aria-current={activeDocket === index ? "true" : undefined}
               />
             ))}
           </div>
-          <SceneScrollCue href="#problem" className="hidden sm:inline-flex" />
+          <SceneScrollCue href="#claim" />
         </div>
       </div>
     </section>
+  );
+}
+
+export function ValidationDocketRail() {
+  const steps = [
+    { label: "Claim", body: "State the strategy and the market belief." },
+    { label: "Evidence", body: "Test only what the uploaded artifact can support." },
+    { label: "Limits", body: "Expose gaps, locked diagnostics, and weak assumptions." },
+    { label: "Artifact", body: "Produce a snapshot report safe enough to share." },
+  ];
+
+  return (
+    <section className="relative z-20 border-y border-border-subtle bg-surface-paper/92 backdrop-blur-md">
+      <div className="container-shell grid gap-0 md:grid-cols-4">
+        {steps.map((step, index) => (
+          <div key={step.label} className="group relative border-b border-border-subtle py-4 md:border-b-0 md:border-r md:px-5 last:md:border-r-0">
+            <div className="flex items-start gap-3">
+              <span className="font-provenance mt-0.5 text-[10px] uppercase tracking-[0.12em] text-brand">{String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <p className="text-sm font-semibold text-text-graphite">{step.label}</p>
+                <p className="mt-1 max-w-[18rem] text-xs leading-relaxed text-text-neutral">{step.body}</p>
+              </div>
+            </div>
+            <span className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand transition-all duration-300 group-hover:w-full" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function ClaimAuditPanel() {
+  const [activeMode, setActiveMode] = useState<"naive" | "execution" | "ledger">("execution");
+  const modes = [
+    {
+      id: "naive",
+      label: "Naive curve",
+      title: "A clean equity curve is not evidence by itself.",
+      body: "The first view shows why the old experience is not enough: a favorable curve can still hide cost drag, regime dependence, and parameter overfit.",
+      visual: <NaiveVsExecutionVisual />,
+      icon: BarChart3,
+    },
+    {
+      id: "execution",
+      label: "Execution pressure",
+      title: "The same claim under realistic frictions becomes a different object.",
+      body: "The homepage now introduces the core product behavior immediately: assumptions are visible, stress changes the verdict, and uncertainty is part of the interface.",
+      visual: <NaiveVsExecutionVisual executionAware />,
+      icon: Scale,
+    },
+    {
+      id: "ledger",
+      label: "Evidence ledger",
+      title: "Every diagnostic carries a status, a reason, and a next action.",
+      body: "The ledger lets users understand why something is supported, limited, locked, or contradicted before they ever enter the app.",
+      visual: <EvidenceLedgerMiniature />,
+      icon: ClipboardCheck,
+    },
+  ] as const;
+  const active = modes.find((mode) => mode.id === activeMode) ?? modes[0];
+  const Icon = active.icon;
+
+  return (
+    <div className="grid overflow-hidden rounded-md border border-border-subtle bg-surface-paper shadow-raised lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="border-b border-border-subtle p-4 md:p-6 lg:border-b-0 lg:border-r">
+        <div className="grid gap-2">
+          {modes.map((mode) => {
+            const ModeIcon = mode.icon;
+            const selected = mode.id === activeMode;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setActiveMode(mode.id)}
+                className={cn(
+                  "group flex items-start gap-3 rounded-sm border p-4 text-left transition-all duration-300 hover:-translate-y-0.5",
+                  selected ? "border-brand/35 bg-brand/[0.06] shadow-soft" : "border-border-subtle bg-surface-panel/45 hover:bg-surface-panel",
+                )}
+              >
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border", selected ? "border-brand/25 bg-brand text-surface-white" : "border-border-subtle bg-surface-paper text-text-neutral")}>
+                  <ModeIcon className="h-4.5 w-4.5" strokeWidth={1.8} />
+                </span>
+                <span>
+                  <span className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{mode.label}</span>
+                  <span className="mt-1 block text-sm font-semibold leading-snug text-text-graphite">{mode.title}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="p-4 md:p-6">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-xl">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Active examination</p>
+            <h3 className="mt-2 text-2xl font-semibold leading-tight text-text-institutional md:text-3xl">{active.title}</h3>
+            <p className="mt-3 text-sm leading-7 text-text-neutral">{active.body}</p>
+          </div>
+          <span className="flex h-12 w-12 items-center justify-center rounded-sm border border-brand/25 bg-brand/[0.07] text-brand">
+            <Icon className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+        </div>
+        <div className="transition-all duration-300">{active.visual}</div>
+      </div>
+    </div>
+  );
+}
+
+function EvidenceLedgerMiniature() {
+  const rows = [
+    ["Overview", "supported", "Report-ready"],
+    ["Execution", "limited", "Assumptions visible"],
+    ["Stability", "locked", "Needs parameters"],
+    ["Regimes", "locked", "Needs OHLCV"],
+    ["Report", "limited", "Safe with caveats"],
+  ];
+
+  return (
+    <div className="rounded-sm border border-border-subtle bg-surface-panel/45 p-3">
+      <div className="grid gap-2">
+        {rows.map(([name, state, reason]) => (
+          <div key={name} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-sm border border-border-subtle bg-surface-paper px-3 py-2">
+            <div>
+              <p className="text-sm font-semibold text-text-graphite">{name}</p>
+              <p className="font-provenance mt-1 text-[10px] uppercase tracking-[0.1em] text-text-neutral">{reason}</p>
+            </div>
+            <span
+              className={cn(
+                "rounded-full border px-2 py-1 font-provenance text-[9px] uppercase tracking-[0.1em]",
+                state === "supported" && "border-evidence-supported/30 bg-evidence-supported-wash text-evidence-supported",
+                state === "limited" && "border-evidence-limited/30 bg-evidence-limited-wash text-evidence-limited",
+                state === "locked" && "border-evidence-locked/30 bg-evidence-locked-wash text-evidence-locked",
+              )}
+            >
+              {state}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function EvidenceOutcomeGrid() {
+  const outcomes = [
+    {
+      title: "Supported",
+      body: "Evidence is strong enough to keep investigating or cautiously deploy inside constraints.",
+      signal: "green",
+      icon: CheckCircle2,
+    },
+    {
+      title: "Limited",
+      body: "The claim may still matter, but the artifact does not justify a clean verdict yet.",
+      signal: "amber",
+      icon: SearchCheck,
+    },
+    {
+      title: "Contradicted",
+      body: "The strategy breaks under pressure, and the product should make that failure legible.",
+      signal: "red",
+      icon: ShieldAlert,
+    },
+  ] as const;
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {outcomes.map((outcome) => {
+        const Icon = outcome.icon;
+        return (
+          <article key={outcome.title} className="group relative overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-raised">
+            <div
+              className={cn(
+                "absolute inset-x-0 top-0 h-1",
+                outcome.signal === "green" && "bg-evidence-supported",
+                outcome.signal === "amber" && "bg-evidence-limited",
+                outcome.signal === "red" && "bg-brand",
+              )}
+            />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Verdict state</p>
+                <h3 className="mt-2 text-xl font-semibold text-text-graphite">{outcome.title}</h3>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-sm border border-border-subtle bg-surface-panel transition-transform duration-300 group-hover:rotate-[-3deg]">
+                <Icon className="h-5 w-5 text-brand" strokeWidth={1.8} />
+              </span>
+            </div>
+            <p className="mt-4 text-sm leading-7 text-text-neutral">{outcome.body}</p>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function RobustnessLabIntro() {
+  const tiles = [
+    ["Upload", "Trades, benchmark, OHLCV, or richer bundles enter with visible eligibility."],
+    ["Diagnose", "Only justified diagnostics run. Locked modules explain what evidence is missing."],
+    ["Decide", "The Lab turns output into limits, warnings, and next experiments."],
+    ["Share", "Reports point at immutable snapshots, not mutable owner dashboards."],
+  ];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
+      <div className="artifact-surface overflow-hidden p-5 md:p-6">
+        <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Lab introduction</p>
+        <h3 className="mt-3 max-w-xl text-3xl font-semibold leading-tight text-text-institutional md:text-4xl">A serious first room, not a feature teaser.</h3>
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-text-neutral">
+          The homepage should make the Lab feel like the practical front door to the whole ambition. It is where users see the evidence contract, learn the product vocabulary, and receive a report that can travel outside the app.
+        </p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {tiles.map(([title, body]) => (
+            <div key={title} className="rounded-sm border border-border-subtle bg-surface-panel/55 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:bg-surface-panel">
+              <p className="text-sm font-semibold text-text-graphite">{title}</p>
+              <p className="mt-2 text-xs leading-relaxed text-text-neutral">{body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mobile-cta-row mt-6">
+          <Button asChild>
+            <Link href="/robustness-lab">Run Strategy Diagnostics</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/docs/lab">Read Lab Methodology</Link>
+          </Button>
+        </div>
+      </div>
+      <div className="relative min-h-[26rem] overflow-hidden rounded-md border border-border-subtle bg-surface-panel/55 p-5 shadow-soft">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(176,0,32,0.08),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.5),transparent)]" />
+        <div className="relative mx-auto max-w-[25rem]">
+          <EvidenceArtifactPreview variant="desk" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function LabDiagnosticWorkbench() {
+  const [active, setActive] = useState<"intake" | "stress" | "report">("stress");
+  const panels = {
+    intake: {
+      label: "Artifact intake",
+      title: "Evidence sufficiency is visible before analysis starts.",
+      body: "The Lab should teach users why a richer artifact unlocks better diagnostics, rather than burying that logic after upload.",
+      visual: <EvidenceLedgerMiniature />,
+    },
+    stress: {
+      label: "Stress diagnostics",
+      title: "Interactive diagnostic surfaces make pressure feel concrete.",
+      body: "Charts and heatmaps are introduced as instruments. Users should understand what changes when execution assumptions and regimes become hostile.",
+      visual: <RegimeHeatmapVisual />,
+    },
+    report: {
+      label: "Report artifact",
+      title: "The workbench ends in a decision object.",
+      body: "The report is positioned as the durable output: generated from a snapshot, safe to share, and explicit about limits.",
+      visual: <MetricSnapshotStrip metrics={[{ label: "Readiness", value: "74 / 100" }, { label: "Max DD", value: "-12.8%", tone: "alert" }, { label: "Stress Pass", value: "82%" }, { label: "Snapshot", value: "v1" }]} />,
+    },
+  } as const;
+  const current = panels[active];
+
+  return (
+    <div className="rounded-md border border-border-subtle bg-surface-paper p-4 shadow-raised md:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border-subtle pb-4">
+        <div>
+          <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Diagnostic workbench</p>
+          <h3 className="mt-2 text-2xl font-semibold text-text-institutional md:text-3xl">Move through the Lab as a stateful investigation.</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-1 rounded-full border border-border-subtle bg-surface-panel/70 p-1">
+          {Object.entries(panels).map(([key, panel]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActive(key as keyof typeof panels)}
+              className={cn("rounded-full px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] transition", active === key ? "bg-text-institutional text-surface-white" : "text-text-neutral hover:text-text-graphite")}
+            >
+              {panel.label.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-5 pt-5 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <div className="space-y-3">
+          <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-text-neutral">{current.label}</p>
+          <h4 className="text-2xl font-semibold leading-tight text-text-graphite">{current.title}</h4>
+          <p className="text-sm leading-7 text-text-neutral">{current.body}</p>
+        </div>
+        <div className="rounded-sm border border-border-subtle bg-surface-panel/45 p-3 transition-all duration-300 md:p-4">{current.visual}</div>
+      </div>
+    </div>
+  );
+}
+
+export function ShareArtifactSection() {
+  const rows = [
+    ["Immutable snapshot", "Reports render from pinned evidence, not shifting analysis state."],
+    ["Share boundary", "Public views expose allowed findings and hide raw uploads."],
+    ["Rescue path", "Expired, revoked, or superseded links fail clearly instead of silently misleading."],
+  ];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_0.82fr] lg:items-center">
+      <div className="artifact-surface overflow-hidden p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Shared validation report</p>
+            <h3 className="mt-3 max-w-2xl font-display text-[clamp(2.4rem,7vw,4.4rem)] font-medium leading-[0.94] text-text-institutional">
+              A report someone can forward without explaining the product first.
+            </h3>
+          </div>
+          <Share2 className="h-8 w-8 text-brand" strokeWidth={1.6} />
+        </div>
+        <p className="mt-5 max-w-2xl text-sm leading-7 text-text-neutral">
+          The homepage now points toward the full ambition: share rooms, Research Desk handoff, and evidence memory. But it earns that ambition through the Lab-first artifact.
+        </p>
+        <div className="mt-6 grid gap-3">
+          {rows.map(([title, body]) => (
+            <div key={title} className="grid gap-3 rounded-sm border border-border-subtle bg-surface-panel/50 p-4 sm:grid-cols-[12rem_1fr]">
+              <p className="text-sm font-semibold text-text-graphite">{title}</p>
+              <p className="text-sm leading-relaxed text-text-neutral">{body}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mobile-cta-row mt-6">
+          <Button asChild>
+            <Link href="/signup">Create a validation report</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/research-desk">Explore Research Desk</Link>
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="rounded-md border border-border-subtle bg-surface-paper p-4 shadow-raised">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+            <div>
+              <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Share room state</p>
+              <p className="mt-1 text-sm text-text-neutral">Public artifact projection</p>
+            </div>
+            <Layers3 className="h-5 w-5 text-brand" strokeWidth={1.8} />
+          </div>
+          <div className="mt-4 grid gap-3">
+            {[
+              ["Available", "Evidence view opens with snapshot warning state."],
+              ["Superseded", "Viewer sees stale artifact notice and rescue path."],
+              ["Revoked", "Content closes with no report payload."],
+            ].map(([state, body]) => (
+              <div key={state} className="rounded-sm border border-border-subtle bg-surface-panel/45 p-3">
+                <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{state}</p>
+                <p className="mt-1 text-sm leading-relaxed text-text-graphite">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

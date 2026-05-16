@@ -33,7 +33,28 @@ export default async function AppHomePage() {
   return (
     <AnalysisPageFrame
       title="Research Workspace"
+      description="A command surface for turning uploaded strategy evidence into decision-grade validation artifacts."
     >
+      <section className="artifact-surface overflow-hidden rounded-md border border-border-subtle bg-surface-white shadow-sm">
+        <div className="grid gap-5 bg-surface-subtle px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Current operating picture</p>
+            <h2 className="font-display mt-2 text-[clamp(2rem,5vw,4rem)] font-medium leading-none text-text-institutional">
+              {latestCompleted ? latestCompleted.strategy_name : "Validation workspace"}
+            </h2>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-text-neutral">
+              This workspace is organized around evidence quality, diagnostic coverage, and whether the current report can stand up to buyer, allocator, or internal committee scrutiny.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <Link href="/app/new-analysis" className={buttonVariants()}>New analysis</Link>
+            {latestCompleted ? (
+              <Link href={`/app/analyses/${latestCompleted.analysis_id}/report`} className={buttonVariants({ variant: "secondary" })}>Open latest report</Link>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
       <MetricRow
         metrics={[
           { label: "Total Analyses", value: String(analyses.length), helper: "Owned by this account" },
@@ -44,11 +65,15 @@ export default async function AppHomePage() {
       />
 
       <WorkspaceCard title="Monthly activity" subtitle="Current calendar month">
-        <p className="text-lg font-semibold text-text-institutional">Analyses this month: {usage.analyses_created}</p>
+        <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-3">
+          <p><span className="font-medium text-text-graphite">Analyses this month:</span> {usage.analyses_created}</p>
+          <p><span className="font-medium text-text-graphite">Report exports:</span> {usage.report_exports}</p>
+          <p><span className="font-medium text-text-graphite">Artifacts uploaded:</span> {usage.artifacts_uploaded}</p>
+        </div>
       </WorkspaceCard>
 
       <div className="grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
-        <WorkspaceCard title="Quick Start" subtitle="Structured flow" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
+        <WorkspaceCard title="Validation flow" subtitle="The product path from evidence intake to shareable artifact" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
           <ol className="space-y-2 text-sm text-text-neutral">
             <li>1. Upload backtest and trade artifacts.</li>
             <li>2. Review dataset quality and analysis readiness.</li>
@@ -65,7 +90,7 @@ export default async function AppHomePage() {
           </div>
         </WorkspaceCard>
 
-        <WorkspaceCard title="Recent analyses" subtitle="Latest research artifacts">
+        <WorkspaceCard title="Recent research artifacts" subtitle="Latest validation workbenches">
           {analyses.length === 0 ? (
             <EmptyState
               title="No analyses yet"

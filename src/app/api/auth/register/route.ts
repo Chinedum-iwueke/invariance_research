@@ -5,7 +5,11 @@ import { assertSameOrigin } from "@/lib/server/auth/security";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
 
 export async function POST(request: Request) {
-  assertSameOrigin(request);
+  try {
+    assertSameOrigin(request);
+  } catch {
+    return NextResponse.json({ error: { code: "invalid_origin", message: "Signup request origin is not allowed." } }, { status: 403 });
+  }
   const body = (await request.json()) as { email?: string; name?: string; password?: string; confirm_password?: string };
 
   const email = String(body.email ?? "").trim().toLowerCase();

@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 import { shareAccessEventRepository, shareTokenRepository } from "@/lib/server/repositories/share-token-repository";
+import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
 import { assertShareCanBeCreated, assertShareCanBeRevoked } from "@/lib/server/share/share-state-machine";
 import type { ReportSnapshotRecord } from "@/lib/server/exports/models";
 import type { ShareTokenRecord, SharedReportViewModel } from "@/lib/server/share/models";
@@ -100,6 +101,7 @@ function buildSharedReportView(
   status: SharedReportViewModel["status"],
 ): SharedReportViewModel {
   const record = snapshot.payload.record;
+  const reviewerAddenda = listApprovedReportAddenda(snapshot.snapshot_id);
   return {
     share_id: share.share_id,
     snapshot_id: snapshot.snapshot_id,
@@ -129,6 +131,11 @@ function buildSharedReportView(
       engine_reason: entry.engine_reason,
     })),
     warnings: snapshot.payload.warnings,
+    reviewer_addenda: reviewerAddenda.map((addendum) => ({
+      addendum_id: addendum.addendum_id,
+      public_addendum: addendum.public_addendum ?? "",
+      approved_at: addendum.approved_at,
+    })),
   };
 }
 

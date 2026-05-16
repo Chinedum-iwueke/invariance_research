@@ -9,8 +9,9 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
+import { ResearchDeskRequestPanel } from "@/components/dashboard/research-desk-request-panel";
+import { ReportExportActions } from "@/components/dashboard/report-export-actions";
 import { buttonVariants } from "@/components/ui/button";
-import { ResearchDeskWaitlistForm } from "@/components/public/research-desk-waitlist-form";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
@@ -19,7 +20,9 @@ import { buildTruthContext } from "@/lib/app/context-truth";
 import type { FigurePayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { accountService } from "@/lib/server/accounts/service";
 import { getReportSnapshotState } from "@/lib/server/exports/report-snapshot-service";
+import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 function BulletList({ items, empty }: { items: string[]; empty: string }) {
@@ -51,6 +54,7 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const accountState = await accountService.getAccountState(session.account_id);
   const { id } = await params;
   const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
@@ -64,10 +68,16 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const view = buildReportViewModel(record);
   const snapshotState = getReportSnapshotState(analysis);
+  const approvedAddenda = snapshotState.active ? listApprovedReportAddenda(snapshotState.active.snapshot_id) : [];
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
   const truthContext = buildTruthContext(record, "report", { benchmark: analysis.benchmark });
+  const researchDeskLimitations = [
+    ...view.limitations,
+    ...truthContext.limitations,
+    ...record.summary.warnings.map((warning) => `${warning.title}: ${warning.message}`),
+  ];
   const readinessTone = view.deploymentGuidance.status === "advisable"
     ? {
         border: "border-chart-positive/35",
@@ -158,6 +168,14 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <p><span className="font-medium text-text-graphite">Scope:</span> Free diagnostic preview</p>
           </div>
         </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Export & Sharing" subtitle="Generate a polished report artifact for a committee, allocator, buyer, or internal review packet.">
+        <ReportExportActions
+          analysisId={record.analysis_id}
+          canExport={record.access.can_export_report}
+          currentPlan={accountState?.account.plan_id}
+        />
       </WorkspaceCard>
 
       <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">
@@ -315,14 +333,22 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Invariance Research Desk" subtitle="Forthcoming research environment for deeper validation">
-        <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">
-          Research Desk will support AI-assisted research workflows, deeper validation, and iterative edge research without leaving the report context.
-        </p>
-        <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-4">
-          <ResearchDeskWaitlistForm sourcePage="validation_report" buttonLabel="Join Research Desk Waitlist" showNameField />
-        </div>
-      </WorkspaceCard>
+      <ResearchDeskRequestPanel analysisId={record.analysis_id} limitations={researchDeskLimitations} />
+
+      {approvedAddenda.length ? (
+        <WorkspaceCard title="Reviewer Addenda" subtitle="Approved Research Desk context attached to this report snapshot">
+          <div className="space-y-3">
+            {approvedAddenda.map((addendum) => (
+              <div key={addendum.addendum_id} className="rounded-md border border-research-red/20 bg-research-red/5 p-4">
+                <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-research-red">
+                  Approved addendum / {addendum.approved_at ?? addendum.updated_at}
+                </p>
+                <p className="mt-2 text-sm leading-7 text-text-neutral">{addendum.public_addendum}</p>
+              </div>
+            ))}
+          </div>
+        </WorkspaceCard>
+      ) : null}
     </AnalysisPageFrame>
   );
 }

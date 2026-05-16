@@ -20,6 +20,9 @@ import type { AnalysisRecord } from "../src/lib/contracts";
 
 function resetDb() {
   getDb().exec(`
+    DELETE FROM wedge_learning_events;
+    DELETE FROM report_reviewer_addenda;
+    DELETE FROM research_desk_requests;
     DELETE FROM share_access_events;
     DELETE FROM share_tokens;
     DELETE FROM export_jobs;

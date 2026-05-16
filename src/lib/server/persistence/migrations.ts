@@ -446,5 +446,68 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_share_access_events_created ON share_access_events(created_at);
     `,
   },
+  {
+    version: 16,
+    name: "research_desk_learning_loop",
+    sql: `
+      CREATE TABLE IF NOT EXISTS research_desk_requests (
+        request_id TEXT PRIMARY KEY,
+        report_snapshot_id TEXT NOT NULL REFERENCES report_snapshots(snapshot_id),
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        artifact_id TEXT NOT NULL REFERENCES artifacts(artifact_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        requested_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        trigger_limitation TEXT NOT NULL,
+        requested_services_json TEXT NOT NULL,
+        validation_packet_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        user_note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS report_reviewer_addenda (
+        addendum_id TEXT PRIMARY KEY,
+        request_id TEXT NOT NULL UNIQUE REFERENCES research_desk_requests(request_id),
+        report_snapshot_id TEXT NOT NULL REFERENCES report_snapshots(snapshot_id),
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        reviewer_user_id TEXT NOT NULL REFERENCES users(user_id),
+        status TEXT NOT NULL,
+        internal_note TEXT,
+        public_addendum TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        approved_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS wedge_learning_events (
+        event_id TEXT PRIMARY KEY,
+        request_id TEXT NOT NULL REFERENCES research_desk_requests(request_id),
+        report_snapshot_id TEXT NOT NULL REFERENCES report_snapshots(snapshot_id),
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        event_type TEXT NOT NULL,
+        learning_key TEXT NOT NULL,
+        evidence_count INTEGER NOT NULL,
+        promotion_candidate INTEGER NOT NULL,
+        promoted_at TEXT,
+        metadata_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_research_desk_requests_status_created
+        ON research_desk_requests(status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_desk_requests_analysis
+        ON research_desk_requests(analysis_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_desk_requests_snapshot
+        ON research_desk_requests(report_snapshot_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_reviewer_addenda_snapshot
+        ON report_reviewer_addenda(report_snapshot_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_wedge_learning_events_key
+        ON wedge_learning_events(learning_key, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_wedge_learning_events_promotion
+        ON wedge_learning_events(promotion_candidate, created_at DESC);
+    `,
+  },
 
 ];

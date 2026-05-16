@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
-import { FeatureGrid } from "@/components/marketing/feature-grid";
 import { ScrollspyRail } from "@/components/public/home-scenes";
+import { LabEvidenceConsole, LabHeroInstrument, PageTransitionBand } from "@/components/public/validation-page-scenes";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { UploadPanel } from "@/components/ui/upload-panel";
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 const DEMO_VIDEO_PATH = "/demo_video.mp4";
 
 export default function RobustnessLabPage() {
-  const sectionIds = ["hero", "demo", "intake", "produces", "outputs", "who-for", "cta"];
+  const sectionIds = ["hero", "demo", "intake", "console", "outputs", "next", "cta"];
   const hasDemoVideo = existsSync(join(process.cwd(), "public", "demo_video.mp4"));
 
   return (
@@ -28,18 +28,20 @@ export default function RobustnessLabPage() {
         <section id="hero">
           <PageHero
             title="Strategy Robustness Lab"
-            description="A research instrument that tests whether strategies survive realistic execution and adverse market conditions."
+            description="The first working room in Invariance Research: upload an artifact, see what evidence it can support, and turn a strategy claim into a reportable diagnostic record."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
-            artifactVariant="lab"
+            credibilityLine="Lab-first hardening: fast user evidence, clear limits, shareable report path."
+            rightSlot={<LabHeroInstrument />}
           />
         </section>
 
         <section id="demo" className="evidence-section-band">
           <div className="container-shell space-y-6 py-section-sm">
           <SectionHeader
-            title="See the Lab in Use"
-            description="A walkthrough of the lightweight diagnostic flow used before formal validation."
+            eyebrow="Working Surface"
+            title="See the Lab as a diagnostic room, not a marketing demo."
+            description="The walkthrough sits inside the same evidence frame users will learn in the product: intake, eligibility, diagnostics, report."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -68,36 +70,27 @@ export default function RobustnessLabPage() {
 
         <section id="intake" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
-            title="What goes in"
-            description="Upload research artifacts as the first step in a structured validation workflow, not a generic file handoff."
+            eyebrow="Artifact Intake"
+            title="What goes in determines what can be honestly claimed."
+            description="The upload moment is the first trust boundary. The Lab should explain artifact richness before it produces a verdict."
           />
           <UploadPanel />
         </section>
 
-        <section id="produces" className="container-shell space-y-6 py-section-sm">
+        <section id="console" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
-            title="What the Lab Produces"
-            description="The free lab produces a lightweight diagnostic layer for initial strategy triage."
+            eyebrow="Evidence Console"
+            title="The Lab flow should feel stateful from the first click."
+            description="Users should understand where they are in the investigation: what has been accepted, what is locked, and what the current evidence can support."
           />
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              ["Structured diagnostics", "Expose performance composition, degradation patterns, and hidden fragility."],
-              ["Stress-tested analytical views", "Translate path uncertainty into realistic drawdown and survivability context."],
-              ["Robustness and stability signals", "Identify where outcomes depend on narrow regimes or parameter sensitivity."],
-              ["Validation-report outputs", "Consolidate results into a coherent artifact for investment and risk decisions."],
-            ].map(([title, body]) => (
-              <Card key={title} className="space-y-2 p-card-md">
-                <h3 className="text-base font-semibold">{title}</h3>
-                <p className="text-sm text-text-neutral">{body}</p>
-              </Card>
-            ))}
-          </div>
+          <LabEvidenceConsole />
         </section>
 
         <section id="outputs" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
-            title="Output previews"
-            description="A product view of what each workspace answers before capital is committed."
+            eyebrow="Lab Outputs"
+            title="The output is a decision trail, not a pile of charts."
+            description="Each workspace should answer one capital-facing question and carry the user closer to a durable report artifact."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {[
@@ -131,9 +124,13 @@ export default function RobustnessLabPage() {
           </div>
         </section>
 
-        <section id="who-for" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Who it is for" description="Designed for discretionary and systematic teams that require methodical pre-deployment validation." />
-          <FeatureGrid columns={4} />
+        <section id="next" className="container-shell py-section-sm">
+          <PageTransitionBand
+            title="From Lab output to methodology."
+            body="The Lab gives users a concrete first experience. The methodology page explains the rules that keep that experience honest."
+            href="/methodology"
+            label="Read the methodology"
+          />
         </section>
 
         <section id="cta" className="container-shell py-section-md">

@@ -13,18 +13,22 @@ export function WorkspaceCard({ title, subtitle, toolbar, children, note }: Work
   const showHeader = Boolean(title || subtitle || toolbar);
 
   return (
-    <Card className="space-y-5 rounded-md border bg-surface-white p-card-md">
+    <Card className="artifact-surface space-y-5 overflow-hidden rounded-md border-border-subtle bg-surface-white p-0 shadow-sm">
       {showHeader ? (
-        <div className="flex items-start justify-between gap-4 border-b pb-3">
+        <div className="grid gap-3 border-b border-border-subtle bg-surface-subtle px-5 py-4 md:grid-cols-[1fr_auto] md:items-start">
           <div>
-            {title ? <h2 className="text-base font-semibold tracking-tight text-text-institutional">{title}</h2> : null}
-            {subtitle ? <p className="mt-1 text-sm text-text-neutral">{subtitle}</p> : null}
+            {title ? (
+              <h2 className="font-display text-[clamp(1.35rem,2.2vw,2rem)] font-medium leading-none tracking-normal text-text-institutional">
+                {title}
+              </h2>
+            ) : null}
+            {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-text-neutral">{subtitle}</p> : null}
           </div>
           {toolbar}
         </div>
       ) : null}
-      <div>{children}</div>
-      {note ? <p className="border-t pt-3 text-xs text-text-neutral">{note}</p> : null}
+      <div className="px-5 py-5">{children}</div>
+      {note ? <p className="border-t border-border-subtle bg-surface-subtle px-5 py-3 text-xs leading-5 text-text-neutral">{note}</p> : null}
     </Card>
   );
 }

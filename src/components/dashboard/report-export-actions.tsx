@@ -39,6 +39,7 @@ export function ReportExportActions({
 
   useEffect(() => {
     if (!activeExportId) return;
+    if (status?.status === "completed" || status?.status === "failed") return;
     let interval: ReturnType<typeof setInterval> | null = null;
 
     const tick = async () => {
@@ -57,7 +58,7 @@ export function ReportExportActions({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [activeExportId, pollStatus]);
+  }, [activeExportId, pollStatus, status?.status]);
 
 
   const startExport = useCallback(async () => {
@@ -86,7 +87,7 @@ export function ReportExportActions({
   }, [analysisId]);
 
   const info = useMemo(() => {
-    if (!status) return "Generate a polished PDF report artifact for client delivery.";
+    if (!status) return "Generate a polished PDF report artifact for client delivery. The export is rendered from the immutable report snapshot, not the mutable analysis record.";
     if (status.status === "queued") return `Queued${status.current_step ? ` · ${status.current_step}` : ""}`;
     if (status.status === "processing") return `Rendering PDF${typeof status.progress_pct === "number" ? ` · ${status.progress_pct}%` : ""}${status.current_step ? ` · ${status.current_step}` : ""}`;
     if (status.status === "completed") return "Export ready. Download your institutional report PDF.";
@@ -108,8 +109,8 @@ export function ReportExportActions({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+    <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="button" onClick={() => void startExport()} disabled={isStarting || status?.status === "processing" || status?.status === "queued"}>
           {isStarting ? "Starting export…" : status?.status === "processing" ? "Export in progress…" : "Export polished PDF"}
         </Button>
@@ -120,7 +121,12 @@ export function ReportExportActions({
         ) : null}
         <Link href={`/api/analyses/${analysisId}`} className={buttonVariants({ variant: "secondary" })}>View raw analysis payload</Link>
       </div>
-      <p className="text-sm text-text-neutral">{error ?? info}</p>
+      {status?.status === "processing" || status?.status === "queued" ? (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-white">
+          <div className="h-full bg-research-red transition-all" style={{ width: `${Math.max(5, status.progress_pct ?? 8)}%` }} />
+        </div>
+      ) : null}
+      <p className="mt-3 text-sm leading-6 text-text-neutral">{error ?? info}</p>
     </div>
   );
 }

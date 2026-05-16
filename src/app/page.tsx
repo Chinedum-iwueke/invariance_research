@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
 import {
-  CapabilityCard,
-  ComparisonTogglePanel,
-  DataVizFeatureCard,
+  ClaimAuditPanel,
+  EvidenceOutcomeGrid,
   HeroScene,
-  MetricSnapshotStrip,
-  NaiveVsExecutionVisual,
-  ProcessStepperCarouselCard,
-  RegimeHeatmapVisual,
+  LabDiagnosticWorkbench,
+  RobustnessLabIntro,
   SectionSceneWrapper,
-  StrategyBenchmarkVisual,
+  ShareArtifactSection,
+  ValidationDocketRail,
 } from "@/components/public/home-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Card } from "@/components/ui/card";
 import { PublicShell } from "@/components/public/public-shell";
-import { Button } from "@/components/ui/button";
 import { HomePageScenesShell } from "@/components/public/home-page-scenes-shell";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Invariance Research | Independent Quantitative Strategy Validation",
@@ -24,44 +19,17 @@ export const metadata: Metadata = {
     "Execution-aware analysis, robustness testing, and capital risk diagnostics for quantitative traders.",
 };
 
-const frameworkSteps = [
-  {
-    title: "Strategy Definition",
-    body: "Formalize trade logic, filters, and hypothesis boundaries before diagnostics begin.",
-    note: "Step 1 — Theory integrity",
-  },
-  {
-    title: "Execution Modeling",
-    body: "Inject realistic spread, latency, and slippage assumptions to prevent under-modeled edge.",
-    note: "Step 2 — Friction modeling",
-  },
-  {
-    title: "Robustness Testing",
-    body: "Stress key parameters over window shifts and adversarial slices to identify fragility.",
-    note: "Step 3 — Stability pressure",
-  },
-  {
-    title: "Regime Sensitivity Analysis",
-    body: "Evaluate strategy behavior through volatility and liquidity regime transitions.",
-    note: "Step 4 — Regime mapping",
-  },
-  {
-    title: "Capital Risk Diagnostics",
-    body: "Quantify drawdown concentration, ruin likelihood, and capital allocation limits.",
-    note: "Step 5 — Deployment controls",
-  },
-] as const;
-
-const sceneIds = ["hero", "problem", "lab", "consulting"];
+const sceneIds = ["hero", "claim", "lab", "artifact"];
 
 export default function HomePage() {
   return (
     <PublicShell>
       <HomePageScenesShell sceneIds={sceneIds}>
         <HeroScene style={{ transform: "translate3d(0, var(--hero-shift), 0)", opacity: "var(--hero-opacity)" }} />
+        <ValidationDocketRail />
 
         <SectionSceneWrapper
-          id="problem"
+          id="claim"
           tone="soft"
           transition="sheet-reveal"
           style={{ transform: "translate3d(0, var(--next-shift), 0)", opacity: "var(--next-opacity)" }}
@@ -69,130 +37,35 @@ export default function HomePage() {
         >
           <div className="space-y-8">
             <SectionHeader
-              title="Most Trading Strategies Fail in Live Markets"
-              description="Naïve backtests commonly omit slippage, spread, latency, parameter fragility, and regime shifts. The mismatch appears after capital is deployed."
+              eyebrow="Claim Intake"
+              title="The first experience is not a pitch. It is a cross-examination."
+              description="A strategy arrives with a claim. Invariance turns that claim into a structured evidence record: what survives execution friction, what only survives favorable assumptions, and what should not be deployed yet."
             />
-            <ComparisonTogglePanel
-              items={[
-                {
-                  label: "Naïve Backtest",
-                  title: "Assumption-heavy simulations mask implementation risk.",
-                  body: "Without execution friction and adverse-condition stress, equity curves appear stable and deceptively deployable.",
-                  visual: <NaiveVsExecutionVisual />,
-                },
-                {
-                  label: "Execution-Aware Test",
-                  title: "Realistic assumptions surface true risk before deployment.",
-                  body: "Applying spread, slippage, and latency assumptions reveals degradation, drawdown clustering, and fragile parameter dependence.",
-                  visual: <NaiveVsExecutionVisual executionAware />,
-                },
-              ]}
-            />
-
-            <div className="space-y-4">
-              <SectionHeader
-                title="Execution-Aware Validation Framework"
-                description="A disciplined pipeline from strategy definition through structured institutional reporting."
-              />
-              <ProcessStepperCarouselCard
-                title="Validation Process"
-                subtitle="A five-stage validation sequence that translates strategy intent into deployable, risk-aware evidence."
-                steps={frameworkSteps}
-              />
-              <Card className="space-y-4 p-card-md text-sm text-text-neutral">
-                <p>Final output: structured validation report with methodology traceability, primary findings, and capital-risk interpretation.</p>
-                <Button asChild>
-                  <Link href="/research-standards">View Research Standards</Link>
-                </Button>
-              </Card>
-            </div>
+            <ClaimAuditPanel />
+            <EvidenceOutcomeGrid />
           </div>
         </SectionSceneWrapper>
 
         <SectionSceneWrapper id="lab" tone="base">
           <div className="space-y-8">
             <SectionHeader
-              title="Strategy Robustness Lab"
-              description="Diagnostics focused on whether a strategy remains credible under realistic execution and adverse market states."
+              eyebrow="Strategy Robustness Lab"
+              title="The Lab is the first room in the research operating system."
+              description="The existing Robustness Lab becomes the wedge: upload an artifact, inspect its evidence sufficiency, run the diagnostics that are actually justified, then produce a report worth sharing."
             />
-
-            <div className="mobile-cta-row">
-              <Button asChild>
-                <Link href="/signup">Sign up for free</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link href="/contact">Request Validation Audit</Link>
-              </Button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <CapabilityCard title="Validation Methodology" body="A rules-based test protocol with controlled assumptions and transparent acceptance criteria." />
-              <CapabilityCard title="Execution Diagnostics" body="Cost and implementation realism across spread, slippage, and latency envelopes." />
-              <CapabilityCard title="Capital Risk Analysis" body="Drawdown concentration, ruin sensitivity, and exposure constraints for deployment readiness." />
-              <CapabilityCard title="Benchmark Comparison" body="Relative edge analysis against institutional benchmark trajectories and stress baselines." />
-            </div>
-
-            <div className="grid gap-5 lg:grid-cols-2">
-              <DataVizFeatureCard title="Strategy Equity vs Benchmark" subtitle="Comparative trajectory diagnostics">
-                <StrategyBenchmarkVisual />
-              </DataVizFeatureCard>
-              <DataVizFeatureCard title="Regime Stress Heatmap" subtitle="Regime-conditioned robustness matrix">
-                <RegimeHeatmapVisual />
-              </DataVizFeatureCard>
-            </div>
-
-            <MetricSnapshotStrip
-              metrics={[
-                { label: "Live Readiness", value: "74 / 100" },
-                { label: "Max Drawdown", value: "-12.8%", tone: "alert" },
-                { label: "Sharpe (Adj.)", value: "1.32", tone: "positive" },
-                { label: "Stress Pass Rate", value: "82%" },
-              ]}
-            />
+            <RobustnessLabIntro />
+            <LabDiagnosticWorkbench />
           </div>
         </SectionSceneWrapper>
 
-        <SectionSceneWrapper id="consulting" tone="panel" className="border-b border-border-subtle">
-          <div className="space-y-8">
+        <SectionSceneWrapper id="artifact" tone="panel" className="border-b border-border-subtle">
+          <div className="space-y-8 lg:space-y-10">
             <SectionHeader
-              title="Independent Strategy Validation"
-              description="Analyst-led engagements for teams requiring deeper review than automated diagnostics alone."
+              eyebrow="Shareable Evidence"
+              title="The report is not a download. It is the demand object."
+              description="Approach A wins when serious users share a report, argue with it, or ask for the next experiment. The homepage should make that future visible from the first scroll."
             />
-            <div className="grid gap-4 md:grid-cols-2">
-              {[
-                "Execution-aware backtest",
-                "Monte Carlo robustness testing",
-                "Parameter stability analysis",
-                "Regime performance diagnostics",
-                "Capital risk modeling",
-                "Structured validation report",
-              ].map((item) => (
-                <Card key={item} className="p-card-md text-sm text-text-graphite">
-                  {item}
-                </Card>
-              ))}
-            </div>
-
-            <ProcessStepperCarouselCard
-              title="Analyst Engagement Workflow"
-              subtitle="The same five-step framework is reused in consulting engagements, with deeper manual review and interpretation."
-              steps={frameworkSteps}
-            />
-
-            <Card className="bg-surface-panel/65 p-5 text-center md:p-8">
-              <h3 className="text-xl font-semibold leading-tight text-text-graphite md:text-2xl">Validate Your Strategy Before Capital Is Deployed</h3>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-text-neutral">
-                Most strategies appear profitable until tested under realistic conditions. The validation framework identifies fragility before capital is exposed.
-              </p>
-              <div className="mobile-cta-row mt-5 justify-center">
-                <Button asChild>
-                  <Link href="/robustness-lab">Run Strategy Diagnostics</Link>
-                </Button>
-                <Button asChild variant="secondary">
-                  <Link href="/contact">Request Validation Audit</Link>
-                </Button>
-              </div>
-            </Card>
+            <ShareArtifactSection />
           </div>
         </SectionSceneWrapper>
       </HomePageScenesShell>

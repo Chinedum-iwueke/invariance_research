@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import type { AnalysisContext } from "@/lib/app/analysis-ui";
 
 function MetaPill({ children }: { children: ReactNode }) {
-  return <span className="rounded-sm border border-border-subtle bg-surface-panel px-2 py-1 text-xs text-text-graphite">{children}</span>;
+  return <span className="rounded-sm border border-border-subtle bg-surface-white px-2.5 py-1 text-xs text-text-graphite shadow-sm">{children}</span>;
 }
 
 export function AppTopbar({ context }: { context?: AnalysisContext }) {
   return (
-    <div className="border-b bg-surface-white">
+    <div className="border-b border-border-subtle bg-surface-subtle">
       <div className="flex flex-wrap items-center gap-2 px-5 py-3 lg:px-10">
         {context ? (
           <>

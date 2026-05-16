@@ -5,6 +5,7 @@ import { PublicShell } from "@/components/public/public-shell";
 import { CtaBanner } from "@/components/public/cta-banner";
 import { PageHero } from "@/components/public/page-hero";
 import { ProcessStepperCarouselCard, ScrollspyRail } from "@/components/public/home-scenes";
+import { AmbitionBridge, MethodologyHeroInstrument, MethodologyRulebook, PageTransitionBand } from "@/components/public/validation-page-scenes";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
@@ -36,7 +37,7 @@ const steps = [
 ] as const;
 
 export default function MethodologyPage() {
-  const sectionIds = ["hero", "workflow", "execution", "cta"];
+  const sectionIds = ["hero", "rules", "workflow", "execution", "bridge", "cta"];
 
   return (
     <PublicShell>
@@ -45,15 +46,29 @@ export default function MethodologyPage() {
         <section id="hero">
           <PageHero
             title="Validation Methodology"
-            description="A five-step framework designed for repeatable, execution-aware strategy evaluation."
+            description="The rulebook behind the Lab: a repeatable way to move from strategy claim to evidence sufficiency, stress diagnostics, limitations, and a shareable decision artifact."
             primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
             secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
-            artifactVariant="report"
+            credibilityLine="Every verdict should explain the evidence state that produced it."
+            rightSlot={<MethodologyHeroInstrument />}
           />
         </section>
 
+        <section id="rules" className="container-shell space-y-6 py-section-sm">
+          <SectionHeader
+            eyebrow="Method Rules"
+            title="The methodology makes unsupported claims visibly weaker."
+            description="The product’s sophistication comes from rule discipline: diagnostics are only as strong as the artifact, and limits are shown instead of hidden."
+          />
+          <MethodologyRulebook />
+        </section>
+
         <section id="workflow" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Workflow" description="Sequential process emphasizing realism, stress testing, and institutional reporting discipline." />
+          <SectionHeader
+            eyebrow="Workflow"
+            title="A repeatable sequence for pressure-testing strategy claims."
+            description="The same sequence powers the Lab, analyst validation, report snapshots, and eventually Research Desk handoff."
+          />
           <ProcessStepperCarouselCard
             title="Validation Workflow"
             subtitle="Sequential process emphasizing realism, stress testing, and institutional reporting discipline."
@@ -61,7 +76,11 @@ export default function MethodologyPage() {
           />
         </section>
         <section id="execution" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Why execution-aware testing matters" description="Backtests without implementation constraints overstate practical edge and understate deployment risk." />
+          <SectionHeader
+            eyebrow="Execution Reality"
+            title="Execution-aware testing changes the shape of the decision."
+            description="Backtests without implementation constraints overstate practical edge and understate deployment risk."
+          />
           <ChartCard
             title="Expected Return Distribution Shift"
             subtitle="The shape of outcomes changes under realistic execution assumptions"
@@ -79,6 +98,21 @@ export default function MethodologyPage() {
               </div>
             )}
             footer="Methodology emphasis: distribution-aware diagnostics, not single-metric storytelling."
+          />
+        </section>
+
+        <section id="bridge" className="container-shell space-y-6 py-section-sm">
+          <SectionHeader
+            eyebrow="Approach A Bridge"
+            title="The methodology connects the wedge to the full ambition."
+            description="Lab-first hardening is not a small vision. It is the fastest path to demand evidence for the larger research operating system."
+          />
+          <AmbitionBridge />
+          <PageTransitionBand
+            title="Need analyst-led depth?"
+            body="The same method becomes a deeper validation engagement when the strategy needs committee-grade review or bespoke evidence handling."
+            href="/strategy-validation"
+            label="View strategy validation"
           />
         </section>
 

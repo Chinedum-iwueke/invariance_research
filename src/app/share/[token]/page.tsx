@@ -50,6 +50,19 @@ export default async function SharedReportPage({ params }: { params: Promise<{ t
                 {(report.limitations.length ? report.limitations : ["No explicit limitations were included in this snapshot."]).map((item) => <li key={item}>- {item}</li>)}
               </ul>
             </div>
+            {report.reviewer_addenda.length ? (
+              <div className="artifact-surface border-research-red/20 bg-research-red/5 p-5">
+                <h2 className="text-xl font-semibold">Reviewer addenda</h2>
+                <div className="mt-4 space-y-3">
+                  {report.reviewer_addenda.map((addendum) => (
+                    <div key={addendum.addendum_id} className="rounded-sm border border-research-red/20 bg-surface-white p-3">
+                      <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Research Desk approved{addendum.approved_at ? ` / ${addendum.approved_at}` : ""}</p>
+                      <p className="mt-2 text-sm leading-7 text-text-neutral">{addendum.public_addendum}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
           <aside className="artifact-surface h-fit p-5">
             <h2 className="text-xl font-semibold">Evidence ledger</h2>

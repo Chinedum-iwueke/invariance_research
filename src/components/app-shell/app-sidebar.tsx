@@ -65,10 +65,11 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
         </button>
       </div>
 
-      <aside className="hidden h-screen w-72 shrink-0 border-r bg-surface-white lg:sticky lg:top-0 lg:block">
+      <aside className="hidden h-screen w-72 shrink-0 border-r border-border-subtle bg-surface-paper lg:sticky lg:top-0 lg:block">
         <div className="flex h-full flex-col px-4 py-6">
-          <Link href="/app" className="mb-7 px-3 text-sm font-semibold tracking-wide text-text-institutional">
-            Strategy Robustness Lab
+          <Link href="/app" className="mb-7 block rounded-sm border border-border-subtle bg-surface-white px-3 py-3 text-sm font-semibold tracking-wide text-text-institutional">
+            <span className="font-provenance block text-[10px] uppercase tracking-[0.14em] text-research-red">IR Labs</span>
+            <span>Strategy Robustness Lab</span>
           </Link>
           <div className="space-y-7 overflow-y-auto pb-4">
             {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} /> : null}

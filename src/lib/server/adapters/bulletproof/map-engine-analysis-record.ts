@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { analysisRecordSchema, type AnalysisRecord, type FigurePayload, type FigureSeries, type ScoreBand, type WarningItem } from "@/lib/contracts";
 import { reconcileDiagnosticStatus as reconcileEvidenceDiagnosticStatus } from "@/lib/server/evidence/evidence-ledger-service";
-import type { EngineCapabilityProfile, EngineRunContext, EngineAnalysisResult } from "@/lib/server/engine/engine-types";
+import type { EngineRunContext, EngineAnalysisResult } from "@/lib/server/engine/engine-types";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
 const DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "stability", "execution", "regimes", "ruin", "report"] as const;

@@ -13,8 +13,9 @@ export default function AnalysesPage() {
   return (
     <AnalysisPageFrame
       title="Analyses Library"
+      description="A persistent archive of strategy evidence packets, diagnostic status, and report-ready validation work."
     >
-      <WorkspaceCard title="Archive controls">
+      <WorkspaceCard title="Archive controls" subtitle="Find an analysis by strategy name, ID, asset, or run context.">
         <AnalysisArchiveSearch />
       </WorkspaceCard>
       <AnalysesLibrary />

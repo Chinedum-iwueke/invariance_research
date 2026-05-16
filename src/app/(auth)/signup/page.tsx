@@ -35,11 +35,16 @@ export default function SignupPage() {
     event.preventDefault();
     if (mismatch) return setError("Passwords do not match.");
     setBusy(true); setError(null);
-    const signupResponse = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password, confirm_password: confirmPassword }) });
-    const signupPayload = (await signupResponse.json()) as { error?: { message?: string } };
-    if (!signupResponse.ok) return void (setError(signupPayload.error?.message ?? "Unable to create account."), setBusy(false));
-    setCreated(true);
-    setBusy(false);
+    try {
+      const signupResponse = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password, confirm_password: confirmPassword }) });
+      const signupPayload = await parseSignupResponse(signupResponse);
+      if (!signupResponse.ok) return void (setError(signupPayload.error?.message ?? "Unable to create account."), setBusy(false));
+      setCreated(true);
+      setBusy(false);
+    } catch {
+      setError("Unable to create account.");
+      setBusy(false);
+    }
   }
 
   return (
@@ -87,4 +92,10 @@ export default function SignupPage() {
       </div>
     </main>
   );
+}
+
+async function parseSignupResponse(response: Response): Promise<{ error?: { message?: string } }> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return {};
+  return response.json() as Promise<{ error?: { message?: string } }>;
 }

@@ -4,6 +4,7 @@ import {
   BarChart3,
   FileText,
   Gauge,
+  GitBranch,
   ListChecks ,
   Settings,
   ShieldAlert,
@@ -40,6 +41,8 @@ export function getAnalysisWorkflowItems(activeAnalysisId?: string): AppNavItem[
     { key: `${activeAnalysisId}:distribution`, label: "Trade Distribution", href: `${base}/distribution`, icon: BarChart3 },
     { key: `${activeAnalysisId}:monte-carlo`, label: "Monte Carlo Crash Test", href: `${base}/monte-carlo`, icon: TrendingDown },
     { key: `${activeAnalysisId}:execution`, label: "Execution Sensitivity", href: `${base}/execution`, icon: Activity },
+    { key: `${activeAnalysisId}:regimes`, label: "Regime Analysis", href: `${base}/regimes`, icon: GitBranch },
+    { key: `${activeAnalysisId}:stability`, label: "Parameter Stability", href: `${base}/stability`, icon: Sigma },
     { key: `${activeAnalysisId}:ruin`, label: "Risk of Ruin", href: `${base}/ruin`, icon: ShieldAlert },
     { key: `${activeAnalysisId}:report`, label: "Validation Report", href: `${base}/report`, icon: FileText },
   ];
