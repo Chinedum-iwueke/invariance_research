@@ -77,42 +77,6 @@ export function SceneScrollCue({ href, className }: { href: string; className?: 
 }
 
 export function HeroScene({ style }: { style?: CSSProperties }) {
-  const [activeDocket, setActiveDocket] = useState(0);
-
-  const dockets = [
-    {
-      label: "Claim",
-      title: "Mean reversion edge survives out of sample.",
-      status: "Under review",
-      score: "62",
-      tone: "limited",
-      finding: "Execution costs erase 31% of modeled edge.",
-    },
-    {
-      label: "Evidence",
-      title: "Strategy remains stable through volatility regime changes.",
-      status: "Supported",
-      score: "81",
-      tone: "supported",
-      finding: "Regime stress passes across 4 of 5 slices.",
-    },
-    {
-      label: "Report",
-      title: "Deployment should remain capped until slippage proof improves.",
-      status: "Conditional",
-      score: "74",
-      tone: "limited",
-      finding: "Shareable artifact ready with explicit limits.",
-    },
-  ] as const;
-
-  const active = dockets[activeDocket];
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setActiveDocket((prev) => (prev + 1) % dockets.length), 6200);
-    return () => window.clearInterval(timer);
-  }, [dockets.length]);
-
   return (
     <section id="hero" style={style} className="relative isolate flex min-h-[calc(100svh-4.75rem)] items-center overflow-hidden bg-surface-white md:min-h-screen">
       <div className="absolute inset-0">
@@ -121,7 +85,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-surface-white to-transparent" />
       </div>
 
-      <div className="container-shell relative z-10 grid min-h-[calc(100svh-4.75rem)] items-center gap-8 pt-[max(2.75rem,6svh)] pb-5 md:min-h-screen md:grid-cols-[minmax(0,0.9fr)_minmax(22rem,0.72fr)] md:gap-12 md:pt-[max(4rem,7svh)]">
+      <div className="container-shell relative z-10 grid min-h-[calc(100svh-4.75rem)] items-center gap-8 pt-[max(2.75rem,6svh)] pb-5 md:min-h-screen md:pt-[max(4rem,7svh)]">
         <div className="max-w-[46rem] space-y-5">
           <div className="inline-flex items-center gap-2 border-y border-brand/30 bg-brand/[0.06] px-3 py-2 font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">
             <Fingerprint className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -155,90 +119,122 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           </div>
         </div>
 
-        <div className="relative hidden min-h-[38rem] lg:block">
-          <div className="absolute right-0 top-1/2 grid w-full max-w-[34rem] -translate-y-1/2 gap-4">
-            <div className="artifact-surface relative z-10 overflow-hidden p-4 shadow-raised">
-              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                <div>
-                  <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Live evidence docket</p>
-                  <p className="mt-1 text-sm text-text-neutral">Strategy Robustness Lab preview</p>
-                </div>
-                <div className="font-provenance text-right">
-                  <p className="text-3xl leading-none text-text-institutional">{active.score}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-text-neutral">Readiness</p>
-                </div>
-              </div>
+        <div className="absolute bottom-5 left-1/2 hidden w-[calc(100%-3rem)] max-w-container -translate-x-1/2 items-end justify-between gap-4 md:flex">
+          <div />
+          <SceneScrollCue href="#claim" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
-              <div className="grid gap-3 py-4">
-                {dockets.map((docket, index) => {
-                  const selected = index === activeDocket;
-                  const toneClass = docket.tone === "supported" ? "border-evidence-supported/35 bg-evidence-supported-wash/70" : "border-evidence-limited/35 bg-evidence-limited-wash/70";
-                  return (
-                    <button
-                      key={docket.label}
-                      type="button"
-                      onClick={() => setActiveDocket(index)}
-                      className={cn(
-                        "group rounded-sm border p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft",
-                        selected ? toneClass : "border-border-subtle bg-surface-panel/45",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{docket.label}</p>
-                        <span className={cn("rounded-full border px-2 py-0.5 font-provenance text-[9px] uppercase tracking-[0.1em]", selected ? "border-current text-text-graphite" : "border-border-subtle text-text-neutral")}>
-                          {docket.status}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-base font-semibold leading-snug text-text-graphite">{docket.title}</p>
-                      <p className="mt-2 text-xs leading-relaxed text-text-neutral">{docket.finding}</p>
-                    </button>
-                  );
-                })}
-              </div>
+export function EvidenceDocketShowcase() {
+  const [activeDocket, setActiveDocket] = useState(0);
+  const dockets = [
+    {
+      label: "Claim",
+      title: "Mean reversion edge survives out of sample.",
+      status: "Under review",
+      score: "62",
+      tone: "limited",
+      finding: "Execution costs erase 31% of modeled edge.",
+    },
+    {
+      label: "Evidence",
+      title: "Strategy remains stable through volatility regime changes.",
+      status: "Supported",
+      score: "81",
+      tone: "supported",
+      finding: "Regime stress passes across 4 of 5 slices.",
+    },
+    {
+      label: "Report",
+      title: "Deployment should remain capped until slippage proof improves.",
+      status: "Conditional",
+      score: "74",
+      tone: "limited",
+      finding: "Shareable artifact ready with explicit limits.",
+    },
+  ] as const;
+  const active = dockets[activeDocket];
 
-              <div className="grid grid-cols-3 gap-2 border-t border-border-subtle pt-3">
-                {[
-                  ["MC", "available"],
-                  ["Regime", "locked"],
-                  ["Report", "ready"],
-                ].map(([label, status]) => (
-                  <div key={label} className="rounded-sm border border-border-subtle bg-surface-panel/55 px-3 py-2">
-                    <p className="font-provenance text-[10px] uppercase tracking-[0.1em] text-text-neutral">{label}</p>
-                    <p className="mt-1 text-sm font-medium text-text-graphite">{status}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative ml-auto grid w-[min(26rem,88%)] grid-cols-[auto_1fr] items-start gap-3">
-              <div className="mt-6 hidden h-px w-16 bg-border-strong xl:block" />
-              <div className="relative">
-                <div className="absolute -left-3 -top-3 h-full w-full rounded-sm border border-border-subtle bg-surface-panel/60" aria-hidden />
-                <div className="relative">
-                  <div className="mb-2 flex items-center justify-between border-y border-border-subtle bg-surface-paper/85 px-3 py-2 backdrop-blur-sm">
-                    <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Lab snapshot</p>
-                    <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">pinned report</p>
-                  </div>
-                  <EvidenceArtifactPreview className="w-full shadow-raised" />
-                </div>
-              </div>
-            </div>
-          </div>
+  useEffect(() => {
+    const timer = window.setInterval(() => setActiveDocket((prev) => (prev + 1) % dockets.length), 6200);
+    return () => window.clearInterval(timer);
+  }, [dockets.length]);
+
+  return (
+    <section className="relative z-20 border-b border-border-subtle bg-surface-white">
+      <div className="container-shell grid gap-6 py-section-sm lg:grid-cols-[0.98fr_1.02fr] lg:items-center">
+        <div className="max-w-2xl space-y-3">
+          <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Evidence in motion</p>
+          <h2 className="text-2xl font-semibold leading-tight text-text-institutional md:text-3xl">From uploaded artifact to defensible verdict.</h2>
+          <p className="text-sm leading-7 text-text-neutral md:text-base">
+            The Lab tracks what was submitted, which diagnostics are justified, and where the evidence becomes too thin to support a stronger claim.
+          </p>
         </div>
 
-        <div className="absolute bottom-5 left-1/2 hidden w-[calc(100%-3rem)] max-w-container -translate-x-1/2 items-end justify-between gap-4 md:flex">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface-white/80 p-1 backdrop-blur-sm">
-            {dockets.map((docket, index) => (
-              <button
-                key={docket.label}
-                type="button"
-                onClick={() => setActiveDocket(index)}
-                className={cn("h-2.5 w-7 rounded-full transition-all duration-300", activeDocket === index ? "bg-brand" : "bg-text-neutral/30 hover:bg-text-neutral/45")}
-                aria-label={`Switch to ${docket.label} hero docket`}
-                aria-current={activeDocket === index ? "true" : undefined}
-              />
-            ))}
+        <div className="grid gap-4 md:grid-cols-[1.08fr_0.92fr] md:items-start">
+          <div className="artifact-surface relative z-10 overflow-hidden p-4 shadow-raised">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+              <div>
+                <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Live evidence docket</p>
+                <p className="mt-1 text-sm text-text-neutral">Strategy Robustness Lab preview</p>
+              </div>
+              <div className="font-provenance text-right">
+                <p className="text-3xl leading-none text-text-institutional">{active.score}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-text-neutral">Readiness</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 py-4">
+              {dockets.map((docket, index) => {
+                const selected = index === activeDocket;
+                const toneClass = docket.tone === "supported" ? "border-evidence-supported/35 bg-evidence-supported-wash/70" : "border-evidence-limited/35 bg-evidence-limited-wash/70";
+                return (
+                  <button
+                    key={docket.label}
+                    type="button"
+                    onClick={() => setActiveDocket(index)}
+                    className={cn(
+                      "group rounded-sm border p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-soft",
+                      selected ? toneClass : "border-border-subtle bg-surface-panel/45",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{docket.label}</p>
+                      <span className={cn("rounded-full border px-2 py-0.5 font-provenance text-[9px] uppercase tracking-[0.1em]", selected ? "border-current text-text-graphite" : "border-border-subtle text-text-neutral")}>
+                        {docket.status}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-base font-semibold leading-snug text-text-graphite">{docket.title}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-text-neutral">{docket.finding}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 border-t border-border-subtle pt-3">
+              {[
+                ["MC", "available"],
+                ["Regime", "locked"],
+                ["Report", "ready"],
+              ].map(([label, status]) => (
+                <div key={label} className="rounded-sm border border-border-subtle bg-surface-panel/55 px-3 py-2">
+                  <p className="font-provenance text-[10px] uppercase tracking-[0.1em] text-text-neutral">{label}</p>
+                  <p className="mt-1 text-sm font-medium text-text-graphite">{status}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <SceneScrollCue href="#claim" />
+
+          <div className="relative">
+            <div className="mb-2 flex items-center justify-between border-y border-border-subtle bg-surface-paper/85 px-3 py-2 backdrop-blur-sm">
+              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Lab snapshot</p>
+              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">pinned report</p>
+            </div>
+            <EvidenceArtifactPreview className="w-full shadow-raised" />
+          </div>
         </div>
       </div>
     </section>
@@ -280,7 +276,7 @@ export function ClaimAuditPanel() {
       id: "naive",
       label: "Naive curve",
       title: "A clean equity curve is not evidence by itself.",
-      body: "The first view shows why the old experience is not enough: a favorable curve can still hide cost drag, regime dependence, and parameter overfit.",
+      body: "A favorable curve can still hide cost drag, regime dependence, and parameter overfit. The first task is to separate performance from proof.",
       visual: <NaiveVsExecutionVisual />,
       icon: BarChart3,
     },
@@ -288,7 +284,7 @@ export function ClaimAuditPanel() {
       id: "execution",
       label: "Execution pressure",
       title: "The same claim under realistic frictions becomes a different object.",
-      body: "The homepage now introduces the core product behavior immediately: assumptions are visible, stress changes the verdict, and uncertainty is part of the interface.",
+      body: "Assumptions stay visible while stress tests change the verdict. The user sees how fees, fills, and uncertainty affect the claim.",
       visual: <NaiveVsExecutionVisual executionAware />,
       icon: Scale,
     },
@@ -401,7 +397,7 @@ export function EvidenceOutcomeGrid() {
     },
     {
       title: "Contradicted",
-      body: "The strategy breaks under pressure, and the product should make that failure legible.",
+      body: "The strategy breaks under pressure, with the failure mode stated clearly enough to guide the next decision.",
       signal: "red",
       icon: ShieldAlert,
     },
@@ -450,9 +446,9 @@ export function RobustnessLabIntro() {
     <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
       <div className="artifact-surface overflow-hidden p-5 md:p-6">
         <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Lab introduction</p>
-        <h3 className="mt-3 max-w-xl text-3xl font-semibold leading-tight text-text-institutional md:text-4xl">A serious first room, not a feature teaser.</h3>
+        <h3 className="mt-3 max-w-xl text-3xl font-semibold leading-tight text-text-institutional md:text-4xl">A practical front door for strategy validation.</h3>
         <p className="mt-4 max-w-2xl text-sm leading-7 text-text-neutral">
-          The homepage should make the Lab feel like the practical front door to the whole ambition. It is where users see the evidence contract, learn the product vocabulary, and receive a report that can travel outside the app.
+          The Lab shows the evidence contract before the analysis begins: what the upload supports, what remains limited, and what kind of report can be shared outside the app.
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {tiles.map(([title, body]) => (
@@ -487,13 +483,13 @@ export function LabDiagnosticWorkbench() {
     intake: {
       label: "Artifact intake",
       title: "Evidence sufficiency is visible before analysis starts.",
-      body: "The Lab should teach users why a richer artifact unlocks better diagnostics, rather than burying that logic after upload.",
+      body: "Richer artifacts unlock stronger diagnostics. The intake step explains that clearly before the user commits to an analysis.",
       visual: <EvidenceLedgerMiniature />,
     },
     stress: {
       label: "Stress diagnostics",
       title: "Interactive diagnostic surfaces make pressure feel concrete.",
-      body: "Charts and heatmaps are introduced as instruments. Users should understand what changes when execution assumptions and regimes become hostile.",
+      body: "Charts and heatmaps act as instruments, showing what changes when execution assumptions and market regimes become less forgiving.",
       visual: <RegimeHeatmapVisual />,
     },
     report: {
@@ -557,7 +553,7 @@ export function ShareArtifactSection() {
           <Share2 className="h-8 w-8 text-brand" strokeWidth={1.6} />
         </div>
         <p className="mt-5 max-w-2xl text-sm leading-7 text-text-neutral">
-          The homepage now points toward the full ambition: share rooms, Research Desk handoff, and evidence memory. But it earns that ambition through the Lab-first artifact.
+          Shared reports carry the current evidence state, the limits of the validation, and a clear path for deeper review when automated diagnostics are not enough.
         </p>
         <div className="mt-6 grid gap-3">
           {rows.map(([title, body]) => (

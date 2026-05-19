@@ -322,6 +322,53 @@ export interface EnginePayloadSnapshot {
   raw_result: Record<string, unknown>;
 }
 
+export interface EvidenceFact {
+  fact_id: string;
+  source: string;
+  statement: string;
+  value?: unknown;
+  diagnostics: string[];
+  confidence: string;
+}
+
+export interface AssumptionLedgerEntry {
+  assumption_id: string;
+  source: string;
+  diagnostic: string;
+  statement: string;
+  materiality: "low" | "medium" | "high" | "critical" | string;
+  confidence: string;
+  testability?: string;
+  affected_metrics?: string[];
+  verdict_impact?: string;
+  rescue_evidence?: string;
+  share_safe?: boolean;
+}
+
+export interface ClaimInventoryEntry {
+  claim_id: string;
+  claim: string;
+  source: string;
+  priority?: string;
+  support_status: "supported" | "partially_supported" | "unsupported" | "contradicted" | "outside_scope" | string;
+  supporting_diagnostics: string[];
+  contradicting_diagnostics: string[];
+  missing_evidence: string[];
+  report_wording: string;
+}
+
+export interface ProofReportPayload {
+  contract_version?: string;
+  artifact_identity?: Record<string, unknown>;
+  evidence_coverage?: Record<string, unknown>;
+  asset_class_capabilities?: Record<string, unknown>;
+  critical_assumptions?: AssumptionLedgerEntry[];
+  unsupported_claims?: ClaimInventoryEntry[];
+  what_this_result_does_not_prove?: string[];
+  research_desk_packet_hooks?: Record<string, unknown>;
+  evidence_facts?: EvidenceFact[];
+}
+
 export interface DiagnosticBundle {
   overview: OverviewDiagnostic;
   distribution: DistributionDiagnostic;
@@ -371,6 +418,10 @@ export interface AnalysisRecord {
   summary: AnalysisSummary;
   diagnostics: DiagnosticBundle;
   engine_payload: EnginePayloadSnapshot;
+  evidence_facts?: EvidenceFact[];
+  assumption_ledger?: AssumptionLedgerEntry[];
+  claim_inventory?: ClaimInventoryEntry[];
+  proof_report?: ProofReportPayload;
   report: ReportPayload;
   access: AccessFlags;
   diagnostic_statuses: Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", NormalizedDiagnosticStatus>;

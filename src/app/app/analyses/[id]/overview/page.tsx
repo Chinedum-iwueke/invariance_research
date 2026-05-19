@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
@@ -9,6 +10,7 @@ import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
 import { OverviewBenchmarkSection } from "@/components/diagnostics/overview/OverviewBenchmarkSection";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectOverviewTopMetrics } from "@/lib/app/analysis-ui";
 import type { AnalysisRecord } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
@@ -101,9 +103,12 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const truthContext = buildTruthContext(record, "overview", { benchmark: analysis.benchmark });
   const overviewRecommendations = pageInsightRecommendations(record, "overview", truthContext.recommendations);
   const benchmarkComparison = mapOverviewBenchmarkPayload(overviewEnvelope);
+  const workbench = buildAnalystWorkbenchModel(record, "overview", { benchmark: analysis.benchmark });
 
   return (
     <AnalysisPageFrame title="Overview" description="Case-file cover sheet for this strategy: verdict, evidence coverage, diagnostic support, and the next experiment.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <section className="grid gap-5 rounded-md border border-border-subtle bg-surface-paper p-card-lg shadow-soft xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-4">
           <p className="eyebrow text-brand">Analysis case file</p>

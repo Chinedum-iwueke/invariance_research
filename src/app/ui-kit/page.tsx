@@ -154,7 +154,7 @@ export default function UIKitPage() {
         <div className="container-shell space-y-6 py-section-lg">
           <SectionHeader eyebrow="Chart grammar" title="Charts answer evidence questions." description="Diagnostic visuals carry provenance, limitation state, and semantic color rather than generic dashboard styling." />
           <div className="grid gap-6">
-            <ChartCard title="Does the strategy outperform the benchmark after normalization?" subtitle="Source: overview diagnostic / benchmark comparison" chart={<MockLineChart />} footer="Research red is strategy. Blue is benchmark. Divergence windows should be annotated in production charts." />
+            <ChartCard title="Does the strategy outperform the benchmark after normalization?" subtitle="Source: overview diagnostic / benchmark comparison" chart={<MockLineChart />} footer="Research red is strategy. Blue is benchmark. Divergence windows mark periods requiring closer review." />
             <div className="grid gap-6 md:grid-cols-2">
               <ChartCard title="Where is payoff concentration hiding?" subtitle="Distribution diagnostic" chart={<MockHistogram />} />
               <ChartCard title="Which regimes contradict the claim?" subtitle="Regime sensitivity diagnostic" chart={<MockHeatmap />} />

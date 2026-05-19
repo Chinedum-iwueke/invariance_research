@@ -49,7 +49,7 @@ export default function MethodologyPage() {
             description="The rulebook behind the Lab: a repeatable way to move from strategy claim to evidence sufficiency, stress diagnostics, limitations, and a shareable decision artifact."
             primaryCta={{ label: "Apply via Robustness Lab", href: "/robustness-lab" }}
             secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
-            credibilityLine="Every verdict should explain the evidence state that produced it."
+            credibilityLine="Every verdict explains the evidence state that produced it."
             rightSlot={<MethodologyHeroInstrument />}
           />
         </section>
@@ -58,7 +58,7 @@ export default function MethodologyPage() {
           <SectionHeader
             eyebrow="Method Rules"
             title="The methodology makes unsupported claims visibly weaker."
-            description="The product’s sophistication comes from rule discipline: diagnostics are only as strong as the artifact, and limits are shown instead of hidden."
+            description="Diagnostics are only as strong as the artifact behind them. Strong reports show limits instead of hiding them."
           />
           <MethodologyRulebook />
         </section>
@@ -103,9 +103,9 @@ export default function MethodologyPage() {
 
         <section id="bridge" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
-            eyebrow="Approach A Bridge"
-            title="The methodology connects the wedge to the full ambition."
-            description="Lab-first hardening is not a small vision. It is the fastest path to demand evidence for the larger research operating system."
+            eyebrow="Validation Path"
+            title="From automated diagnostics to deeper review."
+            description="The same evidence discipline supports the Lab, analyst-led validation, and Research Desk engagements."
           />
           <AmbitionBridge />
           <PageTransitionBand

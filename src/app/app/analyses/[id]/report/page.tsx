@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
@@ -11,9 +12,11 @@ import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
 import { ResearchDeskRequestPanel } from "@/components/dashboard/research-desk-request-panel";
 import { ReportExportActions } from "@/components/dashboard/report-export-actions";
+import { ReportShareActions } from "@/components/dashboard/report-share-actions";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
 import { metricsFromScoreBands } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
@@ -73,6 +76,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
   const truthContext = buildTruthContext(record, "report", { benchmark: analysis.benchmark });
+  const workbench = buildAnalystWorkbenchModel(record, "report", { benchmark: analysis.benchmark });
   const researchDeskLimitations = [
     ...view.limitations,
     ...truthContext.limitations,
@@ -120,6 +124,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   return (
     <AnalysisPageFrame title="Validation Report" description="Immutable-style validation artifact with executive posture, evidence boundaries, survivability diagnostics, and benchmark context.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <section className="artifact-surface overflow-hidden">
         <div className="grid gap-6 border-b border-border-subtle bg-surface-subtle px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-start">
           <div>
@@ -171,11 +177,35 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       </WorkspaceCard>
 
       <WorkspaceCard title="Export & Sharing" subtitle="Generate a polished report artifact for a committee, allocator, buyer, or internal review packet.">
-        <ReportExportActions
-          analysisId={record.analysis_id}
-          canExport={record.access.can_export_report}
-          currentPlan={accountState?.account.plan_id}
-        />
+        <div className="space-y-4">
+          <ReportExportActions
+            analysisId={record.analysis_id}
+            canExport={record.access.can_export_report}
+            currentPlan={accountState?.account.plan_id}
+          />
+          <ReportShareActions analysisId={record.analysis_id} initialSnapshotId={snapshotState.active?.snapshot_id} />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Share-Safe Proof Boundaries" subtitle="Unsupported claims and exclusions that must travel with the memo.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Unsupported claims</p>
+            <BulletList
+              items={(record.claim_inventory ?? [])
+                .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
+                .map((claim) => `${claim.claim} — report wording: ${claim.report_wording}`)}
+              empty="No unsupported claim was emitted for this run."
+            />
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">What this result does not prove</p>
+            <BulletList
+              items={record.proof_report?.what_this_result_does_not_prove ?? []}
+              empty="No explicit proof-report exclusions were emitted."
+            />
+          </div>
+        </div>
       </WorkspaceCard>
 
       <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">

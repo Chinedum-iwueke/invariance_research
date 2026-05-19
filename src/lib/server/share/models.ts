@@ -49,6 +49,15 @@ export type SharedReportViewModel = {
   limitations: string[];
   recommendations: string[];
   deployment_guidance: ReportSnapshotRecord["payload"]["report_view"]["deploymentGuidance"];
+  redaction_policy: ReportSnapshotRecord["payload"]["redaction_policy"];
+  download_policy: {
+    public_pdf_download: false;
+    owner_exports_required: true;
+    formats: string[];
+  };
+  unsupported_claims: Array<{ claim: string; support_status: string; report_wording: string; missing_evidence: string[] }>;
+  what_this_result_does_not_prove: string[];
+  excluded_diagnostics: ReportSnapshotRecord["payload"]["excluded_diagnostics"];
   evidence_ledger: Pick<EvidenceLedgerEntry, "diagnostic" | "final_status" | "display_status" | "artifact_reason" | "engine_reason">[];
   warnings: string[];
   reviewer_addenda: Array<{ addendum_id: string; public_addendum: string; approved_at?: string }>;

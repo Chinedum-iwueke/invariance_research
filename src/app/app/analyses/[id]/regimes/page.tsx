@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
@@ -9,6 +10,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { Card } from "@/components/ui/card";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { accountService } from "@/lib/server/accounts/service";
@@ -77,9 +79,12 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
     ...(regimes.interpretation.bullets ?? []),
   ];
   const truthContext = buildTruthContext(record, "regimes");
+  const workbench = buildAnalystWorkbenchModel(record, "regimes");
 
   return (
     <AnalysisPageFrame title="Regime Analysis" description="Performance decomposition by volatility and trend structure.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <Card className="flex items-center justify-between rounded-md border bg-surface-panel/45 p-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-neutral">Regime dependence classification</p>

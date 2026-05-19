@@ -50,6 +50,23 @@ export default async function SharedReportPage({ params }: { params: Promise<{ t
                 {(report.limitations.length ? report.limitations : ["No explicit limitations were included in this snapshot."]).map((item) => <li key={item}>- {item}</li>)}
               </ul>
             </div>
+            <div className="artifact-surface p-5">
+              <h2 className="text-xl font-semibold">Proof boundaries</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Unsupported claims</p>
+                  <ul className="mt-3 space-y-2 text-sm text-text-neutral">
+                    {(report.unsupported_claims.length ? report.unsupported_claims.map((claim) => `${claim.claim}: ${claim.report_wording}`) : ["No unsupported claim was included in this snapshot."]).map((item) => <li key={item}>- {item}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">What this result does not prove</p>
+                  <ul className="mt-3 space-y-2 text-sm text-text-neutral">
+                    {(report.what_this_result_does_not_prove.length ? report.what_this_result_does_not_prove : ["No explicit proof exclusions were included in this snapshot."]).map((item) => <li key={item}>- {item}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </div>
             {report.reviewer_addenda.length ? (
               <div className="artifact-surface border-research-red/20 bg-research-red/5 p-5">
                 <h2 className="text-xl font-semibold">Reviewer addenda</h2>
@@ -74,6 +91,22 @@ export default async function SharedReportPage({ params }: { params: Promise<{ t
                 </div>
               ))}
             </div>
+            <div className="mt-5 border-t border-border-subtle pt-4">
+              <h3 className="text-sm font-semibold text-text-institutional">Share boundary</h3>
+              <ul className="mt-3 space-y-2 text-xs leading-5 text-text-neutral">
+                {report.redaction_policy.public_share_excludes.map((item) => <li key={item}>- Excludes {item}</li>)}
+                <li>- Public downloads: {report.download_policy.public_pdf_download ? "enabled" : "disabled"}</li>
+                <li>- Raw trade files: {report.redaction_policy.raw_trade_files_public ? "included" : "excluded"}</li>
+              </ul>
+            </div>
+            {report.excluded_diagnostics.length ? (
+              <div className="mt-5 border-t border-border-subtle pt-4">
+                <h3 className="text-sm font-semibold text-text-institutional">Excluded diagnostics</h3>
+                <ul className="mt-3 space-y-2 text-xs leading-5 text-text-neutral">
+                  {report.excluded_diagnostics.map((item) => <li key={item.diagnostic}>- {item.diagnostic.replace("_", " ")}: {item.reason ?? item.status}</li>)}
+                </ul>
+              </div>
+            ) : null}
           </aside>
         </section>
       </main>

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { UploadInspectionResponse, ZipIngestionEntry } from "@/lib/contracts";
 import { accountService } from "@/lib/server/accounts/service";
-import { toUploadEligibilitySummary, type ArtifactValidationError } from "@/lib/server/ingestion";
+import { toUploadEligibilitySummary, type ArtifactValidationError, type ParsedArtifact } from "@/lib/server/ingestion";
 import { parseUploadArtifact } from "@/lib/server/ingestion/parsers";
 import { validateFileBasics } from "@/lib/server/ingestion/validators/file";
 import { extractZipEntries } from "@/lib/server/ingestion/utils/zip";
@@ -23,6 +23,10 @@ const RECOGNIZED_BUNDLE_FILES = new Set([
   "ohlcv.csv",
   "ohlcv.parquet",
   "benchmark.csv",
+  "broker_export.csv",
+  "declared_claims.json",
+  "strategy_config.json",
+  "backtest_report.json",
 ]);
 
 export async function inspectUpload(input: {
@@ -143,7 +147,7 @@ export async function inspectUpload(input: {
         }
       : {
           kind: "zip",
-          zip_review: buildZipReview(extractedBundleEntries ?? []),
+          zip_review: buildZipReview(extractedBundleEntries ?? [], parsedResult.parsed, eligibility),
         },
   };
 }
@@ -191,16 +195,21 @@ function splitCsvLine(line: string) {
   return line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
 }
 
-function buildZipReview(entries: Array<{ path: string }>) {
+function buildZipReview(entries: Array<{ path: string }>, parsed: ParsedArtifact, eligibility: ReturnType<typeof toUploadEligibilitySummary>) {
+  const sourceFiles = new Map((parsed.source_files ?? []).map((file) => [file.path, file]));
   const modeledEntries: ZipIngestionEntry[] = entries.map((entry) => {
     const normalizedPath = entry.path.toLowerCase();
     const fileName = normalizedPath.split("/").pop() ?? normalizedPath;
+    const sourceFile = sourceFiles.get(entry.path);
 
     if (RECOGNIZED_BUNDLE_FILES.has(fileName)) {
       return {
         path: entry.path,
         file_type: path.extname(fileName).replace(".", "") || "file",
         status: "recognized",
+        role: sourceFile?.role,
+        schema_version: sourceFile?.schema_version,
+        required: sourceFile?.required,
       };
     }
 
@@ -211,6 +220,9 @@ function buildZipReview(entries: Array<{ path: string }>) {
       path: entry.path,
       file_type: extension,
       status,
+      role: sourceFile?.role,
+      schema_version: sourceFile?.schema_version,
+      required: sourceFile?.required,
       note: status === "ignored" ? "Not used by Bundle Manifest v1." : "Unsupported type for intake processing.",
     };
   });
@@ -219,6 +231,13 @@ function buildZipReview(entries: Array<{ path: string }>) {
     recognized_count: modeledEntries.filter((entry) => entry.status === "recognized").length,
     ignored_count: modeledEntries.filter((entry) => entry.status === "ignored").length,
     unsupported_count: modeledEntries.filter((entry) => entry.status === "unsupported").length,
+    manifest_type: parsed.bundle_manifest?.bundle_type,
+    contract_version: parsed.strategy_truth_room_contract_version,
+    diagnostic_unlocks: {
+      available: eligibility.diagnostics_available,
+      limited: eligibility.diagnostics_limited,
+      unavailable: eligibility.diagnostics_unavailable,
+    },
     entries: modeledEntries,
   };
 }

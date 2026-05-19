@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   ClaimAuditPanel,
+  EvidenceDocketShowcase,
   EvidenceOutcomeGrid,
   HeroScene,
   LabDiagnosticWorkbench,
@@ -27,6 +28,7 @@ export default function HomePage() {
       <HomePageScenesShell sceneIds={sceneIds}>
         <HeroScene style={{ transform: "translate3d(0, var(--hero-shift), 0)", opacity: "var(--hero-opacity)" }} />
         <ValidationDocketRail />
+        <EvidenceDocketShowcase />
 
         <SectionSceneWrapper
           id="claim"
@@ -50,8 +52,8 @@ export default function HomePage() {
           <div className="space-y-8">
             <SectionHeader
               eyebrow="Strategy Robustness Lab"
-              title="The Lab is the first room in the research operating system."
-              description="The existing Robustness Lab becomes the wedge: upload an artifact, inspect its evidence sufficiency, run the diagnostics that are actually justified, then produce a report worth sharing."
+              title="Start with the evidence you already have."
+              description="Upload a trade log, equity curve, broker export, or richer bundle. The Lab shows what can be validated, what remains unsupported, and which diagnostics are justified by the artifact."
             />
             <RobustnessLabIntro />
             <LabDiagnosticWorkbench />
@@ -62,8 +64,8 @@ export default function HomePage() {
           <div className="space-y-8 lg:space-y-10">
             <SectionHeader
               eyebrow="Shareable Evidence"
-              title="The report is not a download. It is the demand object."
-              description="Approach A wins when serious users share a report, argue with it, or ask for the next experiment. The homepage should make that future visible from the first scroll."
+              title="A validation report built to travel."
+              description="Export a defensible memo that states the verdict, the evidence behind it, and the limitations a buyer, investor, partner, or internal reviewer should understand."
             />
             <ShareArtifactSection />
           </div>

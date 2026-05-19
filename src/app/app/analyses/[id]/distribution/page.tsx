@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
@@ -7,6 +8,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectDistributionTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -77,6 +79,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
 
   const truthContext = buildTruthContext(record, "distribution", { benchmark: analysis.benchmark });
   const distributionRecommendations = pageInsightRecommendations(record, "distribution", truthContext.recommendations);
+  const workbench = buildAnalystWorkbenchModel(record, "distribution", { benchmark: analysis.benchmark });
   const keyShapeFindings = Array.from(new Set([
     ...(distribution.interpretation.bullets ?? []),
     ...record.summary.key_findings.filter((item) => /win|loss|tail|skew|expectancy|distribution|payoff/i.test(item)),
@@ -84,6 +87,8 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
 
   return (
     <AnalysisPageFrame title="Trade Distribution" description="Statistical structure of trade outcomes beyond aggregate PnL.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <div className="flex flex-wrap gap-2">
         {[
           { label: "Trade count", value: String(record.dataset.trade_count) },

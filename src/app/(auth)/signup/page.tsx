@@ -25,6 +25,7 @@ export default function SignupPage() {
   const [oauthError, setOauthError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(true);
   const mismatch = useMemo(() => confirmPassword.length > 0 && password !== confirmPassword, [password, confirmPassword]);
 
   useEffect(() => {
@@ -39,6 +40,11 @@ export default function SignupPage() {
       const signupResponse = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password, confirm_password: confirmPassword }) });
       const signupPayload = await parseSignupResponse(signupResponse);
       if (!signupResponse.ok) return void (setError(signupPayload.error?.message ?? "Unable to create account."), setBusy(false));
+      if (signupPayload.verification_required === false) {
+        await signIn("credentials", { email, password, callbackUrl: "/app" });
+        return;
+      }
+      setVerificationRequired(Boolean(signupPayload.verification_required ?? true));
       setCreated(true);
       setBusy(false);
     } catch {
@@ -74,7 +80,7 @@ export default function SignupPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           {created ? (
             <p className="rounded-sm border border-border-subtle bg-surface-panel px-3 py-2 text-sm text-text-graphite">
-              Account created. Check your email to verify your address before signing in.
+              {verificationRequired ? "Account created. Check your email to verify your address before signing in." : "Account created. You can now sign in."}
             </p>
           ) : null}
           <label className="block text-sm">Name<input value={name} onChange={(event) => setName(event.target.value)} name="name" type="text" className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
@@ -86,7 +92,7 @@ export default function SignupPage() {
           ) : null}
           {mismatch ? <p className="text-xs text-red-600">Passwords do not match.</p> : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
-          <button disabled={busy || mismatch || created} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Creating account..." : created ? "Verification email sent" : "Sign up for free"}</button>
+          <button disabled={busy || mismatch || created} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Creating account..." : created ? (verificationRequired ? "Verification email sent" : "Account created") : "Sign up for free"}</button>
         </form>
         <p className="text-sm text-neutral-600">Already have an account? <Link href="/login" className="underline">Sign in</Link></p>
       </div>
@@ -94,8 +100,8 @@ export default function SignupPage() {
   );
 }
 
-async function parseSignupResponse(response: Response): Promise<{ error?: { message?: string } }> {
+async function parseSignupResponse(response: Response): Promise<{ verification_required?: boolean; error?: { message?: string } }> {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return {};
-  return response.json() as Promise<{ error?: { message?: string } }>;
+  return response.json() as Promise<{ verification_required?: boolean; error?: { message?: string } }>;
 }

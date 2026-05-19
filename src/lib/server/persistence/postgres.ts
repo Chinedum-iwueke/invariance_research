@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { postgresSchemaSql } from "@/lib/server/persistence/postgres-schema";
 
 type PgPool = {
   query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number | null }>;
@@ -12,6 +13,8 @@ type PgClient = {
 };
 
 let pool: PgPool | undefined;
+let rawPool: PgPool | undefined;
+let schemaReady: Promise<void> | undefined;
 
 function loadPgPoolConstructor(): new (config: { connectionString: string }) => PgPool {
   const require = createRequire(import.meta.url);
@@ -22,12 +25,46 @@ function loadPgPoolConstructor(): new (config: { connectionString: string }) => 
   }
 }
 
-export function getPostgresPool(): PgPool {
-  if (pool) return pool;
+function getRawPostgresPool(): PgPool {
+  if (rawPool) return rawPool;
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is required when DATABASE_PROVIDER=postgres.");
   const Pool = loadPgPoolConstructor();
-  pool = new Pool({ connectionString });
+  rawPool = new Pool({ connectionString });
+  return rawPool;
+}
+
+export async function ensurePostgresSchema(): Promise<void> {
+  if (process.env.POSTGRES_SCHEMA_AUTO_INIT === "false") return;
+  if (schemaReady) return schemaReady;
+
+  schemaReady = getRawPostgresPool()
+    .query(postgresSchemaSql)
+    .then(() => undefined)
+    .catch((error) => {
+      schemaReady = undefined;
+      throw error;
+    });
+
+  return schemaReady;
+}
+
+export function getPostgresPool(): PgPool {
+  if (pool) return pool;
+  const raw = getRawPostgresPool();
+  pool = {
+    async query<T = Record<string, unknown>>(sql: string, params?: unknown[]) {
+      await ensurePostgresSchema();
+      return raw.query<T>(sql, params);
+    },
+    async connect() {
+      await ensurePostgresSchema();
+      return raw.connect();
+    },
+    async end() {
+      await raw.end();
+    },
+  };
   return pool;
 }
 
@@ -50,5 +87,11 @@ export async function closePostgresForTests() {
   if (pool) {
     await pool.end();
     pool = undefined;
+    rawPool = undefined;
+    schemaReady = undefined;
+  } else if (rawPool) {
+    await rawPool.end();
+    rawPool = undefined;
+    schemaReady = undefined;
   }
 }

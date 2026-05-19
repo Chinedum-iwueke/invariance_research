@@ -49,7 +49,7 @@ const sections = [
     title: "AI-Assisted Processing",
     body: [
       "Uploaded materials, derived metrics, and diagnostic summaries may be processed by internal, local, or configured model systems to support interpretation, summarization, classification, report drafting, and workflow assistance.",
-      "This policy does not imply that submitted strategy artifacts are used for public model training. If Invariance Research later uses third-party AI systems in a way that materially changes processing, retention, or training treatment, this policy should be updated before that use is introduced.",
+      "This policy does not imply that submitted strategy artifacts are used for public model training. Material changes to model processing, retention, or training treatment will be reflected in an updated policy before they are introduced.",
       "AI-assisted summaries can be incomplete or incorrect and are used as part of a research workflow rather than as autonomous investment, legal, tax, or compliance advice.",
     ],
   },
@@ -64,7 +64,7 @@ const sections = [
     title: "Analytics",
     body: [
       "We may use privacy-conscious analytics and technical telemetry to understand page performance, feature usage, conversion funnels, errors, and operational reliability.",
-      "Analytics data is used to improve the website, tools, research workflows, and product experience. Where feasible, analytics should be configured to minimize unnecessary personal information.",
+      "Analytics data is used to improve the website, tools, research workflows, and product experience. We aim to minimize unnecessary personal information in analytics where feasible.",
     ],
   },
   {
@@ -113,7 +113,7 @@ const sections = [
     title: "Changes to this Policy",
     body: [
       "We may update this Privacy Policy as the website, tools, providers, or data practices evolve. Updated versions will be posted on this page with a revised last-updated date.",
-      "Material changes should be reviewed carefully, especially changes involving uploaded artifacts, AI-assisted processing, retention, or third-party providers.",
+      "Material changes involving uploaded artifacts, AI-assisted processing, retention, or third-party providers will be reflected on this page.",
     ],
   },
   {

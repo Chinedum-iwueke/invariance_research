@@ -9,6 +9,7 @@ import { isReportExportPlanRestricted } from "@/lib/app/upgrade-visibility";
 
 interface ExportStatusResponse {
   export_id: string;
+  format: "pdf" | "md" | "json";
   status: "queued" | "processing" | "completed" | "failed";
   progress_pct?: number;
   current_step?: string;
@@ -26,6 +27,7 @@ export function ReportExportActions({
   currentPlan?: string;
 }) {
   const [activeExportId, setActiveExportId] = useState<string | null>(null);
+  const [activeFormat, setActiveFormat] = useState<"pdf" | "md" | "json">("pdf");
   const [status, setStatus] = useState<ExportStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -61,14 +63,15 @@ export function ReportExportActions({
   }, [activeExportId, pollStatus, status?.status]);
 
 
-  const startExport = useCallback(async () => {
+  const startExport = useCallback(async (format: "pdf" | "md" | "json") => {
     setIsStarting(true);
     setError(null);
+    setActiveFormat(format);
     try {
       const response = await fetch(`/api/analyses/${analysisId}/exports`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ format: "pdf" }),
+        body: JSON.stringify({ format }),
       });
 
       if (!response.ok) {
@@ -78,7 +81,7 @@ export function ReportExportActions({
 
       const payload = await response.json() as { export_id: string };
       setActiveExportId(payload.export_id);
-      setStatus({ export_id: payload.export_id, status: "queued", current_step: "Queued", progress_pct: 0 });
+      setStatus({ export_id: payload.export_id, format, status: "queued", current_step: "Queued", progress_pct: 0 });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to start export.");
     } finally {
@@ -87,10 +90,10 @@ export function ReportExportActions({
   }, [analysisId]);
 
   const info = useMemo(() => {
-    if (!status) return "Generate a polished PDF report artifact for client delivery. The export is rendered from the immutable report snapshot, not the mutable analysis record.";
+    if (!status) return "Generate PDF, Markdown, or JSON report artifacts from the immutable proof-report snapshot, not the mutable analysis record.";
     if (status.status === "queued") return `Queued${status.current_step ? ` · ${status.current_step}` : ""}`;
-    if (status.status === "processing") return `Rendering PDF${typeof status.progress_pct === "number" ? ` · ${status.progress_pct}%` : ""}${status.current_step ? ` · ${status.current_step}` : ""}`;
-    if (status.status === "completed") return "Export ready. Download your institutional report PDF.";
+    if (status.status === "processing") return `Rendering ${status.format.toUpperCase()}${typeof status.progress_pct === "number" ? ` · ${status.progress_pct}%` : ""}${status.current_step ? ` · ${status.current_step}` : ""}`;
+    if (status.status === "completed") return `Export ready. Download your ${status.format.toUpperCase()} proof report.`;
     return status.error?.message ?? "Export failed. Retry when ready.";
   }, [status]);
 
@@ -111,15 +114,17 @@ export function ReportExportActions({
   return (
     <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={() => void startExport()} disabled={isStarting || status?.status === "processing" || status?.status === "queued"}>
-          {isStarting ? "Starting export…" : status?.status === "processing" ? "Export in progress…" : "Export polished PDF"}
-        </Button>
+        {(["pdf", "md", "json"] as const).map((format) => (
+          <Button key={format} type="button" variant={format === "pdf" ? "primary" : "secondary"} onClick={() => void startExport(format)} disabled={isStarting || status?.status === "processing" || status?.status === "queued"}>
+            {isStarting && activeFormat === format ? "Starting..." : `Export ${format.toUpperCase()}`}
+          </Button>
+        ))}
         {status?.download_url ? (
           <a href={status.download_url} className={buttonVariants({ variant: "secondary" })}>
-            Download PDF
+            Download {status.format.toUpperCase()}
           </a>
         ) : null}
-        <Link href={`/api/analyses/${analysisId}`} className={buttonVariants({ variant: "secondary" })}>View raw analysis payload</Link>
+        <Link href={`/api/analyses/${analysisId}/report-snapshot`} className={buttonVariants({ variant: "secondary" })}>Preview snapshot contract</Link>
       </div>
       {status?.status === "processing" || status?.status === "queued" ? (
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-white">

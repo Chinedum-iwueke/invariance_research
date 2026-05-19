@@ -14,6 +14,7 @@ from typing import Any, Literal, get_args, get_origin
 
 ENGINE_ENVELOPE_V1 = {
     "engine_name": "bt",
+    "strategy_truth_room_contract_version": "1.0.0",
     "seam_name": "run_analysis_from_parsed_artifact",
     "seam_version": "1.0.0",
     "adapter_version": "1.0.0",
@@ -337,7 +338,20 @@ def _adapt_parsed_artifact(bt_module: ModuleType, parsed_artifact: Any) -> Any:
     if artifact_kind_raw is None and parsed_dict.get("artifact_type") is not None:
         artifact_kind_raw = "bundle_v1"
 
-    artifact_kind = _coerce_enum_value(artifact_kind_raw, artifact_kind_type, field_name="artifact_kind")
+    try:
+        artifact_kind = _coerce_enum_value(artifact_kind_raw, artifact_kind_type, field_name="artifact_kind")
+    except EngineInputValidationError:
+        compatibility_aliases = {
+            "bundle_v1": "artifact_bundle",
+            "strategy_truth_room_bundle_v1": "artifact_bundle",
+            "trade_log_v1": "trade_csv",
+            "parameter_sweep_v1": "parameter_sweep",
+        }
+        artifact_kind = _coerce_enum_value(
+            compatibility_aliases.get(str(artifact_kind_raw), artifact_kind_raw),
+            artifact_kind_type,
+            field_name="artifact_kind",
+        )
     richness = _coerce_enum_value(parsed_dict.get("richness"), richness_type, field_name="richness")
 
     raw_trades = _ensure_list(parsed_dict.get("trades"), field_name="trades")
@@ -360,8 +374,16 @@ def _adapt_parsed_artifact(bt_module: ModuleType, parsed_artifact: Any) -> Any:
         "equity_curve": parsed_dict.get("equity_curve") if isinstance(parsed_dict.get("equity_curve"), list) else None,
         "assumptions": parsed_dict.get("assumptions") if isinstance(parsed_dict.get("assumptions"), dict) else None,
         "params": parsed_dict.get("params") if isinstance(parsed_dict.get("params"), dict) else None,
+        "ohlcv": parsed_dict.get("ohlcv") if isinstance(parsed_dict.get("ohlcv"), list) else None,
+        "benchmark_series": parsed_dict.get("benchmark_series") if isinstance(parsed_dict.get("benchmark_series"), list) else None,
+        "broker_exports": parsed_dict.get("broker_exports") if isinstance(parsed_dict.get("broker_exports"), list) else None,
+        "declared_claims": parsed_dict.get("declared_claims") if isinstance(parsed_dict.get("declared_claims"), list) else None,
+        "source_files": parsed_dict.get("source_files") if isinstance(parsed_dict.get("source_files"), list) else [],
+        "bundle_manifest": parsed_dict.get("bundle_manifest") if isinstance(parsed_dict.get("bundle_manifest"), dict) else None,
+        "asset_class_capabilities": parsed_dict.get("asset_class_capabilities") if isinstance(parsed_dict.get("asset_class_capabilities"), dict) else {},
         "ohlcv_present": bool(parsed_dict.get("ohlcv_present", False)),
         "benchmark_present": bool(parsed_dict.get("benchmark_present", False)),
+        "broker_export_present": bool(parsed_dict.get("broker_export_present", False)),
         "parser_notes": parser_notes_output,
         "diagnostic_eligibility": _to_bool_diagnostic_eligibility(parsed_dict.get("diagnostic_eligibility")),
     }

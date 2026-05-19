@@ -13,8 +13,9 @@ export function renderExportFromSnapshot(snapshot: ReportSnapshotRecord, format:
 
 function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportSnapshotRecord }, format: ExportFormat): { bytes: Uint8Array; content_type: string; file_name: string } {
   const { record, snapshot } = input;
+  const proofExport = buildProofReportExportPayload(record, snapshot);
   if (format === "json") {
-    const json = JSON.stringify(snapshot?.payload ?? record, null, 2);
+    const json = JSON.stringify(proofExport, null, 2);
     const suffix = snapshot ? `report-snapshot-${snapshot.snapshot_id.slice(0, 8)}` : "report";
     return { bytes: new Uint8Array(Buffer.from(json, "utf-8")), content_type: "application/json", file_name: `${record.analysis_id}-${suffix}.json` };
   }
@@ -30,6 +31,7 @@ function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportS
   const md = [
     `# Invariance Research Validation Report — ${record.strategy.strategy_name}`,
     snapshot ? `Snapshot: ${snapshot.snapshot_id}` : undefined,
+    snapshot ? `Schema: ${snapshot.payload.report_schema_version}` : undefined,
     `Generated: ${record.report.generated_at ?? new Date().toISOString()}`,
     "",
     "## Executive Summary",
@@ -42,6 +44,22 @@ function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportS
     `${report.verdict.statusLabel}: ${report.verdict.headline}`,
     report.verdict.summary,
     "",
+    "## Evidence Coverage",
+    `Included diagnostics: ${proofExport.evidence_coverage.included_diagnostics.join(", ") || "none"}`,
+    `Excluded diagnostics: ${proofExport.evidence_coverage.excluded_diagnostics.map((item) => `${item.diagnostic} (${item.reason ?? item.status})`).join(", ") || "none"}`,
+    "",
+    "## Assumptions",
+    ...proofExport.assumptions.map((item) => `- ${item}`),
+    "",
+    "## Unsupported Claims",
+    ...(proofExport.unsupported_claims.length ? proofExport.unsupported_claims.map((item) => `- ${item.claim}: ${item.report_wording}`) : ["No unsupported claims were emitted."]),
+    "",
+    "## What This Result Does Not Prove",
+    ...(proofExport.what_this_result_does_not_prove.length ? proofExport.what_this_result_does_not_prove.map((item) => `- ${item}`) : ["No explicit proof exclusions were emitted."]),
+    "",
+    "## Next Evidence",
+    ...proofExport.next_evidence.map((item) => `- ${item}`),
+    "",
     "## Benchmark",
     benchmark?.available
       ? `Strategy return: ${benchmark.summary_metrics?.strategy_return ?? "N/A"} | Benchmark return: ${benchmark.summary_metrics?.benchmark_return ?? "N/A"} | Excess return: ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}`
@@ -49,6 +67,73 @@ function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportS
   ].filter((line): line is string => line !== undefined).join("\n");
 
   return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}-validation-report-${snapshot?.snapshot_id.slice(0, 8) ?? "live"}.md` };
+}
+
+export function buildProofReportExportPayload(record: AnalysisRecord, snapshot?: ReportSnapshotRecord) {
+  const report = snapshot?.payload.report_view ?? buildReportViewModel(record);
+  const decisionMetrics = snapshot?.payload.decision_metrics ?? buildDecisionSnapshotMetrics(record);
+  const proofReport = snapshot?.payload.proof_report ?? record.proof_report;
+  const excludedDiagnostics = snapshot?.payload.excluded_diagnostics
+    ?? Object.entries(record.diagnostic_statuses)
+      .filter(([, status]) => status.status !== "available")
+      .map(([diagnostic, status]) => ({ diagnostic, status: status.status, reason: status.reason }));
+  const includedDiagnostics = snapshot?.payload.included_diagnostics
+    ?? Object.entries(record.diagnostic_statuses)
+      .filter(([, status]) => status.status === "available")
+      .map(([diagnostic]) => diagnostic);
+  const unsupportedClaims = (record.claim_inventory ?? []).filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status));
+  const assumptions = [
+    ...(record.assumption_ledger ?? [])
+      .filter((item) => item.materiality === "critical" || item.materiality === "high")
+      .map((item) => `${item.statement}${item.rescue_evidence ? ` Rescue evidence: ${item.rescue_evidence}` : ""}`),
+    ...record.report.methodology_assumptions,
+  ].filter((item, index, all) => item.length > 0 && all.indexOf(item) === index);
+  const limitations = [
+    ...report.limitations,
+    ...(proofReport?.what_this_result_does_not_prove ?? []),
+  ].filter((item, index, all) => item.length > 0 && all.indexOf(item) === index);
+  const nextEvidence = [
+    ...report.recommendations,
+    ...(record.assumption_ledger ?? []).map((item) => item.rescue_evidence).filter((item): item is string => Boolean(item)),
+    ...unsupportedClaims.flatMap((claim) => claim.missing_evidence),
+  ].filter((item, index, all) => item.length > 0 && all.indexOf(item) === index);
+
+  return {
+    report_schema_version: snapshot?.payload.report_schema_version ?? "strategy_truth_room_report_snapshot_v1",
+    snapshot_id: snapshot?.snapshot_id,
+    generated_at: snapshot?.payload.generated_at ?? record.report.generated_at ?? record.updated_at,
+    strategy_name: record.strategy.strategy_name,
+    artifact_identity: snapshot?.payload.artifact_identity,
+    redaction_policy: snapshot?.payload.redaction_policy,
+    executive_verdict: {
+      status: report.verdict.statusLabel,
+      headline: report.verdict.headline,
+      summary: report.verdict.summary,
+      confidence: report.confidence,
+    },
+    evidence_coverage: {
+      included_diagnostics: includedDiagnostics,
+      excluded_diagnostics: excludedDiagnostics,
+      evidence_ledger: snapshot?.payload.evidence_ledger?.diagnostics ?? [],
+    },
+    assumptions,
+    unsupported_claims: unsupportedClaims.map((claim) => ({
+      claim: claim.claim,
+      support_status: claim.support_status,
+      report_wording: claim.report_wording,
+      missing_evidence: claim.missing_evidence,
+    })),
+    diagnostic_confidence: report.confidence,
+    falsification_results: {
+      decision_metrics: decisionMetrics,
+      diagnostics_summary: report.diagnosticsSummary,
+      deployment_guidance: report.deploymentGuidance,
+    },
+    limitations,
+    what_this_result_does_not_prove: proofReport?.what_this_result_does_not_prove ?? [],
+    next_evidence: nextEvidence,
+    research_desk_recommended_scope: proofReport?.research_desk_packet_hooks,
+  };
 }
 
 interface PdfOp {
@@ -136,6 +221,15 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
 
   writeBlock("Executive Summary", [{ text: record.report.executive_summary }]);
   writeBlock("Decision Snapshot Metrics", decisionMetrics.map((metric: ScoreBand) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Evidence Coverage", [
+    { text: `Included diagnostics: ${(snapshot?.payload.included_diagnostics ?? []).join(", ") || "See diagnostic summary."}` },
+    { text: `Excluded diagnostics: ${(snapshot?.payload.excluded_diagnostics ?? []).map((item) => `${item.diagnostic} (${item.reason ?? item.status})`).join(", ") || "None emitted."}` },
+  ]);
+  writeBlock("Assumptions", (snapshot?.payload.proof_report?.critical_assumptions ?? record.assumption_ledger ?? []).map((item) => ({ text: `${item.statement}${item.rescue_evidence ? ` Rescue evidence: ${item.rescue_evidence}` : ""}` })));
+  writeBlock("Unsupported Claims", (record.claim_inventory ?? [])
+    .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
+    .map((claim) => ({ text: `${claim.claim}: ${claim.report_wording}` })));
+  writeBlock("What This Result Does Not Prove", (snapshot?.payload.proof_report?.what_this_result_does_not_prove ?? record.proof_report?.what_this_result_does_not_prove ?? []).map((line) => ({ text: line })));
 
   writeBlock("Top-line Performance & Benchmark", [
     { text: benchmark?.available ? `Strategy return ${benchmark.summary_metrics?.strategy_return ?? "N/A"}, benchmark return ${benchmark.summary_metrics?.benchmark_return ?? "N/A"}, excess return ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}.` : `Benchmark comparison unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}.` },

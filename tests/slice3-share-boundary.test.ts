@@ -12,6 +12,7 @@ import { accountService } from "../src/lib/server/accounts/service";
 import { analysisRepository } from "../src/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "../src/lib/server/repositories/artifact-repository";
 import { ensureReportSnapshotForAnalysis } from "../src/lib/server/exports/report-snapshot-service";
+import { renderExportFromSnapshot } from "../src/lib/server/exports/export-renderer";
 import { shareAccessEventRepository, shareTokenRepository } from "../src/lib/server/repositories/share-token-repository";
 import { createReportShare, hashShareToken, resolveSharedReport, revokeReportShare } from "../src/lib/server/share/share-service";
 import { cleanupShareAccessEvents } from "../src/lib/server/maintenance/retention-service";
@@ -34,6 +35,9 @@ function resetDb() {
     DELETE FROM usage_snapshots;
     DELETE FROM entitlement_snapshots;
     DELETE FROM subscriptions;
+    DELETE FROM admin_audit_log;
+    DELETE FROM user_roles;
+    DELETE FROM auth_tokens;
     DELETE FROM accounts;
     DELETE FROM users;
   `);
@@ -175,6 +179,9 @@ test("share tokens are stored hashed and resolve to an allowlisted public report
   assert.equal(resolved.view?.strategy_name, "Share Boundary Strategy");
   assert.equal(resolved.view?.dataset.trade_count, 24);
   assert.equal(resolved.view?.evidence_ledger.some((entry) => entry.diagnostic === "execution"), true);
+  assert.equal(resolved.view?.redaction_policy.raw_trade_files_public, false);
+  assert.equal(resolved.view?.download_policy.public_pdf_download, false);
+  assert.ok(resolved.view?.excluded_diagnostics.some((entry) => entry.diagnostic === "regimes"));
 
   const serialized = JSON.stringify(resolved.view);
   assert.equal(serialized.includes(account.account_id), false);
@@ -192,6 +199,28 @@ test("share tokens are stored hashed and resolve to an allowlisted public report
   assert.equal(typeof events[0].ip_hash, "string");
   assert.equal(typeof events[0].user_agent_hash, "string");
   assert.equal(JSON.stringify(events).includes("Share Boundary Strategy"), false);
+});
+
+test("report snapshots carry Phase 5 proof contract and export parity", async () => {
+  const { snapshot } = await seedSnapshot({ email: "slice3-proof@example.com", analysis_id: "analysis-slice3-proof", artifact_id: "artifact-slice3-proof" });
+
+  assert.equal(snapshot.payload.report_schema_version, "strategy_truth_room_report_snapshot_v1");
+  assert.equal(snapshot.payload.artifact_identity.artifact_id, "artifact-slice3-proof");
+  assert.equal(snapshot.payload.redaction_policy.pii_exposure, "none");
+  assert.equal(snapshot.payload.redaction_policy.raw_trade_files_public, false);
+  assert.ok(snapshot.payload.included_diagnostics.includes("overview"));
+  assert.ok(snapshot.payload.excluded_diagnostics.some((entry) => entry.diagnostic === "stability"));
+
+  const json = renderExportFromSnapshot(snapshot, "json");
+  const md = renderExportFromSnapshot(snapshot, "md");
+  const pdf = renderExportFromSnapshot(snapshot, "pdf");
+
+  assert.equal(json.content_type, "application/json");
+  assert.equal(md.content_type, "text/markdown");
+  assert.equal(pdf.content_type, "application/pdf");
+  assert.ok(Buffer.from(json.bytes).toString("utf-8").includes("evidence_coverage"));
+  assert.ok(Buffer.from(md.bytes).toString("utf-8").includes("## Evidence Coverage"));
+  assert.ok(Buffer.from(pdf.bytes).toString("utf-8").includes("%PDF-1.4"));
 });
 
 test("expired and revoked shares do not return report content", async () => {

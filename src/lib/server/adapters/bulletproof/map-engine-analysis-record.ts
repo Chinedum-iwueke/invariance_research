@@ -151,6 +151,12 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function normalizeRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) as Record<string, unknown>[]
+    : [];
+}
+
 function extractRegimeRows(raw: UnknownRecord | undefined, envelope: AnalysisRecord["engine_payload"]["diagnostics"]["regimes"] | undefined) {
   const candidates: unknown[] = [];
   if (Array.isArray(raw?.regime_metrics)) candidates.push(...raw.regime_metrics);
@@ -1013,6 +1019,12 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       ...executionFigures,
     ],
   );
+  const evidenceFacts = normalizeRecordArray((engine as unknown as Record<string, unknown>).evidence_facts);
+  const assumptionLedger = normalizeRecordArray((engine as unknown as Record<string, unknown>).assumption_ledger);
+  const claimInventory = normalizeRecordArray((engine as unknown as Record<string, unknown>).claim_inventory);
+  const strategyTruthRoomPayload = asRecord(asRecord((engine as unknown as Record<string, unknown>).raw_payload)?.strategy_truth_room);
+  const proofReport = asRecord((engine as unknown as Record<string, unknown>).proof_report)
+    ?? asRecord(strategyTruthRoomPayload?.proof_report);
 
   if (envelopeByDiagnostic.distribution) {
     envelopeByDiagnostic.distribution.metadata = {
@@ -1547,6 +1559,10 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       },
       raw_result: engine as unknown as Record<string, unknown>,
     },
+    evidence_facts: evidenceFacts as unknown as AnalysisRecord["evidence_facts"],
+    assumption_ledger: assumptionLedger as unknown as AnalysisRecord["assumption_ledger"],
+    claim_inventory: claimInventory as unknown as AnalysisRecord["claim_inventory"],
+    proof_report: proofReport as AnalysisRecord["proof_report"],
     report: {
       report_id: `${analysisId}-report`,
       generated_at: now,

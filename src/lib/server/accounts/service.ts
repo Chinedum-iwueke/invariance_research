@@ -22,6 +22,10 @@ function hoursFromNow(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 }
 
+function requiresEmailVerification() {
+  return process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== "false";
+}
+
 async function sendVerificationEmail(user: User) {
   const { token, tokenHash } = generateAuthToken();
   await authTokenRepository.consumeOutstanding(user.user_id, "email_verification");
@@ -103,10 +107,13 @@ export const accountService = {
       email,
       name: input.name,
       password_hash: hashPassword(input.password),
+      email_verified_at: requiresEmailVerification() ? undefined : new Date().toISOString(),
     });
     const account = await repositories.accounts.save(user.user_id, "explorer");
     await ensureDefaultUsageSnapshot(account.account_id);
-    await sendVerificationEmail(user);
+    if (requiresEmailVerification()) {
+      await sendVerificationEmail(user);
+    }
     return { user, account };
   },
 
@@ -116,7 +123,7 @@ export const accountService = {
     if (!email || !input.password) return undefined;
 
     const user = await repositories.users.findByEmail(email);
-    if (!user || !verifyPassword(input.password, user.password_hash) || !user.email_verified_at) {
+    if (!user || !verifyPassword(input.password, user.password_hash) || (requiresEmailVerification() && !user.email_verified_at)) {
       return undefined;
     }
 

@@ -23,6 +23,9 @@ export type ZipIngestionEntry = {
   path: string;
   file_type: string;
   status: "recognized" | "ignored" | "unsupported";
+  role?: string;
+  schema_version?: string;
+  required?: boolean;
   note?: string;
 };
 
@@ -30,6 +33,13 @@ export type ZipUploadReview = {
   recognized_count: number;
   ignored_count: number;
   unsupported_count: number;
+  manifest_type?: string;
+  contract_version?: string;
+  diagnostic_unlocks?: {
+    available: DiagnosticName[];
+    limited: DiagnosticName[];
+    unavailable: DiagnosticName[];
+  };
   entries: ZipIngestionEntry[];
 };
 

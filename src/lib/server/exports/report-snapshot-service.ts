@@ -5,6 +5,7 @@ import { buildEvidenceLedger } from "@/lib/server/evidence/evidence-ledger-servi
 import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { EngineCapabilityProfile } from "@/lib/server/engine/engine-types";
 import type { ReportSnapshotPayload, ReportSnapshotRecord } from "@/lib/server/exports/models";
+import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 
 export function checksumAnalysisResult(record: AnalysisRecord): string {
@@ -79,6 +80,7 @@ function buildReportSnapshotPayload(input: {
   generated_at: string;
 }): ReportSnapshotPayload {
   const { analysis, record } = input;
+  const artifact = artifactRepository.findById(analysis.artifact_id);
   const capabilityProfile = Object.fromEntries(
     Object.entries(record.diagnostic_statuses).map(([diagnostic, status]) => [
       diagnostic,
@@ -98,11 +100,53 @@ function buildReportSnapshotPayload(input: {
   ].filter((warning, index, all) => warning.length > 0 && all.indexOf(warning) === index);
 
   return {
+    report_schema_version: "strategy_truth_room_report_snapshot_v1",
     snapshot_id: input.snapshot_id,
     analysis_id: analysis.analysis_id,
+    artifact_identity: {
+      artifact_id: analysis.artifact_id,
+      checksum_sha256: artifact?.checksum_sha256,
+      artifact_kind: artifact?.artifact_kind,
+      richness: artifact?.richness,
+      file_name: artifact?.file_name,
+    },
     generated_at: input.generated_at,
     source_analysis_updated_at: analysis.updated_at,
     source_result_checksum: input.checksum,
+    redaction_policy: {
+      policy_version: "share_room_redaction_v1",
+      public_share_excludes: [
+        "raw trade files",
+        "raw engine payload",
+        "owner account identifiers",
+        "owner user identifiers",
+        "artifact storage keys",
+        "source result checksum",
+        "private executive notes",
+      ],
+      public_share_includes: [
+        "strategy display name",
+        "dataset coverage summary",
+        "verdict",
+        "confidence",
+        "decision metrics",
+        "diagnostic coverage",
+        "limitations",
+        "recommendations",
+        "unsupported claims",
+        "proof boundaries",
+        "approved public addenda",
+      ],
+      pii_exposure: "none",
+      raw_trade_files_public: false,
+    },
+    included_diagnostics: Object.entries(record.diagnostic_statuses)
+      .filter(([, status]) => status.status === "available")
+      .map(([diagnostic]) => diagnostic),
+    excluded_diagnostics: Object.entries(record.diagnostic_statuses)
+      .filter(([, status]) => status.status !== "available")
+      .map(([diagnostic, status]) => ({ diagnostic, status: status.status, reason: status.reason })),
+    proof_report: record.proof_report,
     record,
     report_view: buildReportViewModel(record),
     decision_metrics: buildDecisionSnapshotMetrics(record),

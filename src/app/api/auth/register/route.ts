@@ -40,7 +40,11 @@ export async function POST(request: Request) {
       name: name || undefined,
       password,
     });
-    return NextResponse.json({ user_id: created.user.user_id, account_id: created.account.account_id, verification_required: true }, { status: 201 });
+    return NextResponse.json({
+      user_id: created.user.user_id,
+      account_id: created.account.account_id,
+      verification_required: process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== "false",
+    }, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "signup_failed";
     const message = code === "email_already_registered" ? "An account with that email already exists." : "Unable to create account.";

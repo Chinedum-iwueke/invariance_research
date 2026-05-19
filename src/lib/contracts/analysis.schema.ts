@@ -337,6 +337,53 @@ export const enginePayloadSnapshotSchema = z.object({
   raw_result: z.record(z.string(), z.unknown()),
 });
 
+export const evidenceFactSchema = z.object({
+  fact_id: z.string(),
+  source: z.string(),
+  statement: z.string(),
+  value: z.unknown().optional(),
+  diagnostics: z.array(z.string()),
+  confidence: z.string(),
+});
+
+export const assumptionLedgerEntrySchema = z.object({
+  assumption_id: z.string(),
+  source: z.string(),
+  diagnostic: z.string(),
+  statement: z.string(),
+  materiality: z.string(),
+  confidence: z.string(),
+  testability: z.string().optional(),
+  affected_metrics: z.array(z.string()).optional(),
+  verdict_impact: z.string().optional(),
+  rescue_evidence: z.string().optional(),
+  share_safe: z.boolean().optional(),
+});
+
+export const claimInventoryEntrySchema = z.object({
+  claim_id: z.string(),
+  claim: z.string(),
+  source: z.string(),
+  priority: z.string().optional(),
+  support_status: z.string(),
+  supporting_diagnostics: z.array(z.string()),
+  contradicting_diagnostics: z.array(z.string()),
+  missing_evidence: z.array(z.string()),
+  report_wording: z.string(),
+});
+
+export const proofReportPayloadSchema = z.object({
+  contract_version: z.string().optional(),
+  artifact_identity: z.record(z.string(), z.unknown()).optional(),
+  evidence_coverage: z.record(z.string(), z.unknown()).optional(),
+  asset_class_capabilities: z.record(z.string(), z.unknown()).optional(),
+  critical_assumptions: z.array(assumptionLedgerEntrySchema).optional(),
+  unsupported_claims: z.array(claimInventoryEntrySchema).optional(),
+  what_this_result_does_not_prove: z.array(z.string()).optional(),
+  research_desk_packet_hooks: z.record(z.string(), z.unknown()).optional(),
+  evidence_facts: z.array(evidenceFactSchema).optional(),
+});
+
 export const diagnosticBundleSchema = z.object({
   overview: overviewDiagnosticSchema,
   distribution: distributionDiagnosticSchema,
@@ -386,6 +433,10 @@ export const analysisRecordSchema = z.object({
   summary: analysisSummarySchema,
   diagnostics: diagnosticBundleSchema,
   engine_payload: enginePayloadSnapshotSchema,
+  evidence_facts: z.array(evidenceFactSchema).optional(),
+  assumption_ledger: z.array(assumptionLedgerEntrySchema).optional(),
+  claim_inventory: z.array(claimInventoryEntrySchema).optional(),
+  proof_report: proofReportPayloadSchema.optional(),
   report: reportPayloadSchema,
   access: accessFlagsSchema,
   diagnostic_statuses: z.object({

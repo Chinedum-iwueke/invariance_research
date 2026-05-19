@@ -26,7 +26,7 @@ export default function ResearchDeskPage() {
               <h1 className="font-display max-w-[11.5ch] text-[clamp(3rem,13vw,4.7rem)] font-medium leading-[0.92] text-text-institutional md:text-[clamp(5.2rem,7vw,6.8rem)]">Invariance Research Desk</h1>
               <p className="max-w-2xl text-lg leading-snug text-text-graphite md:text-xl">The operating room for turning trading intuition into audited, execution-realistic evidence.</p>
               <p className="max-w-3xl text-[0.95rem] leading-[1.72] text-text-neutral md:text-base md:leading-relaxed">
-                Research Desk is the full-ambition surface beyond the Lab: AI assistants clarify the claim, research agents propose experiments, the evidence ledger remembers what happened, and report artifacts carry the decision outside the app.
+                Research Desk helps formalize claims, plan experiments, preserve evidence history, and turn complex validation work into review-ready reports.
               </p>
               <div className="mobile-cta-row pt-1">
                 <Button asChild>
@@ -47,8 +47,8 @@ export default function ResearchDeskPage() {
 
         <section className="container-shell space-y-6 py-section-sm">
           <PageTransitionBand
-            title="The Lab proves the demand. Research Desk compounds it."
-            body="Approach A starts with the Robustness Lab because it creates real user evidence quickly. Research Desk becomes justified when users repeatedly share reports, request next experiments, and need memory across validation work."
+            title="Start with an automated validation record."
+            body="The Robustness Lab handles the first pass: artifact intake, diagnostic eligibility, stress testing, and report generation. Research Desk extends that work when the evidence needs deeper review."
             href="/robustness-lab"
             label="Start with the Lab"
           />

@@ -9,6 +9,7 @@
     "lint": "next lint",
     "worker:analysis": "tsx scripts/run-analysis-worker.ts",
     "worker:export": "tsx scripts/run-export-worker.ts",
+    "db:init:postgres": "tsx scripts/init-postgres-schema.ts",
     "usage:recalculate": "tsx scripts/recalculate-usage.ts",
     "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",

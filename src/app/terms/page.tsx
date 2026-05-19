@@ -15,7 +15,7 @@ const sections = [
     title: "Acceptance of Terms",
     body: [
       "By accessing or using Invariance Research's website, free diagnostic tools, research materials, validation services, waitlists, reports, software features, or related digital products, you agree to these Terms of Use. If you do not agree, do not use the services.",
-      "These Terms are intended as strong starter operating terms for a finance-aware research business and should be reviewed by qualified counsel before being treated as final legal documentation.",
+      "These Terms apply alongside any separate written agreement, order form, or engagement letter that governs a paid service.",
     ],
   },
   {
@@ -144,9 +144,9 @@ const sections = [
     ],
   },
   {
-    title: "Governing Law placeholder",
+    title: "Governing Law",
     body: [
-      "The governing law, venue, dispute resolution process, and related jurisdictional terms should be finalized with counsel before launch or before entering into paid client relationships. Until finalized, these Terms should not be read as selecting a specific jurisdiction.",
+      "Any dispute or claim will be handled under the governing law, venue, and dispute-resolution terms specified in the applicable customer agreement or order form. Where no separate agreement applies, Invariance Research will apply the terms presented at the time the service is used.",
     ],
   },
   {

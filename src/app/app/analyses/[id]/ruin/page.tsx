@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
 import { FigureCard } from "@/components/dashboard/figure-card";
@@ -8,6 +9,7 @@ import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { getRenderableSeries } from "@/lib/app/figure-rendering";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { accountService } from "@/lib/server/accounts/service";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
@@ -205,9 +207,12 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
 
   const truthContext = buildTruthContext(record, "ruin", { benchmark: analysis.benchmark });
   const ruinRecommendations = pageInsightRecommendations(record, "ruin", truthContext.recommendations);
+  const workbench = buildAnalystWorkbenchModel(record, "ruin", { benchmark: analysis.benchmark });
 
   return (
     <AnalysisPageFrame title="Risk of Ruin" description="Decision-grade survivability view across drawdowns, streak burden, and execution stress.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {topCards.map((card) => (
           <WorkspaceCard key={card.key} title={card.title} subtitle={card.subtitle}>

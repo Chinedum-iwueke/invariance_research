@@ -4,6 +4,7 @@ export * from "@/lib/contracts/figures";
 export * from "@/lib/contracts/figures.schema";
 export * from "@/lib/contracts/report";
 export * from "@/lib/contracts/report.schema";
+export * from "@/lib/contracts/strategy-truth-room";
 
 export * from "@/lib/contracts/intake";
 export * from "@/lib/contracts/account";

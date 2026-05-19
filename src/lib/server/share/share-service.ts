@@ -123,6 +123,22 @@ function buildSharedReportView(
     limitations: snapshot.payload.report_view.limitations,
     recommendations: snapshot.payload.report_view.recommendations,
     deployment_guidance: snapshot.payload.report_view.deploymentGuidance,
+    redaction_policy: snapshot.payload.redaction_policy,
+    download_policy: {
+      public_pdf_download: false,
+      owner_exports_required: true,
+      formats: ["view_only"],
+    },
+    unsupported_claims: (record.claim_inventory ?? [])
+      .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
+      .map((claim) => ({
+        claim: claim.claim,
+        support_status: claim.support_status,
+        report_wording: claim.report_wording,
+        missing_evidence: claim.missing_evidence,
+      })),
+    what_this_result_does_not_prove: snapshot.payload.proof_report?.what_this_result_does_not_prove ?? [],
+    excluded_diagnostics: snapshot.payload.excluded_diagnostics,
     evidence_ledger: (snapshot.payload.evidence_ledger?.diagnostics ?? []).map((entry) => ({
       diagnostic: entry.diagnostic,
       final_status: entry.final_status,

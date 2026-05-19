@@ -13,6 +13,7 @@ export const DIAGNOSTIC_CONTRACT_VERSION = "1.0.0" as const;
 export type EngineEnvelopeV1 = {
   engine_name: string;
   engine_version?: string | null;
+  strategy_truth_room_contract_version?: string;
   seam_name: typeof ENGINE_SEAM_NAME;
   seam_version: string;
   adapter_version: string;
@@ -62,6 +63,10 @@ export type EngineAnalysisResult = {
   };
   envelope?: EngineEnvelopeV1;
   capability_profile?: EngineCapabilityProfile;
+  evidence_facts?: Record<string, unknown>[];
+  assumption_ledger?: Record<string, unknown>[];
+  claim_inventory?: Record<string, unknown>[];
+  proof_report?: Record<string, unknown>;
   skipped_diagnostics?: Array<{ diagnostic: string; reason: string }>;
   run_context?: Partial<Pick<EngineRunContext, "engine_version">>;
 };

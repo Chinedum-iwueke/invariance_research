@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   BarChart3,
+  ClipboardCheck,
   FileText,
   Gauge,
   GitBranch,
@@ -43,6 +44,7 @@ export function getAnalysisWorkflowItems(activeAnalysisId?: string): AppNavItem[
     { key: `${activeAnalysisId}:execution`, label: "Execution Sensitivity", href: `${base}/execution`, icon: Activity },
     { key: `${activeAnalysisId}:regimes`, label: "Regime Analysis", href: `${base}/regimes`, icon: GitBranch },
     { key: `${activeAnalysisId}:stability`, label: "Parameter Stability", href: `${base}/stability`, icon: Sigma },
+    { key: `${activeAnalysisId}:assumptions`, label: "Assumption Ledger", href: `${base}/assumptions`, icon: ClipboardCheck },
     { key: `${activeAnalysisId}:ruin`, label: "Risk of Ruin", href: `${base}/ruin`, icon: ShieldAlert },
     { key: `${activeAnalysisId}:report`, label: "Validation Report", href: `${base}/report`, icon: FileText },
   ];

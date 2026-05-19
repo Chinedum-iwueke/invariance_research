@@ -11,6 +11,10 @@ const OPTIONAL_BUNDLE_FILES = [
   "ohlcv.csv",
   "ohlcv.parquet",
   "benchmark.csv",
+  "broker_export.csv",
+  "declared_claims.json",
+  "strategy_config.json",
+  "backtest_report.json",
 ] as const;
 
 export type BundleValidationInput = {
@@ -61,6 +65,10 @@ export function validateBundleV1(input: BundleValidationInput): BundleValidation
   }
 
   if (manifest) {
+    if (manifest.bundle_type === "strategy_truth_room_bundle_v1" && !manifest.contract_version) {
+      warnings.push("Strategy Truth Room bundle did not specify contract_version; defaulting to current parser contract.");
+    }
+
     for (const requiredFile of REQUIRED_BUNDLE_FILES) {
       if (!manifest.included_files.includes(requiredFile)) {
         warnings.push(`Manifest omitted expected required file in included_files: ${requiredFile}`);
@@ -71,6 +79,20 @@ export function validateBundleV1(input: BundleValidationInput): BundleValidation
     const unsupportedFiles = manifest.included_files.filter((file) => !supported.has(file as never));
     if (unsupportedFiles.length > 0) {
       warnings.push(`Manifest includes unsupported optional files: ${unsupportedFiles.join(", ")}`);
+    }
+
+    for (const file of manifest.files ?? []) {
+      if (!files[file.path]) {
+        if (file.required) {
+          errors.push({
+            code: "invalid_manifest",
+            message: `Manifest required file is missing from bundle: ${file.path}`,
+            field: "files",
+          });
+        } else {
+          warnings.push(`Manifest file is not present in bundle and will not unlock diagnostics: ${file.path}`);
+        }
+      }
     }
   }
 

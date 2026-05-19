@@ -1,3 +1,5 @@
+import type { StrategyTruthRoomArtifactFamily } from "@/lib/contracts/strategy-truth-room";
+
 export const ARTIFACT_KINDS = ["trade_csv", "bundle_v1"] as const;
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 
@@ -104,6 +106,8 @@ export type TradeCsvAliasMap = Record<string, readonly string[]>;
 export type BundleManifestV1 = {
   schema_version: "1.0";
   artifact_type: BundleArtifactType;
+  bundle_type?: "strategy_truth_room_bundle_v1";
+  contract_version?: string;
   strategy_name?: string;
   source_platform?: string;
   symbols?: string[];
@@ -112,9 +116,21 @@ export type BundleManifestV1 = {
   exchange?: string;
   currency?: string;
   included_files: string[];
+  files?: BundleManifestFileV1[];
   assumptions_present?: boolean;
   ohlcv_present?: boolean;
   parameter_metadata_present?: boolean;
+  declared_claims_present?: boolean;
+  broker_export_present?: boolean;
+};
+
+export type BundleManifestFileV1 = {
+  path: string;
+  role: StrategyTruthRoomArtifactFamily;
+  schema_version?: string;
+  required?: boolean;
+  sha256?: string;
+  description?: string;
 };
 
 export type BundleMetadata = {
@@ -136,6 +152,23 @@ export type BundleParams = {
   parameter_set_name?: string;
   tunable_parameters?: Record<string, string | number | boolean>;
   optimization_target?: string;
+};
+
+export type DeclaredStrategyClaim = {
+  claim_id?: string;
+  claim: string;
+  source?: string;
+  priority?: "low" | "medium" | "high" | "critical";
+};
+
+export type SourceFileProvenance = {
+  path: string;
+  role: StrategyTruthRoomArtifactFamily | "legacy_bundle_file";
+  schema_version?: string;
+  sha256?: string;
+  recognized: boolean;
+  required?: boolean;
+  parser_note?: string;
 };
 
 export type ArtifactValidationError = {
@@ -167,8 +200,16 @@ export type ParsedArtifact = {
   equity_curve?: Record<string, string | number>[];
   assumptions?: BundleAssumptions;
   params?: BundleParams;
+  ohlcv?: Record<string, string | number>[];
+  benchmark_series?: Record<string, string | number>[];
+  broker_exports?: Record<string, string | number>[];
+  declared_claims?: DeclaredStrategyClaim[];
+  source_files?: SourceFileProvenance[];
+  bundle_manifest?: BundleManifestV1;
+  strategy_truth_room_contract_version?: string;
   ohlcv_present: boolean;
   benchmark_present: boolean;
+  broker_export_present?: boolean;
   diagnostic_eligibility: DiagnosticEligibilityMatrix;
   parser_notes?: string[];
   validation: ArtifactValidationResult;

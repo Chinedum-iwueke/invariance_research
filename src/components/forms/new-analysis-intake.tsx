@@ -393,11 +393,24 @@ function UploadReviewPanel({ inspection }: { inspection: UploadInspectionRespons
       <p className="mt-1 text-xs text-text-neutral">
         Recognized {review.recognized_count} · Ignored {review.ignored_count} · Unsupported {review.unsupported_count}
       </p>
+      {review.manifest_type || review.contract_version ? (
+        <p className="mt-1 text-xs text-text-neutral">
+          Manifest: {review.manifest_type ?? "bundle_v1"} · Contract: {review.contract_version ?? "unspecified"}
+        </p>
+      ) : null}
+      {review.diagnostic_unlocks ? (
+        <div className="mt-2 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
+          <p><span className="font-medium text-text-graphite">Available:</span> {review.diagnostic_unlocks.available.join(", ") || "None"}</p>
+          <p><span className="font-medium text-text-graphite">Limited:</span> {review.diagnostic_unlocks.limited.join(", ") || "None"}</p>
+          <p><span className="font-medium text-text-graphite">Unavailable:</span> {review.diagnostic_unlocks.unavailable.join(", ") || "None"}</p>
+        </div>
+      ) : null}
       <div className="mt-2 max-h-72 overflow-auto rounded-md border border-border-subtle">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-surface-white">
             <tr>
               <th className="border-b border-border-subtle px-2 py-1 text-left font-medium text-text-institutional">File</th>
+              <th className="border-b border-border-subtle px-2 py-1 text-left font-medium text-text-institutional">Role</th>
               <th className="border-b border-border-subtle px-2 py-1 text-left font-medium text-text-institutional">Type</th>
               <th className="border-b border-border-subtle px-2 py-1 text-left font-medium text-text-institutional">Status</th>
             </tr>
@@ -406,9 +419,11 @@ function UploadReviewPanel({ inspection }: { inspection: UploadInspectionRespons
             {review.entries.map((entry) => (
               <tr key={entry.path} className="border-b border-border-subtle/50">
                 <td className="px-2 py-1 text-text-neutral">{entry.path}</td>
+                <td className="px-2 py-1 text-text-neutral">{entry.role ?? "legacy"}</td>
                 <td className="px-2 py-1 text-text-neutral uppercase">{entry.file_type}</td>
                 <td className="px-2 py-1 text-text-neutral">
                   {entry.status}
+                  {entry.required ? " · required" : ""}
                   {entry.note ? ` · ${entry.note}` : ""}
                 </td>
               </tr>

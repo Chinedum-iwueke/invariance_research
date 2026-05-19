@@ -44,7 +44,7 @@ export default function StrategyValidationPage() {
           <SectionHeader
             eyebrow="Deliverable Ledger"
             title="Each deliverable maps to a decision risk."
-            description="The page should make analyst-led validation feel like a structured evidence program, not a generic consulting package."
+            description="Analyst-led validation is scoped as a structured evidence program, not a generic consulting package."
           />
           <DeliverableLedger
             items={[

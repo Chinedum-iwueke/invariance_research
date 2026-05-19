@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
@@ -8,6 +9,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { Card } from "@/components/ui/card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectExecutionTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -98,9 +100,12 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
     ?? execution.interpretation.bullets?.find((item) => /dominant cost driver/i.test(item));
   const truthContext = buildTruthContext(record, "execution", { benchmark: analysis.benchmark });
   const executionRecommendations = pageInsightRecommendations(record, "execution", execution.recommendations ?? []);
+  const workbench = buildAnalystWorkbenchModel(record, "execution", { benchmark: analysis.benchmark });
 
   return (
     <AnalysisPageFrame title="Execution Sensitivity" description="Edge resilience under worsened spread, slippage, and fee assumptions.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <Card className="grid gap-3 rounded-md border bg-surface-panel/50 p-3 md:grid-cols-2 2xl:grid-cols-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-neutral">Artifact completeness</p>

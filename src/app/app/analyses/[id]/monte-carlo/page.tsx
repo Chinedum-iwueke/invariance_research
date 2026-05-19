@@ -1,5 +1,6 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
+import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
 import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
 import { FigureCard } from "@/components/dashboard/figure-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
@@ -7,6 +8,7 @@ import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
+import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectMonteCarloTopMetrics } from "@/lib/app/analysis-ui";
 import { buildTruthContext } from "@/lib/app/context-truth";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -90,9 +92,12 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
 
   const truthContext = buildTruthContext(record, "monte_carlo", { benchmark: analysis.benchmark });
   const monteCarloRecommendations = pageInsightRecommendations(record, "monte_carlo", truthContext.recommendations);
+  const workbench = buildAnalystWorkbenchModel(record, "monte_carlo", { benchmark: analysis.benchmark });
 
   return (
     <AnalysisPageFrame title="Monte Carlo Crash Test" description="Path-perturbation simulation evaluating drawdown severity and survivability under adverse sequencing.">
+      <AnalystWorkbenchPanel model={workbench} />
+
       <div className="grid gap-4 md:grid-cols-3">
         <WorkspaceCard title="Risk classification" subtitle="Crash-test status framing">
           <div className="grid gap-3 text-sm text-text-neutral">

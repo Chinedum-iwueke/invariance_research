@@ -74,21 +74,21 @@ export function LabEvidenceConsole() {
     intake: {
       label: "Intake",
       title: "The upload step teaches the evidence contract.",
-      body: "The Lab should make artifact richness visible immediately: what can be tested, what is locked, and what would make the report stronger.",
+      body: "Artifact richness is visible immediately: what can be tested, what is locked, and what would make the report stronger.",
       icon: ClipboardList,
       visual: <NaiveVsExecutionVisual />,
     },
     stress: {
       label: "Stress",
       title: "Diagnostics behave like instruments, not dashboard decorations.",
-      body: "Execution pressure, sequencing risk, and regime changes should feel interactive and inspectable before the user sees a final verdict.",
+      body: "Execution pressure, sequencing risk, and regime changes are inspectable before the user sees a final verdict.",
       icon: Gauge,
       visual: <RegimeHeatmapVisual />,
     },
     artifact: {
       label: "Artifact",
-      title: "Every run should point toward a durable report object.",
-      body: "The lightweight Lab earns the bigger ambition when users can share the output, receive pushback, and know exactly which evidence state generated it.",
+      title: "Every run points toward a durable report object.",
+      body: "Users can share the output, receive pushback, and know exactly which evidence state generated the report.",
       icon: FileCheck2,
       visual: (
         <MetricSnapshotStrip
@@ -173,7 +173,7 @@ export function MethodologyRulebook() {
   const rules = [
     {
       title: "Evidence before verdict",
-      body: "The interface must explain what the artifact can support before it sells any conclusion.",
+      body: "Every verdict starts with the evidence the artifact can actually support.",
       icon: BookOpenCheck,
     },
     {
@@ -188,7 +188,7 @@ export function MethodologyRulebook() {
     },
     {
       title: "Reports are snapshots",
-      body: "Every shareable output should point to the specific evidence state that produced it.",
+      body: "Every shareable output points to the specific evidence state that produced it.",
       icon: Share2,
     },
   ];
@@ -362,9 +362,9 @@ export function AmbitionBridge() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {[
-        ["Lab-first", "Fastest path to user evidence through a working diagnostic room."],
+        ["Robustness Lab", "Upload evidence and receive a grounded diagnostic record."],
         ["Report-first", "The report becomes the artifact users share, contest, and request work around."],
-        ["Full ambition", "Research Desk and evidence memory emerge from repeated report demand."],
+        ["Research Desk", "Deeper review and evidence memory support complex validation work."],
       ].map(([title, body], index) => (
         <article key={title} className="relative overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-5 shadow-soft">
           <Sparkles className="absolute right-4 top-4 h-5 w-5 text-brand/70" strokeWidth={1.6} />

@@ -28,10 +28,10 @@ export default function RobustnessLabPage() {
         <section id="hero">
           <PageHero
             title="Strategy Robustness Lab"
-            description="The first working room in Invariance Research: upload an artifact, see what evidence it can support, and turn a strategy claim into a reportable diagnostic record."
+            description="Upload a strategy artifact, see what evidence it can support, and turn the claim into a reportable diagnostic record."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
-            credibilityLine="Lab-first hardening: fast user evidence, clear limits, shareable report path."
+            credibilityLine="Fast evidence intake, clear limitations, and a shareable report path."
             rightSlot={<LabHeroInstrument />}
           />
         </section>
@@ -40,8 +40,8 @@ export default function RobustnessLabPage() {
           <div className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Working Surface"
-            title="See the Lab as a diagnostic room, not a marketing demo."
-            description="The walkthrough sits inside the same evidence frame users will learn in the product: intake, eligibility, diagnostics, report."
+            title="See how evidence moves through the Lab."
+            description="The walkthrough follows the product sequence: intake, eligibility, diagnostics, and report."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -57,9 +57,9 @@ export default function RobustnessLabPage() {
                 </video>
               ) : (
                 <div className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-sm border border-dashed border-white/20 bg-black/20 px-6 text-center md:min-h-[440px]">
-                  <p className="text-xs uppercase tracking-[0.14em] text-white/65">Demo asset placeholder</p>
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/65">Interactive walkthrough coming soon</p>
                   <p className="mt-3 max-w-2xl text-sm text-white/80">
-                    Add <span className="font-medium text-white">public/demo_video.mp4</span> to render the full walkthrough directly in this frame.
+                    The Lab is available now. A guided product walkthrough will appear here once the next demo cut is ready.
                   </p>
                 </div>
               )}
@@ -72,7 +72,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Artifact Intake"
             title="What goes in determines what can be honestly claimed."
-            description="The upload moment is the first trust boundary. The Lab should explain artifact richness before it produces a verdict."
+            description="The upload moment is the first trust boundary. Artifact richness determines which diagnostics can produce a strong verdict."
           />
           <UploadPanel />
         </section>
@@ -80,8 +80,8 @@ export default function RobustnessLabPage() {
         <section id="console" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Evidence Console"
-            title="The Lab flow should feel stateful from the first click."
-            description="Users should understand where they are in the investigation: what has been accepted, what is locked, and what the current evidence can support."
+            title="Track the investigation from the first click."
+            description="See what has been accepted, what is locked, and what the current evidence can support."
           />
           <LabEvidenceConsole />
         </section>
@@ -90,7 +90,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Lab Outputs"
             title="The output is a decision trail, not a pile of charts."
-            description="Each workspace should answer one capital-facing question and carry the user closer to a durable report artifact."
+            description="Each workspace answers a capital-facing question and moves the user toward a durable report artifact."
           />
           <div className="grid gap-4 md:grid-cols-2">
             {[

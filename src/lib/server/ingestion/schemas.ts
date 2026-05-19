@@ -9,6 +9,7 @@ import {
   PARSER_ADAPTER_KINDS,
   VALIDATION_ERROR_CODES,
 } from "./contracts";
+import { STRATEGY_TRUTH_ROOM_ARTIFACT_FAMILIES } from "@/lib/contracts/strategy-truth-room";
 
 export const canonicalTradeSchema = z
   .object({
@@ -56,6 +57,8 @@ export const canonicalTradeSchema = z
 export const bundleManifestV1Schema = z.object({
   schema_version: z.literal("1.0"),
   artifact_type: z.enum(ARTIFACT_TYPES),
+  bundle_type: z.literal("strategy_truth_room_bundle_v1").optional(),
+  contract_version: z.string().min(1).optional(),
   strategy_name: z.string().min(1).optional(),
   source_platform: z.string().min(1).optional(),
   symbols: z.array(z.string().min(1)).optional(),
@@ -64,9 +67,19 @@ export const bundleManifestV1Schema = z.object({
   exchange: z.string().min(1).optional(),
   currency: z.string().min(1).optional(),
   included_files: z.array(z.string().min(1)).min(1),
+  files: z.array(z.object({
+    path: z.string().min(1),
+    role: z.enum(STRATEGY_TRUTH_ROOM_ARTIFACT_FAMILIES),
+    schema_version: z.string().min(1).optional(),
+    required: z.boolean().optional(),
+    sha256: z.string().min(1).optional(),
+    description: z.string().min(1).optional(),
+  })).optional(),
   assumptions_present: z.boolean().optional(),
   ohlcv_present: z.boolean().optional(),
   parameter_metadata_present: z.boolean().optional(),
+  declared_claims_present: z.boolean().optional(),
+  broker_export_present: z.boolean().optional(),
 });
 
 export const bundleMetadataSchema = z.object({
@@ -88,6 +101,23 @@ export const bundleParamsSchema = z.object({
   parameter_set_name: z.string().min(1).optional(),
   tunable_parameters: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
   optimization_target: z.string().min(1).optional(),
+});
+
+export const declaredStrategyClaimSchema = z.object({
+  claim_id: z.string().min(1).optional(),
+  claim: z.string().min(1),
+  source: z.string().min(1).optional(),
+  priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+});
+
+export const sourceFileProvenanceSchema = z.object({
+  path: z.string().min(1),
+  role: z.union([z.enum(STRATEGY_TRUTH_ROOM_ARTIFACT_FAMILIES), z.literal("legacy_bundle_file")]),
+  schema_version: z.string().min(1).optional(),
+  sha256: z.string().min(1).optional(),
+  recognized: z.boolean(),
+  required: z.boolean().optional(),
+  parser_note: z.string().min(1).optional(),
 });
 
 export const artifactValidationErrorSchema = z.object({
@@ -123,8 +153,16 @@ export const parsedArtifactSchema = z.object({
   equity_curve: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
   assumptions: bundleAssumptionsSchema.optional(),
   params: bundleParamsSchema.optional(),
+  ohlcv: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
+  benchmark_series: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
+  broker_exports: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
+  declared_claims: z.array(declaredStrategyClaimSchema).optional(),
+  source_files: z.array(sourceFileProvenanceSchema).optional(),
+  bundle_manifest: bundleManifestV1Schema.optional(),
+  strategy_truth_room_contract_version: z.string().min(1).optional(),
   ohlcv_present: z.boolean(),
   benchmark_present: z.boolean(),
+  broker_export_present: z.boolean().optional(),
   diagnostic_eligibility: diagnosticEligibilityMatrixSchema,
   parser_notes: z.array(z.string()).optional(),
   validation: artifactValidationResultSchema,
