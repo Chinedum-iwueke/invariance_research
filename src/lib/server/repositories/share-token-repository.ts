@@ -17,6 +17,19 @@ function mapToken(row: Record<string, unknown>): ShareTokenRecord {
   };
 }
 
+function mapAccessEvent(row: Record<string, unknown>): ShareAccessEvent {
+  return {
+    event_id: String(row.event_id),
+    share_id: row.share_id ? String(row.share_id) : undefined,
+    token_hash_prefix: String(row.token_hash_prefix),
+    report_snapshot_id: row.report_snapshot_id ? String(row.report_snapshot_id) : undefined,
+    outcome: row.outcome as ShareAccessEvent["outcome"],
+    ip_hash: row.ip_hash ? String(row.ip_hash) : undefined,
+    user_agent_hash: row.user_agent_hash ? String(row.user_agent_hash) : undefined,
+    created_at: String(row.created_at),
+  };
+}
+
 export const shareTokenRepository = {
   save(record: ShareTokenRecord) {
     getDb()
@@ -55,6 +68,13 @@ export const shareTokenRepository = {
     return row ? mapToken(row) : undefined;
   },
 
+  listByAnalysis(analysisId: string) {
+    const rows = getDb()
+      .prepare("SELECT * FROM share_tokens WHERE analysis_id = ? ORDER BY created_at DESC")
+      .all(analysisId) as Record<string, unknown>[];
+    return rows.map(mapToken);
+  },
+
   listExpired(nowIso: string) {
     const rows = getDb().prepare("SELECT * FROM share_tokens WHERE expires_at IS NOT NULL AND expires_at <= ?").all(nowIso) as Record<string, unknown>[];
     return rows.map(mapToken);
@@ -82,8 +102,22 @@ export const shareAccessEventRepository = {
   },
 
   listByShare(shareId: string) {
-    return getDb()
+    const rows = getDb()
       .prepare("SELECT * FROM share_access_events WHERE share_id = ? ORDER BY created_at DESC")
       .all(shareId) as Record<string, unknown>[];
+    return rows.map(mapAccessEvent);
+  },
+
+  listByAnalysis(analysisId: string) {
+    const rows = getDb()
+      .prepare(
+        `SELECT share_access_events.*
+         FROM share_access_events
+         JOIN share_tokens ON share_tokens.share_id = share_access_events.share_id
+         WHERE share_tokens.analysis_id = ?
+         ORDER BY share_access_events.created_at DESC`,
+      )
+      .all(analysisId) as Record<string, unknown>[];
+    return rows.map(mapAccessEvent);
   },
 };

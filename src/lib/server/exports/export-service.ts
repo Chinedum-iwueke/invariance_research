@@ -7,6 +7,7 @@ import { exportQueue } from "@/lib/server/queue/export-queue";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 import { ensureReportSnapshotForAnalysis } from "@/lib/server/exports/report-snapshot-service";
+import { recordEvidenceEvent } from "@/lib/server/evidence/evidence-events";
 import { logger } from "@/lib/server/ops/logger";
 
 const EXPORT_TTL_DAYS = 14;
@@ -59,6 +60,20 @@ export async function requestExport(input: { analysis_id: string; account_id: st
   });
 
   await accountService.incrementUsage(input.account_id, "export");
+  recordEvidenceEvent({
+    analysis_id: analysis.analysis_id,
+    account_id: input.account_id,
+    artifact_id: analysis.artifact_id,
+    report_snapshot_id: snapshot.snapshot_id,
+    export_id: exportId,
+    event_type: "export_requested",
+    severity: "info",
+    title: "Report export requested",
+    summary: `${format.toUpperCase()} validation memo export was queued.`,
+    payload: { format, expires_at: expiresAt },
+    created_by_user_id: input.user_id,
+    created_at: createdAt,
+  });
   exportQueue.enqueueRun(exportId);
   logger.info("export.requested", { export_id: exportId, analysis_id: analysis.analysis_id, account_id: input.account_id, report_snapshot_id: snapshot.snapshot_id, format });
 

@@ -3,6 +3,7 @@ import { reportSnapshotRepository } from "@/lib/server/repositories/report-snaps
 import { shareAccessEventRepository, shareTokenRepository } from "@/lib/server/repositories/share-token-repository";
 import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
 import { assertShareCanBeCreated, assertShareCanBeRevoked } from "@/lib/server/share/share-state-machine";
+import { recordEvidenceEvent } from "@/lib/server/evidence/evidence-events";
 import type { ReportSnapshotRecord } from "@/lib/server/exports/models";
 import type { ShareTokenRecord, SharedReportViewModel } from "@/lib/server/share/models";
 
@@ -43,6 +44,20 @@ export function createReportShare(input: {
     updated_at: now,
   });
 
+  recordEvidenceEvent({
+    analysis_id: snapshot.analysis_id,
+    account_id: snapshot.account_id,
+    report_snapshot_id: snapshot.snapshot_id,
+    share_id: record.share_id,
+    event_type: "share_created",
+    severity: "info",
+    title: "Share Room link created",
+    summary: "Recipient-safe Share Room access was created from the active report snapshot.",
+    payload: { expires_at: expiresAt, redaction_policy: snapshot.payload.redaction_policy.policy_version },
+    created_by_user_id: input.user_id,
+    created_at: now,
+  });
+
   return { token, share: record, url: `/share/${token}` };
 }
 
@@ -51,7 +66,22 @@ export function revokeReportShare(input: { share_id: string; account_id: string;
   if (!share || share.account_id !== input.account_id) throw new Error("share_not_found");
   assertShareCanBeRevoked(share.status);
   if (share.status === "revoked") return share;
-  return shareTokenRepository.revoke(share.share_id, input.revoked_at);
+  const revoked = shareTokenRepository.revoke(share.share_id, input.revoked_at);
+  if (revoked) {
+    recordEvidenceEvent({
+      analysis_id: revoked.analysis_id,
+      account_id: revoked.account_id,
+      report_snapshot_id: revoked.report_snapshot_id,
+      share_id: revoked.share_id,
+      event_type: "share_revoked",
+      severity: "warning",
+      title: "Share Room link revoked",
+      summary: "Recipient access now fails closed for this share link.",
+      payload: { revoked_at: revoked.revoked_at },
+      created_at: revoked.revoked_at ?? new Date().toISOString(),
+    });
+  }
+  return revoked;
 }
 
 export function resolveSharedReport(input: {
@@ -72,11 +102,33 @@ export function resolveSharedReport(input: {
 
   if (share.status === "revoked") {
     auditShareAccess({ share, tokenHashPrefix, outcome: "revoked", ip: input.ip, userAgent: input.userAgent });
+    recordEvidenceEvent({
+      analysis_id: share.analysis_id,
+      account_id: share.account_id,
+      report_snapshot_id: share.report_snapshot_id,
+      share_id: share.share_id,
+      event_type: "share_revoked",
+      severity: "warning",
+      title: "Revoked share access attempted",
+      summary: "A revoked Share Room token was rejected.",
+      payload: { token_hash_prefix: tokenHashPrefix },
+    });
     return { status: "revoked" };
   }
 
   if (share.expires_at && new Date(share.expires_at).getTime() <= now.getTime()) {
     auditShareAccess({ share, tokenHashPrefix, outcome: "expired", ip: input.ip, userAgent: input.userAgent });
+    recordEvidenceEvent({
+      analysis_id: share.analysis_id,
+      account_id: share.account_id,
+      report_snapshot_id: share.report_snapshot_id,
+      share_id: share.share_id,
+      event_type: "share_expired",
+      severity: "warning",
+      title: "Expired share access attempted",
+      summary: "An expired Share Room token was rejected.",
+      payload: { token_hash_prefix: tokenHashPrefix, expires_at: share.expires_at },
+    });
     return { status: "expired" };
   }
 
@@ -92,6 +144,17 @@ export function resolveSharedReport(input: {
   }
 
   auditShareAccess({ share, tokenHashPrefix, outcome: "viewed", ip: input.ip, userAgent: input.userAgent });
+  recordEvidenceEvent({
+    analysis_id: share.analysis_id,
+    account_id: share.account_id,
+    report_snapshot_id: share.report_snapshot_id,
+    share_id: share.share_id,
+    event_type: "share_viewed",
+    severity: "info",
+    title: "Share Room viewed",
+    summary: "A recipient opened the share-safe report view.",
+    payload: { token_hash_prefix: tokenHashPrefix },
+  });
   return { status: "available", view: buildSharedReportView(share, snapshot, "available") };
 }
 

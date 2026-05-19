@@ -24,6 +24,7 @@ import { getDb, closeDbForTests } from "../src/lib/server/persistence/database";
 function resetDb() {
   const db = getDb();
   db.exec(`
+    DELETE FROM evidence_events;
     DELETE FROM export_jobs;
     DELETE FROM exports;
     DELETE FROM webhook_events;

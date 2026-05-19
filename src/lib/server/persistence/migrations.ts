@@ -509,5 +509,34 @@ export const migrations = [
         ON wedge_learning_events(promotion_candidate, created_at DESC);
     `,
   },
+  {
+    version: 17,
+    name: "validation_command_layer",
+    sql: `
+      CREATE TABLE IF NOT EXISTS evidence_events (
+        event_id TEXT PRIMARY KEY,
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        artifact_id TEXT,
+        report_snapshot_id TEXT,
+        share_id TEXT,
+        export_id TEXT,
+        event_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        title TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_by_user_id TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_evidence_events_analysis_created
+        ON evidence_events(analysis_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_evidence_events_account_created
+        ON evidence_events(account_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_evidence_events_type_created
+        ON evidence_events(event_type, created_at DESC);
+    `,
+  },
 
 ];

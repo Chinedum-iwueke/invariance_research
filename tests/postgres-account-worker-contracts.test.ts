@@ -21,6 +21,7 @@ import { getAnalysisQueue, resetAnalysisQueueForTests } from "../src/lib/server/
 
 function resetDb() {
   getDb().exec(`
+    DELETE FROM evidence_events;
     DELETE FROM export_jobs;
     DELETE FROM exports;
     DELETE FROM webhook_events;

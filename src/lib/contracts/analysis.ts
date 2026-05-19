@@ -364,6 +364,13 @@ export interface ProofReportPayload {
   asset_class_capabilities?: Record<string, unknown>;
   critical_assumptions?: AssumptionLedgerEntry[];
   unsupported_claims?: ClaimInventoryEntry[];
+  limitations?: string[];
+  next_evidence?: string[];
+  executive_verdict?: {
+    taxonomy?: string;
+    allowed_verdicts?: string[];
+    summary?: string;
+  };
   what_this_result_does_not_prove?: string[];
   research_desk_packet_hooks?: Record<string, unknown>;
   evidence_facts?: EvidenceFact[];

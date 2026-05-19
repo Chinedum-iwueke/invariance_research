@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { AnalysisRecord } from "@/lib/contracts";
 import { buildDecisionSnapshotMetrics, buildReportViewModel } from "@/lib/app/report-view";
 import { buildEvidenceLedger } from "@/lib/server/evidence/evidence-ledger-service";
+import { recordEvidenceEvent } from "@/lib/server/evidence/evidence-events";
 import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { EngineCapabilityProfile } from "@/lib/server/engine/engine-types";
 import type { ReportSnapshotPayload, ReportSnapshotRecord } from "@/lib/server/exports/models";
@@ -48,6 +49,7 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
 
   const now = new Date().toISOString();
   const snapshotId = randomUUID();
+  const previousActive = reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id);
   const payload = buildReportSnapshotPayload({
     snapshot_id: snapshotId,
     analysis,
@@ -69,6 +71,66 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
   });
 
   reportSnapshotRepository.supersedeActiveForAnalysis(analysis.analysis_id, snapshot.snapshot_id, now);
+  recordEvidenceEvent({
+    analysis_id: analysis.analysis_id,
+    account_id: analysis.account_id,
+    artifact_id: analysis.artifact_id,
+    report_snapshot_id: snapshot.snapshot_id,
+    event_type: "snapshot_generated",
+    severity: payload.warnings.length ? "warning" : "info",
+    title: "Report snapshot generated",
+    summary: `${payload.included_diagnostics.length} diagnostics included; ${payload.excluded_diagnostics.length} excluded.`,
+    payload: {
+      warning_count: payload.warnings.length,
+      included_diagnostics: payload.included_diagnostics,
+      excluded_diagnostics: payload.excluded_diagnostics.map((item) => item.diagnostic),
+    },
+    created_at: now,
+  });
+  const criticalAssumptions = analysis.result.proof_report?.critical_assumptions ?? [];
+  if (criticalAssumptions.length) {
+    recordEvidenceEvent({
+      analysis_id: analysis.analysis_id,
+      account_id: analysis.account_id,
+      artifact_id: analysis.artifact_id,
+      report_snapshot_id: snapshot.snapshot_id,
+      event_type: "high_materiality_assumption",
+      severity: "warning",
+      title: "High-materiality assumption emitted",
+      summary: `${criticalAssumptions.length} critical or high-materiality assumptions affect this report.`,
+      payload: { assumption_count: criticalAssumptions.length },
+      created_at: now,
+    });
+  }
+  const unsupportedClaims = (analysis.result.claim_inventory ?? []).filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status));
+  if (unsupportedClaims.length) {
+    recordEvidenceEvent({
+      analysis_id: analysis.analysis_id,
+      account_id: analysis.account_id,
+      artifact_id: analysis.artifact_id,
+      report_snapshot_id: snapshot.snapshot_id,
+      event_type: "unsupported_claim_blocks_confidence",
+      severity: "warning",
+      title: "Unsupported claim blocks confidence",
+      summary: `${unsupportedClaims.length} unsupported or contradicted claims must travel with this report.`,
+      payload: { unsupported_claim_count: unsupportedClaims.length },
+      created_at: now,
+    });
+  }
+  if (previousActive && previousActive.snapshot_id !== snapshot.snapshot_id) {
+    recordEvidenceEvent({
+      analysis_id: analysis.analysis_id,
+      account_id: analysis.account_id,
+      artifact_id: analysis.artifact_id,
+      report_snapshot_id: previousActive.snapshot_id,
+      event_type: "snapshot_superseded",
+      severity: "warning",
+      title: "Prior report snapshot superseded",
+      summary: "A newer report snapshot is now the active evidence object for this analysis.",
+      payload: { superseded_by_snapshot_id: snapshot.snapshot_id },
+      created_at: now,
+    });
+  }
   return snapshot;
 }
 

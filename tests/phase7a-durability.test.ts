@@ -20,6 +20,7 @@ import { processNextAnalysisJob } from "../src/lib/server/workers/analysis-worke
 function resetDb() {
   const db = getDb();
   db.exec(`
+    DELETE FROM evidence_events;
     DELETE FROM export_jobs;
     DELETE FROM exports;
     DELETE FROM webhook_events;

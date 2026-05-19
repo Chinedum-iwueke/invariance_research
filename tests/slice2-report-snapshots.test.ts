@@ -21,6 +21,7 @@ import type { AnalysisRecord } from "../src/lib/contracts";
 function resetDb() {
   getDb().exec(`
     DELETE FROM share_access_events;
+    DELETE FROM evidence_events;
     DELETE FROM share_tokens;
     DELETE FROM export_jobs;
     DELETE FROM exports;
@@ -197,7 +198,7 @@ test("owner exports render from pinned report snapshots", async () => {
   assert.equal(exported?.report_snapshot_id, requested.report_snapshot_id);
   const payload = JSON.parse(Buffer.from(await getObjectStorage().getObject(exported!.storage_key!)).toString("utf-8"));
   assert.equal(payload.snapshot_id, requested.report_snapshot_id);
-  assert.equal(payload.record.analysis_id, record.analysis_id);
+  assert.equal(payload.strategy_name, record.strategy.strategy_name);
 });
 
 test("snapshot state reports stale source analysis after result changes", async () => {

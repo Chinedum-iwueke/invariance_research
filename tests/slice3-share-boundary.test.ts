@@ -25,6 +25,7 @@ function resetDb() {
     DELETE FROM report_reviewer_addenda;
     DELETE FROM research_desk_requests;
     DELETE FROM share_access_events;
+    DELETE FROM evidence_events;
     DELETE FROM share_tokens;
     DELETE FROM export_jobs;
     DELETE FROM exports;

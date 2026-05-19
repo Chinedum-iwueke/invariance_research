@@ -21,6 +21,7 @@ function resetDb() {
   const db = getDb();
   db.exec(`
     DELETE FROM analysis_jobs;
+    DELETE FROM evidence_events;
     DELETE FROM analyses;
     DELETE FROM artifacts;
     DELETE FROM usage_snapshots;

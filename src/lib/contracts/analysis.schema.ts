@@ -379,6 +379,13 @@ export const proofReportPayloadSchema = z.object({
   asset_class_capabilities: z.record(z.string(), z.unknown()).optional(),
   critical_assumptions: z.array(assumptionLedgerEntrySchema).optional(),
   unsupported_claims: z.array(claimInventoryEntrySchema).optional(),
+  limitations: z.array(z.string()).optional(),
+  next_evidence: z.array(z.string()).optional(),
+  executive_verdict: z.object({
+    taxonomy: z.string().optional(),
+    allowed_verdicts: z.array(z.string()).optional(),
+    summary: z.string().optional(),
+  }).optional(),
   what_this_result_does_not_prove: z.array(z.string()).optional(),
   research_desk_packet_hooks: z.record(z.string(), z.unknown()).optional(),
   evidence_facts: z.array(evidenceFactSchema).optional(),

@@ -22,6 +22,7 @@ function resetDb() {
   getDb().exec(`
     DELETE FROM rate_limit_buckets;
     DELETE FROM analysis_jobs;
+    DELETE FROM evidence_events;
     DELETE FROM analyses;
     DELETE FROM artifacts;
     DELETE FROM usage_snapshots;

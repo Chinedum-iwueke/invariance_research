@@ -25,8 +25,10 @@ import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benc
 import { requireServerSession } from "@/lib/server/auth/session";
 import { accountService } from "@/lib/server/accounts/service";
 import { getReportSnapshotState } from "@/lib/server/exports/report-snapshot-service";
+import { getValidationCommandLayer } from "@/lib/server/evidence/validation-command-service";
 import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+import type { CaseFileTimelineEvent, ValidationExplanation } from "@/lib/app/validation-command-layer";
 
 function BulletList({ items, empty }: { items: string[]; empty: string }) {
   if (!items.length) return <p className="text-sm text-text-neutral">{empty}</p>;
@@ -55,6 +57,41 @@ function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: s
   );
 }
 
+function TimelineList({ items, empty }: { items: CaseFileTimelineEvent[]; empty: string }) {
+  if (!items.length) return <p className="text-sm text-text-neutral">{empty}</p>;
+  return (
+    <ol className="space-y-3">
+      {items.map((item) => (
+        <li key={item.id} className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-text-institutional">{item.title}</p>
+            <time className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">{new Date(item.created_at).toLocaleString()}</time>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-text-neutral">{item.summary}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ExplainList({ items }: { items: ValidationExplanation[] }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {items.map((item) => (
+        <div key={item.id} id={item.id === "why_verdict" ? "explain-verdict" : undefined} className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+          <p className="text-sm font-semibold text-text-institutional">{item.question}</p>
+          <p className="mt-2 text-sm leading-6 text-text-neutral">{item.answer}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.reason_codes.slice(0, 4).map((code) => (
+              <code key={code} className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1 font-provenance text-[10px] text-text-neutral">{code}</code>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const accountState = await accountService.getAccountState(session.account_id);
@@ -71,6 +108,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   const view = buildReportViewModel(record);
   const snapshotState = getReportSnapshotState(analysis);
+  const commandLayer = await getValidationCommandLayer({ analysis_id: analysis.analysis_id, account_id: session.account_id });
   const approvedAddenda = snapshotState.active ? listApprovedReportAddenda(snapshotState.active.snapshot_id) : [];
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
@@ -184,6 +222,22 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             currentPlan={accountState?.account.plan_id}
           />
           <ReportShareActions analysisId={record.analysis_id} initialSnapshotId={snapshotState.active?.snapshot_id} />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Explain Layer" subtitle="Report-safe answers to the questions serious reviewers ask first.">
+        <ExplainList items={commandLayer.explanations} />
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Evidence Alerts" subtitle="Events that change report trust, access state, or diagnostic confidence.">
+        <div id="evidence-alerts">
+          <TimelineList items={commandLayer.alerts} empty="No evidence alerts have been emitted yet." />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Connected Case File" subtitle="Navigable evidence chain from upload to verdict, snapshot, export, share, and review handoff.">
+        <div id="case-file-timeline">
+          <TimelineList items={commandLayer.timeline} empty="No case-file events have been emitted yet." />
         </div>
       </WorkspaceCard>
 

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ValidationCommandCenter } from "@/components/dashboard/validation-command-center";
 import { cn } from "@/lib/utils";
 
 interface AnalysisPageFrameProps {
@@ -16,6 +17,7 @@ export function AnalysisPageFrame({ title, description, children, className }: A
         <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Research workspace</p>
         <h1 className="font-display mt-2 text-[clamp(2.1rem,5vw,4.4rem)] font-medium leading-none tracking-normal text-text-institutional">{title}</h1>
         {description ? <p className="mt-3 max-w-5xl text-sm leading-7 text-text-neutral">{description}</p> : null}
+        <ValidationCommandCenter />
       </header>
       <div className="space-y-6">{children}</div>
     </section>
