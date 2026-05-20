@@ -9,6 +9,7 @@ export type AnalystWorkbenchDiagnostic =
   | "monte_carlo"
   | "execution"
   | "ruin"
+  | "prop_evaluation_readiness"
   | "regimes"
   | "stability"
   | "assumptions"
@@ -74,6 +75,13 @@ const DIAGNOSTIC_COPY: Record<AnalystWorkbenchDiagnostic, {
     artifactDependency: "Trade sequence, account size, risk per trade, drawdown thresholds, and stress sizing assumptions.",
     reportImpact: "Shapes capital-risk warnings, deployment limits, and non-advisory survivability language.",
     nextEvidence: ["Account size and risk budget", "Hard drawdown limit", "Position sizing rules and capital constraints"],
+  },
+  prop_evaluation_readiness: {
+    title: "Prop Evaluation Readiness",
+    attackQuestion: "Would this strategy pass the chosen prop-firm evaluation rules without breaching the account contract?",
+    artifactDependency: "Trade sequence, account size, daily PnL, max loss rules, profit target, trading-day rules, and consistency constraints.",
+    reportImpact: "Turns capital survival into prop-contract language: target progress, breach risk, and what to improve before attempting evaluation.",
+    nextEvidence: ["Exact prop firm rule sheet", "Broker/export equity curve", "Intraday loss timestamps", "Position sizing and scaling rules"],
   },
   regimes: {
     title: "Regime Dependence",
@@ -245,6 +253,8 @@ export function buildAnalystWorkbenchModel(
         ? (record.access.can_view_stability ? "Workspace enabled" : "Plan or artifact gated")
         : diagnostic === "ruin"
           ? (record.access.can_view_ruin ? "Workspace enabled" : "Plan or artifact gated")
+          : diagnostic === "prop_evaluation_readiness"
+            ? (record.access.can_view_prop_evaluation ? "Workspace enabled" : "Plan or artifact gated")
           : "Available in workbench";
 
   return {

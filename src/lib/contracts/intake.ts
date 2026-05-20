@@ -80,6 +80,7 @@ export type CreateAnalysisRequest = {
   runtime_config?: {
     account_size?: number;
     risk_per_trade_pct?: number;
+    prop_evaluation_rules?: Record<string, unknown>;
   };
 };
 

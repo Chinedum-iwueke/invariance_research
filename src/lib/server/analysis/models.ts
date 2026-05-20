@@ -34,11 +34,13 @@ export type AnalysisEngineContext = {
   benchmark_config?: Record<string, unknown>;
   account_size?: number;
   risk_per_trade_pct?: number;
+  prop_evaluation_rules?: Record<string, unknown>;
 };
 
 export type AnalysisRuntimeConfig = {
   account_size?: number;
   risk_per_trade_pct?: number;
+  prop_evaluation_rules?: Record<string, unknown>;
 };
 
 export type AnalysisEntity = {

@@ -294,6 +294,28 @@ export const ruinDiagnosticSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+export const propEvaluationRuleStatusSchema = z.object({
+  rule: z.string(),
+  status: z.string(),
+  observed: z.union([z.number(), z.string()]).nullable().optional(),
+  allowed: z.union([z.number(), z.string()]).nullable().optional(),
+});
+
+export const propEvaluationDiagnosticSchema = z.object({
+  status: z.enum(["available", "limited", "unavailable", "skipped"]).optional(),
+  verdict: z.string(),
+  metrics: z.array(scoreBandSchema),
+  rule_snapshot: z.record(z.string(), z.unknown()),
+  rule_status: z.array(propEvaluationRuleStatusSchema),
+  first_breach: z.record(z.string(), z.unknown()).nullable().optional(),
+  target_progress: z.record(z.string(), z.unknown()).optional(),
+  interpretation: interpretationBlockPayloadSchema,
+  assumptions: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
 export const engineDiagnosticMetricSchema = z.object({
   key: z.string(),
   label: z.string(),
@@ -326,6 +348,7 @@ export const enginePayloadSnapshotSchema = z.object({
       execution: engineDiagnosticEnvelopeSchema.optional(),
       regimes: engineDiagnosticEnvelopeSchema.optional(),
       ruin: engineDiagnosticEnvelopeSchema.optional(),
+      prop_evaluation_readiness: engineDiagnosticEnvelopeSchema.optional(),
       report: engineDiagnosticEnvelopeSchema.optional(),
     })
     .partial(),
@@ -399,12 +422,14 @@ export const diagnosticBundleSchema = z.object({
   execution: executionDiagnosticSchema,
   regimes: regimeDiagnosticSchema,
   ruin: ruinDiagnosticSchema,
+  prop_evaluation_readiness: propEvaluationDiagnosticSchema,
 });
 
 export const accessFlagsSchema = z.object({
   can_view_stability: z.boolean(),
   can_view_regimes: z.boolean(),
   can_view_ruin: z.boolean(),
+  can_view_prop_evaluation: z.boolean(),
   can_export_report: z.boolean(),
 });
 
@@ -454,6 +479,7 @@ export const analysisRecordSchema = z.object({
     execution: normalizedDiagnosticStatusSchema,
     regimes: normalizedDiagnosticStatusSchema,
     ruin: normalizedDiagnosticStatusSchema,
+    prop_evaluation_readiness: normalizedDiagnosticStatusSchema,
     report: normalizedDiagnosticStatusSchema,
   }),
   llm_insights: llmDiagnosticInsightsSchema.optional(),

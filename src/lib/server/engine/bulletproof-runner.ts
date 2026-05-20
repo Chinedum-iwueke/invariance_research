@@ -50,6 +50,7 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
       benchmark_config: dispatch.config.benchmark,
       account_size: dispatch.config.account_size,
       risk_per_trade_pct: dispatch.config.risk_per_trade_pct,
+      prop_evaluation_rules: dispatch.config.prop_evaluation_rules,
       degraded: degradationReasons.length > 0,
       degradation_reasons: [
         ...degradationReasons,

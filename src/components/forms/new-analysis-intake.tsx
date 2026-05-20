@@ -44,6 +44,14 @@ export function NewAnalysisIntake() {
   const [benchmarkSelection, setBenchmarkSelection] = useState<BenchmarkSelectionValue>({ mode: "auto", requested_id: null });
   const [accountSize, setAccountSize] = useState<string>("100000");
   const [riskPerTradePct, setRiskPerTradePct] = useState<string>("1");
+  const [useCustomPropRules, setUseCustomPropRules] = useState<boolean>(false);
+  const [propFirmLabel, setPropFirmLabel] = useState<string>("");
+  const [propProfitTargetPct, setPropProfitTargetPct] = useState<string>("8");
+  const [propMaxTotalDrawdownPct, setPropMaxTotalDrawdownPct] = useState<string>("10");
+  const [propMaxDailyLossPct, setPropMaxDailyLossPct] = useState<string>("5");
+  const [propMinimumTradingDays, setPropMinimumTradingDays] = useState<string>("5");
+  const [propMaximumEvaluationDays, setPropMaximumEvaluationDays] = useState<string>("30");
+  const [propConsistencyMaxDayPct, setPropConsistencyMaxDayPct] = useState<string>("35");
   const [apiErrorCode, setApiErrorCode] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
@@ -102,6 +110,24 @@ export function NewAnalysisIntake() {
         runtime_config: {
           account_size: parsePositiveNumber(accountSize),
           risk_per_trade_pct: parsePositiveNumber(riskPerTradePct),
+          prop_evaluation_rules: useCustomPropRules
+            ? {
+                schema_version: "prop_evaluation_rules_v1",
+                source: "runtime",
+                label: propFirmLabel.trim() || "Runtime prop evaluation",
+                firm_label: propFirmLabel.trim() || undefined,
+                account_size: parsePositiveNumber(accountSize),
+                profit_target_pct: parsePercentNumber(propProfitTargetPct),
+                max_total_drawdown_pct: parsePercentNumber(propMaxTotalDrawdownPct),
+                total_drawdown_basis: "static",
+                max_daily_loss_pct: parsePercentNumber(propMaxDailyLossPct),
+                daily_loss_basis: "closed_balance",
+                reset_timezone: "UTC",
+                minimum_trading_days: parsePositiveInteger(propMinimumTradingDays),
+                maximum_evaluation_days: parsePositiveInteger(propMaximumEvaluationDays),
+                consistency_max_day_profit_pct: parsePercentNumber(propConsistencyMaxDayPct),
+              }
+            : undefined,
         },
       }),
     });
@@ -270,6 +296,39 @@ export function NewAnalysisIntake() {
                   onChange={(event) => setRiskPerTradePct(event.target.value)}
                 />
               </label>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-text-institutional">
+                <input
+                  type="checkbox"
+                  checked={useCustomPropRules}
+                  onChange={(event) => setUseCustomPropRules(event.target.checked)}
+                />
+                Add prop evaluation rules for this run
+              </label>
+              {useCustomPropRules ? (
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <label className="space-y-1 md:col-span-3">
+                    <span className="text-sm font-medium text-text-institutional">Prop firm / challenge label</span>
+                    <input
+                      className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                      type="text"
+                      maxLength={80}
+                      value={propFirmLabel}
+                      onChange={(event) => setPropFirmLabel(event.target.value)}
+                      placeholder="e.g., FTMO 100K Challenge"
+                    />
+                  </label>
+                  <NumberField label="Profit target (%)" value={propProfitTargetPct} onChange={setPropProfitTargetPct} />
+                  <NumberField label="Max total drawdown (%)" value={propMaxTotalDrawdownPct} onChange={setPropMaxTotalDrawdownPct} />
+                  <NumberField label="Max daily loss (%)" value={propMaxDailyLossPct} onChange={setPropMaxDailyLossPct} />
+                  <NumberField label="Minimum trading days" value={propMinimumTradingDays} onChange={setPropMinimumTradingDays} step="1" />
+                  <NumberField label="Maximum evaluation days" value={propMaximumEvaluationDays} onChange={setPropMaximumEvaluationDays} step="1" />
+                  <NumberField label="Max single-day profit share (%)" value={propConsistencyMaxDayPct} onChange={setPropConsistencyMaxDayPct} />
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-text-neutral">Default fallback rules will be used, and you can replace them from the Prop Evaluation tab after the run.</p>
+              )}
             </div>
             {benchmarkSelection.mode === "auto" && (
               <BenchmarkSuggestion suggestedId={suggestion.id} reason={suggestion.reason} />
@@ -458,4 +517,41 @@ function suggestBenchmarkFromInspection(inspection: UploadInspectionResponse | n
 function parsePositiveNumber(value: string): number | undefined {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parsePositiveInteger(value: string): number | undefined {
+  const parsed = parsePositiveNumber(value);
+  return parsed === undefined ? undefined : Math.round(parsed);
+}
+
+function parsePercentNumber(value: string): number | undefined {
+  const parsed = parsePositiveNumber(value);
+  if (parsed === undefined) return undefined;
+  return parsed > 1 ? parsed / 100 : parsed;
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  step = "0.01",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  step?: string;
+}) {
+  return (
+    <label className="space-y-1">
+      <span className="text-sm font-medium text-text-institutional">{label}</span>
+      <input
+        className="block w-full rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+        type="number"
+        min={0}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
 }

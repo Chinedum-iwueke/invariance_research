@@ -46,6 +46,7 @@ export function getAnalysisWorkflowItems(activeAnalysisId?: string): AppNavItem[
     { key: `${activeAnalysisId}:stability`, label: "Parameter Stability", href: `${base}/stability`, icon: Sigma },
     { key: `${activeAnalysisId}:assumptions`, label: "Assumption Ledger", href: `${base}/assumptions`, icon: ClipboardCheck },
     { key: `${activeAnalysisId}:ruin`, label: "Risk of Ruin", href: `${base}/ruin`, icon: ShieldAlert },
+    { key: `${activeAnalysisId}:prop-evaluation`, label: "Prop Evaluation", href: `${base}/prop-evaluation`, icon: ClipboardCheck },
     { key: `${activeAnalysisId}:report`, label: "Validation Report", href: `${base}/report`, icon: FileText },
   ];
 }

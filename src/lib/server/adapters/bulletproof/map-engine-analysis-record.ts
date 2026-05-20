@@ -4,7 +4,7 @@ import { reconcileDiagnosticStatus as reconcileEvidenceDiagnosticStatus } from "
 import type { EngineRunContext, EngineAnalysisResult } from "@/lib/server/engine/engine-types";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
-const DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "stability", "execution", "regimes", "ruin", "report"] as const;
+const DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "stability", "execution", "regimes", "ruin", "prop_evaluation_readiness", "report"] as const;
 type DiagnosticName = (typeof DIAGNOSTICS)[number];
 
 type FinalStatus = "available" | "limited" | "unavailable" | "skipped";
@@ -609,6 +609,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const executionRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["execution"]));
   const regimesRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["regimes"]));
   const ruinRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["ruin"]));
+  const propEvaluationRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["prop_evaluation_readiness", "propEvaluationReadiness"]));
   const stabilityRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["stability"]));
   const reportRaw = pickDiagnosticEnvelope(pickFirstRecord(diagnostics, ["report"]));
   const summaryRaw = asRecord(engine.summary);
@@ -686,6 +687,28 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
   const ruinStreakStatsRaw = pickFirstRecord(ruinRaw, ["streak_statistics", "streakStats"]);
   const ruinExecutionStressRaw = pickFirstRecord(ruinRaw, ["execution_stress", "executionStress", "stress_summary"]);
   const ruinCapitalSurvivabilityRaw = pickFirstRecord(ruinRaw, ["capital_survivability", "capital_survivability_fields"]);
+  const propEvaluationSummaryRaw = pickFirstRecord(propEvaluationRaw, ["summary_metrics", "summaryMetrics"]);
+  const propEvaluationRuleSnapshot = pickFirstRecord(propEvaluationRaw, ["rule_snapshot", "ruleSnapshot", "rules", "evaluation_rules"]) ?? {};
+  const propEvaluationTargetProgress = pickFirstRecord(propEvaluationRaw, ["target_progress", "targetProgress"]) ?? {};
+  const propEvaluationFirstBreach = pickFirstRecord(propEvaluationRaw, ["first_breach", "firstBreach"]);
+  const propEvaluationRuleStatus = normalizeRecordArray(propEvaluationRaw?.rule_status ?? propEvaluationRaw?.ruleStatus).map((row) => ({
+    rule: getString(row, ["rule", "name", "label"]) ?? "Rule",
+    status: getString(row, ["status", "verdict"]) ?? "unknown",
+    observed: row.observed === null || typeof row.observed === "number" || typeof row.observed === "string" ? row.observed : undefined,
+    allowed: row.allowed === null || typeof row.allowed === "number" || typeof row.allowed === "string" ? row.allowed : undefined,
+  }));
+  const propTargetProbability = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["target_before_breach_probability", "targetBeforeBreachProbability"]));
+  const propBreachProbability = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["breach_probability", "breachProbability"]));
+  const propMaxDailyLossObserved = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["max_daily_loss_observed", "maxDailyLossObserved"]));
+  const propMaxDailyLossAllowed = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["max_daily_loss_allowed", "maxDailyLossAllowed"]));
+  const propMaxTotalDrawdownObserved = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["max_total_drawdown_observed", "maxTotalDrawdownObserved"]));
+  const propMaxTotalDrawdownAllowed = normalizePercentValue(getNumber(propEvaluationSummaryRaw, ["max_total_drawdown_allowed", "maxTotalDrawdownAllowed"]));
+  const propTradingDays = getNumber(propEvaluationSummaryRaw, ["trading_days", "tradingDays"]);
+  const propProfitProgress = normalizePercentValue(
+    getNumber(propEvaluationTargetProgress, ["progress_pct", "progressPct", "profit_progress_pct", "profitProgressPct"])
+      ?? getNumber(propEvaluationSummaryRaw, ["profit_progress_pct", "profitProgressPct"]),
+  );
+  const propVerdict = getString(propEvaluationRaw, ["verdict", "classification"]) ?? "unknown";
 
   const ruinProbabilityOfRuin = normalizePercentValue(getNumber(ruinSummaryMetricsRaw, ["probability_of_ruin", "probability_of_ruin_pct"]))
     ?? ruinProbability;
@@ -1548,6 +1571,49 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         recommendations: envelopeByDiagnostic.ruin?.recommendations ?? [],
         metadata: envelopeByDiagnostic.ruin?.metadata,
       },
+      prop_evaluation_readiness: {
+        status: statusByDiagnostic.get("prop_evaluation_readiness"),
+        verdict: propVerdict,
+        metrics: envelopeByDiagnostic.prop_evaluation_readiness?.summary_metrics.length
+          ? envelopeByDiagnostic.prop_evaluation_readiness.summary_metrics.map(envelopeMetricToScore)
+          : [
+              score("Target Before Breach", formatPct(propTargetProbability), pctBand(propTargetProbability, 35, 65)),
+              score("Breach Probability", formatPct(propBreachProbability), pctBand(propBreachProbability, 10, 25)),
+              score("Profit Target Progress", formatPct(propProfitProgress), propProfitProgress === undefined ? "informational" : propProfitProgress >= 100 ? "good" : "moderate"),
+              score("Max Daily Loss", `${formatPct(propMaxDailyLossObserved)} / ${formatPct(propMaxDailyLossAllowed)}`, pctBand(propMaxDailyLossObserved, Math.max((propMaxDailyLossAllowed ?? 5) * 0.7, 0), propMaxDailyLossAllowed ?? 5)),
+              score("Max Total Drawdown", `${formatPct(propMaxTotalDrawdownObserved)} / ${formatPct(propMaxTotalDrawdownAllowed)}`, pctBand(propMaxTotalDrawdownObserved, Math.max((propMaxTotalDrawdownAllowed ?? 10) * 0.7, 0), propMaxTotalDrawdownAllowed ?? 10)),
+              score("Trading Days", formatNumber(propTradingDays, 0), "informational"),
+            ],
+        rule_snapshot: propEvaluationRuleSnapshot,
+        rule_status: propEvaluationRuleStatus,
+        first_breach: propEvaluationFirstBreach ?? null,
+        target_progress: propEvaluationTargetProgress,
+        interpretation: {
+          title: "Prop evaluation interpretation",
+          summary: getString(propEvaluationRaw, ["interpretation", "summary", "narrative"]) ?? statusText(
+            statusByDiagnostic.get("prop_evaluation_readiness"),
+            "Prop evaluation readiness compares the strategy path against the configured funding rules.",
+            "Prop evaluation readiness is limited until exact account rules and higher-resolution loss evidence are supplied.",
+          ),
+          bullets: [
+            `Verdict: ${propVerdict.replace(/_/g, " ")}.`,
+            propEvaluationFirstBreach ? `First breach: ${getString(propEvaluationFirstBreach, ["rule", "type", "name"]) ?? "rule breach detected"}.` : "No configured rule breach was detected in the emitted path.",
+            propProfitProgress === undefined ? "Profit target progress was not emitted." : `Profit target progress: ${formatPct(propProfitProgress)}.`,
+          ],
+        },
+        assumptions: envelopeByDiagnostic.prop_evaluation_readiness?.assumptions ?? getStringArray(propEvaluationRaw, ["assumptions"]),
+        limitations: envelopeByDiagnostic.prop_evaluation_readiness?.limitations ?? getStringArray(propEvaluationRaw, ["limitations"]),
+        recommendations: envelopeByDiagnostic.prop_evaluation_readiness?.recommendations.length
+          ? envelopeByDiagnostic.prop_evaluation_readiness.recommendations
+          : getStringArray(propEvaluationRaw, ["recommendations", "next_steps"]),
+        metadata: {
+          ...(envelopeByDiagnostic.prop_evaluation_readiness?.metadata ?? {}),
+          summary_metrics: propEvaluationSummaryRaw,
+          target_progress: propEvaluationTargetProgress,
+          first_breach: propEvaluationFirstBreach,
+          rule_status: propEvaluationRuleStatus,
+        },
+      },
     },
     engine_payload: {
       summary_metrics: globalSummaryMetrics,
@@ -1589,6 +1655,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
       can_view_stability: statusByDiagnostic.get("stability") === "available",
       can_view_regimes: statusByDiagnostic.get("regimes") === "available",
       can_view_ruin: statusByDiagnostic.get("ruin") !== "unavailable" && statusByDiagnostic.get("ruin") !== "skipped",
+      can_view_prop_evaluation: statusByDiagnostic.get("prop_evaluation_readiness") !== "unavailable" && statusByDiagnostic.get("prop_evaluation_readiness") !== "skipped",
       can_export_report: Boolean(canonicalReport?.export_ready === true && statusByDiagnostic.get("report") === "available"),
     },
     diagnostic_statuses: Object.fromEntries(

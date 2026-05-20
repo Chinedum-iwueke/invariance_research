@@ -4,7 +4,7 @@ import { accountService } from "@/lib/server/accounts/service";
 import { buildEvidenceLedger, overlayEvidenceEntitlements, type EvidenceLedgerEntry } from "@/lib/server/evidence/evidence-ledger-service";
 import { logger } from "@/lib/server/ops/logger";
 
-export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin" | "execution" | "regimes" | "stability";
+export type DiagnosticKey = "overview" | "distribution" | "monte_carlo" | "ruin" | "prop_evaluation_readiness" | "execution" | "regimes" | "stability";
 
 async function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): Promise<boolean> {
   const state = await accountService.getAccountState(accountId);
@@ -13,6 +13,7 @@ async function isPlanEntitled(accountId: string, diagnostic: DiagnosticKey): Pro
   if (diagnostic === "distribution") return state.entitlements.can_view_distribution;
   if (diagnostic === "monte_carlo") return state.entitlements.can_view_monte_carlo;
   if (diagnostic === "ruin") return state.entitlements.can_view_ruin;
+  if (diagnostic === "prop_evaluation_readiness") return state.entitlements.can_view_prop_evaluation;
   if (diagnostic === "execution") return state.entitlements.can_view_execution;
   if (diagnostic === "regimes") return state.entitlements.can_view_regimes;
   return state.entitlements.can_view_stability;

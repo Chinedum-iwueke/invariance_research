@@ -53,7 +53,7 @@ function pageSpecificRecommendations(diagnostic: string, items: unknown[]): stri
 
 export function buildTruthContext(
   record: AnalysisRecord,
-  diagnostic: "overview" | "distribution" | "monte_carlo" | "execution" | "ruin" | "report" | "regimes" | "stability",
+  diagnostic: "overview" | "distribution" | "monte_carlo" | "execution" | "ruin" | "prop_evaluation_readiness" | "report" | "regimes" | "stability",
   options?: { benchmark?: AnalysisBenchmarkConfig },
 ) {
   const benchmark = record.engine_payload.diagnostics.overview?.benchmark_comparison;
@@ -93,7 +93,7 @@ export function buildTruthContext(
     !hasStability && (diagnostic === "report" || diagnostic === "overview")
       ? "Parameter stability diagnostics are unavailable for this artifact/run context."
       : undefined,
-    !hasExecution && (diagnostic === "report" || diagnostic === "ruin")
+    !hasExecution && (diagnostic === "report" || diagnostic === "ruin" || diagnostic === "prop_evaluation_readiness")
       ? "Execution-friction stress interpretation is limited because execution diagnostics were not fully available."
       : undefined,
   ]);

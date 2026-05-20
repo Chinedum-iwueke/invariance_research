@@ -66,6 +66,17 @@ export function mapRawAnalysisToProductAnalysis(raw: RawEngineAnalysisResult): A
         assumptions: [],
         interpretation: { title: "Ruin Interpretation", summary: "Ruin mapping not yet connected." },
       },
+      prop_evaluation_readiness: {
+        status: "limited",
+        verdict: "unknown",
+        metrics: [],
+        rule_snapshot: {},
+        rule_status: [],
+        first_breach: null,
+        target_progress: {},
+        interpretation: { title: "Prop Evaluation Interpretation", summary: "Prop evaluation mapping not yet connected." },
+        limitations: ["Prop evaluation readiness requires a parsed artifact analysis run."],
+      },
     },
     report: mapRawReportToReportPayload(raw.report, `${raw.runId}-report`),
     engine_payload: {
@@ -78,6 +89,7 @@ export function mapRawAnalysisToProductAnalysis(raw: RawEngineAnalysisResult): A
       can_view_stability: false,
       can_view_regimes: false,
       can_view_ruin: true,
+      can_view_prop_evaluation: true,
       can_export_report: false,
     },
     diagnostic_statuses: {
@@ -88,6 +100,7 @@ export function mapRawAnalysisToProductAnalysis(raw: RawEngineAnalysisResult): A
       execution: { status: "unavailable", available: false, limited: false, unavailable: true, skipped: false },
       regimes: { status: "skipped", available: false, limited: false, unavailable: false, skipped: true },
       ruin: { status: "limited", available: false, limited: true, unavailable: false, skipped: false },
+      prop_evaluation_readiness: { status: "limited", available: false, limited: true, unavailable: false, skipped: false },
       report: { status: "limited", available: false, limited: true, unavailable: false, skipped: false },
     },
   };

@@ -22,7 +22,10 @@ export type EvidenceEventType =
   | "share_viewed"
   | "share_expired"
   | "share_revoked"
-  | "research_desk_packet_created";
+  | "research_desk_packet_created"
+  | "prop_readiness_recomputed"
+  | "prop_readiness_changed_after_rule_edit"
+  | "prop_fallback_rules_replaced";
 
 export type EvidenceEventSeverity = "info" | "warning" | "critical";
 
@@ -120,4 +123,3 @@ export function recordEvidenceEvent(input: EvidenceEventInput): EvidenceEventRec
     created_at: input.created_at ?? new Date().toISOString(),
   });
 }
-

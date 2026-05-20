@@ -62,7 +62,7 @@ export type ValidationCommandLayer = {
   explanations: ValidationExplanation[];
 };
 
-const REQUIRED_DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "report"] as const;
+const REQUIRED_DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "prop_evaluation_readiness", "report"] as const;
 
 export function buildValidationCommandLayer(input: {
   analysis: AnalysisEntity;
@@ -83,6 +83,8 @@ export function buildValidationCommandLayer(input: {
     navCommand("show_missing_evidence", "Show missing evidence", "Jump to the evidence rail and next-evidence requests.", `${baseHref}/assumptions#missing-evidence`, completed),
     navCommand("open_assumptions", "Open Assumption Ledger", "Review material assumptions and rescue evidence.", `${baseHref}/assumptions`, completed),
     navCommand("open_unsupported_claims", "Open unsupported claims", "Inspect claims the artifact does not yet prove.", `${baseHref}/assumptions#unsupported-claims`, completed),
+    navCommand("open_prop_evaluation", "Open Prop Evaluation", "Review pass readiness, breach risk, and prop-rule improvement targets.", `${baseHref}/prop-evaluation`, completed && Boolean(record?.access.can_view_prop_evaluation), "Prop evaluation readiness is not available for this analysis."),
+    apiCommand("recompute_prop_evaluation", "Recompute prop evaluation", "Re-run prop feasibility using the saved or default rule profile.", `/api/analyses/${analysis.analysis_id}/prop-evaluation`, "POST", completed && Boolean(record?.access.can_view_prop_evaluation), "Prop evaluation readiness is not available for this analysis."),
     navCommand("open_report_snapshot", "Open report snapshot", "Review the current immutable-style proof report state.", `${baseHref}/report`, completed && Boolean(snapshotId), "Generate a report snapshot first."),
     apiCommand("generate_snapshot", "Generate report snapshot", "Create or refresh the active proof-report snapshot.", `/api/analyses/${analysis.analysis_id}/report-snapshot`, "POST", completed),
     apiCommand("export_pdf", "Export PDF", "Queue a PDF validation memo export.", `/api/analyses/${analysis.analysis_id}/exports`, "POST", completed && Boolean(record?.access.can_export_report), record?.access.can_export_report ? undefined : "Current plan cannot export reports.", { format: "pdf" }),
@@ -211,6 +213,7 @@ function buildSavedQuestions(explanations: ValidationExplanation[]): SavedValida
     question("worse_fills", "What happens if fills get worse?", byId.get("what_unlocks"), "show_missing_evidence"),
     question("fee_change", "What happens if fees change?", byId.get("what_unlocks"), "show_missing_evidence"),
     question("regime_failure", "Where does this strategy fail by regime?", byId.get("why_limited"), "show_artifact_blocks"),
+    question("prop_contract", "Would this strategy breach my prop evaluation rules?", byId.get("what_unlocks"), "open_prop_evaluation"),
     question("rare_trades", "How much edge comes from rare trades?", byId.get("why_verdict"), "explain_verdict"),
     question("missing_evidence", "What evidence is missing?", byId.get("what_unlocks"), "show_missing_evidence"),
     question("does_not_prove", "What does this report not prove?", byId.get("rescue_claim"), "open_unsupported_claims"),

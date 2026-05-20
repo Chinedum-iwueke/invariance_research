@@ -403,6 +403,54 @@ CREATE INDEX IF NOT EXISTS idx_evidence_events_account_created
 CREATE INDEX IF NOT EXISTS idx_evidence_events_type_created
   ON evidence_events(event_type, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS prop_evaluation_rule_profiles (
+  profile_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  owner_user_id TEXT NOT NULL REFERENCES users(user_id),
+  label TEXT NOT NULL,
+  firm_label TEXT,
+  rules_json JSONB NOT NULL,
+  rules_hash TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prop_evaluation_rule_snapshots (
+  rule_snapshot_id TEXT PRIMARY KEY,
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  profile_id TEXT,
+  source TEXT NOT NULL,
+  label TEXT NOT NULL,
+  rules_json JSONB NOT NULL,
+  rules_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS prop_evaluation_results (
+  result_id TEXT PRIMARY KEY,
+  analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  rule_snapshot_id TEXT NOT NULL REFERENCES prop_evaluation_rule_snapshots(rule_snapshot_id),
+  status TEXT NOT NULL,
+  verdict TEXT NOT NULL,
+  first_breach_json JSONB,
+  rule_status_json JSONB NOT NULL,
+  target_progress_json JSONB NOT NULL,
+  summary_metrics_json JSONB NOT NULL,
+  limitation_codes_json JSONB NOT NULL,
+  engine_payload_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_prop_rule_profiles_account
+  ON prop_evaluation_rule_profiles(account_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_prop_rule_snapshots_analysis
+  ON prop_evaluation_rule_snapshots(analysis_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_prop_results_analysis
+  ON prop_evaluation_results(analysis_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
   worker_type TEXT NOT NULL,
   instance_id TEXT NOT NULL,

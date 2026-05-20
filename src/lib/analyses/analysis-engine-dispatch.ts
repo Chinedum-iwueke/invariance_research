@@ -9,6 +9,7 @@ export type AnalysisEngineDispatchPayload = {
   benchmark: EngineBenchmarkConfig;
   account_size?: number;
   risk_per_trade_pct?: number;
+  prop_evaluation_rules?: Record<string, unknown>;
 };
 
 function selectedBenchmarkDatasetExists(benchmark: Extract<EngineBenchmarkConfig, { enabled: true }>): boolean {
@@ -31,6 +32,7 @@ export async function buildAnalysisEngineDispatchPayload(input: {
         benchmark: defaultBenchmarkPayload,
         account_size: input.analysis.runtime_config?.account_size,
         risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
+        prop_evaluation_rules: input.analysis.runtime_config?.prop_evaluation_rules,
       },
       warnings,
     };
@@ -47,6 +49,7 @@ export async function buildAnalysisEngineDispatchPayload(input: {
         },
         account_size: input.analysis.runtime_config?.account_size,
         risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
+        prop_evaluation_rules: input.analysis.runtime_config?.prop_evaluation_rules,
       },
       warnings,
     };
@@ -58,6 +61,7 @@ export async function buildAnalysisEngineDispatchPayload(input: {
       benchmark: defaultBenchmarkPayload,
       account_size: input.analysis.runtime_config?.account_size,
       risk_per_trade_pct: input.analysis.runtime_config?.risk_per_trade_pct,
+      prop_evaluation_rules: input.analysis.runtime_config?.prop_evaluation_rules,
     },
     warnings,
   };

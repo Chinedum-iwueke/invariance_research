@@ -538,5 +538,58 @@ export const migrations = [
         ON evidence_events(event_type, created_at DESC);
     `,
   },
+  {
+    version: 18,
+    name: "prop_evaluation_readiness",
+    sql: `
+      CREATE TABLE IF NOT EXISTS prop_evaluation_rule_profiles (
+        profile_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        owner_user_id TEXT NOT NULL REFERENCES users(user_id),
+        label TEXT NOT NULL,
+        firm_label TEXT,
+        rules_json TEXT NOT NULL,
+        rules_hash TEXT NOT NULL,
+        visibility TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS prop_evaluation_rule_snapshots (
+        rule_snapshot_id TEXT PRIMARY KEY,
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        profile_id TEXT,
+        source TEXT NOT NULL,
+        label TEXT NOT NULL,
+        rules_json TEXT NOT NULL,
+        rules_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS prop_evaluation_results (
+        result_id TEXT PRIMARY KEY,
+        analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        rule_snapshot_id TEXT NOT NULL REFERENCES prop_evaluation_rule_snapshots(rule_snapshot_id),
+        status TEXT NOT NULL,
+        verdict TEXT NOT NULL,
+        first_breach_json TEXT,
+        rule_status_json TEXT NOT NULL,
+        target_progress_json TEXT NOT NULL,
+        summary_metrics_json TEXT NOT NULL,
+        limitation_codes_json TEXT NOT NULL,
+        engine_payload_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_prop_rule_profiles_account
+        ON prop_evaluation_rule_profiles(account_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_prop_rule_snapshots_analysis
+        ON prop_evaluation_rule_snapshots(analysis_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_prop_results_analysis
+        ON prop_evaluation_results(analysis_id, created_at DESC);
+    `,
+  },
 
 ];

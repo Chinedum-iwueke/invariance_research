@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     artifact_id?: string;
     strategy_name?: string;
     benchmark?: { mode?: "auto" | "none" | "manual"; requested_id?: string | null };
-    runtime_config?: { account_size?: number; risk_per_trade_pct?: number };
+    runtime_config?: { account_size?: number; risk_per_trade_pct?: number; prop_evaluation_rules?: Record<string, unknown> };
   };
   if (!body.artifact_id) {
     return NextResponse.json({ error: { code: "invalid_payload", message: "artifact_id is required" } }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       runtime_config: {
         account_size: accountSize,
         risk_per_trade_pct: riskPerTradePct,
+        prop_evaluation_rules: body.runtime_config?.prop_evaluation_rules,
       },
     });
     return NextResponse.json(response, { status: 201 });

@@ -26,6 +26,7 @@ export const DIAGNOSTICS = [
   "execution",
   "regimes",
   "ruin",
+  "prop_evaluation_readiness",
   "report",
 ] as const;
 export type DiagnosticName = (typeof DIAGNOSTICS)[number];
@@ -148,6 +149,24 @@ export type BundleAssumptions = {
   notes?: string;
 };
 
+export type PropEvaluationRulesV1 = {
+  schema_version?: "prop_evaluation_rules_v1";
+  source?: "fallback" | "runtime" | "saved_profile" | "post_run_edit" | "research_desk";
+  label?: string;
+  firm_label?: string;
+  account_size?: number;
+  profit_target_pct?: number;
+  max_total_drawdown_pct?: number;
+  total_drawdown_basis?: "static" | "trailing_balance" | "trailing_equity" | "end_of_day_trailing";
+  max_daily_loss_pct?: number;
+  daily_loss_basis?: "intraday_equity" | "closed_balance" | "end_of_day_balance";
+  reset_timezone?: string;
+  minimum_trading_days?: number;
+  maximum_evaluation_days?: number;
+  consistency_max_day_profit_pct?: number;
+  max_leverage?: number;
+};
+
 export type BundleParams = {
   parameter_set_name?: string;
   tunable_parameters?: Record<string, string | number | boolean>;
@@ -203,6 +222,7 @@ export type ParsedArtifact = {
   ohlcv?: Record<string, string | number>[];
   benchmark_series?: Record<string, string | number>[];
   broker_exports?: Record<string, string | number>[];
+  prop_evaluation_rules?: PropEvaluationRulesV1;
   declared_claims?: DeclaredStrategyClaim[];
   source_files?: SourceFileProvenance[];
   bundle_manifest?: BundleManifestV1;

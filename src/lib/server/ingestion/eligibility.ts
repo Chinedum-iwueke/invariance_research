@@ -15,6 +15,7 @@ function allAvailableDiagnostics(): DiagnosticEligibilityMatrix {
     execution: { availability: "available" },
     regimes: { availability: "available" },
     ruin: { availability: "available" },
+    prop_evaluation_readiness: { availability: "available" },
     report: { availability: "available" },
   };
 }
@@ -36,6 +37,7 @@ export function buildDiagnosticEligibility(
       execution: { availability: "limited", reason: "requires richer execution assumptions" },
       regimes: { availability: "unavailable", reason: "requires OHLCV or regime-labeled context" },
       ruin: { availability: "available" },
+      prop_evaluation_readiness: { availability: "limited", reason: "uses fallback evaluation rules unless the user supplies exact prop firm constraints" },
       report: { availability: "available" },
     };
   }
@@ -49,6 +51,7 @@ export function buildDiagnosticEligibility(
       execution: { availability: "limited", reason: "requires richer execution assumptions" },
       regimes: { availability: "limited", reason: "requires market-context artifact" },
       ruin: { availability: "available" },
+      prop_evaluation_readiness: { availability: "limited", reason: "daily-loss precision improves with exact prop rules and intraday/broker equity evidence" },
       report: { availability: "available" },
     };
   }
@@ -68,6 +71,7 @@ export function buildDiagnosticEligibility(
       reason: regimesAvailable ? undefined : "requires OHLCV or regime-labeled context",
     },
     ruin: { availability: "available" },
+    prop_evaluation_readiness: { availability: context?.assumptionsPresent ? "available" : "limited", reason: context?.assumptionsPresent ? undefined : "uses fallback evaluation rules unless exact rules are supplied" },
     report: { availability: "available" },
   };
 }

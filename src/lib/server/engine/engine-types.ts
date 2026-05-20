@@ -23,7 +23,7 @@ export type EngineEnvelopeV1 = {
 };
 
 export type EngineCapabilityProfile = Partial<Record<
-  "overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report",
+  "overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "prop_evaluation_readiness" | "report",
   { status: EngineDiagnosticStatus; reason?: string; required_inputs?: string[]; optional_enrichments?: string[] }
 >>;
 
@@ -40,6 +40,7 @@ export type EngineRunContext = {
   benchmark_config?: Record<string, unknown>;
   account_size?: number;
   risk_per_trade_pct?: number;
+  prop_evaluation_rules?: Record<string, unknown>;
   degraded: boolean;
   degradation_reasons: string[];
 };

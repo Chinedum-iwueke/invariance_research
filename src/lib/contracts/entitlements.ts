@@ -13,6 +13,7 @@ export interface EntitlementSnapshot {
   can_view_distribution: boolean;
   can_view_monte_carlo: boolean;
   can_view_ruin: boolean;
+  can_view_prop_evaluation: boolean;
   can_view_execution: boolean;
   can_view_regimes: boolean;
   can_view_stability: boolean;

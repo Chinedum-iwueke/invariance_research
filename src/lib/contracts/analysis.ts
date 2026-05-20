@@ -290,6 +290,28 @@ export interface RuinDiagnostic {
   metadata?: Record<string, unknown>;
 }
 
+export interface PropEvaluationRuleStatus {
+  rule: string;
+  status: "pass" | "fail" | "limited" | "unknown" | "not_configured" | string;
+  observed?: number | string | null;
+  allowed?: number | string | null;
+}
+
+export interface PropEvaluationDiagnostic {
+  status?: "available" | "limited" | "unavailable" | "skipped";
+  verdict: "pass_ready" | "breach_risk" | "target_not_reached" | "unknown" | string;
+  metrics: ScoreBand[];
+  rule_snapshot: Record<string, unknown>;
+  rule_status: PropEvaluationRuleStatus[];
+  first_breach?: Record<string, unknown> | null;
+  target_progress?: Record<string, unknown>;
+  interpretation: InterpretationBlockPayload;
+  assumptions?: string[];
+  limitations?: string[];
+  recommendations?: string[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface EngineDiagnosticMetric {
   key: string;
   label: string;
@@ -313,7 +335,7 @@ export interface EngineDiagnosticEnvelope {
 
 export interface EnginePayloadSnapshot {
   summary_metrics: EngineDiagnosticMetric[];
-  diagnostics: Partial<Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", EngineDiagnosticEnvelope>>;
+  diagnostics: Partial<Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "prop_evaluation_readiness" | "report", EngineDiagnosticEnvelope>>;
   report_sections: {
     assumptions: string[];
     limitations: string[];
@@ -384,12 +406,14 @@ export interface DiagnosticBundle {
   execution: ExecutionDiagnostic;
   regimes: RegimeDiagnostic;
   ruin: RuinDiagnostic;
+  prop_evaluation_readiness: PropEvaluationDiagnostic;
 }
 
 export interface AccessFlags {
   can_view_stability: boolean;
   can_view_regimes: boolean;
   can_view_ruin: boolean;
+  can_view_prop_evaluation: boolean;
   can_export_report: boolean;
 }
 
@@ -431,7 +455,7 @@ export interface AnalysisRecord {
   proof_report?: ProofReportPayload;
   report: ReportPayload;
   access: AccessFlags;
-  diagnostic_statuses: Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "report", NormalizedDiagnosticStatus>;
+  diagnostic_statuses: Record<"overview" | "distribution" | "monte_carlo" | "stability" | "execution" | "regimes" | "ruin" | "prop_evaluation_readiness" | "report", NormalizedDiagnosticStatus>;
   llm_insights?: LlmDiagnosticInsights;
   llm_insights_model?: string;
   llm_insights_generated_at?: string;
