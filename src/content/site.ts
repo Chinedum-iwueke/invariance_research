@@ -15,6 +15,7 @@ export const footerGroups = [
     links: [
       { label: "Robustness Lab", href: "/robustness-lab" },
       { label: "Research Desk", href: "/research-desk" },
+      { label: "Pricing", href: "/pricing" },
       { label: "Request Audit", href: "/contact" },
     ],
   },

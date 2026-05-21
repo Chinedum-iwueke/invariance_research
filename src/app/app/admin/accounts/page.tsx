@@ -41,7 +41,7 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
     <AdminPageShell title="Accounts & Subscriptions" description="Operational overview for account plans, billing status, entitlement footprint, and credential controls.">
       <AdminFilterBar>
         <Link href="/app/admin/accounts" className="text-xs underline">All</Link>
-        <Link href="/app/admin/accounts?plan=professional" className="text-xs underline">Professional</Link>
+        <Link href="/app/admin/accounts?plan=individual" className="text-xs underline">Individual</Link>
         <Link href="/app/admin/accounts?status=past_due" className="text-xs underline">Past due</Link>
         <Link href="/app/admin/accounts?highUsage=1" className="text-xs underline">High usage</Link>
       </AdminFilterBar>

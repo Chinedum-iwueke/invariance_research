@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 import { createResearchDeskRequest } from "@/lib/server/research-desk/research-desk-service";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "research_desk_request", kind: "research_desk", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const { id } = await params;
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
 
@@ -19,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "research_desk_request_failed";
-    const status = code === "analysis_not_found" ? 404 : code === "analysis_not_report_ready" ? 409 : 400;
+    const status = code === "analysis_not_found" ? 404 : code === "analysis_not_report_ready" ? 409 : code === "research_desk_plan_restricted" ? 403 : 400;
     return NextResponse.json({ error: code }, { status });
   }
 }

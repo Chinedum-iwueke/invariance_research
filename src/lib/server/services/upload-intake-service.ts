@@ -11,7 +11,7 @@ import { buildUploadEvidenceProjection } from "@/lib/server/evidence/evidence-le
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const CSV_PREVIEW_ROW_LIMIT = 50;
 const RECOGNIZED_BUNDLE_FILES = new Set([
   "manifest.json",
@@ -38,6 +38,8 @@ export async function inspectUpload(input: {
 }): Promise<UploadInspectionResponse> {
   const extension = input.fileName.split(".").pop()?.toLowerCase() ?? "";
 
+  const accountState = await accountService.getAccountState(input.account_id);
+  const maxUploadBytes = (accountState?.entitlements.max_upload_file_size_mb ?? 10) * 1024 * 1024;
   const fileValidation = validateFileBasics(
     {
       fileName: input.fileName,
@@ -45,7 +47,7 @@ export async function inspectUpload(input: {
       sizeBytes: input.bytes.byteLength,
       bytes: input.bytes,
     },
-    { allowedExtensions: ["csv", "zip"], maxBytes: MAX_UPLOAD_BYTES },
+    { allowedExtensions: ["csv", "zip"], maxBytes: maxUploadBytes || DEFAULT_MAX_UPLOAD_BYTES },
   );
 
   if (!fileValidation.valid) {

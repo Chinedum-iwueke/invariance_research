@@ -5,6 +5,7 @@ import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getAnalysisQueue, getQueueProvider } from "@/lib/server/queue/provider";
 import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bulletproof-runner";
+import { computePropEvaluationReadiness, mergePropDiagnostic } from "@/lib/server/prop-evaluation/prop-evaluation-service";
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
 import { createWorkerInstanceId, runWorkerLoop } from "@/lib/server/workers/worker-runtime";
@@ -180,13 +181,20 @@ export async function processNextAnalysisJob(): Promise<boolean> {
     writeDebugSnapshot("01_engine_raw_result", analysisId, engineRun.result);
 
     await moveToStep(analysisId, STEPS.normalizing);
-    const deterministicRecord = normalizeEngineResultToAnalysisRecord({
+    const normalizedRecord = normalizeEngineResultToAnalysisRecord({
       analysisId,
       parsedArtifact: artifact.parsed_artifact,
       eligibility,
       engineResult: engineRun.result,
       engineContext: engineRun.context,
     });
+    const deterministicRecord = mergePropDiagnostic(
+      normalizedRecord,
+      computePropEvaluationReadiness(
+        artifact.parsed_artifact,
+        analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules,
+      ),
+    );
     await moveToStep(analysisId, STEPS.llm);
     const llmStartedAt = Date.now();
     logger.info("llm.insights.started", {

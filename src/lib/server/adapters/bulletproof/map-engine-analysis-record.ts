@@ -1002,8 +1002,6 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     ...getStringArray(canonicalReport, ["methodology_assumptions", "assumptions"]),
     ...getStringArray(reportRaw, ["assumptions", "methodology_assumptions"]),
     ...(envelopeByDiagnostic.report?.assumptions ?? []),
-    `engine=${engineContext.engine_name}`,
-    `seam=${engineContext.seam}`,
     `artifact_richness=${parsedArtifact.richness}`,
     ...richDiagnosticsAvailability,
     sharpeAssumption,

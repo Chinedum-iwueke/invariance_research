@@ -24,10 +24,19 @@ import { getDb, closeDbForTests } from "../src/lib/server/persistence/database";
 function resetDb() {
   const db = getDb();
   db.exec(`
+    DELETE FROM prop_evaluation_results;
+    DELETE FROM prop_evaluation_rule_snapshots;
+    DELETE FROM prop_evaluation_rule_profiles;
+    DELETE FROM wedge_learning_events;
+    DELETE FROM report_reviewer_addenda;
+    DELETE FROM research_desk_requests;
+    DELETE FROM share_access_events;
     DELETE FROM evidence_events;
+    DELETE FROM share_tokens;
     DELETE FROM export_jobs;
     DELETE FROM exports;
     DELETE FROM webhook_events;
+    DELETE FROM report_snapshots;
     DELETE FROM analysis_jobs;
     DELETE FROM analyses;
     DELETE FROM artifacts;

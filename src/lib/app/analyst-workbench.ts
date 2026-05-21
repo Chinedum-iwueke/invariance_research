@@ -128,6 +128,48 @@ function unique(items: Array<string | undefined>, limit = 6): string[] {
   return values;
 }
 
+function truthyMetadata(value: unknown): boolean {
+  return value === true || value === "true" || value === "available" || value === "present";
+}
+
+function recommendationSupportedByCurrentEvidence(record: AnalysisRecord, diagnostic: AnalystWorkbenchDiagnostic, item: string): string | undefined {
+  const normalized = item.toLowerCase();
+  const distributionMetadata = record.diagnostics.distribution.metadata ?? {};
+  const hasTradeLog = record.dataset.trade_count > 0 && record.diagnostics.distribution.status !== "unavailable" && record.diagnostics.distribution.status !== "skipped";
+  const hasRealizedPnl = truthyMetadata(distributionMetadata.has_win_loss_profile) || record.diagnostics.distribution.metrics.some((metric) => /expectancy|win rate|median return|profit|pnl/i.test(metric.label) && metric.value !== "Unavailable");
+  const hasExcursion = truthyMetadata(distributionMetadata.has_excursion) || record.diagnostics.distribution.figures.some((figure) => /mae|mfe|excursion/i.test(`${figure.title} ${figure.subtitle ?? ""}`));
+  const hasDuration = truthyMetadata(distributionMetadata.has_duration) || record.diagnostics.distribution.metrics.some((metric) => /duration/i.test(metric.label) && !/unavailable|n\/a|unknown/i.test(metric.value));
+  const hasExecution = record.diagnostic_statuses.execution.status === "available";
+  const hasRegimes = record.diagnostic_statuses.regimes.status === "available";
+  const hasStability = record.diagnostic_statuses.stability.status === "available";
+  const propRuleSource = String(record.diagnostics.prop_evaluation_readiness.rule_snapshot?.source ?? "");
+  const hasExactPropRules = propRuleSource.length > 0 && propRuleSource !== "fallback";
+
+  if (diagnostic === "distribution") {
+    if (/full trade log|realized pnl/.test(normalized) && hasTradeLog && hasRealizedPnl) return undefined;
+    if (/mae|mfe|excursion/.test(normalized) && hasExcursion) return undefined;
+    if (/duration and setup\/cohort labels/.test(normalized) && hasDuration) return "Setup/cohort labels";
+    if (/duration/.test(normalized) && hasDuration) return undefined;
+  }
+
+  if (/benchmark-compatible|configure a benchmark|benchmark context/i.test(item) && record.engine_payload.diagnostics.overview?.benchmark_comparison?.status === "available") return undefined;
+  if (/explicit execution assumptions|spread\/slippage assumptions|fee assumptions|execution assumptions/i.test(item) && hasExecution) return undefined;
+  if (/ohlcv|regime labels|regime context|market-context/i.test(item) && hasRegimes) return undefined;
+  if (/parameter sweep|parameter metadata|parameter stability|parameter combinations/i.test(item) && hasStability) return undefined;
+  if (/exact prop firm rule sheet|exact rules|prop firm rules/i.test(item) && hasExactPropRules) return undefined;
+  if (/account size|risk budget/i.test(item) && record.diagnostics.ruin.assumptions?.some((assumption) => /account size|risk per trade|risk budget/i.test(String(assumption.name)))) return undefined;
+
+  return item;
+}
+
+function groundRecommendations(record: AnalysisRecord, diagnostic: AnalystWorkbenchDiagnostic, items: Array<string | undefined>, limit = 6): string[] {
+  return unique(
+    items
+      .map((item) => item ? recommendationSupportedByCurrentEvidence(record, diagnostic, item) : undefined),
+    limit,
+  );
+}
+
 function titleCase(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -184,11 +226,15 @@ function missingEvidenceFor(record: AnalysisRecord, diagnostic: AnalystWorkbench
   const claims = pageClaims(record, diagnostic);
   const copy = DIAGNOSTIC_COPY[diagnostic];
   const status = diagnostic === "assumptions" ? undefined : record.diagnostic_statuses[diagnostic]?.status;
-  return unique([
-    reason,
+  const propRuleSource = diagnostic === "prop_evaluation_readiness"
+    ? String(record.diagnostics.prop_evaluation_readiness.rule_snapshot?.source ?? "")
+    : "";
+  const hasExactPropRules = diagnostic === "prop_evaluation_readiness" && propRuleSource.length > 0 && propRuleSource !== "fallback";
+  return groundRecommendations(record, diagnostic, [
+    hasExactPropRules && /fallback|exact prop/i.test(reason ?? "") ? undefined : reason,
     ...(status && status !== "available" ? [`${copy.title} is ${status}; more evidence is required before broad claims are safe.`] : []),
     ...claims.flatMap((claim) => claim.missing_evidence),
-    ...copy.nextEvidence,
+    ...copy.nextEvidence.filter((item) => !(hasExactPropRules && /exact prop firm rule sheet/i.test(item))),
   ]);
 }
 
@@ -273,6 +319,6 @@ export function buildAnalystWorkbenchModel(
     limitations: truthContext.limitations,
     missingEvidence,
     unsupportedClaims,
-    nextEvidence: truthContext.recommendations.length ? truthContext.recommendations : copy.nextEvidence,
+    nextEvidence: groundRecommendations(record, diagnostic, truthContext.recommendations.length ? truthContext.recommendations : copy.nextEvidence),
   };
 }

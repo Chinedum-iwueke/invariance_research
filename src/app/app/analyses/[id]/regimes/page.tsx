@@ -8,6 +8,7 @@ import { InterpretationBlock } from "@/components/dashboard/interpretation-block
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { Card } from "@/components/ui/card";
 import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
@@ -42,7 +43,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
       diagnosticTitle: "Regime Analysis",
       diagnosticPurpose: "Decompose performance by volatility and trend structure to identify deployment conditions.",
       currentPlan: state?.account.plan_id,
-      requiredPlan: "Research Lab",
+      requiredPlan: "Pro",
       artifactRequirementProfile: "regime_analysis",
     });
     return (
@@ -144,12 +145,15 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
       </WorkspaceCard>
 
       <WorkspaceCard title="Regime definition" subtitle="How trend and volatility states were classified">
-        <ul className="space-y-1.5 text-sm text-text-neutral">
-          <li>• Trend method: {regimes.definition?.trend_method ?? "Not emitted"}</li>
-          <li>• Volatility method: {regimes.definition?.volatility_method ?? "Not emitted"}</li>
-          {definitionThresholds.map((threshold, index) => <li key={`threshold-${index}-${threshold.slice(0, 24)}`}>• Threshold: {threshold}</li>)}
-          {regimes.definition?.notes ? <li>• Notes: {regimes.definition.notes}</li> : null}
-        </ul>
+        <EvidenceList
+          items={[
+            `Trend method: ${regimes.definition?.trend_method ?? "Not emitted"}`,
+            `Volatility method: ${regimes.definition?.volatility_method ?? "Not emitted"}`,
+            ...definitionThresholds.map((threshold) => `Threshold: ${threshold}`),
+            ...(regimes.definition?.notes ? [`Notes: ${regimes.definition.notes}`] : []),
+          ]}
+          empty="No regime definition was emitted."
+        />
       </WorkspaceCard>
 
       <InterpretationBlock

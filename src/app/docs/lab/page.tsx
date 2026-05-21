@@ -79,6 +79,14 @@ function SpecTable({ rows, required = false }: { rows: readonly { field: string;
   );
 }
 
+function CodeBlock({ children }: { children: string }) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-border-subtle bg-surface-panel/50 p-4 text-xs text-text-graphite">
+      <pre className="whitespace-pre">{children}</pre>
+    </div>
+  );
+}
+
 export default function LabDocsPage() {
   return (
     <PublicShell>
@@ -147,6 +155,138 @@ export default function LabDocsPage() {
       </section>
 
       <section className="space-y-5 rounded-md border border-border-subtle bg-surface-white p-8">
+        <div>
+          <p className="font-provenance text-xs uppercase tracking-wide text-brand">Bundle Manifest v1</p>
+          <h2 className="mt-2 text-xl font-semibold text-text-institutional">Structured ZIP Bundle Layout</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
+            Upload a root-level ZIP package when you want the Lab to read more than a trade table. The parser currently requires <span className="font-mono">manifest.json</span> and <span className="font-mono">trades.csv</span>. Other files improve eligibility, diagnostic confidence, provenance, or Research Desk packet quality.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <h3 className="text-sm font-semibold text-text-institutional">Required files</h3>
+            <ul className="mt-3 space-y-2 text-sm text-text-neutral">
+              <li><span className="font-mono text-text-graphite">manifest.json</span> - declares bundle type, included files, optional roles, and provenance hints.</li>
+              <li><span className="font-mono text-text-graphite">trades.csv</span> - canonical trade log with required trade fields.</li>
+            </ul>
+          </article>
+          <article className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <h3 className="text-sm font-semibold text-text-institutional">Recognized optional files</h3>
+            <ul className="mt-3 grid gap-2 text-sm text-text-neutral sm:grid-cols-2">
+              <li><span className="font-mono">metadata.json</span></li>
+              <li><span className="font-mono">equity_curve.csv</span></li>
+              <li><span className="font-mono">assumptions.json</span></li>
+              <li><span className="font-mono">params.json</span></li>
+              <li><span className="font-mono">ohlcv.csv</span></li>
+              <li><span className="font-mono">ohlcv.parquet</span></li>
+              <li><span className="font-mono">benchmark.csv</span></li>
+              <li><span className="font-mono">broker_export.csv</span></li>
+              <li><span className="font-mono">declared_claims.json</span></li>
+              <li><span className="font-mono">strategy_config.json</span></li>
+              <li><span className="font-mono">backtest_report.json</span></li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="rounded-md border border-amber-500/25 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          <p className="font-semibold">Current parser boundary</p>
+          <p className="mt-1">
+            <span className="font-mono">metadata.json</span>, <span className="font-mono">assumptions.json</span>, <span className="font-mono">params.json</span>, <span className="font-mono">ohlcv.csv</span>, <span className="font-mono">benchmark.csv</span>, <span className="font-mono">broker_export.csv</span>, and <span className="font-mono">declared_claims.json</span> are parsed today. <span className="font-mono">ohlcv.parquet</span>, <span className="font-mono">strategy_config.json</span>, and <span className="font-mono">backtest_report.json</span> are recognized for manifest/provenance and future deeper parsing.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Recommended ZIP tree</h3>
+          <CodeBlock>{`research_bundle.zip
+  manifest.json
+  trades.csv
+  metadata.json
+  assumptions.json
+  params.json
+  ohlcv.csv
+  benchmark.csv
+  broker_export.csv
+  equity_curve.csv
+  declared_claims.json
+  strategy_config.json
+  backtest_report.json`}</CodeBlock>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Minimum manifest.json</h3>
+          <CodeBlock>{`{
+  "schema_version": "1.0",
+  "bundle_type": "strategy_truth_room_bundle_v1",
+  "contract_version": "1.0.0",
+  "artifact_type": "trade_history_bundle",
+  "strategy_name": "Momentum v2",
+  "source_platform": "custom",
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "timeframe": "1h",
+  "market": "crypto",
+  "exchange": "binance",
+  "currency": "USD",
+  "included_files": [
+    "manifest.json",
+    "trades.csv",
+    "metadata.json",
+    "assumptions.json",
+    "params.json",
+    "ohlcv.csv",
+    "benchmark.csv",
+    "broker_export.csv",
+    "declared_claims.json"
+  ]
+}`}</CodeBlock>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Research-complete manifest.json</h3>
+          <CodeBlock>{`{
+  "schema_version": "1.0",
+  "bundle_type": "strategy_truth_room_bundle_v1",
+  "contract_version": "1.0.0",
+  "artifact_type": "research_bundle",
+  "strategy_name": "Momentum v2",
+  "source_platform": "custom",
+  "symbols": ["BTCUSDT"],
+  "timeframe": "1h",
+  "market": "crypto",
+  "exchange": "binance",
+  "currency": "USD",
+  "included_files": [
+    "manifest.json",
+    "trades.csv",
+    "metadata.json",
+    "assumptions.json",
+    "params.json",
+    "ohlcv.csv",
+    "benchmark.csv",
+    "broker_export.csv",
+    "declared_claims.json"
+  ],
+  "assumptions_present": true,
+  "ohlcv_present": true,
+  "parameter_metadata_present": true,
+  "declared_claims_present": true,
+  "broker_export_present": true,
+  "files": [
+    { "path": "trades.csv", "role": "trade_log_v1", "required": true },
+    { "path": "metadata.json", "role": "strategy_truth_room_bundle_v1" },
+    { "path": "assumptions.json", "role": "strategy_config_v1" },
+    { "path": "params.json", "role": "parameter_sweep_v1" },
+    { "path": "ohlcv.csv", "role": "ohlcv_context_v1" },
+    { "path": "benchmark.csv", "role": "benchmark_series_v1" },
+    { "path": "broker_export.csv", "role": "broker_export_v1" },
+    { "path": "declared_claims.json", "role": "declared_claims_v1" }
+  ]
+}`}</CodeBlock>
+          <p className="text-xs text-text-neutral">Accepted <span className="font-mono">artifact_type</span> values are <span className="font-mono">trade_history_bundle</span>, <span className="font-mono">backtest_result_bundle</span>, and <span className="font-mono">research_bundle</span>.</p>
+        </div>
+      </section>
+
+      <section className="space-y-5 rounded-md border border-border-subtle bg-surface-white p-8">
         <h2 className="text-xl font-semibold text-text-institutional">Trade CSV Specification</h2>
         <div className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Core required fields</h3>
@@ -192,6 +332,86 @@ export default function LabDocsPage() {
               <tr><td className="px-4 py-3 font-medium">Benchmark selection</td><td className="px-4 py-3 text-text-neutral">Benchmark-relative comparison diagnostics when benchmark data is available.</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="space-y-5 rounded-md border border-border-subtle bg-surface-white p-8">
+        <div>
+          <p className="font-provenance text-xs uppercase tracking-wide text-brand">File examples</p>
+          <h2 className="mt-2 text-xl font-semibold text-text-institutional">Optional Bundle File Schemas</h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">Use these examples when building a test bundle. Keep files at the ZIP root unless the manifest explicitly declares a different path.</p>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">metadata.json</h3>
+          <CodeBlock>{`{
+  "strategy_name": "Momentum v2",
+  "description": "Breakout continuation strategy on liquid crypto majors.",
+  "author": "Your Name",
+  "source_platform": "custom",
+  "tags": ["momentum", "crypto", "1h"]
+}`}</CodeBlock>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">assumptions.json</h3>
+          <CodeBlock>{`{
+  "slippage_model": "2 bps per side",
+  "commission_model": "Binance taker fee 4 bps",
+  "market_impact_model": "No explicit impact model; small order size assumed",
+  "notes": "Trades are closed-trade PnL. Intraday equity was not exported."
+}`}</CodeBlock>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">params.json</h3>
+          <CodeBlock>{`{
+  "parameter_set_name": "momentum_v2_base",
+  "tunable_parameters": {
+    "lookback": 40,
+    "breakout_threshold": 1.8,
+    "atr_stop": 2.5,
+    "risk_per_trade_pct": 1
+  },
+  "optimization_target": "net_profit_to_drawdown"
+}`}</CodeBlock>
+          <p className="text-xs text-text-neutral">Current limitation: this improves parameter context but is not yet a full multi-run sweep parser. Future sweep bundles should include run-level parameter mappings and per-run results.</p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">ohlcv.csv</h3>
+            <CodeBlock>{`timestamp,symbol,open,high,low,close,volume
+2026-01-05T10:00:00Z,BTCUSDT,43100,43200,43050,43125,1280`}</CodeBlock>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">benchmark.csv</h3>
+            <CodeBlock>{`timestamp,symbol,close
+2026-01-05T10:00:00Z,BTCUSDT,43125`}</CodeBlock>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">broker_export.csv</h3>
+            <CodeBlock>{`timestamp,symbol,order_id,side,quantity,price,fee,fee_currency,liquidity
+2026-01-05T10:00:01Z,BTCUSDT,O-001,buy,0.5,43125.5,6.75,USDT,taker`}</CodeBlock>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">declared_claims.json</h3>
+            <CodeBlock>{`[
+  {
+    "claim_id": "claim_1",
+    "claim": "This strategy remains profitable after realistic costs.",
+    "priority": "critical"
+  },
+  {
+    "claim_id": "claim_2",
+    "claim": "This strategy is suitable for a prop-firm evaluation.",
+    "priority": "high"
+  }
+]`}</CodeBlock>
+          </div>
         </div>
       </section>
 

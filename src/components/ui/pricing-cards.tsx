@@ -7,62 +7,78 @@ import { cn } from "@/lib/utils";
 export function PricingCards() {
   const plans = [
     {
-      title: "Explorer",
-      price: "Free",
-      billing: "Serious baseline access",
+      title: "Free",
+      price: "$0",
+      billing: "first evaluator access",
       ctaLabel: "Start Free",
       ctaHref: "/signup",
       features: [
         "Trade CSV upload",
         "3 analyses per month",
-        "Overview, Distribution, Monte Carlo, and Risk of Ruin diagnostics",
+        "Overview, Distribution, Monte Carlo, Risk of Ruin, and Prop Evaluation previews",
+        "No exports or share links",
         "30-day history retention",
       ],
     },
     {
-      title: "Professional",
-      price: "$11.99",
+      title: "Individual",
+      price: "$79",
       billing: "per month",
-      ctaLabel: "Choose Professional",
+      ctaLabel: "Choose Individual",
       ctaHref: "/signup",
       features: [
         "Structured bundle upload",
         "25 analyses per month",
-        "Execution sensitivity diagnostics",
+        "Execution sensitivity and one custom prop evaluation profile per analysis",
         "Full report view + report export",
+        "5 share links per month",
       ],
     },
     {
-      title: "Research Lab",
-      price: "$19.99",
+      title: "Pro",
+      price: "$199",
       billing: "per month",
       highlight: true,
-      ctaLabel: "Choose Research Lab",
+      ctaLabel: "Choose Pro",
       ctaHref: "/signup",
       features: [
         "Research bundle upload",
         "100 analyses per month",
         "Regime + stability / fragility diagnostics",
+        "Saved prop evaluation profiles and report appendix",
+        "25 share links per month",
+      ],
+    },
+    {
+      title: "Team",
+      price: "$799",
+      billing: "per month",
+      ctaLabel: "Choose Team",
+      ctaHref: "/signup",
+      features: [
+        "5 seats and team library",
+        "Shared prop firm profiles and shared reports",
+        "300 analyses per month",
         "Premium processing priority",
       ],
     },
     {
-      title: "Advisory",
-      price: "Custom",
-      billing: "institutional scope",
-      ctaLabel: "Request Advisory Scope",
+      title: "Research Desk",
+      price: "From $1,500",
+      billing: "project based",
+      ctaLabel: "Request Research Desk",
       ctaHref: "/contact",
       features: [
         "Institutional engagement design",
-        "Custom throughput and retention",
-        "Analyst-led interpretation support",
-        "Committee-grade validation workflow",
+        "Human and agent-assisted review",
+        "Execution/data QA and benchmark construction",
+        "Prop-rule interpretation and claim formalization",
       ],
     },
   ];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-4">
+    <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-5">
       {plans.map((plan) => (
         <Card key={plan.title} className={cn("space-y-5 p-card-lg", plan.highlight && "border-brand shadow-[0_0_0_1px_rgba(185,0,42,0.25)]") }>
           <div>

@@ -3,6 +3,7 @@ import type { User } from "@/lib/contracts/account";
 import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
 import { authTokenRepository, generateAuthToken, hashAuthToken } from "@/lib/server/auth/tokens";
 import { sendTransactionalEmail } from "@/lib/server/email/email-service";
+import { resolveEntitlementsForPlan } from "@/lib/server/entitlements/entitlements";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 function monthBucket(date: Date) {
@@ -73,7 +74,7 @@ export const accountService = {
 
     let account = await repositories.accounts.findByOwnerUserId(user.user_id);
     if (!account) {
-      account = await repositories.accounts.save(user.user_id, "explorer");
+      account = await repositories.accounts.save(user.user_id, "free");
     }
     await ensureDefaultUsageSnapshot(account.account_id);
 
@@ -87,7 +88,7 @@ export const accountService = {
 
     let account = await repositories.accounts.findByOwnerUserId(user.user_id);
     if (!account) {
-      account = await repositories.accounts.save(user.user_id, "explorer");
+      account = await repositories.accounts.save(user.user_id, "free");
     }
     await ensureDefaultUsageSnapshot(account.account_id);
     return { user, account };
@@ -109,7 +110,7 @@ export const accountService = {
       password_hash: hashPassword(input.password),
       email_verified_at: requiresEmailVerification() ? undefined : new Date().toISOString(),
     });
-    const account = await repositories.accounts.save(user.user_id, "explorer");
+    const account = await repositories.accounts.save(user.user_id, "free");
     await ensureDefaultUsageSnapshot(account.account_id);
     if (requiresEmailVerification()) {
       await sendVerificationEmail(user);
@@ -129,7 +130,7 @@ export const accountService = {
 
     let account = await repositories.accounts.findByOwnerUserId(user.user_id);
     if (!account) {
-      account = await repositories.accounts.save(user.user_id, "explorer");
+      account = await repositories.accounts.save(user.user_id, "free");
     }
     await ensureDefaultUsageSnapshot(account.account_id);
 
@@ -237,5 +238,13 @@ export const accountService = {
     });
 
     await repositories.accounts.updatePlan(input.account_id, input.plan_id, input.status);
+  },
+
+  async applyAdminPlanOverride(input: { account_id: string; plan_id: PlanId }) {
+    const repositories = getCoreRepositories();
+    const account = await repositories.accounts.updatePlan(input.account_id, input.plan_id, "active");
+    if (!account) throw new Error("account_not_found");
+    await repositories.entitlements.set(resolveEntitlementsForPlan(input.account_id, input.plan_id, "admin_override"));
+    return account;
   },
 };

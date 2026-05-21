@@ -1,7 +1,9 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
 import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { EvidenceStatusBadge, type EvidenceState } from "@/components/dashboard/evidence-status";
+import { ResearchDeskRequestPanel } from "@/components/dashboard/research-desk-request-panel";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -37,6 +39,11 @@ export default async function AssumptionLedgerPage({ params }: { params: Promise
   const proofReport = record.proof_report;
   const criticalAssumptions = assumptions.filter((item) => item.materiality === "critical" || item.materiality === "high");
   const unsupportedClaims = claims.filter((claim) => ["unsupported", "contradicted"].includes(claim.support_status));
+  const researchDeskLimitations = [
+    ...criticalAssumptions.map((assumption) => assumption.rescue_evidence ?? assumption.statement),
+    ...unsupportedClaims.map((claim) => claim.report_wording || claim.claim),
+    ...(proofReport?.what_this_result_does_not_prove ?? []),
+  ];
 
   return (
     <AnalysisPageFrame title="Assumption Ledger" description="Every important assumption, claim, missing input, and rescue path that constrains this report.">
@@ -103,13 +110,17 @@ export default async function AssumptionLedgerPage({ params }: { params: Promise
 
       <WorkspaceCard title="What This Result Does Not Prove" subtitle="Report-safe boundaries carried into export and sharing">
         {proofReport?.what_this_result_does_not_prove?.length ? (
-          <ul className="space-y-2 text-sm text-text-neutral">
-            {proofReport.what_this_result_does_not_prove.map((item, index) => <li key={`${index}-${item.slice(0, 24)}`}>- {item}</li>)}
-          </ul>
+          <EvidenceList items={proofReport.what_this_result_does_not_prove} empty="No explicit proof-report exclusions were emitted." tone="warning" />
         ) : (
           <p className="text-sm text-text-neutral">No explicit proof-report exclusions were emitted.</p>
         )}
       </WorkspaceCard>
+
+      <ResearchDeskRequestPanel
+        analysisId={record.analysis_id}
+        limitations={researchDeskLimitations}
+        defaultServices={["claim_validation", "parameter_stability_review", "investor_buyer_memo_review"]}
+      />
     </AnalysisPageFrame>
   );
 }

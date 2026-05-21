@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 import { resolveSharedReport } from "@/lib/server/share/share-service";
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const limited = await enforceRateLimit({ request, route: "share_access", kind: "share_access" });
+  if (limited) return limited;
   const { token } = await params;
   const result = resolveSharedReport({
     token,

@@ -3,21 +3,33 @@ import { Card } from "@/components/ui/card";
 import type { PlanId } from "@/lib/contracts/account";
 import { PlanAction } from "@/components/dashboard/plan-action";
 
+const launchPlans = [
+  { id: "free" as const, label: "Free" },
+  { id: "individual" as const, label: "Individual" },
+  { id: "pro" as const, label: "Pro" },
+  { id: "team" as const, label: "Team" },
+  { id: "research_desk" as const, label: "Research Desk" },
+];
+
 const rows = [
-  ["Trade CSV upload", "yes", "yes", "yes", "yes"],
-  ["Structured bundle upload", "no", "yes", "yes", "custom"],
-  ["Research bundle upload", "no", "no", "yes", "custom"],
-  ["Analyses per month", "3", "25", "100", "custom"],
-  ["Overview diagnostics", "yes", "yes", "yes", "yes"],
-  ["Distribution diagnostics", "yes", "yes", "yes", "yes"],
-  ["Monte Carlo diagnostics", "yes", "yes", "yes", "yes"],
-  ["Risk of Ruin", "basic", "full", "full", "full"],
-  ["Execution sensitivity", "no", "yes", "yes", "yes"],
-  ["Regime analysis", "no", "no", "yes", "yes"],
-  ["Stability / fragility diagnostics", "no", "no", "yes", "yes"],
-  ["Report export", "no", "yes", "yes", "yes"],
-  ["History retention", "30 days", "365 days", "730 days", "custom"],
-  ["Processing priority", "standard", "priority", "premium", "institutional"],
+  ["Price", "$0", "$79/mo", "$199/mo", "$799/mo", "From $1,500"],
+  ["Trade CSV upload", "yes", "yes", "yes", "yes", "yes"],
+  ["Structured bundle upload", "no", "yes", "yes", "yes", "yes"],
+  ["Research bundle upload", "no", "no", "yes", "yes", "yes"],
+  ["Max upload size", "10 MB", "25 MB", "50 MB", "100 MB", "250 MB"],
+  ["Analyses per month", "3", "25", "100", "300", "500"],
+  ["Overview / distribution / Monte Carlo", "preview", "full", "full", "full", "full"],
+  ["Risk of Ruin", "preview", "full", "full", "full", "full"],
+  ["Prop Evaluation Readiness", "fallback preview", "1 profile/run", "saved profiles", "shared profiles", "rule interpretation"],
+  ["Execution sensitivity", "no", "yes", "yes", "yes", "yes"],
+  ["Regime analysis", "no", "no", "yes", "yes", "yes"],
+  ["Stability / fragility diagnostics", "no", "no", "yes", "yes", "yes"],
+  ["Report export", "no", "yes", "yes", "yes", "yes"],
+  ["Share links", "no", "5/mo", "25/mo", "100/mo", "250/mo"],
+  ["Research Desk request", "no", "no", "yes", "yes", "included"],
+  ["Seats", "1", "1", "1", "5", "10"],
+  ["History retention", "30 days", "365 days", "730 days", "3 years", "5 years"],
+  ["Processing priority", "standard", "priority", "premium", "institutional", "institutional"],
 ];
 
 function cell(value: string) {
@@ -29,33 +41,32 @@ function cell(value: string) {
 export function PlanComparisonTable({ currentPlan }: { currentPlan?: PlanId }) {
   return (
     <Card className="overflow-x-auto rounded-md border bg-surface-white p-0">
-      <table className="min-w-[760px] w-full text-sm">
+      <table className="min-w-[980px] w-full text-sm">
         <thead>
           <tr className="border-b bg-surface-panel text-left">
             <th className="px-4 py-3 font-semibold">Capability</th>
-            <th className="px-4 py-3 text-center font-semibold">Explorer</th>
-            <th className="px-4 py-3 text-center font-semibold">Professional</th>
-            <th className="px-4 py-3 text-center font-semibold">Research Lab</th>
-            <th className="px-4 py-3 text-center font-semibold">Advisory</th>
+            {launchPlans.map((plan) => (
+              <th key={plan.id} className="px-4 py-3 text-center font-semibold">{plan.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row[0]} className="border-b last:border-b-0">
               <td className="px-4 py-3 text-text-graphite">{row[0]}</td>
-              <td className="px-4 py-3 text-center">{cell(row[1])}</td>
-              <td className="px-4 py-3 text-center">{cell(row[2])}</td>
-              <td className="px-4 py-3 text-center">{cell(row[3])}</td>
-              <td className="px-4 py-3 text-center">{cell(row[4])}</td>
+              {row.slice(1).map((value, index) => (
+                <td key={`${row[0]}-${launchPlans[index]?.id}`} className="px-4 py-3 text-center">{cell(value)}</td>
+              ))}
             </tr>
           ))}
           {currentPlan ? (
             <tr>
               <td className="px-4 py-3 text-text-graphite">Plan action</td>
-              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="explorer" className="mx-auto" /></td>
-              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="professional" className="mx-auto" /></td>
-              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="research_lab" className="mx-auto" /></td>
-              <td className="px-4 py-3 text-center"><PlanAction currentPlan={currentPlan} targetPlan="advisory" className="mx-auto" /></td>
+              {launchPlans.map((plan) => (
+                <td key={`action-${plan.id}`} className="px-4 py-3 text-center">
+                  <PlanAction currentPlan={currentPlan} targetPlan={plan.id} className="mx-auto" />
+                </td>
+              ))}
             </tr>
           ) : null}
         </tbody>

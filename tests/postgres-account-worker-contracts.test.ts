@@ -21,10 +21,19 @@ import { getAnalysisQueue, resetAnalysisQueueForTests } from "../src/lib/server/
 
 function resetDb() {
   getDb().exec(`
+    DELETE FROM prop_evaluation_results;
+    DELETE FROM prop_evaluation_rule_snapshots;
+    DELETE FROM prop_evaluation_rule_profiles;
+    DELETE FROM wedge_learning_events;
+    DELETE FROM report_reviewer_addenda;
+    DELETE FROM research_desk_requests;
+    DELETE FROM share_access_events;
     DELETE FROM evidence_events;
+    DELETE FROM share_tokens;
     DELETE FROM export_jobs;
     DELETE FROM exports;
     DELETE FROM webhook_events;
+    DELETE FROM report_snapshots;
     DELETE FROM analysis_jobs;
     DELETE FROM analyses;
     DELETE FROM artifacts;
@@ -96,9 +105,9 @@ test("signup provisions a free active account with entitlement and usage default
   const repositories = getCoreRepositories();
   assert.equal((await repositories.users.findById(user.user_id))?.email, "new-postgres-user@example.com");
   assert.equal((await repositories.accounts.findByOwnerUserId(user.user_id))?.account_id, account.account_id);
-  assert.equal(account.plan_id, "explorer");
+  assert.equal(account.plan_id, "free");
   assert.equal(account.subscription_status, "active");
-  assert.equal((await repositories.entitlements.get(account.account_id)).plan_id, "explorer");
+  assert.equal((await repositories.entitlements.get(account.account_id)).plan_id, "free");
 
   const usage = await accountService.getUsage(account.account_id);
   assert.equal(usage.analyses_created, 0);
@@ -131,6 +140,7 @@ test("password login repairs a missing account row idempotently", async () => {
   const user = await repositories.users.save({
     email: "repair-user@example.com",
     password_hash: hashPassword("StrongPass123"),
+    email_verified_at: new Date().toISOString(),
   });
 
   assert.equal(await repositories.accounts.findByOwnerUserId(user.user_id), undefined);
@@ -139,7 +149,7 @@ test("password login repairs a missing account row idempotently", async () => {
 
   assert.ok(first?.account.account_id);
   assert.equal(second?.account.account_id, first?.account.account_id);
-  assert.equal(first?.account.plan_id, "explorer");
+  assert.equal(first?.account.plan_id, "free");
   assert.equal(first?.account.subscription_status, "active");
 });
 

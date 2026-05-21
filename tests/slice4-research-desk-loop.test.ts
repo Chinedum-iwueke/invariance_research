@@ -13,8 +13,9 @@ import { accountService } from "../src/lib/server/accounts/service";
 import { analysisRepository } from "../src/lib/server/repositories/analysis-repository";
 import { artifactRepository } from "../src/lib/server/repositories/artifact-repository";
 import { closeDbForTests, getDb } from "../src/lib/server/persistence/database";
+import { evidenceEventRepository } from "../src/lib/server/evidence/evidence-events";
 import { researchDeskRepository } from "../src/lib/server/repositories/research-desk-repository";
-import { createResearchDeskRequest, updateResearchDeskRequest } from "../src/lib/server/research-desk/research-desk-service";
+import { buildResearchDeskTimeline, createResearchDeskRequest, updateResearchDeskRequest } from "../src/lib/server/research-desk/research-desk-service";
 
 function resetDb() {
   getDb().exec(`
@@ -97,6 +98,7 @@ function analysisRecord(analysisId: string, limitation = "Execution assumptions 
 
 async function seedAnalysis(index: number, limitation = "Execution assumptions are limited.") {
   const { user, account } = await accountService.ensureUserAndAccount({ email: `slice4-${index}@example.com` });
+  await accountService.applySubscription({ account_id: account.account_id, provider_customer_id: `cus-slice4-${index}`, provider_subscription_id: `sub-slice4-${index}`, plan_id: "pro", status: "active" });
   const artifactId = `artifact-slice4-${index}`;
   const record = analysisRecord(`analysis-slice4-${index}`, limitation);
   artifactRepository.save({
@@ -162,7 +164,7 @@ test("research desk requests are linked to the exact report artifact, analysis, 
     account_id: account.account_id,
     requested_by_user_id: user.user_id,
     trigger_limitation: "Execution assumptions are limited.",
-    requested_services: ["execution_audit", "data_qa", "benchmark_suite"],
+    requested_services: ["execution_audit", "data_quality_audit", "benchmark_construction"],
     user_note: "Need to decide whether this can paper trade.",
   });
 
@@ -171,7 +173,12 @@ test("research desk requests are linked to the exact report artifact, analysis, 
   assert.equal(request.trigger_limitation, "Execution assumptions are limited.");
   assert.equal(request.validation_packet.report_snapshot_id, request.report_snapshot_id);
   assert.equal(request.validation_packet.requested_services.includes("execution_audit"), true);
+  assert.equal(request.validation_packet.requested_services.includes("data_quality_audit"), true);
   assert.equal(request.validation_packet.limitations.includes("Execution assumptions are limited."), true);
+  assert.equal(request.validation_packet.artifact_manifest.artifact_id, "artifact-slice4-1");
+  assert.ok(request.validation_packet.evidence_ledger.length > 0);
+  assert.ok(request.validation_packet.requested_questions.length > 0);
+  assert.ok(request.validation_packet.reviewer_checklist.length > 0);
   assert.equal(learning_event.promotion_candidate, false);
 });
 
@@ -184,7 +191,7 @@ test("reviewer addenda are tied back to the request and can approve report conte
     trigger_limitation: "Execution assumptions are limited.",
   });
 
-  const updated = updateResearchDeskRequest({
+  const updated = await updateResearchDeskRequest({
     request_id: request.request_id,
     reviewer_user_id: user.user_id,
     status: "in_review",
@@ -193,10 +200,17 @@ test("reviewer addenda are tied back to the request and can approve report conte
     public_addendum: "Reviewer recommends a 30-day live slippage audit before scaling.",
   });
 
-  assert.equal(updated.request.status, "addendum_approved");
+  assert.equal(updated.request.status, "approved");
   assert.equal(updated.addendum?.report_snapshot_id, request.report_snapshot_id);
   assert.equal(updated.addendum?.status, "approved");
   assert.equal(updated.addendum?.public_addendum, "Reviewer recommends a 30-day live slippage audit before scaling.");
+  const timeline = buildResearchDeskTimeline(updated.request, updated.addendum);
+  assert.deepEqual(timeline.map((event) => event.status), ["received", "scoped", "quoted", "in_review", "addendum_draft", "approved", "delivered", "closed"]);
+  assert.equal(timeline.find((event) => event.status === "approved")?.state, "current");
+
+  const eventTypes = evidenceEventRepository.listByAnalysis(record.analysis_id).map((event) => event.event_type);
+  assert.ok(eventTypes.includes("research_desk_status_updated"));
+  assert.ok(eventTypes.includes("research_desk_addendum_approved"));
 });
 
 test("learning events only become promotion candidates after repeated evidence", async () => {

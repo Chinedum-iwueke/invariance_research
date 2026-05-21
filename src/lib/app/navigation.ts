@@ -1,8 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  ArrowUpCircle,
   BarChart3,
   ClipboardCheck,
+  CreditCard,
   FileText,
   Gauge,
   GitBranch,
@@ -26,6 +28,8 @@ const baseSecondaryItems: AppNavItem[] = [
   { key: "workspace:home", label: "Workspace Home", href: "/app", icon: Sigma },
   { key: "workspace:new-analysis", label: "New Analysis", href: "/app/new-analysis", icon: Sparkles },
   { key: "workspace:analyses", label: "Analyses", href: "/app/analyses", icon: ListChecks },
+  { key: "workspace:billing", label: "Billing & Plan", href: "/app/billing", icon: CreditCard },
+  { key: "workspace:upgrade", label: "Upgrade", href: "/app/upgrade", icon: ArrowUpCircle },
   { key: "workspace:settings", label: "Settings", href: "/app/settings", icon: Settings },
 ];
 

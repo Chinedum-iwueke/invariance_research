@@ -19,10 +19,12 @@ async function main() {
 
 main()
   .then(() => {
-    console.log("analysis-worker healthcheck ok");
+    const workerKind = process.env.INVARIANCE_WORKER_KIND ?? "worker";
+    console.log(`${workerKind} healthcheck ok`);
     process.exit(0);
   })
   .catch((error) => {
-    console.error(error instanceof Error ? error.message : "analysis-worker healthcheck failed");
+    const workerKind = process.env.INVARIANCE_WORKER_KIND ?? "worker";
+    console.error(error instanceof Error ? error.message : `${workerKind} healthcheck failed`);
     process.exit(1);
   });

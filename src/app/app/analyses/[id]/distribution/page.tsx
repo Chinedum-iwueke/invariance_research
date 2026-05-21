@@ -7,6 +7,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectDistributionTopMetrics } from "@/lib/app/analysis-ui";
@@ -136,9 +137,7 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
         {record.llm_insights?.distribution_interpretation ? (
           <p className="text-sm leading-relaxed text-text-neutral">{record.llm_insights.distribution_interpretation}</p>
         ) : keyShapeFindings.length ? (
-          <ul className="space-y-1.5 text-sm text-text-neutral">
-            {keyShapeFindings.map((item, index) => <li key={`shape-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-          </ul>
+          <EvidenceList items={keyShapeFindings} empty="No shape-specific interpretation was emitted." />
         ) : (
           <p className="text-sm text-text-neutral">No shape-specific interpretation was emitted for this run. Upload richer trade annotations to unlock stronger tail and asymmetry commentary.</p>
         )}
@@ -146,14 +145,14 @@ export default async function DistributionPage({ params }: { params: Promise<{ i
       )}
 
       <WorkspaceCard title="Trade-level summary" subtitle="Exact distribution evidence available in the persisted run payload.">
-        <ul className="space-y-2 text-sm text-text-neutral">
-          <li>• Trade count: <span className="font-medium text-text-graphite">{record.dataset.trade_count}</span></li>
-          <li>• Coverage window: <span className="font-medium text-text-graphite">{record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</span></li>
-          <li>• Key findings available: <span className="font-medium text-text-graphite">{record.summary.key_findings.length}</span></li>
-          <li>• Histogram source: <span className="font-medium text-text-graphite">{engineHistogramProvenance === "engine_emitted" ? "Engine-native" : "Derived fallback from persisted trade PnL"}</span></li>
-          <li>• Excursion fields (MAE/MFE): <span className="font-medium text-text-graphite">{hasExcursion ? "Present" : "Not present"}</span></li>
-          <li>• Duration statistics: <span className="font-medium text-text-graphite">{hasDuration ? "Present" : "Not present"}</span></li>
-        </ul>
+        <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-2">
+          <p><span className="font-medium text-text-graphite">Trade count:</span> {record.dataset.trade_count}</p>
+          <p><span className="font-medium text-text-graphite">Coverage window:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Key findings available:</span> {record.summary.key_findings.length}</p>
+          <p><span className="font-medium text-text-graphite">Histogram source:</span> {engineHistogramProvenance === "engine_emitted" ? "Engine-native" : "Derived fallback from persisted trade PnL"}</p>
+          <p><span className="font-medium text-text-graphite">Excursion fields (MAE/MFE):</span> {hasExcursion ? "Present" : "Not present"}</p>
+          <p><span className="font-medium text-text-graphite">Duration statistics:</span> {hasDuration ? "Present" : "Not present"}</p>
+        </div>
       </WorkspaceCard>
 
       <ContextFlipCard

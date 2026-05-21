@@ -7,17 +7,18 @@ import { cn } from "@/lib/utils";
 
 const SERVICE_LABELS: Record<ResearchDeskService, string> = {
   execution_audit: "Execution audit",
-  data_qa: "Data QA",
-  benchmark_suite: "Benchmark suite",
-  claim_formalization: "Claim formalization",
-  strategy_rewrite_hypothesis: "Rewrite as hypothesis",
-  full_advisory_validation: "Full advisory validation",
+  data_quality_audit: "Data quality audit",
+  benchmark_construction: "Benchmark construction",
+  parameter_stability_review: "Parameter stability review",
+  regime_context_review: "Regime/context review",
+  claim_validation: "Claim validation",
+  investor_buyer_memo_review: "Investor/buyer memo review",
 };
 
 export function ResearchDeskRequestPanel({
   analysisId,
   limitations,
-  defaultServices = ["execution_audit", "data_qa", "benchmark_suite"],
+  defaultServices = ["execution_audit", "data_quality_audit", "benchmark_construction"],
 }: {
   analysisId: string;
   limitations: string[];
@@ -62,9 +63,12 @@ export function ResearchDeskRequestPanel({
     ));
   }
 
+  const submitLabel = status === "submitting" ? "Creating packet..." : "Request deeper validation";
+  const submitDisabled = status === "submitting" || services.length === 0;
+
   return (
     <form onSubmit={submit} className="rounded-md border border-research-red/20 bg-surface-white p-4 shadow-sm">
-      <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
         <div>
           <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Research Desk request</p>
           <h3 className="mt-2 text-xl font-semibold tracking-tight text-text-institutional">Turn this limitation into a review packet.</h3>
@@ -72,13 +76,27 @@ export function ResearchDeskRequestPanel({
             The request is tied to this analysis, immutable report snapshot, source artifact, and selected limitation so a reviewer can add decision-grade context without losing provenance.
           </p>
         </div>
-        <div className="rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
-          <p className="font-semibold text-text-graphite">Validation packet includes</p>
-          <p className="mt-2">analysis id, artifact id, report snapshot id, trigger limitation, requested services, decision metrics, warnings, and recommendations.</p>
-        </div>
+        <button
+          type="submit"
+          disabled={submitDisabled}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+        >
+          {submitLabel}
+          <ArrowUpRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
+        <p className="font-semibold text-text-graphite">Validation packet includes</p>
+        <p className="mt-2">report snapshot, artifact manifest, evidence ledger, assumption ledger, unsupported claims, diagnostic outputs, requested questions, client notes, and reviewer checklist.</p>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
+          <p className="font-semibold text-text-graphite">Flow</p>
+          <p className="mt-2">Select the report limitation, choose the review services, add reviewer context, then create the packet. Admin/reviewer workflow picks it up from the Research Desk queue.</p>
+        </div>
+
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Limitation to review</span>
           <select
@@ -126,10 +144,10 @@ export function ResearchDeskRequestPanel({
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={status === "submitting" || services.length === 0}
+          disabled={submitDisabled}
           className="inline-flex items-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {status === "submitting" ? "Creating packet..." : "Request deeper validation"}
+          {submitLabel}
           <ArrowUpRight className="h-4 w-4" />
         </button>
         {status === "submitted" ? (

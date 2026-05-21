@@ -39,9 +39,9 @@ export default function HomePage() {
         >
           <div className="space-y-8">
             <SectionHeader
-              eyebrow="Claim Intake"
-              title="The first experience is not a pitch. It is a cross-examination."
-              description="A strategy arrives with a claim. Invariance turns that claim into a structured evidence record: what survives execution friction, what only survives favorable assumptions, and what should not be deployed yet."
+              eyebrow="Claim Discipline"
+              title="Every result is treated like a claim that has to earn trust."
+              description="Upload the artifact you already have, then state what you believe it proves. Invariance separates declared claims from claims merely implied by the evidence, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
             />
             <ClaimAuditPanel />
             <EvidenceOutcomeGrid />

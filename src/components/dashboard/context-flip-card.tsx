@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Lightbulb, type LucideIcon } from "lucide-react";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { cn } from "@/lib/utils";
 
@@ -82,9 +83,7 @@ export function ContextFlipCard({
             {active.label}
           </p>
           {active.items.length ? (
-            <ul className="space-y-1.5 text-sm">
-              {active.items.map((item, index) => <li key={`${active.key}-${index}-${item.slice(0, 32)}`}>• {item}</li>)}
-            </ul>
+            <EvidenceList items={active.items} empty={active.empty} tone={active.tone ?? "neutral"} limit={6} />
           ) : (
             <p className="text-sm">{active.empty}</p>
           )}

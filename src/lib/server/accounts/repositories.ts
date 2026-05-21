@@ -66,7 +66,7 @@ export const accountRepository: AccountRepository = {
   findById(accountId: string) {
     return getDb().prepare("SELECT * FROM accounts WHERE account_id = ?").get(accountId) as Account | undefined;
   },
-  save(ownerUserId: string, planId: PlanId = "explorer") {
+  save(ownerUserId: string, planId: PlanId = "free") {
     const now = new Date().toISOString();
     const account: Account = {
       account_id: randomUUID(),
@@ -134,7 +134,7 @@ export const entitlementRepository: EntitlementRepository = {
   mode: "read-write",
   get(accountId: string) {
     const row = getDb().prepare("SELECT snapshot_json FROM entitlement_snapshots WHERE account_id = ?").get(accountId) as { snapshot_json: string } | undefined;
-    return row ? (JSON.parse(row.snapshot_json) as EntitlementSnapshot) : resolveEntitlementsForPlan(accountId, "explorer", "plan_matrix");
+    return row ? (JSON.parse(row.snapshot_json) as EntitlementSnapshot) : resolveEntitlementsForPlan(accountId, "free", "plan_matrix");
   },
   set(snapshot: EntitlementSnapshot) {
     getDb()

@@ -7,7 +7,7 @@ export function resolveEntitlementsForPlan(
   planId: PlanId,
   source: EntitlementSnapshot["source_of_truth"],
 ): EntitlementSnapshot {
-  const template = PLAN_MATRIX[planId] ?? PLAN_MATRIX.explorer;
+  const template = PLAN_MATRIX[planId] ?? PLAN_MATRIX.free;
   return {
     account_id: accountId,
     ...template,

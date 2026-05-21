@@ -32,6 +32,13 @@ type IntakeState =
   | "failed";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+const CLAIM_PRESETS = [
+  "Profitable after realistic costs",
+  "Robust enough for live deployment",
+  "Prop-firm evaluation ready",
+  "Not dependent on one favorable regime",
+  "Investor or buyer ready",
+] as const;
 
 export function NewAnalysisIntake() {
   const [state, setState] = useState<IntakeState>("idle");
@@ -40,6 +47,8 @@ export function NewAnalysisIntake() {
   const [status, setStatus] = useState<AnalysisStatusResponse | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [strategyName, setStrategyName] = useState<string>("");
+  const [claimDraft, setClaimDraft] = useState<string>("");
+  const [declaredClaims, setDeclaredClaims] = useState<string[]>([]);
   const [clientError, setClientError] = useState<string | null>(null);
   const [benchmarkSelection, setBenchmarkSelection] = useState<BenchmarkSelectionValue>({ mode: "auto", requested_id: null });
   const [accountSize, setAccountSize] = useState<string>("100000");
@@ -110,6 +119,12 @@ export function NewAnalysisIntake() {
         runtime_config: {
           account_size: parsePositiveNumber(accountSize),
           risk_per_trade_pct: parsePositiveNumber(riskPerTradePct),
+          declared_claims: declaredClaims.map((claim, index) => ({
+            claim_id: `user_claim_${index + 1}`,
+            claim,
+            source: "analysis_intake",
+            priority: index === 0 ? "critical" : "high",
+          })),
           prop_evaluation_rules: useCustomPropRules
             ? {
                 schema_version: "prop_evaluation_rules_v1",
@@ -199,6 +214,20 @@ export function NewAnalysisIntake() {
     }
   }
 
+  function addClaim(value: string) {
+    const claim = value.trim().replace(/\s+/g, " ");
+    if (!claim) return;
+    setDeclaredClaims((current) => {
+      if (current.some((item) => item.toLowerCase() === claim.toLowerCase())) return current;
+      return [...current, claim].slice(0, 8);
+    });
+    setClaimDraft("");
+  }
+
+  function removeClaim(index: number) {
+    setDeclaredClaims((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  }
+
   return (
     <div className="space-y-4">
       <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
@@ -273,6 +302,60 @@ export function NewAnalysisIntake() {
               </label>
             </div>
             <BenchmarkSelector value={benchmarkSelection} onChange={setBenchmarkSelection} />
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-text-institutional">Claims to test</p>
+                  <p className="mt-1 text-xs leading-5 text-text-neutral">
+                    State what you believe this artifact proves. These claims are carried into the assumption ledger, proof report, share room, and Research Desk packet.
+                  </p>
+                </div>
+                <span className="rounded-full border border-border-subtle bg-surface-white px-2.5 py-1 text-xs text-text-neutral">{declaredClaims.length}/8 claims</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {CLAIM_PRESETS.map((claim) => (
+                  <button
+                    key={claim}
+                    type="button"
+                    onClick={() => addClaim(claim)}
+                    className="rounded-full border border-border-subtle bg-surface-white px-3 py-1.5 text-xs font-medium text-text-graphite transition hover:border-brand/35 hover:text-brand"
+                  >
+                    {claim}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  className="min-h-10 flex-1 rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
+                  type="text"
+                  maxLength={280}
+                  placeholder="e.g., This strategy can survive a 5 bps slippage increase."
+                  value={claimDraft}
+                  onChange={(event) => setClaimDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addClaim(claimDraft);
+                    }
+                  }}
+                />
+                <button type="button" className={buttonVariants({ variant: "secondary" })} onClick={() => addClaim(claimDraft)}>Add claim</button>
+              </div>
+              {declaredClaims.length ? (
+                <div className="mt-3 space-y-2">
+                  {declaredClaims.map((claim, index) => (
+                    <div key={`${index}-${claim}`} className="flex items-start justify-between gap-3 rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-neutral">
+                      <p className="leading-6"><span className="font-medium text-text-graphite">Claim {index + 1}:</span> {claim}</p>
+                      <button type="button" onClick={() => removeClaim(index)} className="mt-0.5 rounded-sm p-1 text-text-neutral hover:bg-surface-panel hover:text-text-graphite" aria-label={`Remove claim ${index + 1}`}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-text-neutral">Optional for quick CSV runs, but strongly recommended. Without declared claims, the Lab will only test claims implied by the artifact and report language.</p>
+              )}
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
                 <span className="text-sm font-medium text-text-institutional">Account size</span>
@@ -347,7 +430,7 @@ export function NewAnalysisIntake() {
               <UpgradePanel
                 title="Monthly analysis limit reached"
                 explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
-                planHint="Professional and Research Lab increase monthly analysis throughput."
+                planHint="Individual, Pro, Team, and Research Desk increase monthly analysis throughput."
               />
             )}
             {isUploadPlanRestricted(apiErrorCode) && (
@@ -356,7 +439,7 @@ export function NewAnalysisIntake() {
                   state: "plan_locked",
                   diagnosticTitle: "Advanced Artifact Upload",
                   diagnosticPurpose: "Upload structured or research bundles to unlock richer eligibility and diagnostics.",
-                  requiredPlan: "Professional",
+                  requiredPlan: "Individual",
                 })}
               />
             )}

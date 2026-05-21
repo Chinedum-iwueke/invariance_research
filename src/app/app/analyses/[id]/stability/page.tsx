@@ -31,7 +31,7 @@ export default async function StabilityPage({ params }: { params: Promise<{ id: 
       diagnosticTitle: "Parameter Stability",
       diagnosticPurpose: "Assess fragility across parameter sweeps and perturbation ranges.",
       currentPlan: state?.account.plan_id,
-      requiredPlan: "Research Lab",
+      requiredPlan: "Pro",
       artifactRequirementProfile: "parameter_sweep_bundle",
     });
     return (

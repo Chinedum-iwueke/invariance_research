@@ -23,6 +23,8 @@ export type EvidenceEventType =
   | "share_expired"
   | "share_revoked"
   | "research_desk_packet_created"
+  | "research_desk_status_updated"
+  | "research_desk_addendum_approved"
   | "prop_readiness_recomputed"
   | "prop_readiness_changed_after_rule_edit"
   | "prop_fallback_rules_replaced";

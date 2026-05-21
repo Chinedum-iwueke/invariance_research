@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 import { createReportShare } from "@/lib/server/share/share-service";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "share_create", kind: "share_create", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as { expires_at?: string };
   try {
-    const created = createReportShare({
+    const created = await createReportShare({
       report_snapshot_id: id,
       account_id: session.account_id,
       user_id: session.user_id,
@@ -21,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "share_create_failed";
-    const status = code === "report_snapshot_superseded" ? 409 : 404;
+    const status = code === "report_snapshot_superseded" ? 409 : code === "share_plan_restricted" || code === "share_quota_reached" ? 403 : 404;
     return NextResponse.json({ error: { code, message: "Share link could not be created." } }, { status });
   }
 }

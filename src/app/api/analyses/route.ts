@@ -3,6 +3,7 @@ import { requireServerSession } from "@/lib/server/auth/session";
 import { isBenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 import { createAnalysisFromArtifact, listAnalyses } from "@/lib/server/services/analysis-service";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
+import type { DeclaredStrategyClaim } from "@/lib/server/ingestion";
 
 export async function GET() {
   const session = await requireServerSession();
@@ -17,7 +18,12 @@ export async function POST(request: Request) {
     artifact_id?: string;
     strategy_name?: string;
     benchmark?: { mode?: "auto" | "none" | "manual"; requested_id?: string | null };
-    runtime_config?: { account_size?: number; risk_per_trade_pct?: number; prop_evaluation_rules?: Record<string, unknown> };
+    runtime_config?: {
+      account_size?: number;
+      risk_per_trade_pct?: number;
+      prop_evaluation_rules?: Record<string, unknown>;
+      declared_claims?: unknown;
+    };
   };
   if (!body.artifact_id) {
     return NextResponse.json({ error: { code: "invalid_payload", message: "artifact_id is required" } }, { status: 400 });
@@ -39,6 +45,7 @@ export async function POST(request: Request) {
   const riskPerTradePct = typeof body.runtime_config?.risk_per_trade_pct === "number" && Number.isFinite(body.runtime_config.risk_per_trade_pct) && body.runtime_config.risk_per_trade_pct > 0
     ? body.runtime_config.risk_per_trade_pct
     : undefined;
+  const declaredClaims = normalizeDeclaredClaims(body.runtime_config?.declared_claims);
 
   try {
     const response = await createAnalysisFromArtifact({
@@ -51,6 +58,7 @@ export async function POST(request: Request) {
         account_size: accountSize,
         risk_per_trade_pct: riskPerTradePct,
         prop_evaluation_rules: body.runtime_config?.prop_evaluation_rules,
+        declared_claims: declaredClaims,
       },
     });
     return NextResponse.json(response, { status: 201 });
@@ -72,4 +80,32 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ error: { code, message } }, { status });
   }
+}
+
+function normalizeDeclaredClaims(input: unknown): DeclaredStrategyClaim[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const seen = new Set<string>();
+  const claims = input
+    .map((item, index): DeclaredStrategyClaim | undefined => {
+      if (!item || typeof item !== "object") return undefined;
+      const record = item as Record<string, unknown>;
+      const claim = typeof record.claim === "string" ? record.claim.trim() : "";
+      if (!claim) return undefined;
+      const key = claim.toLowerCase();
+      if (seen.has(key)) return undefined;
+      seen.add(key);
+      const priority = record.priority === "low" || record.priority === "medium" || record.priority === "high" || record.priority === "critical"
+        ? record.priority
+        : "high";
+      return {
+        claim_id: typeof record.claim_id === "string" && record.claim_id.trim() ? record.claim_id.trim().slice(0, 64) : `user_claim_${index + 1}`,
+        claim: claim.slice(0, 280),
+        source: "analysis_intake",
+        priority,
+      };
+    })
+    .filter((item): item is DeclaredStrategyClaim => Boolean(item))
+    .slice(0, 8);
+
+  return claims.length ? claims : undefined;
 }

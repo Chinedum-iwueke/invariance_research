@@ -17,8 +17,18 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
   const startedAt = Date.now();
 
   const dispatch = await buildAnalysisEngineDispatchPayload({ analysis, parsedArtifact, eligibility });
+  const engineParsedArtifact = dispatch.config.declared_claims?.length || dispatch.config.prop_evaluation_rules
+    ? {
+        ...parsedArtifact,
+        declared_claims: dispatch.config.declared_claims?.length
+          ? mergeDeclaredClaims(parsedArtifact.declared_claims, dispatch.config.declared_claims)
+          : parsedArtifact.declared_claims,
+        prop_evaluation_rules: dispatch.config.prop_evaluation_rules ?? parsedArtifact.prop_evaluation_rules,
+        strategy_truth_room_contract_version: parsedArtifact.strategy_truth_room_contract_version ?? "1.0.0",
+      }
+    : parsedArtifact;
 
-  const engineResponse = await runBulletproofEngine(parsedArtifact, dispatch.config);
+  const engineResponse = await runBulletproofEngine(engineParsedArtifact, dispatch.config);
   const result = engineResponse.result;
   const envelope: EngineEnvelopeV1 = {
     engine_name: engineResponse.envelope?.engine_name ?? "bt",
@@ -58,4 +68,23 @@ export async function runBulletproofAnalysisFromParsedArtifact(params: RunBullet
       ],
     },
   };
+}
+
+function mergeDeclaredClaims(
+  artifactClaims: NonNullable<RunBulletproofAnalysisParams["parsedArtifact"]["declared_claims"]> | undefined,
+  runtimeClaims: NonNullable<RunBulletproofAnalysisParams["parsedArtifact"]["declared_claims"]>,
+) {
+  const seen = new Set<string>();
+  return [...(artifactClaims ?? []), ...runtimeClaims]
+    .map((claim, index) => ({
+      ...claim,
+      claim_id: claim.claim_id ?? `declared_claim_${index + 1}`,
+      source: claim.source ?? "analysis_intake",
+    }))
+    .filter((claim) => {
+      const key = claim.claim.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }

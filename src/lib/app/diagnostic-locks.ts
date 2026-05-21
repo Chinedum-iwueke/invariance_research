@@ -30,8 +30,8 @@ interface BuildDiagnosticLockModelInput {
 }
 
 export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): DiagnosticLockModel {
-  const currentPlan = (input.currentPlan ?? "explorer").toLowerCase();
-  const showUpgradeCta = currentPlan === "explorer" || currentPlan === "professional";
+  const currentPlan = (input.currentPlan ?? "free").toLowerCase();
+  const showUpgradeCta = ["free", "explorer", "individual", "professional", "pro", "research_lab"].includes(currentPlan);
 
   if (input.state === "artifact_unavailable") {
     if (input.artifactRequirementProfile === "execution_sensitivity") {
@@ -73,7 +73,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
           { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
         ],
         footerNote:
-          "Parameter Stability also requires Research Lab access. Artifact structure and plan tier are both required.",
+          "Parameter Stability also requires Pro access. Artifact structure and plan tier are both required; OHLCV may still be needed for adjacent regime context.",
       };
     }
 
@@ -128,12 +128,12 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         "The current engine release cannot yet compute this diagnostic credibly from the available context.",
       unlockRequirements: [
         "Use currently supported diagnostics for this artifact.",
-        "Request advisory review for high-stakes interpretation.",
+      "Request Research Desk review for high-stakes interpretation.",
         "Engine support may expand in future validated releases.",
       ],
       actions: [
         { label: "View supported diagnostics", href: "/app/analyses", emphasis: "primary" },
-        { label: "Request strategy audit", href: "/contact", emphasis: "secondary" },
+        { label: "Request Research Desk", href: "/contact", emphasis: "secondary" },
       ],
       footerNote: "This limitation is engine-based and does not require a plan upgrade.",
     };
@@ -144,10 +144,10 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
     diagnosticPurpose: input.diagnosticPurpose,
     state: input.state,
     badgeLabel: "Plan Locked",
-    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Professional"} plan and above.${input.artifactRequirementProfile ? " It also requires specific structured artifact inputs." : ""}`,
+    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Individual"} plan and above.${input.artifactRequirementProfile ? " It also requires specific structured artifact inputs." : ""}`,
     unlockRequirements: [
-      `Current plan: ${input.currentPlan ?? "Explorer"}`,
-      `Required plan: ${input.requiredPlan ?? "Professional"}`,
+      `Current plan: ${input.currentPlan ?? "Free"}`,
+      `Required plan: ${input.requiredPlan ?? "Individual"}`,
       ...(input.artifactRequirementProfile === "parameter_sweep_bundle"
         ? ["Artifact requirement: parameter sweep bundle with run-to-parameter mapping."]
         : input.artifactRequirementProfile === "regime_analysis"
@@ -156,7 +156,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
       "Upgrade unlocks deeper diagnostics and workflow capacity for this surface.",
     ],
     actions: [
-      ...(showUpgradeCta ? [{ label: `Upgrade to ${input.requiredPlan ?? "Professional"}`, href: "/app/upgrade", emphasis: "primary" as const }] : []),
+      ...(showUpgradeCta ? [{ label: `Upgrade to ${input.requiredPlan ?? "Individual"}`, href: "/app/upgrade", emphasis: "primary" as const }] : []),
       { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
     ],
     footerNote: showUpgradeCta

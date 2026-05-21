@@ -9,33 +9,39 @@ import { requireServerSession } from "@/lib/server/auth/session";
 export default async function UpgradePage() {
   const session = await requireServerSession();
   const state = await accountService.getAccountState(session.account_id);
-  const currentPlan = state?.account.plan_id ?? "explorer";
+  const currentPlan = state?.account.plan_id ?? "free";
 
   return (
     <AnalysisPageFrame title="Upgrade">
-      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
-        <WorkspaceCard title="Explorer" subtitle="Foundational tier">
-          <p className="text-sm text-text-neutral">Serious baseline diagnostics for lower-frequency validation and disciplined initial workflow cadence.</p>
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-5">
+        <WorkspaceCard title="Free" subtitle="$0">
+          <p className="text-sm text-text-neutral">Limited trade CSV runs with preview diagnostics, fallback prop evaluation, no exports, and short retention.</p>
           <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="explorer" />
+            <PlanAction currentPlan={currentPlan} targetPlan="free" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Professional" subtitle="Core paid tier">
-          <p className="text-sm text-text-neutral">Execution sensitivity, full report visibility, export, and materially higher monthly capacity.</p>
+        <WorkspaceCard title="Individual" subtitle="$79/mo">
+          <p className="text-sm text-text-neutral">Trade CSV and basic bundles, full exports, core diagnostics, and one custom prop evaluation profile per analysis.</p>
           <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="professional" />
+            <PlanAction currentPlan={currentPlan} targetPlan="individual" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Research Lab" subtitle="Premium research tier">
-          <p className="text-sm text-text-neutral">Regimes, stability, and the highest productized throughput for advanced validation teams.</p>
+        <WorkspaceCard title="Pro" subtitle="$199/mo">
+          <p className="text-sm text-text-neutral">Full automated suite where artifacts support it, saved prop profiles, report appendix, and share links.</p>
           <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="research_lab" />
+            <PlanAction currentPlan={currentPlan} targetPlan="pro" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Advisory / Enterprise" subtitle="Institutional pathway">
-          <p className="text-sm text-text-neutral">Custom limits, confidential workflows, and expert-led audit engagements.</p>
+        <WorkspaceCard title="Team" subtitle="$799/mo">
+          <p className="text-sm text-text-neutral">Seats, team library, shared prop firm profiles, shared reports, admin controls, and priority processing.</p>
           <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="advisory" />
+            <PlanAction currentPlan={currentPlan} targetPlan="team" />
+          </div>
+        </WorkspaceCard>
+        <WorkspaceCard title="Research Desk" subtitle="From $1,500">
+          <p className="text-sm text-text-neutral">Project-based review with addenda, execution/data QA, benchmark construction, and prop-rule interpretation.</p>
+          <div className="pt-3">
+            <PlanAction currentPlan={currentPlan} targetPlan="research_desk" />
           </div>
         </WorkspaceCard>
       </div>
@@ -44,8 +50,8 @@ export default async function UpgradePage() {
 
       <UpgradePanel
         title="Choose the plan that matches your diagnostic depth"
-        explanation="Explorer remains serious and useful. Upgrade when your artifact quality, run cadence, or required diagnostics exceed Explorer boundaries."
-        planHint="Advisory is contact-led for institutional needs."
+        explanation="Free remains useful for first evaluation. Upgrade when your artifact quality, run cadence, exports, or required diagnostics exceed Free boundaries."
+        planHint="Research Desk is contact-led for high-touch validation."
       />
     </AnalysisPageFrame>
   );

@@ -54,16 +54,46 @@ const mockRecord: AnalysisRecord = {
   diagnostics: {
     overview: {
       metrics: [],
+      figures: [],
       interpretation: { title: "", summary: "" },
       verdict: { status: "strong", title: "", summary: "" },
     },
-    distribution: { metrics: [], interpretation: { title: "", summary: "" } },
-    monte_carlo: { metrics: [], interpretation: { title: "", summary: "" } },
-    stability: { metrics: [], interpretation: { title: "", summary: "" }, locked: true },
-    execution: { metrics: [], interpretation: { title: "", summary: "" } },
-    regimes: { metrics: [], interpretation: { title: "", summary: "" }, locked: true },
-    ruin: { metrics: [], interpretation: { title: "", summary: "" }, assumptions: [] },
+    distribution: { metrics: [], figures: [], interpretation: { title: "", summary: "" } },
+    monte_carlo: { metrics: [], figures: [], interpretation: { title: "", summary: "" } },
+    stability: { metrics: [], figure: undefined, interpretation: { title: "", summary: "" }, locked: true },
+    execution: { metrics: [], figures: [], interpretation: { title: "", summary: "" } },
+    regimes: { metrics: [], figures: [], interpretation: { title: "", summary: "" }, locked: true },
+    ruin: { metrics: [], figure: undefined, interpretation: { title: "", summary: "" }, assumptions: [] },
     report: { sections: [] },
+  },
+  engine_payload: {
+    summary_metrics: [],
+    diagnostics: { overview: { status: "available", summary_metrics: [], figures: [], assumptions: [], warnings: [], recommendations: [], limitations: [] } },
+    report_sections: { assumptions: [], limitations: [], recommendations: ["Monitor live slippage."] },
+    raw_result: {},
+  },
+  report: {
+    report_id: "report-analysis-pdf-1",
+    executive_summary: "Launch-grade validation report.",
+    diagnostics_summary: ["Overview available."],
+    methodology_assumptions: ["Trade-level fixture."],
+    limitations: [],
+    recommendations: ["Monitor live slippage."],
+    deployment_guidance: ["Proceed in phases."],
+    figures: [],
+    source: "summary_fallback",
+    export_ready: true,
+    generated_at: "2026-01-01",
+  },
+  diagnostic_statuses: {
+    overview: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+    distribution: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+    monte_carlo: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+    stability: { status: "skipped", available: false, limited: false, unavailable: false, skipped: true },
+    execution: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+    regimes: { status: "skipped", available: false, limited: false, unavailable: false, skipped: true },
+    ruin: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
+    report: { status: "available", available: true, limited: false, unavailable: false, skipped: false },
   },
 };
 
@@ -76,7 +106,7 @@ test("pdf export renderer emits application/pdf payload", () => {
   const rendered = renderExport(mockRecord, "pdf");
   const prefix = Buffer.from(rendered.bytes).subarray(0, 8).toString("utf8");
   assert.equal(rendered.content_type, "application/pdf");
-  assert.equal(rendered.file_name, "analysis-pdf-1.pdf");
+  assert.equal(rendered.file_name, "analysis-pdf-1-validation-report-live.pdf");
   assert.equal(prefix.startsWith("%PDF-1."), true);
 });
 
@@ -86,4 +116,19 @@ test("startup validation reports worker readiness checks", async () => {
   assert.ok(names.includes("analysis_worker"));
   assert.ok(names.includes("export_worker"));
   assert.ok(names.includes("queue"));
+});
+
+test("worker deploy stack includes analysis and export workers", () => {
+  const deployRoot = path.join(process.cwd(), "deploy");
+  const compose = fs.readFileSync(path.join(deployRoot, "docker-compose.worker.yml"), "utf8");
+  const env = fs.readFileSync(path.join(deployRoot, ".env.worker"), "utf8");
+  const readme = fs.readFileSync(path.join(deployRoot, "README.worker.md"), "utf8");
+
+  assert.match(compose, /analysis-worker:/);
+  assert.match(compose, /export-worker:/);
+  assert.match(compose, /command:\s*\["npm", "run", "worker:export"\]/);
+  assert.match(compose, /INVARIANCE_WORKER_KIND:\s*export-worker/);
+  assert.match(env, /INVARIANCE_EXPORT_WORKER_POLL_MS=1000/);
+  assert.match(readme, /docker logs -f invariance-export-worker/);
+  assert.equal(readme.includes("export workers are intentionally not included yet"), false);
 });

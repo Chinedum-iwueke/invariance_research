@@ -21,6 +21,17 @@ import { checkRateLimit, rateLimitKey } from "../src/lib/server/rate-limits";
 function resetDb() {
   getDb().exec(`
     DELETE FROM rate_limit_buckets;
+    DELETE FROM prop_evaluation_results;
+    DELETE FROM prop_evaluation_rule_snapshots;
+    DELETE FROM prop_evaluation_rule_profiles;
+    DELETE FROM wedge_learning_events;
+    DELETE FROM report_reviewer_addenda;
+    DELETE FROM research_desk_requests;
+    DELETE FROM share_access_events;
+    DELETE FROM share_tokens;
+    DELETE FROM export_jobs;
+    DELETE FROM exports;
+    DELETE FROM report_snapshots;
     DELETE FROM analysis_jobs;
     DELETE FROM evidence_events;
     DELETE FROM analyses;
@@ -152,6 +163,31 @@ test("rate limit allows under limit and blocks over limit", async () => {
   assert.equal((await checkRateLimit({ route: "signup", kind: "auth", key })).allowed, true);
   assert.equal((await checkRateLimit({ route: "signup", kind: "auth", key })).allowed, false);
   delete process.env.RATE_LIMIT_AUTH_MAX;
+});
+
+test("phase 8 operational routes have explicit rate limit buckets", async () => {
+  process.env.RATE_LIMIT_EXPORT_MAX = "1";
+  process.env.RATE_LIMIT_SHARE_CREATE_MAX = "1";
+  process.env.RATE_LIMIT_SHARE_ACCESS_MAX = "1";
+  process.env.RATE_LIMIT_RESEARCH_DESK_MAX = "1";
+
+  const cases = [
+    { route: "export_request", kind: "export" as const },
+    { route: "share_create", kind: "share_create" as const },
+    { route: "share_access", kind: "share_access" as const },
+    { route: "research_desk_request", kind: "research_desk" as const },
+  ];
+
+  for (const item of cases) {
+    const key = `phase8:${item.route}`;
+    assert.equal((await checkRateLimit({ route: item.route, kind: item.kind, key })).allowed, true);
+    assert.equal((await checkRateLimit({ route: item.route, kind: item.kind, key })).allowed, false);
+  }
+
+  delete process.env.RATE_LIMIT_EXPORT_MAX;
+  delete process.env.RATE_LIMIT_SHARE_CREATE_MAX;
+  delete process.env.RATE_LIMIT_SHARE_ACCESS_MAX;
+  delete process.env.RATE_LIMIT_RESEARCH_DESK_MAX;
 });
 
 test("rate limit key prefers account and user identity over ip", () => {

@@ -1,3 +1,4 @@
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { Card } from "@/components/ui/card";
 
 interface InterpretationBlockProps {
@@ -15,11 +16,7 @@ function StructuredList({ title, items, tone }: { title: string; items?: string[
   return (
     <div>
       <p className={`text-xs font-semibold uppercase tracking-wide ${toneClass}`}>{title}</p>
-      <ul className="mt-1.5 space-y-1.5 text-sm text-text-neutral">
-        {items.map((item, index) => (
-          <li key={`${title}-${index}-${item.slice(0, 24)}`}>• {item}</li>
-        ))}
-      </ul>
+      <EvidenceList className="mt-1.5" items={items} empty={`No ${title.toLowerCase()} emitted.`} tone={tone} />
     </div>
   );
 }
@@ -31,11 +28,7 @@ export function InterpretationBlock({ title = "What this means", body, bullets, 
       <p className="mt-2 text-sm leading-relaxed text-text-graphite">{body}</p>
       <div className="mt-3 space-y-3">
         {bullets?.length ? (
-          <ul className="space-y-1.5 text-sm text-text-neutral">
-            {bullets.map((bullet, index) => (
-              <li key={`bullet-${index}-${bullet.slice(0, 24)}`}>• {bullet}</li>
-            ))}
-          </ul>
+          <EvidenceList items={bullets} empty="No interpretation bullets emitted." />
         ) : null}
         <StructuredList title="Positives" items={positives} tone="positive" />
         <StructuredList title="Cautions" items={cautions} tone="warning" />

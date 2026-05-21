@@ -144,6 +144,7 @@ function seedArtifact(accountId: string, userId: string, artifactId: string) {
 
 async function seedSnapshot(input: { email: string; analysis_id: string; artifact_id: string }) {
   const { user, account } = await accountService.ensureUserAndAccount({ email: input.email });
+  await accountService.applySubscription({ account_id: account.account_id, provider_customer_id: `cus-${input.analysis_id}`, provider_subscription_id: `sub-${input.analysis_id}`, plan_id: "individual", status: "active" });
   seedArtifact(account.account_id, user.user_id, input.artifact_id);
   const record = analysisRecord({ analysis_id: input.analysis_id });
   analysisRepository.save({

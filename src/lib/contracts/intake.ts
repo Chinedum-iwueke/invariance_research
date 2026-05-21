@@ -81,6 +81,12 @@ export type CreateAnalysisRequest = {
     account_size?: number;
     risk_per_trade_pct?: number;
     prop_evaluation_rules?: Record<string, unknown>;
+    declared_claims?: Array<{
+      claim_id?: string;
+      claim: string;
+      source?: string;
+      priority?: "low" | "medium" | "high" | "critical";
+    }>;
   };
 };
 

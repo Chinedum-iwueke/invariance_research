@@ -112,7 +112,7 @@ export const postgresAccountRepository = {
     const result = await getPostgresPool().query("SELECT * FROM accounts WHERE account_id = $1", [accountId]);
     return result.rows[0] ? mapAccount(result.rows[0]) : undefined;
   },
-  async save(ownerUserId: string, planId: PlanId = "explorer") {
+  async save(ownerUserId: string, planId: PlanId = "free") {
     const now = new Date().toISOString();
     const account: Account = {
       account_id: randomUUID(),
@@ -184,7 +184,7 @@ export const postgresEntitlementRepository = {
   async get(accountId: string) {
     const result = await getPostgresPool().query("SELECT snapshot_json FROM entitlement_snapshots WHERE account_id = $1", [accountId]);
     const snapshot = result.rows[0]?.snapshot_json;
-    return snapshot ? (typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot) : resolveEntitlementsForPlan(accountId, "explorer", "plan_matrix");
+    return snapshot ? (typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot) : resolveEntitlementsForPlan(accountId, "free", "plan_matrix");
   },
   async set(snapshot: EntitlementSnapshot) {
     await getPostgresPool().query(

@@ -4,6 +4,7 @@ import type {
   ReviewerAddendumRecord,
   WedgeLearningEventRecord,
 } from "@/lib/server/research-desk/models";
+import { canonicalResearchDeskService, canonicalResearchDeskStatus } from "@/lib/server/research-desk/models";
 import { getDb } from "@/lib/server/persistence/database";
 
 function parseJson<T>(value: unknown, fallback: T): T {
@@ -24,9 +25,11 @@ function mapRequest(row: Record<string, unknown>): ResearchDeskRequestRecord {
     account_id: String(row.account_id),
     requested_by_user_id: String(row.requested_by_user_id),
     trigger_limitation: String(row.trigger_limitation),
-    requested_services: parseJson(row.requested_services_json, []),
+    requested_services: parseJson<string[]>(row.requested_services_json, [])
+      .map((service) => canonicalResearchDeskService(service))
+      .filter((service): service is ResearchDeskRequestRecord["requested_services"][number] => Boolean(service)),
     validation_packet: parseJson(row.validation_packet_json, undefined as never),
-    status: row.status as ResearchDeskRequestStatus,
+    status: canonicalResearchDeskStatus(String(row.status)) ?? "received",
     user_note: row.user_note ? String(row.user_note) : undefined,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
@@ -103,6 +106,13 @@ export const researchDeskRepository = {
       ? getDb().prepare("SELECT * FROM research_desk_requests WHERE status = ? ORDER BY created_at DESC").all(status)
       : getDb().prepare("SELECT * FROM research_desk_requests ORDER BY created_at DESC").all();
     return (rows as Record<string, unknown>[]).map(mapRequest);
+  },
+
+  listRequestsByAnalysis(analysisId: string) {
+    const rows = getDb()
+      .prepare("SELECT * FROM research_desk_requests WHERE analysis_id = ? ORDER BY created_at DESC")
+      .all(analysisId) as Record<string, unknown>[];
+    return rows.map(mapRequest);
   },
 
   updateRequestStatus(requestId: string, status: ResearchDeskRequestStatus, updatedAt: string) {

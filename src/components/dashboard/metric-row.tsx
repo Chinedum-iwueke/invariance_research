@@ -1,8 +1,14 @@
 import type { KeyMetric } from "@/lib/app/analysis-ui";
 import { MetricTile } from "@/components/dashboard/metric-tile";
 
-export function MetricRow({ metrics, cols = 4 }: { metrics: KeyMetric[]; cols?: 3 | 4 | 6 }) {
-  const grid = cols === 6 ? "md:grid-cols-3 2xl:grid-cols-6" : cols === 3 ? "md:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-4";
+export function MetricRow({ metrics, cols = 4 }: { metrics: KeyMetric[]; cols?: 2 | 3 | 4 | 6 }) {
+  const grid = cols === 6
+    ? "md:grid-cols-3 2xl:grid-cols-6"
+    : cols === 3
+      ? "md:grid-cols-3"
+      : cols === 2
+        ? "md:grid-cols-2"
+        : "md:grid-cols-2 xl:grid-cols-4";
   return (
     <div className={`grid gap-4 ${grid}`}>
       {metrics.map((metric) => (

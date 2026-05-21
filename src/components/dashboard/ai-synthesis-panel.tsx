@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 
 interface AiSynthesisPanelProps {
@@ -24,9 +25,7 @@ export function AiSynthesisPanel({ title, summary, bullets = [], model }: AiSynt
       <div className="space-y-3">
         {summary ? <p className="text-sm leading-relaxed text-text-neutral">{summary}</p> : null}
         {bullets.length ? (
-          <ul className="space-y-1.5 text-sm text-text-neutral">
-            {bullets.map((item, index) => <li key={`ai-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-          </ul>
+          <EvidenceList items={bullets} empty="No synthesis bullets were emitted." tone="neutral" limit={6} />
         ) : null}
       </div>
     </WorkspaceCard>

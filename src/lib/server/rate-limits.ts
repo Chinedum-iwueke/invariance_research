@@ -4,12 +4,16 @@ import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
-export type RateLimitKind = "auth" | "upload" | "analysis_create" | "waitlist";
+export type RateLimitKind = "auth" | "upload" | "analysis_create" | "export" | "share_create" | "share_access" | "research_desk" | "waitlist";
 
 const DEFAULT_MAX: Record<RateLimitKind, number> = {
   auth: 10,
   upload: 20,
   analysis_create: 10,
+  export: 20,
+  share_create: 20,
+  share_access: 120,
+  research_desk: 5,
   waitlist: 5,
 };
 
@@ -27,6 +31,10 @@ function maxFor(kind: RateLimitKind) {
     auth: "RATE_LIMIT_AUTH_MAX",
     upload: "RATE_LIMIT_UPLOAD_MAX",
     analysis_create: "RATE_LIMIT_ANALYSIS_CREATE_MAX",
+    export: "RATE_LIMIT_EXPORT_MAX",
+    share_create: "RATE_LIMIT_SHARE_CREATE_MAX",
+    share_access: "RATE_LIMIT_SHARE_ACCESS_MAX",
+    research_desk: "RATE_LIMIT_RESEARCH_DESK_MAX",
     waitlist: "RATE_LIMIT_WAITLIST_MAX",
   };
   const parsed = Number(process.env[envByKind[kind]]);

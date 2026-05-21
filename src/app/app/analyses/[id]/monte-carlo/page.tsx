@@ -7,6 +7,7 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
 import { metricsFromScoreBands, selectMonteCarloTopMetrics } from "@/lib/app/analysis-ui";
@@ -114,12 +115,15 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Simulation realism posture" subtitle="What was materially available in this run context">
-          <ul className="space-y-1.5 text-sm text-text-neutral">
-            <li>• Method: {method}</li>
-            <li>• Paths: {simulations}</li>
-            <li>• Horizon: {horizon}</li>
-            <li>• Ruin threshold: {ruinThreshold}</li>
-          </ul>
+          <EvidenceList
+            items={[
+              `Method: ${method}`,
+              `Paths: ${simulations}`,
+              `Horizon: ${horizon}`,
+              `Ruin threshold: ${ruinThreshold}`,
+            ]}
+            empty="No simulation realism fields were emitted."
+          />
         </WorkspaceCard>
       </div>
 

@@ -82,12 +82,19 @@ export function buildProofReportExportPayload(record: AnalysisRecord, snapshot?:
       .filter(([, status]) => status.status === "available")
       .map(([diagnostic]) => diagnostic);
   const unsupportedClaims = (record.claim_inventory ?? []).filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status));
+  const isInternalAssumption = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "engine=bt"
+      || normalized === "seam=run_analysis_from_parsed_artifact"
+      || normalized.startsWith("engine=")
+      || normalized.startsWith("seam=");
+  };
   const assumptions = [
     ...(record.assumption_ledger ?? [])
       .filter((item) => item.materiality === "critical" || item.materiality === "high")
       .map((item) => `${item.statement}${item.rescue_evidence ? ` Rescue evidence: ${item.rescue_evidence}` : ""}`),
     ...record.report.methodology_assumptions,
-  ].filter((item, index, all) => item.length > 0 && all.indexOf(item) === index);
+  ].filter((item, index, all) => item.length > 0 && !isInternalAssumption(item) && all.indexOf(item) === index);
   const limitations = [
     ...report.limitations,
     ...(proofReport?.what_this_result_does_not_prove ?? []),

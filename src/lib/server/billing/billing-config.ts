@@ -3,34 +3,70 @@ import type { PlanId } from "@/lib/contracts/account";
 
 export const BILLING_PLAN_CATALOG: PlanCatalogEntry[] = [
   {
-    id: "explorer",
-    label: "Explorer",
+    id: "free",
+    label: "Free",
     self_serve_checkout: false,
-    description: "Serious free access with limited monthly analysis and report depth.",
+    description: "Limited trade CSV validation with preview diagnostics and short retention.",
+  },
+  {
+    id: "individual",
+    label: "Individual",
+    stripe_price_id: process.env.STRIPE_PRICE_INDIVIDUAL ?? process.env.STRIPE_PRICE_PROFESSIONAL ?? "price_individual",
+    self_serve_checkout: true,
+    description: "Self-directed trader tier with exports, core diagnostics, and one custom prop evaluation profile per analysis.",
+  },
+  {
+    id: "pro",
+    label: "Pro",
+    stripe_price_id: process.env.STRIPE_PRICE_PRO ?? process.env.STRIPE_PRICE_RESEARCH_LAB ?? "price_pro",
+    self_serve_checkout: true,
+    description: "Strategy seller and researcher tier with full automated suite, saved prop profiles, and share links.",
+  },
+  {
+    id: "team",
+    label: "Team",
+    stripe_price_id: process.env.STRIPE_PRICE_TEAM ?? "price_team",
+    self_serve_checkout: true,
+    description: "Team library, shared prop-firm profiles, higher limits, seats, and priority processing.",
+  },
+  {
+    id: "research_desk",
+    label: "Research Desk",
+    self_serve_checkout: false,
+    description: "Project-based human and agent-assisted validation, addenda, execution QA, and claim formalization.",
+  },
+  {
+    id: "explorer",
+    label: "Explorer (legacy Free)",
+    self_serve_checkout: false,
+    description: "Legacy alias for Free.",
   },
   {
     id: "professional",
-    label: "Professional",
-    stripe_price_id: process.env.STRIPE_PRICE_PROFESSIONAL,
+    label: "Professional (legacy Individual)",
+    stripe_price_id: process.env.STRIPE_PRICE_PROFESSIONAL ?? process.env.STRIPE_PRICE_INDIVIDUAL ?? "price_individual",
     self_serve_checkout: true,
-    description: "Core paid tier with exports, deeper diagnostics, and higher throughput.",
+    description: "Legacy alias for Individual.",
   },
   {
     id: "research_lab",
-    label: "Research Lab",
-    stripe_price_id: process.env.STRIPE_PRICE_RESEARCH_LAB,
+    label: "Research Lab (legacy Pro)",
+    stripe_price_id: process.env.STRIPE_PRICE_RESEARCH_LAB ?? process.env.STRIPE_PRICE_PRO ?? "price_pro",
     self_serve_checkout: true,
-    description: "Premium research-complete tier for advanced systematic validation work.",
+    description: "Legacy alias for Pro.",
   },
   {
     id: "advisory",
-    label: "Advisory / Enterprise",
+    label: "Advisory (legacy Research Desk)",
     self_serve_checkout: false,
-    description: "Institutional engagement, custom limits, and expert advisory path.",
+    description: "Legacy alias for Research Desk.",
   },
 ];
 
 export const STRIPE_WEBHOOK_PLAN_BY_PRICE: Record<string, PlanId> = {
-  [process.env.STRIPE_PRICE_PROFESSIONAL ?? "price_professional"]: "professional",
-  [process.env.STRIPE_PRICE_RESEARCH_LAB ?? "price_research_lab"]: "research_lab",
+  [process.env.STRIPE_PRICE_INDIVIDUAL ?? "price_individual"]: "individual",
+  [process.env.STRIPE_PRICE_PRO ?? "price_pro"]: "pro",
+  [process.env.STRIPE_PRICE_TEAM ?? "price_team"]: "team",
+  [process.env.STRIPE_PRICE_PROFESSIONAL ?? "price_professional"]: "individual",
+  [process.env.STRIPE_PRICE_RESEARCH_LAB ?? "price_research_lab"]: "pro",
 };

@@ -28,7 +28,7 @@ export async function AppShellLayout({ children, rightRail, context }: AppShellL
   return (
     <div className="min-h-screen bg-surface-white">
       <InstitutionalHeader authenticated />
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         <AppSidebar isAdmin={isAdmin} logoutAction={logoutAction} />
         <div className="min-w-0 flex-1">
           <AppTopbar context={context} />

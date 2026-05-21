@@ -105,7 +105,7 @@ export function ReportExportActions({
           diagnosticTitle: "Report Export",
           diagnosticPurpose: "Generate a downloadable institutional-grade PDF validation report.",
           currentPlan,
-          requiredPlan: "Professional",
+          requiredPlan: "Individual",
         })}
       />
     );

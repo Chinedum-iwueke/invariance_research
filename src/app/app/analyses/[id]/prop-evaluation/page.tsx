@@ -16,6 +16,7 @@ import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
+import { computePropEvaluationReadiness, mergePropDiagnostic } from "@/lib/server/prop-evaluation/prop-evaluation-service";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 
 function titleCase(value: string) {
@@ -26,6 +27,63 @@ function fmt(value: unknown): string {
   if (value === null || value === undefined || value === "") return "Unavailable";
   if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(2);
   return String(value).replace(/_/g, " ");
+}
+
+function fmtPct(value: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fmt(value);
+  return `${value.toFixed(1)}%`;
+}
+
+function fmtCurrency(value: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fmt(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+function fmtRuleValue(rule: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Unavailable";
+  if (typeof value !== "number") return fmt(value);
+  if (/pct|drawdown|loss|target|consistency/.test(rule)) return fmtPct(value);
+  if (/profit|pnl|equity/.test(rule)) return fmtCurrency(value);
+  return fmt(value);
+}
+
+function recordList(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    : [];
+}
+
+function WindowList({ title, empty, windows }: { title: string; empty: string; windows: Array<Record<string, unknown>> }) {
+  return (
+    <div className="rounded-md border border-border-subtle bg-surface-panel/70 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-text-institutional">{title}</p>
+        <span className="rounded-full border border-border-subtle px-2 py-0.5 text-xs text-text-neutral">{windows.length}</span>
+      </div>
+      {windows.length ? (
+        <div className="mt-3 space-y-2">
+          {windows.slice(0, 6).map((window, index) => (
+            <div key={`${window.start_day}-${window.end_day}-${index}`} className="rounded-sm bg-surface-white p-3 text-sm">
+              <p className="font-medium text-text-institutional">{fmt(window.start_day)} to {fmt(window.end_day)}</p>
+              <p className="mt-1 text-xs text-text-neutral">
+                {fmt(window.trading_days)} trading day(s), profit {fmtCurrency(window.profit)} ({fmtPct(window.profit_pct)}).
+              </p>
+              <p className="mt-1 text-xs text-text-neutral">
+                Max daily loss {fmtPct(window.max_daily_loss_pct)}; max total drawdown {fmtPct(window.max_total_drawdown_pct)}.
+              </p>
+              {window.breach_rule ? (
+                <p className="mt-1 text-xs text-chart-negative">Breach: {fmt(window.breach_rule)} on {fmt(window.breach_day)}.</p>
+              ) : window.target_hit_day ? (
+                <p className="mt-1 text-xs text-chart-positive">Target hit on {fmt(window.target_hit_day)}.</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-text-neutral">{empty}</p>
+      )}
+    </div>
+  );
 }
 
 export default async function PropEvaluationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +101,7 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
       diagnosticTitle: "Prop Evaluation Readiness",
       diagnosticPurpose: "Check whether a strategy can pass a prop-firm evaluation without breaching max loss, daily loss, target, or consistency rules.",
       currentPlan: state?.account.plan_id,
-      requiredPlan: "Professional",
+      requiredPlan: "Individual",
     });
     return (
       <AnalysisPageFrame title="Prop Evaluation Readiness" description="Funding challenge feasibility, breach risk, rule edits, and improvement targets.">
@@ -60,12 +118,25 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
     );
   }
 
-  const prop = record.diagnostics.prop_evaluation_readiness;
-  const workbench = buildAnalystWorkbenchModel(record, "prop_evaluation_readiness", { benchmark: analysis.benchmark });
-  const truthContext = buildTruthContext(record, "prop_evaluation_readiness", { benchmark: analysis.benchmark });
+  const computedProp = artifact
+    ? computePropEvaluationReadiness(artifact.parsed_artifact, analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules)
+    : record.diagnostics.prop_evaluation_readiness;
+  const displayRecord = mergePropDiagnostic(record, computedProp);
+  const prop = displayRecord.diagnostics.prop_evaluation_readiness;
+  const workbench = buildAnalystWorkbenchModel(displayRecord, "prop_evaluation_readiness", { benchmark: analysis.benchmark });
+  const truthContext = buildTruthContext(displayRecord, "prop_evaluation_readiness", { benchmark: analysis.benchmark });
   const metrics = metricsFromScoreBands(prop.metrics);
   const ruleSnapshot = prop.rule_snapshot ?? {};
   const firstBreach = prop.first_breach ?? undefined;
+  const metadata = prop.metadata ?? {};
+  const evaluationWindows = recordList(metadata.evaluation_windows);
+  const targetWindows = evaluationWindows.filter((window) => window.outcome === "target_before_breach");
+  const breachWindows = evaluationWindows.filter((window) => window.outcome === "breach_before_target");
+  const targetEvents = recordList(metadata.target_events);
+  const breachEvents = recordList(metadata.breach_events);
+  const targetProgress = prop.target_progress ?? {};
+  const ruleSource = String(ruleSnapshot.source ?? "fallback");
+  const usingExactRules = ruleSource !== "fallback";
 
   return (
     <AnalysisPageFrame title="Prop Evaluation Readiness" description="Funding challenge feasibility, breach risk, rule edits, and improvement targets.">
@@ -92,10 +163,10 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <WorkspaceCard title="Readiness metrics" subtitle="Pass target, drawdown room, daily-loss pressure, and trading-day coverage">
-          <MetricRow metrics={metrics} cols={3} />
+          <MetricRow metrics={metrics} cols={2} />
         </WorkspaceCard>
 
-        <WorkspaceCard title="Edit rules" subtitle="Replace fallback assumptions with the actual evaluation rules">
+        <WorkspaceCard title="Edit rules" subtitle={usingExactRules ? "Runtime or saved rules are active; edit only if the challenge contract changed." : "Replace fallback assumptions with the actual evaluation rules."}>
           <PropEvaluationRulesForm analysisId={analysis.analysis_id} initialRules={ruleSnapshot} />
         </WorkspaceCard>
       </div>
@@ -116,9 +187,9 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
                 {prop.rule_status.map((row) => (
                   <tr key={row.rule} className="border-t border-border-subtle">
                     <td className="px-3 py-2 font-medium text-text-institutional">{fmt(row.rule)}</td>
-                    <td className="px-3 py-2 text-text-neutral">{fmt(row.status)}</td>
-                    <td className="px-3 py-2 text-text-neutral">{fmt(row.observed)}</td>
-                    <td className="px-3 py-2 text-text-neutral">{fmt(row.allowed)}</td>
+                    <td className={row.status === "fail" ? "px-3 py-2 font-semibold text-chart-negative" : "px-3 py-2 text-text-neutral"}>{fmt(row.status)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmtRuleValue(row.rule, row.observed)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmtRuleValue(row.rule, row.allowed)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -136,7 +207,7 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
                   {Object.entries(firstBreach).map(([key, value]) => (
                     <div key={key}>
                       <dt className="text-xs text-text-neutral">{fmt(key)}</dt>
-                      <dd className="font-medium text-text-institutional">{fmt(value)}</dd>
+                      <dd className="font-medium text-text-institutional">{fmtRuleValue(key, value)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -145,17 +216,35 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Target progress</p>
               <dl className="mt-2 grid gap-2 md:grid-cols-2">
-                {Object.entries(prop.target_progress ?? {}).map(([key, value]) => (
+                {Object.entries(targetProgress).filter(([, value]) => !value || typeof value !== "object").map(([key, value]) => (
                   <div key={key}>
                     <dt className="text-xs text-text-neutral">{fmt(key)}</dt>
-                    <dd className="font-medium text-text-institutional">{fmt(value)}</dd>
+                    <dd className="font-medium text-text-institutional">{fmtRuleValue(key, value)}</dd>
                   </div>
                 ))}
               </dl>
             </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle/50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Rolling evaluation truth</p>
+              <p className="mt-1 text-text-institutional">
+                {targetWindows.length} window(s) reached the profit target before any configured breach. {breachWindows.length} window(s) breached a drawdown or consistency rule before target.
+              </p>
+              {targetEvents[0] ? (
+                <p className="mt-2 text-xs">First target hit: {fmt(targetEvents[0].day)} at {fmtCurrency(targetEvents[0].cumulative_profit)} cumulative profit.</p>
+              ) : (
+                <p className="mt-2 text-xs">No full-period target hit was detected before the end of the submitted trade path.</p>
+              )}
+            </div>
           </div>
         </WorkspaceCard>
       </div>
+
+      <WorkspaceCard title="Evaluation windows" subtitle="Where the same submitted path would have passed or failed under the configured challenge window">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <WindowList title="Target before breach" empty="No rolling window reached the target before breach." windows={targetWindows} />
+          <WindowList title="Breach before target" empty="No rolling window breached before reaching target." windows={breachWindows} />
+        </div>
+      </WorkspaceCard>
 
       <ContextFlipCard
         title="Assumptions and next evidence"

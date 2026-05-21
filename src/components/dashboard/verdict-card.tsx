@@ -1,3 +1,4 @@
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -28,11 +29,7 @@ export function VerdictCard({
       <p className="mt-2 text-sm text-text-neutral">{summary}</p>
       {confidence ? <p className="mt-3 text-xs font-medium uppercase tracking-wide text-text-graphite">Confidence: {confidence}</p> : null}
       {rationale?.length ? (
-        <ul className="mt-3 space-y-1.5 text-sm text-text-neutral">
-          {rationale.slice(0, 4).map((item, index) => (
-            <li key={`rationale-${index}-${item.slice(0, 24)}`}>• {item}</li>
-          ))}
-        </ul>
+        <EvidenceList className="mt-3" items={rationale} empty="No rationale was emitted." tone={posture === "robust" ? "positive" : posture === "fragile" ? "warning" : "neutral"} limit={4} />
       ) : null}
     </Card>
   );

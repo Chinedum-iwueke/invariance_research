@@ -78,6 +78,14 @@ function uniqueRows(rows: string[], limit = 8): string[] {
   return deduped;
 }
 
+function isInternalAssumption(value: string): boolean {
+  const normalized = normalize(value);
+  return normalized === "engine=bt"
+    || normalized === "seam=run_analysis_from_parsed_artifact"
+    || normalized.startsWith("engine=")
+    || normalized.startsWith("seam=");
+}
+
 export function deriveReportVerdict(record: AnalysisRecord): ReportVerdictModel {
   const status = record.summary.headline_verdict.status;
   const statusLabel = status === "robust"
@@ -365,7 +373,7 @@ export function buildReportViewModel(record: AnalysisRecord): ReportViewModel {
     confidence: deriveConfidenceModel(record),
     keyMetrics: preferredMetrics(record),
     diagnosticsSummary: uniqueRows(record.report.diagnostics_summary, 8),
-    methodology: uniqueRows(record.report.methodology_assumptions, 8),
+    methodology: uniqueRows(record.report.methodology_assumptions, 8).filter((item) => !isInternalAssumption(item)),
     limitations: uniqueRows(record.report.limitations, 8),
     recommendations: uniqueRows([...(record.llm_insights?.recommendations_by_page.report ?? []), ...record.report.recommendations], 8),
     deploymentGuidance: deriveDeploymentGuidance(record, verdict),

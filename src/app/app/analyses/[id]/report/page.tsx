@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
@@ -9,11 +8,11 @@ import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
-import { EvidenceStatePanel, EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
+import { EvidenceStatusBadge, normalizeEvidenceState } from "@/components/dashboard/evidence-status";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { ResearchDeskRequestPanel } from "@/components/dashboard/research-desk-request-panel";
 import { ReportExportActions } from "@/components/dashboard/report-export-actions";
 import { ReportShareActions } from "@/components/dashboard/report-share-actions";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
@@ -26,17 +25,12 @@ import { requireServerSession } from "@/lib/server/auth/session";
 import { accountService } from "@/lib/server/accounts/service";
 import { getReportSnapshotState } from "@/lib/server/exports/report-snapshot-service";
 import { getValidationCommandLayer } from "@/lib/server/evidence/validation-command-service";
-import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
+import { listApprovedReportAddenda, listResearchDeskRequestsForAnalysis } from "@/lib/server/research-desk/research-desk-service";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 import type { CaseFileTimelineEvent, ValidationExplanation } from "@/lib/app/validation-command-layer";
 
 function BulletList({ items, empty }: { items: string[]; empty: string }) {
-  if (!items.length) return <p className="text-sm text-text-neutral">{empty}</p>;
-  return (
-    <ul className="space-y-2 text-sm text-text-neutral">
-      {items.map((item, index) => <li key={`bullet-${index}-${item.slice(0, 24)}`}>• {item}</li>)}
-    </ul>
-  );
+  return <EvidenceList items={items} empty={empty} tone="neutral" limit={8} />;
 }
 
 function SectionFigure({ title, subtitle, figure }: { title: string; subtitle: string; figure?: FigurePayload }) {
@@ -82,8 +76,8 @@ function ExplainList({ items }: { items: ValidationExplanation[] }) {
           <p className="text-sm font-semibold text-text-institutional">{item.question}</p>
           <p className="mt-2 text-sm leading-6 text-text-neutral">{item.answer}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {item.reason_codes.slice(0, 4).map((code) => (
-              <code key={code} className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1 font-provenance text-[10px] text-text-neutral">{code}</code>
+            {item.reason_codes.slice(0, 4).map((code, index) => (
+              <code key={`${code}-${index}`} className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1 font-provenance text-[10px] text-text-neutral">{code}</code>
             ))}
           </div>
         </div>
@@ -110,6 +104,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   const snapshotState = getReportSnapshotState(analysis);
   const commandLayer = await getValidationCommandLayer({ analysis_id: analysis.analysis_id, account_id: session.account_id });
   const approvedAddenda = snapshotState.active ? listApprovedReportAddenda(snapshotState.active.snapshot_id) : [];
+  const researchDeskRequests = listResearchDeskRequestsForAnalysis({ analysis_id: analysis.analysis_id, account_id: session.account_id });
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";
@@ -192,28 +187,6 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         ) : null}
       </section>
 
-      <WorkspaceCard title="Executive Summary" subtitle="Institutional validation memo — final deployment decision artifact">
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-graphite">Validation report</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-text-institutional">{record.strategy.strategy_name}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-neutral">{record.report.executive_summary}</p>
-            </div>
-            </div>
-
-          <div className="grid gap-3 rounded-md border border-border/80 bg-surface-subtle p-4 text-sm text-text-neutral md:grid-cols-2 xl:grid-cols-4">
-            <p><span className="font-medium text-text-graphite">Asset / Market:</span> {record.dataset.market ?? "N/A"}</p>
-            <p><span className="font-medium text-text-graphite">Timeframe:</span> {record.strategy.timeframe ?? "N/A"}</p>
-            <p><span className="font-medium text-text-graphite">Coverage:</span> {record.dataset.start_date ?? "N/A"} → {record.dataset.end_date ?? "N/A"}</p>
-            <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count.toLocaleString()}</p>
-            <p className="md:col-span-2"><span className="font-medium text-text-graphite">Verdict:</span> {view.verdict.statusLabel} — {view.verdict.headline}</p>
-            <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
-            <p><span className="font-medium text-text-graphite">Scope:</span> Free diagnostic preview</p>
-          </div>
-        </div>
-      </WorkspaceCard>
-
       <WorkspaceCard title="Export & Sharing" subtitle="Generate a polished report artifact for a committee, allocator, buyer, or internal review packet.">
         <div className="space-y-4">
           <ReportExportActions
@@ -266,12 +239,6 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         <MetricRow metrics={metricsFromScoreBands(decisionMetrics)} cols={6} />
       </WorkspaceCard>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <EvidenceStatePanel state={normalizeEvidenceState(view.verdict.posture)} title="Verdict evidence" body={view.verdict.summary} reasonCode="report.verdict" />
-        <EvidenceStatePanel state={view.limitations.length ? "limited" : "supported"} title="Primary limitation" body={view.limitations[0] ?? "No explicit report limitations were emitted."} reasonCode="report.limitation" />
-        <EvidenceStatePanel state="processing" title="Next action" body={view.deploymentGuidance.nextActions[0] ?? "Generate a share-safe report snapshot or request deeper validation."} reasonCode="report.next" />
-      </div>
-
       <WorkspaceCard title="Verdict & Deployment Readiness" subtitle="Decision framing for allocators and risk committees">
         <div className={cn("rounded-md border px-5 py-5 shadow-sm", readinessTone.border, readinessTone.bg)}>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -295,16 +262,24 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Next actions</p>
-              <BulletList items={view.deploymentGuidance.nextActions} empty="No next actions were emitted." />
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Verdict evidence</p>
+              <p className="mt-2 text-sm leading-6 text-text-neutral">{view.verdict.summary}</p>
+              {view.limitations[0] ? (
+                <div className="mt-4 rounded-md border border-border-subtle bg-surface-white/70 p-3">
+                  <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Primary limitation</p>
+                  <p className="mt-2 text-sm leading-6 text-text-neutral">{view.limitations[0]}</p>
+                </div>
+              ) : null}
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Metrics driving posture</p>
-              <BulletList items={decisionMetrics.slice(0, 5).map((metric) => `${metric.label}: ${metric.value}`)} empty="No decision metrics were available." />
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Next actions</p>
+              <EvidenceList items={view.deploymentGuidance.nextActions} empty="No next actions were emitted." tone="positive" limit={4} />
             </div>
           </div>
-          <p className="mt-4 text-sm text-text-neutral"><span className="font-medium text-text-graphite">Deterministic verdict:</span> {view.verdict.statusLabel} — {view.verdict.headline}</p>
-          <p className="mt-2 text-sm text-text-neutral">{view.verdict.summary}</p>
+          <div className="mt-5 rounded-md border border-border-subtle bg-surface-white/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Metrics driving posture</p>
+            <EvidenceList className="mt-3" items={decisionMetrics.slice(0, 5).map((metric) => `${metric.label}: ${metric.value}`)} empty="No decision metrics were available." />
+          </div>
         </div>
       </WorkspaceCard>
 
@@ -396,28 +371,34 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         ]}
       />
 
-      <WorkspaceCard title="Deeper Validation Path" subtitle="Decision-grade audit scope beyond the free diagnostic layer">
-        <p className="max-w-3xl text-sm leading-relaxed text-text-neutral">
-          Deeper validation extends the lab output into a structured audit: parameter stability, regime-conditioned performance, execution stress testing, and capital-risk interpretation are reviewed together to test whether the modeled edge remains durable under institutional scrutiny.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
-            <p className="text-sm font-semibold text-text-institutional">Parameter Stability</p>
-            <p className="mt-2 text-sm text-text-neutral">Tests whether performance remains durable as core parameters shift.</p>
-            <p className="mt-2 text-xs text-text-neutral">Why it matters: guards against parameter luck and narrow optimization.</p>
-          </div>
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
-            <p className="text-sm font-semibold text-text-institutional">Regime Analysis</p>
-            <p className="mt-2 text-sm text-text-neutral">Evaluates behavior across volatility and trend-state transitions.</p>
-            <p className="mt-2 text-xs text-text-neutral">Why it matters: verifies edge persistence outside favorable windows.</p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <Link href="/contact" className={buttonVariants()}>Request Validation Audit</Link>
-        </div>
-      </WorkspaceCard>
-
       <ResearchDeskRequestPanel analysisId={record.analysis_id} limitations={researchDeskLimitations} />
+
+      {researchDeskRequests.length ? (
+        <WorkspaceCard title="Research Desk Timeline" subtitle="Client-visible status for review requests tied to this analysis">
+          <div className="space-y-4">
+            {researchDeskRequests.map(({ request, timeline }) => (
+              <div key={request.request_id} className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-text-institutional">{request.trigger_limitation}</p>
+                  <code className="text-xs text-text-neutral">request={request.request_id.slice(0, 8)}</code>
+                </div>
+                <ol className="mt-4 grid gap-2 md:grid-cols-4">
+                  {timeline.map((event) => (
+                    <li key={`${request.request_id}-${event.status}`} className={cn(
+                      "rounded-sm border p-3 text-xs",
+                      event.state === "complete" ? "border-chart-positive/30 bg-chart-positive/10 text-chart-positive" : event.state === "current" ? "border-research-red/30 bg-research-red/10 text-research-red" : "border-border-subtle bg-surface-white text-text-neutral",
+                    )}>
+                      <p className="font-semibold">{event.label}</p>
+                      <p className="mt-1 leading-5">{event.description}</p>
+                      {event.at ? <time className="mt-2 block font-provenance text-[10px] uppercase tracking-[0.12em]">{new Date(event.at).toLocaleString()}</time> : null}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </WorkspaceCard>
+      ) : null}
 
       {approvedAddenda.length ? (
         <WorkspaceCard title="Reviewer Addenda" subtitle="Approved Research Desk context attached to this report snapshot">

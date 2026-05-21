@@ -89,6 +89,9 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
         </div>
 
         <div className="hidden items-center gap-2 lg:ml-auto lg:flex">
+          <Link href="/pricing" className={buttonVariants({ size: "sm", variant: "secondary" })}>
+            View Pricing
+          </Link>
           <Link href="/contact" className={buttonVariants({ size: "sm" })}>
             Request Audit
           </Link>
@@ -138,7 +141,10 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
               </div>
             </div>
           ))}
-          <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 pt-4">
+          <div className="grid grid-cols-2 items-center gap-2 pt-4">
+            <Link href="/pricing" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full" })}>
+              View Pricing
+            </Link>
             <Link href="/contact" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", className: "w-full" })}>
               Request Audit
             </Link>
@@ -153,7 +159,9 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
                 Sign In
               </Link>
             )}
-            <ThemeToggle />
+            <div className="flex justify-end">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { ContextFlipCard } from "@/components/dashboard/context-flip-card";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { AiSynthesisPanel } from "@/components/dashboard/ai-synthesis-panel";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
 import { Card } from "@/components/ui/card";
 import { figureTypes, logAnalysisPageDebug } from "@/lib/app/analysis-page-debug";
 import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
@@ -184,26 +185,28 @@ export default async function ExecutionPage({ params }: { params: Promise<{ id: 
       </WorkspaceCard>
 
       <WorkspaceCard title="Execution assumptions" subtitle="Cost model and stress increments used in this run">
-        <ul className="space-y-2 text-sm text-text-neutral">
-          {assumptionRows.map((assumption, index) => (
-            <li key={`assumption-${index}-${assumption.slice(0, 24)}`}>• {assumption}</li>
-          ))}
-          <li>• Deterministic proxy execution modeling uses trades-only outcomes and does not depend on OHLCV bars/order book reconstruction.</li>
-          <li>• Assumption provenance: {execution.assumptions?.length ? "Provided by engine payload" : "Inferred as limited from missing structured assumptions"}.</li>
-        </ul>
+        <EvidenceList
+          items={[
+            ...assumptionRows,
+            "Deterministic proxy execution modeling uses trades-only outcomes and does not depend on OHLCV bars/order book reconstruction.",
+            `Assumption provenance: ${execution.assumptions?.length ? "Provided by engine payload" : "Inferred as limited from missing structured assumptions"}.`,
+          ]}
+          empty="No execution assumptions were emitted for this run."
+          tone="neutral"
+        />
       </WorkspaceCard>
 
       <WorkspaceCard title="What this test does not include" subtitle="Execution realism boundaries">
-        <ul className="space-y-1.5 text-sm text-text-neutral">
-          {[
+        <EvidenceList
+          items={[
             "No order-book simulation.",
             "No market-impact model.",
             "No latency effects model.",
             "No venue-specific execution modeling.",
-          ].map((item, index) => (
-            <li key={`scope-${index}-${item.slice(0, 24)}`}>• {item}</li>
-          ))}
-        </ul>
+          ]}
+          empty="No execution exclusions were emitted."
+          tone="warning"
+        />
       </WorkspaceCard>
 
       <AiSynthesisPanel

@@ -31,6 +31,14 @@ function unique(items: unknown[], limit = 8): string[] {
   return deduped;
 }
 
+function isInternalAssumption(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "engine=bt"
+    || normalized === "seam=run_analysis_from_parsed_artifact"
+    || normalized.startsWith("engine=")
+    || normalized.startsWith("seam=");
+}
+
 function isAuditLevelMissingRecommendation(value: string): boolean {
   return /ohlcv|regime context|regime labels|parameter sweep|parameter metadata|parameter stability/i.test(value);
 }
@@ -81,7 +89,7 @@ export function buildTruthContext(
     ...("assumptions" in source && Array.isArray(source.assumptions) ? source.assumptions : []),
     ...(diagnostic === "report" ? [] : record.report.methodology_assumptions),
     !benchmarkEnabled ? "Benchmark comparison was explicitly disabled for this run configuration." : undefined,
-  ]);
+  ]).filter((item) => !isInternalAssumption(item));
 
   const limitations = unique([
     ...("limitations" in source && Array.isArray(source.limitations) ? source.limitations : []),

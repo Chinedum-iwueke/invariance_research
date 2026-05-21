@@ -18,12 +18,12 @@ export default async function BillingPage() {
   const limit = state?.entitlements.analyses_per_month ?? 3;
   const retentionDays = state?.entitlements.history_retention_days ?? 30;
   const remaining = isAdmin ? "Unlimited" : String(Math.max(0, limit - usage.analyses_created));
-  const currentPlan = state?.account.plan_id ?? "explorer";
+  const currentPlan = state?.account.plan_id ?? "free";
 
   return (
     <AnalysisPageFrame title="Billing & Plan">
       <BillingSummaryCard
-        plan={state?.account.plan_id ?? "explorer"}
+        plan={state?.account.plan_id ?? "free"}
         status={state?.account.subscription_status ?? "trialing"}
         analysesUsed={usage.analyses_created}
         analysesLimit={limit}
@@ -37,13 +37,15 @@ export default async function BillingPage() {
           <p className="text-sm text-text-neutral">Analyses remaining this month: {remaining}</p>
           <p className="mt-2 text-sm text-text-neutral">Uploads this month: {usage.artifacts_uploaded}</p>
           <p className="mt-2 text-sm text-text-neutral">Report exports this month: {usage.report_exports}</p>
+          <p className="mt-2 text-sm text-text-neutral">Share links: {state?.entitlements.can_create_share_links ? `${state.entitlements.share_links_per_month}/mo` : "Not included"}</p>
+          <p className="mt-2 text-sm text-text-neutral">Seats: {state?.entitlements.max_seats ?? 1}</p>
         </WorkspaceCard>
       </div>
 
       <WorkspaceCard title="Subscription controls" subtitle="Self-service where available">
         <div className="flex flex-wrap gap-2">
           <Link className={buttonVariants({ size: "sm" })} href="/app/upgrade">Upgrade options</Link>
-          <Link href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request advisory consultation</Link>
+          <Link href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request Research Desk</Link>
         </div>
       </WorkspaceCard>
 
@@ -52,7 +54,7 @@ export default async function BillingPage() {
       <UpgradePanel
         title="Need deeper diagnostics or more monthly capacity?"
         explanation="Upgrade decisions should follow analytical need: richer artifacts, more runs, and deeper report sections."
-        planHint="Professional and Research Lab expand diagnostic depth and workflow capacity."
+        planHint="Individual, Pro, Team, and Research Desk expand diagnostic depth and workflow capacity."
       />
     </AnalysisPageFrame>
   );

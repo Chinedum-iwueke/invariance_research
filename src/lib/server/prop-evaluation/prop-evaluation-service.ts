@@ -124,64 +124,187 @@ function score(label: string, value: string, band: ScoreBand["band"]): ScoreBand
   return { label, value, band };
 }
 
+type PropPathEvent = {
+  rule: "profit_target" | "max_total_drawdown" | "max_daily_loss" | "consistency_max_day_profit";
+  day?: string;
+  trade_index?: number;
+  observed_pct?: number;
+  allowed_pct?: number;
+  pnl?: number;
+  cumulative_profit?: number;
+  equity?: number;
+};
+
+type DailyPnlRow = {
+  day: string;
+  pnl: number;
+  first_trade_index: number;
+  last_trade_index: number;
+};
+
+function buildDailyRows(trades: CanonicalTradeRecord[]): DailyPnlRow[] {
+  const rows = new Map<string, DailyPnlRow>();
+  trades.forEach((trade, index) => {
+    const day = tradeDay(trade, index);
+    const existing = rows.get(day);
+    if (existing) {
+      existing.pnl += tradePnl(trade);
+      existing.last_trade_index = index + 1;
+    } else {
+      rows.set(day, {
+        day,
+        pnl: tradePnl(trade),
+        first_trade_index: index + 1,
+        last_trade_index: index + 1,
+      });
+    }
+  });
+  return [...rows.values()];
+}
+
+function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
+  const accountSize = rules.account_size;
+  const targetProfit = accountSize * rules.profit_target_pct;
+  let cumulative = 0;
+  let highWater = accountSize;
+  let maxDrawdownPct = 0;
+  let maxDailyLossPct = 0;
+  let firstTotalBreach: PropPathEvent | undefined;
+  let firstDailyBreach: PropPathEvent | undefined;
+  let firstTargetHit: PropPathEvent | undefined;
+  const breachEvents: PropPathEvent[] = [];
+  const targetEvents: PropPathEvent[] = [];
+
+  rows.forEach((row) => {
+    const dayStartEquity = accountSize + cumulative;
+    cumulative += row.pnl;
+    const equity = accountSize + cumulative;
+    highWater = Math.max(highWater, equity);
+
+    const totalDrawdownBasis = rules.total_drawdown_basis === "static" ? accountSize : highWater;
+    const totalDrawdownAmount = Math.max(0, totalDrawdownBasis - equity);
+    const totalDrawdownPct = totalDrawdownAmount / accountSize;
+    maxDrawdownPct = Math.max(maxDrawdownPct, totalDrawdownPct);
+    if (!firstTotalBreach && totalDrawdownPct > rules.max_total_drawdown_pct) {
+      firstTotalBreach = {
+        rule: "max_total_drawdown",
+        day: row.day,
+        trade_index: row.last_trade_index,
+        observed_pct: pct(totalDrawdownPct),
+        allowed_pct: pct(rules.max_total_drawdown_pct),
+        cumulative_profit: Number(cumulative.toFixed(2)),
+        equity: Number(equity.toFixed(2)),
+      };
+      breachEvents.push(firstTotalBreach);
+    }
+
+    const dailyLossBasis = rules.daily_loss_basis === "closed_balance" ? Math.max(dayStartEquity, 1) : accountSize;
+    const dailyLossAmount = Math.max(0, -row.pnl);
+    const dailyLossPct = dailyLossAmount / dailyLossBasis;
+    maxDailyLossPct = Math.max(maxDailyLossPct, dailyLossPct);
+    if (!firstDailyBreach && dailyLossPct > rules.max_daily_loss_pct) {
+      firstDailyBreach = {
+        rule: "max_daily_loss",
+        day: row.day,
+        trade_index: row.last_trade_index,
+        observed_pct: pct(dailyLossPct),
+        allowed_pct: pct(rules.max_daily_loss_pct),
+        pnl: Number(row.pnl.toFixed(2)),
+        cumulative_profit: Number(cumulative.toFixed(2)),
+      };
+      breachEvents.push(firstDailyBreach);
+    }
+
+    if (!firstTargetHit && cumulative >= targetProfit) {
+      firstTargetHit = {
+        rule: "profit_target",
+        day: row.day,
+        trade_index: row.last_trade_index,
+        observed_pct: pct(cumulative / accountSize),
+        allowed_pct: pct(rules.profit_target_pct),
+        cumulative_profit: Number(cumulative.toFixed(2)),
+        equity: Number(equity.toFixed(2)),
+      };
+      targetEvents.push(firstTargetHit);
+    }
+  });
+
+  const largestDayProfit = Math.max(0, ...rows.map((row) => row.pnl));
+  const consistencyShare = cumulative > 0 ? largestDayProfit / cumulative : 0;
+  const consistencyBreach = rules.consistency_max_day_profit_pct && consistencyShare > rules.consistency_max_day_profit_pct
+    ? ({
+        rule: "consistency_max_day_profit",
+        day: rows[rows.length - 1]?.day,
+        trade_index: rows[rows.length - 1]?.last_trade_index,
+        observed_pct: pct(consistencyShare),
+        allowed_pct: pct(rules.consistency_max_day_profit_pct),
+        pnl: Number(largestDayProfit.toFixed(2)),
+      } satisfies PropPathEvent)
+    : undefined;
+
+  return {
+    cumulative,
+    maxDrawdownPct,
+    maxDailyLossPct,
+    firstTotalBreach,
+    firstDailyBreach,
+    firstTargetHit,
+    consistencyShare,
+    consistencyBreach,
+    breachEvents: consistencyBreach ? [...breachEvents, consistencyBreach] : breachEvents,
+    targetEvents,
+    tradingDays: rows.length,
+  };
+}
+
+function buildWindowOutcomes(rows: DailyPnlRow[], rules: NormalizedRules) {
+  const maxDays = Math.max(1, Math.min(rules.maximum_evaluation_days ?? rows.length, rows.length));
+  const windows = rows.map((_, startIndex) => {
+    const windowRows = rows.slice(startIndex, startIndex + maxDays);
+    const path = evaluateDailyPath(windowRows, rules);
+    const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach);
+    const targetBeforeBreach = Boolean(path.firstTargetHit && (!firstBreach || ((path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER) <= (firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER))));
+    const breachBeforeTarget = Boolean(firstBreach && (!path.firstTargetHit || ((firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER) < (path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER))));
+    return {
+      start_day: windowRows[0]?.day,
+      end_day: windowRows[windowRows.length - 1]?.day,
+      trading_days: windowRows.length,
+      outcome: targetBeforeBreach ? "target_before_breach" : breachBeforeTarget ? "breach_before_target" : "unresolved",
+      target_hit_day: path.firstTargetHit?.day,
+      breach_day: firstBreach?.day,
+      breach_rule: firstBreach?.rule,
+      profit: Number(path.cumulative.toFixed(2)),
+      profit_pct: pct(path.cumulative / rules.account_size),
+      max_daily_loss_pct: pct(path.maxDailyLossPct),
+      max_total_drawdown_pct: pct(path.maxDrawdownPct),
+    };
+  });
+
+  return {
+    target_before_breach_count: windows.filter((window) => window.outcome === "target_before_breach").length,
+    breach_before_target_count: windows.filter((window) => window.outcome === "breach_before_target").length,
+    unresolved_count: windows.filter((window) => window.outcome === "unresolved").length,
+    windows: windows.slice(0, 24),
+  };
+}
+
+function earliestBreach(...events: Array<PropPathEvent | undefined>): PropPathEvent | undefined {
+  return events
+    .filter((event): event is PropPathEvent => Boolean(event))
+    .sort((a, b) => (a.trade_index ?? Number.MAX_SAFE_INTEGER) - (b.trade_index ?? Number.MAX_SAFE_INTEGER))[0];
+}
+
 export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, rawRules?: PropEvaluationRulesV1 | Record<string, unknown> | null): PropEvaluationDiagnostic {
   const rules = normalizePropEvaluationRules(rawRules ?? parsedArtifact.prop_evaluation_rules);
   const accountSize = rules.account_size;
-  const dailyPnl = new Map<string, number>();
-  let cumulative = 0;
-  let highWater = accountSize;
-  let maxDrawdown = 0;
-  let firstTotalBreach: Record<string, unknown> | undefined;
-
-  parsedArtifact.trades.forEach((trade, index) => {
-    const pnl = tradePnl(trade);
-    cumulative += pnl;
-    const equity = accountSize + cumulative;
-    highWater = Math.max(highWater, equity);
-    const basis = rules.total_drawdown_basis === "static" ? accountSize : highWater;
-    const drawdown = Math.max(0, (basis - equity) / accountSize);
-    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-    if (!firstTotalBreach && drawdown > rules.max_total_drawdown_pct) {
-      firstTotalBreach = {
-        rule: "max_total_drawdown",
-        trade_index: index + 1,
-        observed_pct: pct(drawdown),
-        allowed_pct: pct(rules.max_total_drawdown_pct),
-        equity: Number(equity.toFixed(2)),
-      };
-    }
-    const day = tradeDay(trade, index);
-    dailyPnl.set(day, (dailyPnl.get(day) ?? 0) + pnl);
-  });
-
-  const dailyRows = [...dailyPnl.entries()];
-  const worstDailyLoss = dailyRows.reduce((worst, [, value]) => Math.min(worst, value), 0);
-  const maxDailyLoss = Math.abs(Math.min(0, worstDailyLoss)) / accountSize;
-  const worstDailyRow = dailyRows.find(([, value]) => value === worstDailyLoss);
-  const firstDailyBreach = maxDailyLoss > rules.max_daily_loss_pct
-    ? {
-        rule: "max_daily_loss",
-        day: worstDailyRow?.[0],
-        observed_pct: pct(maxDailyLoss),
-        allowed_pct: pct(rules.max_daily_loss_pct),
-        pnl: Number(worstDailyLoss.toFixed(2)),
-      }
-    : undefined;
-  const totalProfit = cumulative;
+  const dailyRows = buildDailyRows(parsedArtifact.trades);
+  const path = evaluateDailyPath(dailyRows, rules);
+  const totalProfit = path.cumulative;
   const targetProfit = accountSize * rules.profit_target_pct;
   const targetReached = totalProfit >= targetProfit;
-  const tradingDays = dailyRows.length;
-  const largestDayProfit = Math.max(0, ...dailyRows.map(([, value]) => value));
-  const consistencyShare = totalProfit > 0 ? largestDayProfit / totalProfit : 0;
-  const consistencyBreach = rules.consistency_max_day_profit_pct && consistencyShare > rules.consistency_max_day_profit_pct
-    ? {
-        rule: "consistency_max_day_profit",
-        observed_pct: pct(consistencyShare),
-        allowed_pct: pct(rules.consistency_max_day_profit_pct),
-        largest_day_profit: Number(largestDayProfit.toFixed(2)),
-      }
-    : undefined;
-  const firstBreach = firstDailyBreach ?? firstTotalBreach ?? consistencyBreach ?? null;
+  const tradingDays = path.tradingDays;
+  const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach) ?? null;
+  const windowOutcomes = buildWindowOutcomes(dailyRows, rules);
   const dayCountLimited = tradingDays < rules.minimum_trading_days || Boolean(rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days);
   const fallbackLimited = rules.source === "fallback";
   const status = fallbackLimited || dayCountLimited ? "limited" : "available";
@@ -192,24 +315,28 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       : "target_not_reached";
   const ruleStatus: PropEvaluationRuleStatus[] = [
     { rule: "profit_target", status: targetReached ? "pass" : "fail", observed: pct(totalProfit / accountSize), allowed: pct(rules.profit_target_pct) },
-    { rule: "max_total_drawdown", status: firstTotalBreach ? "fail" : "pass", observed: pct(maxDrawdown), allowed: pct(rules.max_total_drawdown_pct) },
-    { rule: "max_daily_loss", status: firstDailyBreach ? "fail" : "pass", observed: pct(maxDailyLoss), allowed: pct(rules.max_daily_loss_pct) },
+    { rule: "max_total_drawdown", status: path.firstTotalBreach ? "fail" : "pass", observed: pct(path.maxDrawdownPct), allowed: pct(rules.max_total_drawdown_pct) },
+    { rule: "max_daily_loss", status: path.firstDailyBreach ? "fail" : "pass", observed: pct(path.maxDailyLossPct), allowed: pct(rules.max_daily_loss_pct) },
     { rule: "minimum_trading_days", status: tradingDays >= rules.minimum_trading_days ? "pass" : "limited", observed: tradingDays, allowed: rules.minimum_trading_days },
     { rule: "maximum_evaluation_days", status: rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days ? "fail" : "pass", observed: tradingDays, allowed: rules.maximum_evaluation_days ?? null },
-    { rule: "consistency_max_day_profit", status: consistencyBreach ? "fail" : "pass", observed: pct(consistencyShare), allowed: pct(rules.consistency_max_day_profit_pct ?? 0) },
+    { rule: "consistency_max_day_profit", status: path.consistencyBreach ? "fail" : "pass", observed: pct(path.consistencyShare), allowed: pct(rules.consistency_max_day_profit_pct ?? 0) },
   ];
   const targetProgress = {
     profit: Number(totalProfit.toFixed(2)),
     target_profit: Number(targetProfit.toFixed(2)),
     progress_pct: pct(targetProfit > 0 ? totalProfit / targetProfit : 0),
     trading_days: tradingDays,
+    first_target_hit: path.firstTargetHit ?? null,
+    target_before_breach_count: windowOutcomes.target_before_breach_count,
+    breach_before_target_count: windowOutcomes.breach_before_target_count,
+    unresolved_window_count: windowOutcomes.unresolved_count,
   };
   const summaryMetrics = {
-    target_before_breach_probability: firstBreach ? 0.2 : targetReached ? 0.8 : 0.45,
-    breach_probability: firstBreach ? 0.75 : Math.max(maxDrawdown / rules.max_total_drawdown_pct, maxDailyLoss / rules.max_daily_loss_pct) * 0.35,
-    max_daily_loss_observed: maxDailyLoss,
+    target_before_breach_probability: windowOutcomes.windows.length ? windowOutcomes.target_before_breach_count / windowOutcomes.windows.length : 0,
+    breach_probability: windowOutcomes.windows.length ? windowOutcomes.breach_before_target_count / windowOutcomes.windows.length : 0,
+    max_daily_loss_observed: path.maxDailyLossPct,
     max_daily_loss_allowed: rules.max_daily_loss_pct,
-    max_total_drawdown_observed: maxDrawdown,
+    max_total_drawdown_observed: path.maxDrawdownPct,
     max_total_drawdown_allowed: rules.max_total_drawdown_pct,
     profit_progress_pct: targetProfit > 0 ? totalProfit / targetProfit : 0,
     trading_days: tradingDays,
@@ -222,8 +349,8 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       score("Target Before Breach", formatPctValue(summaryMetrics.target_before_breach_probability), firstBreach ? "elevated" : "moderate"),
       score("Breach Probability", formatPctValue(summaryMetrics.breach_probability), firstBreach ? "critical" : "moderate"),
       score("Profit Target Progress", `${targetProgress.progress_pct.toFixed(1)}%`, targetReached ? "good" : "moderate"),
-      score("Max Daily Loss", `${pct(maxDailyLoss).toFixed(1)}% / ${pct(rules.max_daily_loss_pct).toFixed(1)}%`, firstDailyBreach ? "critical" : "moderate"),
-      score("Max Total Drawdown", `${pct(maxDrawdown).toFixed(1)}% / ${pct(rules.max_total_drawdown_pct).toFixed(1)}%`, firstTotalBreach ? "critical" : "moderate"),
+      score("Max Daily Loss", `${pct(path.maxDailyLossPct).toFixed(1)}% / ${pct(rules.max_daily_loss_pct).toFixed(1)}%`, path.firstDailyBreach ? "critical" : "moderate"),
+      score("Max Total Drawdown", `${pct(path.maxDrawdownPct).toFixed(1)}% / ${pct(rules.max_total_drawdown_pct).toFixed(1)}%`, path.firstTotalBreach ? "critical" : "moderate"),
       score("Trading Days", String(tradingDays), dayCountLimited ? "informational" : "moderate"),
     ],
     rule_snapshot: rules,
@@ -241,6 +368,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
         fallbackLimited ? "Fallback rules were used; replace them with the exact prop firm rule sheet before relying on the verdict." : "Exact runtime or saved rules were used for this run.",
         firstBreach ? `First breach: ${String(firstBreach.rule).replaceAll("_", " ")}.` : "No configured rule breach was detected.",
         `Profit target progress: ${targetProgress.progress_pct.toFixed(1)}%.`,
+        `${windowOutcomes.target_before_breach_count} rolling evaluation window(s) reached target before breach; ${windowOutcomes.breach_before_target_count} breached before target.`,
       ],
     },
     assumptions: [
@@ -257,7 +385,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       !targetReached ? "Improve profit target progress without increasing daily loss concentration." : "Re-test after any sizing, leverage, or trade-frequency change.",
       "Upload broker equity or intraday balance data to validate daily loss rules with higher precision.",
     ],
-    metadata: { summary_metrics: summaryMetrics, target_progress: targetProgress, rule_status: ruleStatus },
+    metadata: { summary_metrics: summaryMetrics, target_progress: targetProgress, rule_status: ruleStatus, breach_events: path.breachEvents, target_events: path.targetEvents, evaluation_windows: windowOutcomes.windows },
   };
 }
 
@@ -311,7 +439,7 @@ async function persistSnapshotAndResult(input: {
   return { rule_snapshot_id: ruleSnapshotId, result };
 }
 
-function mergePropDiagnostic(record: AnalysisRecord, diagnostic: PropEvaluationDiagnostic): AnalysisRecord {
+export function mergePropDiagnostic(record: AnalysisRecord, diagnostic: PropEvaluationDiagnostic): AnalysisRecord {
   return {
     ...record,
     diagnostics: { ...record.diagnostics, prop_evaluation_readiness: diagnostic },

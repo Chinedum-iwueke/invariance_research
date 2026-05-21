@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { listExportsForAnalysis, requestExport } from "@/lib/server/exports/export-service";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
@@ -16,6 +17,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "export_request", kind: "export", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };

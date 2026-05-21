@@ -1,6 +1,6 @@
 import type { AnalysisRecord, AnalysisStatus } from "@/lib/contracts";
 import type { AnalysisBenchmarkConfig } from "@/lib/analyses/analysis-types";
-import type { ArtifactKind, ArtifactRichness, ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
+import type { ArtifactKind, ArtifactRichness, DeclaredStrategyClaim, ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
 
 export type UploadArtifact = {
   artifact_id: string;
@@ -41,6 +41,7 @@ export type AnalysisRuntimeConfig = {
   account_size?: number;
   risk_per_trade_pct?: number;
   prop_evaluation_rules?: Record<string, unknown>;
+  declared_claims?: DeclaredStrategyClaim[];
 };
 
 export type AnalysisEntity = {

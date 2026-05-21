@@ -1,6 +1,6 @@
 # Production Worker Stack
 
-This stack runs the external `analysis-worker` with Postgres-backed queueing, Cloudflare R2 object storage, and a colocated Ollama service. Redis, research-desk workers, and export workers are intentionally not included yet.
+This stack runs external `analysis-worker` and `export-worker` services with Postgres-backed queueing, Cloudflare R2 object storage, and a colocated Ollama service for LLM-assisted analysis jobs. Research Desk work is still handled inside the web/admin workflow.
 
 ## Repository Layout
 
@@ -25,6 +25,10 @@ docker ps
 
 ```bash
 docker logs -f invariance-analysis-worker
+```
+
+```bash
+docker logs -f invariance-export-worker
 ```
 
 ## Ollama Models
@@ -54,11 +58,13 @@ docker compose -f docker-compose.worker.yml up -d --build
 ## Services
 
 - `analysis-worker`: builds from `/home/omenka/Projects` using `invariance_research/Dockerfile.worker`, runs `npm run worker:analysis`, and restarts unless stopped.
+- `export-worker`: uses the same image, runs `npm run worker:export`, leases queued export jobs, renders report files, persists them to object storage, and restarts unless stopped.
 - `ollama`: runs `ollama/ollama:latest`, exposes `11434:11434`, and persists models in the `ollama-models` Docker volume.
 
 ## Health Checks
 
 - `analysis-worker`: validates Postgres connectivity with `SELECT 1` and validates configured object storage by listing the bucket.
+- `export-worker`: validates the same Postgres and object-storage dependencies before accepting jobs.
 - `ollama`: validates the Ollama process by running `ollama list`.
 
 ## Environment
@@ -70,6 +76,7 @@ Required variables are stored in `.env.worker`:
 - `INVARIANCE_BENCHMARK_LIBRARY_ROOT`
 - `INVARIANCE_EMBEDDED_WORKERS`
 - `INVARIANCE_ANALYSIS_WORKER_POLL_MS`
+- `INVARIANCE_EXPORT_WORKER_POLL_MS`
 - `INVARIANCE_WORKER_STALE_MS`
 - `LLM_INSIGHTS_ENABLED`
 - `LLM_PROVIDER`
@@ -89,6 +96,6 @@ Required variables are stored in `.env.worker`:
 ## Manual Setup
 
 1. Confirm `/home/omenka/Projects/invariance_research` and `/home/omenka/Projects/bulletproof_bt` both exist on the VM.
-2. Confirm Supabase migrations have created the analysis queue tables expected by the worker.
-3. Confirm the R2 API key pair has read/write/list permissions for `invariance-research-prod`.
+2. Confirm Supabase migrations have created the analysis and export queue tables expected by the workers.
+3. Confirm the R2 API key pair has read/write/list permissions for `invariance-research-prod`, including exported reports.
 4. Pull `qwen2.5:14b` into Ollama before enabling LLM-assisted synthesis for production jobs.

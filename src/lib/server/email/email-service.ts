@@ -1,6 +1,6 @@
 import { logger } from "@/lib/server/ops/logger";
 
-export type EmailKind = "email_verification" | "password_reset";
+export type EmailKind = "email_verification" | "password_reset" | "research_desk_request" | "research_desk_status" | "research_desk_addendum";
 
 export interface TransactionalEmail {
   to: string;

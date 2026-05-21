@@ -11,7 +11,7 @@ import { PlanComparisonTable } from "@/components/dashboard/plan-comparison-tabl
 
 export const metadata: Metadata = {
   title: "Pricing | Invariance Research",
-  description: "Transparent four-tier plan structure for Strategy Robustness Lab access and advisory validation pathways.",
+  description: "Transparent launch-plan structure for Strategy Robustness Lab access and advisory validation pathways.",
 };
 
 export default function PricingPage() {
@@ -33,7 +33,7 @@ export default function PricingPage() {
         </section>
 
         <section id="plans" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Lab Plans" description="The same four-tier plan architecture used in app billing, adapted for public plan selection." />
+          <SectionHeader title="Lab Plans" description="The same launch-plan architecture used in app billing, adapted for public plan selection." />
           <PricingCards />
         </section>
 
@@ -41,7 +41,7 @@ export default function PricingPage() {
           <SectionHeader title="Plan Comparison" description="Capability matrix aligned to in-app billing entitlements and diagnostic access boundaries." />
           <PlanComparisonTable />
           <Card className="p-card-md text-sm text-text-neutral">
-            Advisory engagements extend the platform with analyst-led interpretation, institutional review context, and custom operating constraints. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>
+            Research Desk engagements extend the platform with analyst-led interpretation, institutional review context, and custom operating constraints. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>
           </Card>
         </section>
 
