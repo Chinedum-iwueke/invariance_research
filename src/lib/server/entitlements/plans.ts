@@ -22,10 +22,10 @@ export const PLAN_LABELS: Record<LaunchPlanId, string> = {
 
 export const PLAN_PRICE_COPY: Record<LaunchPlanId, string> = {
   free: "$0",
-  individual: "$79/mo",
-  pro: "$199/mo",
-  team: "$799/mo",
-  research_desk: "From $1,500",
+  individual: "$39/mo",
+  pro: "$99/mo",
+  team: "$399/mo",
+  research_desk: "From $1,000",
 };
 
 export function canonicalPlanId(planId: PlanId | string | undefined): LaunchPlanId {
@@ -115,7 +115,7 @@ const launchPlans: Record<LaunchPlanId, EntitlementTemplate> = {
   },
   team: {
     plan_id: "team",
-    analyses_per_month: 300,
+    analyses_per_month: 250,
     max_upload_file_size_mb: 100,
     can_upload_trade_csv: true,
     can_upload_bundle: true,
@@ -131,7 +131,7 @@ const launchPlans: Record<LaunchPlanId, EntitlementTemplate> = {
     can_view_full_report: true,
     can_export_report: true,
     can_create_share_links: true,
-    share_links_per_month: 100,
+    share_links_per_month: 75,
     can_request_research_desk: true,
     max_seats: 5,
     prop_evaluation_profiles: "shared",
@@ -141,7 +141,7 @@ const launchPlans: Record<LaunchPlanId, EntitlementTemplate> = {
   },
   research_desk: {
     plan_id: "research_desk",
-    analyses_per_month: 500,
+    analyses_per_month: 250,
     max_upload_file_size_mb: 250,
     can_upload_trade_csv: true,
     can_upload_bundle: true,
@@ -157,7 +157,7 @@ const launchPlans: Record<LaunchPlanId, EntitlementTemplate> = {
     can_view_full_report: true,
     can_export_report: true,
     can_create_share_links: true,
-    share_links_per_month: 250,
+    share_links_per_month: 75,
     can_request_research_desk: true,
     max_seats: 10,
     prop_evaluation_profiles: "shared",

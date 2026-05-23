@@ -20,26 +20,26 @@ export default async function UpgradePage() {
             <PlanAction currentPlan={currentPlan} targetPlan="free" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Individual" subtitle="$79/mo">
+        <WorkspaceCard title="Individual" subtitle="$39/mo">
           <p className="text-sm text-text-neutral">Trade CSV and basic bundles, full exports, core diagnostics, and one custom prop evaluation profile per analysis.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="individual" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Pro" subtitle="$199/mo">
-          <p className="text-sm text-text-neutral">Full automated suite where artifacts support it, saved prop profiles, report appendix, and share links.</p>
+        <WorkspaceCard title="Pro" subtitle="$99/mo">
+          <p className="text-sm text-text-neutral">Evidence-gated regime and stability workspaces, saved prop profiles, report appendix, and share links.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="pro" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Team" subtitle="$799/mo">
+        <WorkspaceCard title="Team" subtitle="$399/mo">
           <p className="text-sm text-text-neutral">Seats, team library, shared prop firm profiles, shared reports, admin controls, and priority processing.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="team" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Research Desk" subtitle="From $1,500">
-          <p className="text-sm text-text-neutral">Project-based review with addenda, execution/data QA, benchmark construction, and prop-rule interpretation.</p>
+        <WorkspaceCard title="Research Desk" subtitle="From $1,000">
+          <p className="text-sm text-text-neutral">Project-based review for true stability, multi-asset attribution, broker realism, reconstruction, exposure analysis, and independent memos.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="research_desk" />
           </div>

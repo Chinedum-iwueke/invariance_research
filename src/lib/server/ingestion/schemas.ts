@@ -80,6 +80,7 @@ export const bundleManifestV1Schema = z.object({
   parameter_metadata_present: z.boolean().optional(),
   declared_claims_present: z.boolean().optional(),
   broker_export_present: z.boolean().optional(),
+  parameter_sweep_present: z.boolean().optional(),
 });
 
 export const bundleMetadataSchema = z.object({
@@ -156,6 +157,7 @@ export const parsedArtifactSchema = z.object({
   ohlcv: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
   benchmark_series: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
   broker_exports: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
+  parameter_sweep: z.array(z.record(z.union([z.string(), z.number()]))).optional(),
   declared_claims: z.array(declaredStrategyClaimSchema).optional(),
   source_files: z.array(sourceFileProvenanceSchema).optional(),
   bundle_manifest: bundleManifestV1Schema.optional(),
@@ -163,6 +165,7 @@ export const parsedArtifactSchema = z.object({
   ohlcv_present: z.boolean(),
   benchmark_present: z.boolean(),
   broker_export_present: z.boolean().optional(),
+  parameter_sweep_present: z.boolean().optional(),
   diagnostic_eligibility: diagnosticEligibilityMatrixSchema,
   parser_notes: z.array(z.string()).optional(),
   validation: artifactValidationResultSchema,

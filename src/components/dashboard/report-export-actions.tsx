@@ -90,7 +90,7 @@ export function ReportExportActions({
   }, [analysisId]);
 
   const info = useMemo(() => {
-    if (!status) return "Generate PDF, Markdown, or JSON report artifacts from the immutable proof-report snapshot, not the mutable analysis record.";
+    if (!status) return "Generate a branded PDF validation memo, Markdown appendix, or JSON evidence packet from the immutable proof-report snapshot.";
     if (status.status === "queued") return `Queued${status.current_step ? ` · ${status.current_step}` : ""}`;
     if (status.status === "processing") return `Rendering ${status.format.toUpperCase()}${typeof status.progress_pct === "number" ? ` · ${status.progress_pct}%` : ""}${status.current_step ? ` · ${status.current_step}` : ""}`;
     if (status.status === "completed") return `Export ready. Download your ${status.format.toUpperCase()} proof report.`;
@@ -113,6 +113,20 @@ export function ReportExportActions({
 
   return (
     <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+      <div className="mb-3 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
+        <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+          <p className="font-semibold text-text-institutional">PDF memo</p>
+          <p className="mt-1">Branded committee-ready validation artifact with charts.</p>
+        </div>
+        <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+          <p className="font-semibold text-text-institutional">Markdown</p>
+          <p className="mt-1">Editable report text for notes, review packets, and follow-up.</p>
+        </div>
+        <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+          <p className="font-semibold text-text-institutional">JSON</p>
+          <p className="mt-1">Machine-readable evidence, assumptions, verdicts, and limits.</p>
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {(["pdf", "md", "json"] as const).map((format) => (
           <Button key={format} type="button" variant={format === "pdf" ? "primary" : "secondary"} onClick={() => void startExport(format)} disabled={isStarting || status?.status === "processing" || status?.status === "queued"}>

@@ -42,8 +42,10 @@ function fmtCurrency(value: unknown): string {
 function fmtRuleValue(rule: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return "Unavailable";
   if (typeof value !== "number") return fmt(value);
-  if (/pct|drawdown|loss|target|consistency/.test(rule)) return fmtPct(value);
-  if (/profit|pnl|equity/.test(rule)) return fmtCurrency(value);
+  if (/count|trading_days|trade_index/.test(rule)) return Number.isInteger(value) ? String(value) : value.toFixed(0);
+  if (/profit|pnl|equity|target_profit/.test(rule)) return fmtCurrency(value);
+  if (/pct|drawdown|loss|consistency/.test(rule)) return fmtPct(value);
+  if (/target/.test(rule) && Math.abs(value) <= 100) return fmtPct(value);
   return fmt(value);
 }
 
@@ -51,6 +53,42 @@ function recordList(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
     : [];
+}
+
+function labelForKey(key: string) {
+  const labels: Record<string, string> = {
+    ending_profit: "Ending profit",
+    target_profit: "Target profit",
+    ending_progress_pct: "Ending target progress",
+    peak_profit: "Peak profit",
+    peak_progress_pct: "Peak target progress",
+    peak_profit_day: "Peak profit day",
+    trading_days: "Trading days",
+    target_before_breach_count: "Target before breach windows",
+    breach_before_target_count: "Breach before target windows",
+    unresolved_window_count: "Unresolved windows",
+  };
+  return labels[key] ?? titleCase(key);
+}
+
+function targetProgressRows(progress: Record<string, unknown>) {
+  const order = [
+    "ending_profit",
+    "target_profit",
+    "ending_progress_pct",
+    "peak_profit",
+    "peak_progress_pct",
+    "peak_profit_day",
+    "trading_days",
+    "target_before_breach_count",
+    "breach_before_target_count",
+    "unresolved_window_count",
+  ];
+  const ordered = order
+    .filter((key) => key in progress)
+    .map((key) => [key, progress[key]] as const);
+  const remaining = Object.entries(progress).filter(([key, value]) => !order.includes(key) && (!value || typeof value !== "object"));
+  return [...ordered, ...remaining];
 }
 
 function WindowList({ title, empty, windows }: { title: string; empty: string; windows: Array<Record<string, unknown>> }) {
@@ -61,22 +99,37 @@ function WindowList({ title, empty, windows }: { title: string; empty: string; w
         <span className="rounded-full border border-border-subtle px-2 py-0.5 text-xs text-text-neutral">{windows.length}</span>
       </div>
       {windows.length ? (
-        <div className="mt-3 space-y-2">
-          {windows.slice(0, 6).map((window, index) => (
-            <div key={`${window.start_day}-${window.end_day}-${index}`} className="rounded-sm bg-surface-white p-3 text-sm">
-              <p className="font-medium text-text-institutional">{fmt(window.start_day)} to {fmt(window.end_day)}</p>
-              <p className="mt-1 text-xs text-text-neutral">
-                {fmt(window.trading_days)} trading day(s), profit {fmtCurrency(window.profit)} ({fmtPct(window.profit_pct)}).
-              </p>
-              <p className="mt-1 text-xs text-text-neutral">
-                Max daily loss {fmtPct(window.max_daily_loss_pct)}; max total drawdown {fmtPct(window.max_total_drawdown_pct)}.
-              </p>
-              {window.breach_rule ? (
-                <p className="mt-1 text-xs text-chart-negative">Breach: {fmt(window.breach_rule)} on {fmt(window.breach_day)}.</p>
-              ) : window.target_hit_day ? (
-                <p className="mt-1 text-xs text-chart-positive">Target hit on {fmt(window.target_hit_day)}.</p>
-              ) : null}
-            </div>
+        <div className="mt-3 max-h-[560px] space-y-2 overflow-y-auto pr-1">
+          {windows.map((window, index) => (
+            <details key={`${window.start_day}-${window.end_day}-${index}`} className="group rounded-sm bg-surface-white p-3 text-sm">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+                <span>
+                  <span className="block font-medium text-text-institutional">{fmt(window.start_day)} to {fmt(window.end_day)}</span>
+                  <span className="mt-1 block text-xs text-text-neutral">
+                    Resolution: {fmt(window.resolution_day ?? window.target_hit_day ?? window.breach_day ?? "unresolved")} · {fmt(window.trading_days)} day window
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-full border border-border-subtle px-2 py-0.5 text-[11px] text-text-neutral group-open:border-research-red/30 group-open:text-research-red">Details</span>
+              </summary>
+              <div className="mt-3 grid gap-2 border-t border-border-subtle pt-3 text-xs text-text-neutral sm:grid-cols-2">
+                <p>Ending profit: <span className="font-medium text-text-institutional">{fmtCurrency(window.profit)}</span> ({fmtPct(window.profit_pct)})</p>
+                <p>Peak profit: <span className="font-medium text-text-institutional">{fmtCurrency(window.peak_profit)}</span> ({fmtPct(window.peak_profit_pct)})</p>
+                <p>Max daily loss: <span className="font-medium text-text-institutional">{fmtPct(window.max_daily_loss_pct)}</span></p>
+                <p>Max total drawdown: <span className="font-medium text-text-institutional">{fmtPct(window.max_total_drawdown_pct)}</span></p>
+                {window.target_hit_day ? (
+                  <p className="sm:col-span-2 text-chart-positive">
+                    Target reached first on {fmt(window.target_hit_day)} at {fmtCurrency(window.target_hit_profit)} ({fmtPct(window.target_hit_profit_pct)}), trade {fmt(window.target_hit_trade_index)}.
+                  </p>
+                ) : null}
+                {window.breach_day ? (
+                  <p className="sm:col-span-2 text-chart-negative">
+                    Breach {window.outcome === "target_before_breach" ? "after target" : "first"}: {fmt(window.breach_rule)} on {fmt(window.breach_day)}
+                    {typeof window.breach_observed_pct === "number" ? `, observed ${fmtPct(window.breach_observed_pct)}` : ""}
+                    {typeof window.breach_allowed_pct === "number" ? ` vs allowed ${fmtPct(window.breach_allowed_pct)}` : ""}.
+                  </p>
+                ) : null}
+              </div>
+            </details>
           ))}
         </div>
       ) : (
@@ -216,9 +269,9 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Target progress</p>
               <dl className="mt-2 grid gap-2 md:grid-cols-2">
-                {Object.entries(targetProgress).filter(([, value]) => !value || typeof value !== "object").map(([key, value]) => (
+                {targetProgressRows(targetProgress).map(([key, value]) => (
                   <div key={key}>
-                    <dt className="text-xs text-text-neutral">{fmt(key)}</dt>
+                    <dt className="text-xs text-text-neutral">{labelForKey(key)}</dt>
                     <dd className="font-medium text-text-institutional">{fmtRuleValue(key, value)}</dd>
                   </div>
                 ))}

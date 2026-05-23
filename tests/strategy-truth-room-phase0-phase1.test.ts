@@ -28,6 +28,9 @@ const manifest = {
     "trades.csv",
     "metadata.json",
     "assumptions.json",
+    "params.json",
+    "parameter_results.csv",
+    "run_manifest.json",
     "ohlcv.csv",
     "benchmark.csv",
     "broker_export.csv",
@@ -35,6 +38,8 @@ const manifest = {
   ],
   files: [
     { path: "trades.csv", role: "trade_log_v1", schema_version: "1.0", required: true, sha256: "fixture-trades" },
+    { path: "parameter_results.csv", role: "parameter_sweep_v1", schema_version: "1.0", required: false, sha256: "fixture-params" },
+    { path: "run_manifest.json", role: "parameter_sweep_v1", schema_version: "1.0", required: false, sha256: "fixture-run-manifest" },
     { path: "ohlcv.csv", role: "ohlcv_context_v1", schema_version: "1.0", required: false, sha256: "fixture-ohlcv" },
     { path: "benchmark.csv", role: "benchmark_series_v1", schema_version: "1.0", required: false, sha256: "fixture-benchmark" },
     { path: "broker_export.csv", role: "broker_export_v1", schema_version: "1.0", required: false, sha256: "fixture-broker" },
@@ -44,6 +49,7 @@ const manifest = {
   ohlcv_present: true,
   declared_claims_present: true,
   broker_export_present: true,
+  parameter_metadata_present: true,
 };
 
 test("Phase 0 Strategy Truth Room contract constants are stable", () => {
@@ -61,6 +67,9 @@ test("Phase 1 bundle validator accepts Strategy Truth Room manifest roles and re
       { path: "trades.csv", text: tradesCsv },
       { path: "metadata.json", text: JSON.stringify({ strategy_name: "Phase 1 Bundle", source_platform: "fixture" }) },
       { path: "assumptions.json", text: JSON.stringify({ commission_model: "maker/taker supplied" }) },
+      { path: "params.json", text: JSON.stringify({ parameter_set_name: "base", tunable_parameters: { lookback: 20, threshold: 1.2 } }) },
+      { path: "parameter_results.csv", text: "run_id,lookback,threshold,net_profit,max_drawdown,sharpe,trade_count\nrun_1,10,1.2,100,20,1.1,2\nrun_2,20,1.2,80,18,0.9,2" },
+      { path: "run_manifest.json", text: JSON.stringify({ base_run_id: "run_2", parameter_names: ["lookback", "threshold"] }) },
       { path: "ohlcv.csv", text: "timestamp,open,high,low,close,volume\n2026-01-01T00:00:00Z,100,101,99,100.5,1000" },
       { path: "benchmark.csv", text: "timestamp,equity\n2026-01-01T00:00:00Z,100000" },
       { path: "broker_export.csv", text: "fill_id,symbol,price,quantity,fee\nf1,BTCUSDT,100,1,0.1" },
@@ -86,6 +95,9 @@ test("Phase 1 bundle parser preserves unlock artifacts, claims, provenance, and 
       { path: "trades.csv", text: tradesCsv },
       { path: "metadata.json", text: JSON.stringify({ strategy_name: "Phase 1 Bundle", source_platform: "fixture", asset_class: "crypto" }) },
       { path: "assumptions.json", text: JSON.stringify({ commission_model: "maker/taker supplied" }) },
+      { path: "params.json", text: JSON.stringify({ parameter_set_name: "base", tunable_parameters: { lookback: 20, threshold: 1.2 } }) },
+      { path: "parameter_results.csv", text: "run_id,lookback,threshold,net_profit,max_drawdown,sharpe,trade_count\nrun_1,10,1.2,100,20,1.1,2\nrun_2,20,1.2,80,18,0.9,2" },
+      { path: "run_manifest.json", text: JSON.stringify({ base_run_id: "run_2", parameter_names: ["lookback", "threshold"] }) },
       { path: "ohlcv.csv", text: "timestamp,open,high,low,close,volume\n2026-01-01T00:00:00Z,100,101,99,100.5,1000" },
       { path: "benchmark.csv", text: "timestamp,equity\n2026-01-01T00:00:00Z,100000" },
       { path: "broker_export.csv", text: "fill_id,symbol,price,quantity,fee\nf1,BTCUSDT,100,1,0.1" },
@@ -100,7 +112,9 @@ test("Phase 1 bundle parser preserves unlock artifacts, claims, provenance, and 
   assert.equal(parsed.parsed.ohlcv_present, true);
   assert.equal(parsed.parsed.benchmark_present, true);
   assert.equal(parsed.parsed.broker_export_present, true);
+  assert.equal(parsed.parsed.parameter_sweep_present, true);
   assert.equal(parsed.parsed.declared_claims?.[0]?.claim, "Positive expectancy after fees");
   assert.ok(parsed.parsed.source_files?.some((file) => file.role === "broker_export_v1"));
   assert.equal(parsed.parsed.diagnostic_eligibility.regimes.availability, "available");
+  assert.equal(parsed.parsed.diagnostic_eligibility.stability.availability, "available");
 });

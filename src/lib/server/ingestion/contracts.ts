@@ -123,6 +123,7 @@ export type BundleManifestV1 = {
   parameter_metadata_present?: boolean;
   declared_claims_present?: boolean;
   broker_export_present?: boolean;
+  parameter_sweep_present?: boolean;
 };
 
 export type BundleManifestFileV1 = {
@@ -222,6 +223,7 @@ export type ParsedArtifact = {
   ohlcv?: Record<string, string | number>[];
   benchmark_series?: Record<string, string | number>[];
   broker_exports?: Record<string, string | number>[];
+  parameter_sweep?: Record<string, string | number>[];
   prop_evaluation_rules?: PropEvaluationRulesV1;
   declared_claims?: DeclaredStrategyClaim[];
   source_files?: SourceFileProvenance[];
@@ -230,6 +232,7 @@ export type ParsedArtifact = {
   ohlcv_present: boolean;
   benchmark_present: boolean;
   broker_export_present?: boolean;
+  parameter_sweep_present?: boolean;
   diagnostic_eligibility: DiagnosticEligibilityMatrix;
   parser_notes?: string[];
   validation: ArtifactValidationResult;

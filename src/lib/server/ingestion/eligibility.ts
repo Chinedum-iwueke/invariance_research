@@ -6,26 +6,35 @@ import type {
   ParsedArtifact,
 } from "./contracts";
 
-function allAvailableDiagnostics(): DiagnosticEligibilityMatrix {
-  return {
-    overview: { availability: "available" },
-    distribution: { availability: "available" },
-    monte_carlo: { availability: "available" },
-    stability: { availability: "available" },
-    execution: { availability: "available" },
-    regimes: { availability: "available" },
-    ruin: { availability: "available" },
-    prop_evaluation_readiness: { availability: "available" },
-    report: { availability: "available" },
-  };
-}
-
 export function buildDiagnosticEligibility(
   richness: ArtifactRichness,
-  context?: { assumptionsPresent?: boolean; ohlcvPresent?: boolean; paramsPresent?: boolean },
+  context?: { assumptionsPresent?: boolean; ohlcvPresent?: boolean; paramsPresent?: boolean; parameterSweepPresent?: boolean },
 ): DiagnosticEligibilityMatrix {
   if (richness === "research_complete") {
-    return allAvailableDiagnostics();
+    return {
+      overview: { availability: "available" },
+      distribution: { availability: "available" },
+      monte_carlo: { availability: "available" },
+      stability: {
+        availability: context?.parameterSweepPresent ? "available" : "limited",
+        reason: context?.parameterSweepPresent
+          ? undefined
+          : "params.json improves parameter context, but true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping or Research Desk review",
+      },
+      execution: {
+        availability: context?.assumptionsPresent ? "available" : "limited",
+        reason: context?.assumptionsPresent ? undefined : "requires explicit execution/cost assumptions",
+      },
+      regimes: {
+        availability: context?.ohlcvPresent ? "available" : "limited",
+        reason: context?.ohlcvPresent
+          ? "upload OHLCV supports regime context; portfolio-level multi-asset attribution still requires explicit coverage/alignment and may require Research Desk review"
+          : "requires OHLCV or explicit regime-labeled context",
+      },
+      ruin: { availability: "available" },
+      prop_evaluation_readiness: { availability: "available" },
+      report: { availability: "available" },
+    };
   }
 
   if (richness === "trade_only") {
@@ -61,7 +70,14 @@ export function buildDiagnosticEligibility(
     overview: { availability: "available" },
     distribution: { availability: "available" },
     monte_carlo: { availability: "available" },
-    stability: { availability: context?.paramsPresent ? "available" : "limited", reason: context?.paramsPresent ? undefined : "requires parameter sweep bundle (multi-run parameter combinations with run mapping)" },
+    stability: {
+      availability: context?.parameterSweepPresent ? "available" : "limited",
+      reason: context?.parameterSweepPresent
+        ? undefined
+        : context?.paramsPresent
+          ? "params.json improves parameter context, but true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping or Research Desk review"
+          : "requires parameter sweep bundle (multi-run parameter combinations with run mapping)",
+    },
     execution: {
       availability: context?.assumptionsPresent ? "available" : "limited",
       reason: context?.assumptionsPresent ? undefined : "requires richer execution assumptions",

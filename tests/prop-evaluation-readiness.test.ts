@@ -72,3 +72,33 @@ test("prop evaluation emits rolling windows for target-before-breach and breach-
   assert.equal(windows.some((window) => window.outcome === "target_before_breach"), true);
   assert.equal(windows.some((window) => window.outcome === "breach_before_target"), true);
 });
+
+test("target-before-breach windows expose the target event even when a later breach occurs", () => {
+  const diagnostic = computePropEvaluationReadiness({
+    ...baseArtifact,
+    trades: [
+      { exit_time: "2026-01-01T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: 9_000 },
+      { exit_time: "2026-01-02T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: -12_000 },
+    ],
+  } as any, {
+    schema_version: "prop_evaluation_rules_v1",
+    source: "runtime",
+    label: "Runtime challenge",
+    account_size: 100_000,
+    profit_target_pct: 0.08,
+    max_total_drawdown_pct: 0.10,
+    max_daily_loss_pct: 0.05,
+    minimum_trading_days: 1,
+    maximum_evaluation_days: 2,
+  });
+
+  const windows = diagnostic.metadata?.evaluation_windows as Array<Record<string, unknown>>;
+  const firstWindow = windows[0];
+
+  assert.equal(firstWindow.outcome, "target_before_breach");
+  assert.equal(firstWindow.target_hit_day, "2026-01-01");
+  assert.equal(firstWindow.target_hit_profit, 9000);
+  assert.equal(firstWindow.breach_rule, "max_daily_loss");
+  assert.equal(diagnostic.target_progress?.ending_profit, -3000);
+  assert.equal(diagnostic.target_progress?.peak_profit, 9000);
+});

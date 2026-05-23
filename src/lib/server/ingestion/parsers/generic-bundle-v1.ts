@@ -49,19 +49,22 @@ export const genericBundleV1ParserAdapter: ParserAdapter = {
     const ohlcv = parseLooseCsv(bundle.files["ohlcv.csv"]?.text);
     const benchmarkSeries = parseLooseCsv(bundle.files["benchmark.csv"]?.text);
     const brokerExports = parseLooseCsv(bundle.files["broker_export.csv"]?.text);
+    const parameterSweep = parseLooseCsv(bundle.files["parameter_results.csv"]?.text);
+    const parameterSweepPresent = Boolean(parameterSweep?.length && bundle.files["run_manifest.json"]);
 
     const richness = classifyArtifactRichness({
       metadataPresent: Boolean(metadata),
       assumptionsPresent: Boolean(assumptions),
       equityCurvePresent: Boolean(bundle.files["equity_curve.csv"]),
       ohlcvPresent: Boolean(bundle.files["ohlcv.csv"] || bundle.files["ohlcv.parquet"]),
-      paramsPresent: Boolean(params),
+      paramsPresent: Boolean(params) || parameterSweepPresent,
     });
 
     const diagnostic_eligibility = buildDiagnosticEligibility(richness, {
       assumptionsPresent: Boolean(assumptions),
       ohlcvPresent: Boolean(bundle.files["ohlcv.csv"] || bundle.files["ohlcv.parquet"]),
-      paramsPresent: Boolean(params),
+      paramsPresent: Boolean(params) || parameterSweepPresent,
+      parameterSweepPresent,
     });
 
     const sourceFiles = buildSourceFiles(bundle.manifest.files ?? [], Object.keys(bundle.files));
@@ -78,6 +81,7 @@ export const genericBundleV1ParserAdapter: ParserAdapter = {
       ohlcv,
       benchmark_series: benchmarkSeries,
       broker_exports: brokerExports,
+      parameter_sweep: parameterSweep,
       declared_claims: declaredClaims,
       source_files: sourceFiles,
       bundle_manifest: bundle.manifest,
@@ -85,6 +89,7 @@ export const genericBundleV1ParserAdapter: ParserAdapter = {
       ohlcv_present: Boolean(bundle.files["ohlcv.csv"] || bundle.files["ohlcv.parquet"]),
       benchmark_present: Boolean(bundle.files["benchmark.csv"]),
       broker_export_present: Boolean(bundle.files["broker_export.csv"]),
+      parameter_sweep_present: parameterSweepPresent,
       diagnostic_eligibility,
       parser_notes: notes,
       validation,

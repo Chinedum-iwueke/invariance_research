@@ -148,6 +148,7 @@ interface PdfOp {
   x: number;
   y: number;
   size?: number;
+  color?: [number, number, number];
 }
 
 interface PdfPage {
@@ -160,6 +161,11 @@ interface WrappedLine {
 }
 
 const PAGE = { width: 612, height: 792, margin: 44 };
+const PDF_COLORS = {
+  ink: [0.08, 0.09, 0.11] as [number, number, number],
+  muted: [0.34, 0.37, 0.42] as [number, number, number],
+  red: [0.69, 0.0, 0.13] as [number, number, number],
+};
 
 function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>, snapshot?: ReportSnapshotRecord): Uint8Array {
   const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
@@ -197,10 +203,16 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
     }
     for (const line of lines) {
       for (const wrapped of wrap(line.text, 94)) {
-        write(`• ${wrapped}`, { size: 10, leading: 14 });
+        write(`- ${wrapped}`, { size: 10, leading: 14 });
       }
     }
     y -= options?.gapAfter ?? 8;
+  };
+
+  const writeKicker = (text: string) => {
+    ensureRoom(18);
+    current.ops.push({ text: text.toUpperCase(), x: PAGE.margin, y, size: 8, color: PDF_COLORS.red });
+    y -= 14;
   };
 
   const writeFigure = (title: string, figure?: FigurePayload) => {
@@ -218,11 +230,12 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   drawPageHeader(current, record);
   y -= 36;
 
-  write("Institutional Validation Report", { size: 21, leading: 26, bold: true });
+  writeKicker("Strategy Truth Room");
+  write("Institutional Validation Report", { size: 23, leading: 28, bold: true });
   if (snapshot) write(`Snapshot: ${snapshot.snapshot_id}`, { size: 9, leading: 13 });
   write(`Strategy: ${record.strategy.strategy_name}`, { size: 11, leading: 16 });
   write(`Coverage: ${record.dataset.start_date ?? "N/A"} to ${record.dataset.end_date ?? "N/A"} | Trades: ${record.dataset.trade_count}`, { size: 10, leading: 14 });
-  write(`Verdict: ${report.verdict.statusLabel} — ${report.verdict.headline}`, { size: 11, leading: 16, bold: true });
+  write(`Verdict: ${report.verdict.statusLabel} - ${report.verdict.headline}`, { size: 11, leading: 16, bold: true });
   wrap(report.verdict.summary, 95).forEach((line) => write(line, { size: 10, leading: 14 }));
   y -= 4;
 
@@ -259,15 +272,22 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   writeFigure("Execution Expectancy Decay", report.prioritizedFigures.execution);
   report.prioritizedFigures.distribution.slice(0, 1).forEach((figure) => writeFigure(`Distribution: ${figure.title}`, figure));
 
+  pages.forEach((page, index) => drawPageFooter(page, index + 1, pages.length));
+
   return compilePdf(pages);
 }
 
 function drawPageHeader(page: PdfPage, record: AnalysisRecord) {
-  page.ops.push({ text: "◆", x: PAGE.margin, y: PAGE.height - 24, size: 16 });
-  page.ops.push({ text: "INVARIANCE RESEARCH", x: PAGE.margin + 16, y: PAGE.height - 26, size: 11 });
-  page.ops.push({ text: "Institutional Validation Report", x: PAGE.width - 210, y: PAGE.height - 26, size: 9 });
-  page.ops.push({ text: `Strategy: ${record.strategy.strategy_name}`, x: PAGE.margin, y: PAGE.height - 40, size: 8 });
-  page.ops.push({ text: `Generated: ${record.report.generated_at ?? record.updated_at}`, x: PAGE.width - 250, y: PAGE.height - 40, size: 8 });
+  page.ops.push({ text: "IR", x: PAGE.margin + 6, y: PAGE.height - 28, size: 12, color: [1, 1, 1] });
+  page.ops.push({ text: "INVARIANCE RESEARCH", x: PAGE.margin + 34, y: PAGE.height - 24, size: 11, color: PDF_COLORS.ink });
+  page.ops.push({ text: "Institutional Validation Memo", x: PAGE.width - 210, y: PAGE.height - 24, size: 9, color: PDF_COLORS.muted });
+  page.ops.push({ text: `Strategy: ${record.strategy.strategy_name}`, x: PAGE.margin + 34, y: PAGE.height - 39, size: 8, color: PDF_COLORS.muted });
+  page.ops.push({ text: `Generated: ${record.report.generated_at ?? record.updated_at}`, x: PAGE.width - 250, y: PAGE.height - 39, size: 8, color: PDF_COLORS.muted });
+}
+
+function drawPageFooter(page: PdfPage, pageNumber: number, pageCount: number) {
+  page.ops.push({ text: "Validation output is evidence-bound. It is not investment advice.", x: PAGE.margin, y: 26, size: 7, color: PDF_COLORS.muted });
+  page.ops.push({ text: `Page ${pageNumber} of ${pageCount}`, x: PAGE.width - PAGE.margin - 50, y: 26, size: 7, color: PDF_COLORS.muted });
 }
 
 function compilePdf(pages: PdfPage[]): Uint8Array {
@@ -372,7 +392,16 @@ function normalizeSeriesPoints(figure: FigurePayload): Array<Array<{ x: number; 
 }
 
 function buildPageStream(page: PdfPage): string {
-  const ops: string[] = ["BT"];
+  const ops: string[] = [
+    "q",
+    "0.69 0.0 0.13 rg",
+    `${PAGE.margin} ${PAGE.height - 38} 24 24 re f`,
+    "0.88 0.89 0.91 RG",
+    `0.6 w ${PAGE.margin} ${PAGE.height - 48} m ${PAGE.width - PAGE.margin} ${PAGE.height - 48} l S`,
+    `0.6 w ${PAGE.margin} 40 m ${PAGE.width - PAGE.margin} 40 l S`,
+    "Q",
+    "BT",
+  ];
 
   for (const op of page.ops) {
     const bold = op.text.startsWith("**") && op.text.endsWith("**");
@@ -380,6 +409,8 @@ function buildPageStream(page: PdfPage): string {
     const escaped = escapePdfText(rawText);
     const font = bold ? "/F2" : "/F1";
     const size = op.size ?? 10;
+    const color = op.color ?? PDF_COLORS.ink;
+    ops.push(`${color[0]} ${color[1]} ${color[2]} rg`);
     ops.push(`${font} ${size} Tf`);
     ops.push(`1 0 0 1 ${op.x} ${op.y} Tm`);
     ops.push(`(${escaped}) Tj`);
@@ -425,24 +456,56 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
   const maxY = Math.max(...yValues);
   const spanX = Math.max(maxX - minX, 1);
   const spanY = Math.max(maxY - minY, 1);
+  const inner = { left: x + 42, right: x + width - 14, top: y - 14, bottom: y - height + 24 };
+  const innerWidth = Math.max(inner.right - inner.left, 1);
+  const innerHeight = Math.max(inner.top - inner.bottom, 1);
 
   const colorPalette: Array<[number, number, number]> = [
-    [0.16, 0.35, 0.77],
+    [0.69, 0.0, 0.13],
+    [0.06, 0.42, 0.48],
+    [0.18, 0.28, 0.45],
     [0.0, 0.55, 0.32],
-    [0.61, 0.28, 0.86],
-    [0.89, 0.31, 0.18],
   ];
 
-  const xPos = (value: number) => x + ((value - minX) / spanX) * width;
-  const yPos = (value: number) => y - ((value - minY) / spanY) * height;
+  const xPos = (value: number) => inner.left + ((value - minX) / spanX) * innerWidth;
+  const yPos = (value: number) => inner.bottom + ((value - minY) / spanY) * innerHeight;
 
   const commands: string[] = [
     "q",
-    "0.95 0.96 0.98 rg",
+    "0.985 0.985 0.975 rg",
     `${x} ${y - height} ${width} ${height} re f`,
-    "0.75 0.78 0.84 RG",
+    "0.86 0.87 0.89 RG",
     `${x} ${y - height} ${width} ${height} re S`,
+    "0.90 0.91 0.93 RG",
+    "0.35 w",
   ];
+
+  for (let idx = 0; idx <= 4; idx += 1) {
+    const gridY = inner.bottom + (innerHeight / 4) * idx;
+    commands.push(`${inner.left} ${gridY} m ${inner.right} ${gridY} l S`);
+  }
+  for (let idx = 0; idx <= 4; idx += 1) {
+    const gridX = inner.left + (innerWidth / 4) * idx;
+    commands.push(`${gridX} ${inner.bottom} m ${gridX} ${inner.top} l S`);
+  }
+
+  commands.push("0.34 0.37 0.42 RG");
+  commands.push(`0.7 w ${inner.left} ${inner.bottom} m ${inner.right} ${inner.bottom} l S`);
+  commands.push(`0.7 w ${inner.left} ${inner.bottom} m ${inner.left} ${inner.top} l S`);
+
+  const yMinLabel = compactNumber(minY);
+  const yMaxLabel = compactNumber(maxY);
+  const xMinLabel = compactNumber(minX);
+  const xMaxLabel = compactNumber(maxX);
+  commands.push("BT");
+  commands.push("0.34 0.37 0.42 rg");
+  commands.push("/F1 7 Tf");
+  commands.push(`1 0 0 1 ${x + 8} ${inner.bottom - 2} Tm (${escapePdfText(yMinLabel)}) Tj`);
+  commands.push(`1 0 0 1 ${x + 8} ${inner.top - 2} Tm (${escapePdfText(yMaxLabel)}) Tj`);
+  commands.push(`1 0 0 1 ${inner.left} ${y - height + 8} Tm (${escapePdfText(xMinLabel)}) Tj`);
+  commands.push(`1 0 0 1 ${inner.right - 28} ${y - height + 8} Tm (${escapePdfText(xMaxLabel)}) Tj`);
+  commands.push(`1 0 0 1 ${x + 10} ${y - 11} Tm (${escapePdfText(figure.type.replaceAll("_", " "))}) Tj`);
+  commands.push("ET");
 
   normalizedSeries.forEach((series, index) => {
     const color = colorPalette[index % colorPalette.length];
@@ -459,6 +522,15 @@ function drawChart(figure: FigurePayload, x: number, y: number, width: number, h
 
   commands.push("Q");
   return commands;
+}
+
+function compactNumber(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}m`;
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  if (abs >= 10) return value.toFixed(0);
+  if (abs >= 1) return value.toFixed(1);
+  return value.toFixed(2);
 }
 
 function wrap(value: string, max: number): string[] {
@@ -484,5 +556,12 @@ function wrap(value: string, max: number): string[] {
 }
 
 function escapePdfText(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  return value
+    .replace(/[•·]/g, "-")
+    .replace(/[–—]/g, "-")
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 }

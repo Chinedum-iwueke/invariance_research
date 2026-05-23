@@ -20,6 +20,8 @@ const RECOGNIZED_BUNDLE_FILES = new Set([
   "equity_curve.csv",
   "assumptions.json",
   "params.json",
+  "parameter_results.csv",
+  "run_manifest.json",
   "ohlcv.csv",
   "ohlcv.parquet",
   "benchmark.csv",

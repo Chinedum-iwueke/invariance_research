@@ -44,8 +44,8 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
           "Execution Sensitivity baseline requires trade data plus explicit execution/cost assumptions. This run only includes partial execution context.",
         unlockRequirements: [
           "Baseline requires trade data and explicit execution/cost assumptions.",
-          "Enhanced realism benefits from OHLCV, spread proxies, and execution metadata.",
-          "Include stress increments for spread, slippage, and fees to unlock full scenario coverage.",
+          "Enhanced realism benefits from OHLCV, spread proxies, broker fills, and execution metadata.",
+          "Broker-level execution realism requires fill, fee, spread, venue, and latency evidence; use Research Desk when those details are incomplete.",
         ],
         actions: [
           { label: "Upload execution assumptions", href: "/app/new-analysis", emphasis: "primary" },
@@ -67,13 +67,14 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
           "Upload one structured bundle/ZIP covering multiple strategy runs.",
           "Include parameter metadata that maps each run_id to its parameter values.",
           "Include per-run trade history/results files (or one combined table with run_id + parameter columns).",
+          "Use Research Desk when you have only one params file or need sweep design reviewed.",
         ],
         actions: [
           { label: "Upload parameter sweep bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
+          { label: "Request Research Desk", href: "/contact", emphasis: "secondary" },
         ],
         footerNote:
-          "Parameter Stability also requires Pro access. Artifact structure and plan tier are both required; OHLCV may still be needed for adjacent regime context.",
+          "Parameter Stability also requires Pro access. Artifact structure and plan tier are both required; true stability still depends on real sweep evidence. OHLCV may still be needed for adjacent regime context.",
       };
     }
 
@@ -88,13 +89,14 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         unlockRequirements: [
           "Required: trade data.",
           "Required: OHLCV market context.",
-          "Optional improvements: indicators, regime labels, and benchmark context.",
+          "Optional improvements: indicators, regime labels, benchmark context, and explicit symbol coverage.",
+          "Use Research Desk for portfolio-level multi-asset attribution unless coverage, timestamp alignment, and regime definitions are explicit.",
         ],
         actions: [
           { label: "Upload trade + OHLCV bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
+          { label: "Request Research Desk", href: "/contact", emphasis: "secondary" },
         ],
-        footerNote: "No regime classifications or proxy regime results are generated when OHLCV context is missing.",
+        footerNote: "No regime classifications or proxy regime results are generated when OHLCV context is missing. Multi-asset attribution is evidence-gated.",
       };
     }
 

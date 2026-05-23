@@ -232,8 +232,25 @@ export function NewAnalysisIntake() {
     <div className="space-y-4">
       <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-text-neutral">If you are unsure what to upload, use the canonical lab specification.</p>
-          <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>
+          <p className="text-xs text-text-neutral">Use a trade CSV for a quick read, or a research bundle ZIP for the strongest automated diagnostic coverage.</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className={buttonVariants({ variant: "secondary", size: "sm" })}>Download Reference Bundle</Link>
+            <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>
+          </div>
+        </div>
+        <div className="mb-4 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+            <p className="font-semibold text-text-institutional">Trade CSV</p>
+            <p className="mt-1">Fast baseline validation from closed trades.</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+            <p className="font-semibold text-text-institutional">Rich CSV</p>
+            <p className="mt-1">Add fees, MAE/MFE, risk, and R fields for stronger diagnostics.</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+            <p className="font-semibold text-text-institutional">Research ZIP</p>
+            <p className="mt-1">Add manifest, OHLCV, broker export, claims, and parameter sweep files.</p>
+          </div>
         </div>
         <div
           className={cn(
@@ -265,6 +282,8 @@ export function NewAnalysisIntake() {
           />
           <p className="mt-2 text-xs text-text-neutral">
             <Link href="/docs/lab" className="underline underline-offset-2 hover:text-text-graphite">What files are accepted?</Link>
+            <span className="mx-2 text-border">|</span>
+            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className="underline underline-offset-2 hover:text-text-graphite">Download a format reference ZIP</Link>
           </p>
           {file ? (
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-neutral">

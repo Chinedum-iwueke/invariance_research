@@ -15,18 +15,32 @@ const SERVICE_LABELS: Record<ResearchDeskService, string> = {
   investor_buyer_memo_review: "Investor/buyer memo review",
 };
 
+const DEFAULT_EVIDENCE_INSUFFICIENCY_SCOPES = [
+  "True parameter stability: design and review a real multi-run parameter sweep with run-to-parameter mapping.",
+  "Multi-asset regime attribution: verify symbol coverage, timestamp alignment, and regime definitions before attributing edge by market state.",
+  "Broker-level execution realism: inspect broker fills, fees, spreads, partial fills, latency, and venue-specific constraints.",
+  "Strategy reconstruction from config/report: translate a config, report, or platform export into a falsifiable strategy record.",
+  "Portfolio-level exposure analysis: review cross-symbol exposure, concentration, correlation, and capital path risks.",
+  "Independent validation memo: produce reviewer-approved decision context for buyers, allocators, partners, or internal review.",
+] as const;
+
 export function ResearchDeskRequestPanel({
   analysisId,
   limitations,
   defaultServices = ["execution_audit", "data_quality_audit", "benchmark_construction"],
+  evidenceInsufficiencyScopes = DEFAULT_EVIDENCE_INSUFFICIENCY_SCOPES,
 }: {
   analysisId: string;
   limitations: string[];
   defaultServices?: ResearchDeskService[];
+  evidenceInsufficiencyScopes?: readonly string[];
 }) {
   const normalizedLimitations = useMemo(
-    () => limitations.map((item) => item.trim()).filter((item, index, all) => item.length > 0 && all.indexOf(item) === index).slice(0, 8),
-    [limitations],
+    () => [...limitations, ...evidenceInsufficiencyScopes]
+      .map((item) => item.trim())
+      .filter((item, index, all) => item.length > 0 && all.indexOf(item) === index)
+      .slice(0, 12),
+    [limitations, evidenceInsufficiencyScopes],
   );
   const [triggerLimitation, setTriggerLimitation] = useState(normalizedLimitations[0] ?? "General deeper validation request");
   const [services, setServices] = useState<ResearchDeskService[]>(defaultServices);
@@ -89,6 +103,15 @@ export function ResearchDeskRequestPanel({
       <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
         <p className="font-semibold text-text-graphite">Validation packet includes</p>
         <p className="mt-2">report snapshot, artifact manifest, evidence ledger, assumption ledger, unsupported claims, diagnostic outputs, requested questions, client notes, and reviewer checklist.</p>
+      </div>
+
+      <div className="mt-4 rounded-md border border-research-red/15 bg-research-red/5 p-3 text-xs leading-5 text-text-neutral">
+        <p className="font-semibold text-text-graphite">Always route to Research Desk when upload evidence is insufficient for</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {evidenceInsufficiencyScopes.map((scope) => (
+            <p key={scope} className="rounded-sm border border-research-red/10 bg-surface-white px-3 py-2">{scope}</p>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">

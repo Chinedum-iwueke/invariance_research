@@ -108,6 +108,11 @@ test("pdf export renderer emits application/pdf payload", () => {
   assert.equal(rendered.content_type, "application/pdf");
   assert.equal(rendered.file_name, "analysis-pdf-1-validation-report-live.pdf");
   assert.equal(prefix.startsWith("%PDF-1."), true);
+  const pdfText = Buffer.from(rendered.bytes).toString("utf8");
+  assert.match(pdfText, /INVARIANCE RESEARCH/);
+  assert.match(pdfText, /STRATEGY TRUTH ROOM/);
+  assert.match(pdfText, /Institutional Validation Memo/);
+  assert.match(pdfText, /Page 1 of/);
 });
 
 test("startup validation reports worker readiness checks", async () => {

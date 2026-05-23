@@ -11,8 +11,8 @@ export function LockedFeatureCard({ title, body }: { title: string; body: string
       </div>
       <p className="text-sm text-text-neutral">{body}</p>
       <div className="flex gap-2">
-        <a href="/pricing" className={buttonVariants({ size: "sm" })}>Unlock full diagnostics</a>
-        <a href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request audit</a>
+        <a href="/pricing" className={buttonVariants({ size: "sm" })}>View evidence-gated access</a>
+        <a href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request Research Desk</a>
       </div>
     </Card>
   );

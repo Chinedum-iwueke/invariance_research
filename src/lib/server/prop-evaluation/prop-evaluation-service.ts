@@ -172,6 +172,9 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
   let firstTotalBreach: PropPathEvent | undefined;
   let firstDailyBreach: PropPathEvent | undefined;
   let firstTargetHit: PropPathEvent | undefined;
+  let peakProfit = 0;
+  let peakProfitDay: string | undefined;
+  let peakProfitTradeIndex: number | undefined;
   const breachEvents: PropPathEvent[] = [];
   const targetEvents: PropPathEvent[] = [];
 
@@ -179,6 +182,11 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     const dayStartEquity = accountSize + cumulative;
     cumulative += row.pnl;
     const equity = accountSize + cumulative;
+    if (cumulative > peakProfit) {
+      peakProfit = cumulative;
+      peakProfitDay = row.day;
+      peakProfitTradeIndex = row.last_trade_index;
+    }
     highWater = Math.max(highWater, equity);
 
     const totalDrawdownBasis = rules.total_drawdown_basis === "static" ? accountSize : highWater;
@@ -254,6 +262,9 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     breachEvents: consistencyBreach ? [...breachEvents, consistencyBreach] : breachEvents,
     targetEvents,
     tradingDays: rows.length,
+    peakProfit,
+    peakProfitDay,
+    peakProfitTradeIndex,
   };
 }
 
@@ -265,16 +276,31 @@ function buildWindowOutcomes(rows: DailyPnlRow[], rules: NormalizedRules) {
     const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach);
     const targetBeforeBreach = Boolean(path.firstTargetHit && (!firstBreach || ((path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER) <= (firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER))));
     const breachBeforeTarget = Boolean(firstBreach && (!path.firstTargetHit || ((firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER) < (path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER))));
+    const resolution = targetBeforeBreach ? path.firstTargetHit : breachBeforeTarget ? firstBreach : undefined;
     return {
       start_day: windowRows[0]?.day,
       end_day: windowRows[windowRows.length - 1]?.day,
       trading_days: windowRows.length,
       outcome: targetBeforeBreach ? "target_before_breach" : breachBeforeTarget ? "breach_before_target" : "unresolved",
+      resolution_day: resolution?.day,
+      resolution_trade_index: resolution?.trade_index,
+      resolution_rule: resolution?.rule,
       target_hit_day: path.firstTargetHit?.day,
+      target_hit_trade_index: path.firstTargetHit?.trade_index,
+      target_hit_profit: path.firstTargetHit?.cumulative_profit,
+      target_hit_profit_pct: path.firstTargetHit?.observed_pct,
       breach_day: firstBreach?.day,
       breach_rule: firstBreach?.rule,
+      breach_trade_index: firstBreach?.trade_index,
+      breach_observed_pct: firstBreach?.observed_pct,
+      breach_allowed_pct: firstBreach?.allowed_pct,
+      breach_cumulative_profit: firstBreach?.cumulative_profit,
+      breach_equity: firstBreach?.equity,
       profit: Number(path.cumulative.toFixed(2)),
       profit_pct: pct(path.cumulative / rules.account_size),
+      peak_profit: Number(path.peakProfit.toFixed(2)),
+      peak_profit_pct: pct(path.peakProfit / rules.account_size),
+      peak_profit_day: path.peakProfitDay,
       max_daily_loss_pct: pct(path.maxDailyLossPct),
       max_total_drawdown_pct: pct(path.maxDrawdownPct),
     };
@@ -284,7 +310,7 @@ function buildWindowOutcomes(rows: DailyPnlRow[], rules: NormalizedRules) {
     target_before_breach_count: windows.filter((window) => window.outcome === "target_before_breach").length,
     breach_before_target_count: windows.filter((window) => window.outcome === "breach_before_target").length,
     unresolved_count: windows.filter((window) => window.outcome === "unresolved").length,
-    windows: windows.slice(0, 24),
+    windows,
   };
 }
 
@@ -322,9 +348,12 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     { rule: "consistency_max_day_profit", status: path.consistencyBreach ? "fail" : "pass", observed: pct(path.consistencyShare), allowed: pct(rules.consistency_max_day_profit_pct ?? 0) },
   ];
   const targetProgress = {
-    profit: Number(totalProfit.toFixed(2)),
+    ending_profit: Number(totalProfit.toFixed(2)),
     target_profit: Number(targetProfit.toFixed(2)),
-    progress_pct: pct(targetProfit > 0 ? totalProfit / targetProfit : 0),
+    ending_progress_pct: pct(targetProfit > 0 ? totalProfit / targetProfit : 0),
+    peak_profit: Number(path.peakProfit.toFixed(2)),
+    peak_progress_pct: pct(targetProfit > 0 ? path.peakProfit / targetProfit : 0),
+    peak_profit_day: path.peakProfitDay ?? null,
     trading_days: tradingDays,
     first_target_hit: path.firstTargetHit ?? null,
     target_before_breach_count: windowOutcomes.target_before_breach_count,
@@ -348,7 +377,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     metrics: [
       score("Target Before Breach", formatPctValue(summaryMetrics.target_before_breach_probability), firstBreach ? "elevated" : "moderate"),
       score("Breach Probability", formatPctValue(summaryMetrics.breach_probability), firstBreach ? "critical" : "moderate"),
-      score("Profit Target Progress", `${targetProgress.progress_pct.toFixed(1)}%`, targetReached ? "good" : "moderate"),
+      score("Peak Target Progress", `${targetProgress.peak_progress_pct.toFixed(1)}%`, path.firstTargetHit ? "good" : "moderate"),
       score("Max Daily Loss", `${pct(path.maxDailyLossPct).toFixed(1)}% / ${pct(rules.max_daily_loss_pct).toFixed(1)}%`, path.firstDailyBreach ? "critical" : "moderate"),
       score("Max Total Drawdown", `${pct(path.maxDrawdownPct).toFixed(1)}% / ${pct(rules.max_total_drawdown_pct).toFixed(1)}%`, path.firstTotalBreach ? "critical" : "moderate"),
       score("Trading Days", String(tradingDays), dayCountLimited ? "informational" : "moderate"),
@@ -367,7 +396,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       bullets: [
         fallbackLimited ? "Fallback rules were used; replace them with the exact prop firm rule sheet before relying on the verdict." : "Exact runtime or saved rules were used for this run.",
         firstBreach ? `First breach: ${String(firstBreach.rule).replaceAll("_", " ")}.` : "No configured rule breach was detected.",
-        `Profit target progress: ${targetProgress.progress_pct.toFixed(1)}%.`,
+        `Peak profit target progress before the path ended: ${targetProgress.peak_progress_pct.toFixed(1)}%.`,
         `${windowOutcomes.target_before_breach_count} rolling evaluation window(s) reached target before breach; ${windowOutcomes.breach_before_target_count} breached before target.`,
       ],
     },

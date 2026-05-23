@@ -85,6 +85,11 @@ async function invokeBridge(args: string[], payload?: Record<string, unknown>): 
       reject(new Error(`engine_process_spawn_failed:${error.message}`));
     });
 
+    proc.stdin.on("error", (error) => {
+      clearTimeout(timer);
+      reject(new Error(`engine_process_stdin_failed:${error.message}`));
+    });
+
     proc.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
