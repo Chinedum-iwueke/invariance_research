@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { LogoMonogram } from "@/components/ui/logo";
 
 function GoogleMark() {
@@ -57,6 +58,10 @@ export default function SignupPage() {
     <main className="public-hero-band flex min-h-screen items-center justify-center px-4 py-5 sm:px-6 md:py-10">
       <div className="artifact-surface w-full max-w-md space-y-5 overflow-hidden p-5 sm:p-8">
         <div className="-mx-5 -mt-5 h-1 bg-brand sm:-mx-8 sm:-mt-8" />
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-text-neutral transition hover:text-brand">
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
         <div className="flex flex-col items-center gap-4 text-center md:gap-5">
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <div>

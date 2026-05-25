@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BILLING_PLAN_CATALOG, STRIPE_WEBHOOK_PLAN_BY_PRICE } from "../src/lib/server/billing/billing-config.ts";
+import { BILLING_PLAN_CATALOG } from "../src/lib/server/billing/billing-config.ts";
 import { buildDiagnosticLockModel } from "../src/lib/app/diagnostic-locks.ts";
 import { PLAN_MATRIX, PLAN_PRICE_COPY, canonicalPlanId } from "../src/lib/server/entitlements/plans.ts";
 
 test("phase 6 launch plan matrix matches sellable packaging", () => {
   assert.equal(PLAN_PRICE_COPY.individual, "$39/mo");
   assert.equal(PLAN_PRICE_COPY.pro, "$99/mo");
-  assert.equal(PLAN_PRICE_COPY.team, "$399/mo");
   assert.equal(PLAN_PRICE_COPY.research_desk, "From $1,000");
 
   assert.equal(PLAN_MATRIX.free.analyses_per_month, 3);
@@ -20,14 +19,10 @@ test("phase 6 launch plan matrix matches sellable packaging", () => {
   assert.equal(PLAN_MATRIX.individual.prop_evaluation_profiles, 1);
   assert.equal(PLAN_MATRIX.individual.share_links_per_month, 5);
 
-  assert.equal(PLAN_MATRIX.pro.can_view_regimes, true);
-  assert.equal(PLAN_MATRIX.pro.can_view_stability, true);
+  assert.equal(PLAN_MATRIX.pro.can_view_regimes, false);
+  assert.equal(PLAN_MATRIX.pro.can_view_stability, false);
   assert.equal(PLAN_MATRIX.pro.can_request_research_desk, true);
 
-  assert.equal(PLAN_MATRIX.team.max_seats, 5);
-  assert.equal(PLAN_MATRIX.team.prop_evaluation_profiles, "shared");
-  assert.equal(PLAN_MATRIX.team.analyses_per_month, 250);
-  assert.equal(PLAN_MATRIX.team.share_links_per_month, 75);
   assert.equal(PLAN_MATRIX.research_desk.processing_priority, "institutional");
 });
 
@@ -41,13 +36,13 @@ test("legacy plan ids map safely into launch plan semantics", () => {
 
 test("stripe test-mode catalog has every paid self-serve launch tier", () => {
   const byId = new Map(BILLING_PLAN_CATALOG.map((entry) => [entry.id, entry]));
-  for (const plan of ["individual", "pro", "team"] as const) {
+  for (const plan of ["individual", "pro"] as const) {
     const entry = byId.get(plan);
     assert.equal(entry?.self_serve_checkout, true);
     assert.ok(entry?.stripe_price_id?.startsWith("price_") || entry?.stripe_price_id?.startsWith("prod_") || entry?.stripe_price_id);
   }
+  assert.equal(byId.has("team"), false);
   assert.equal(byId.get("research_desk")?.self_serve_checkout, false);
-  assert.equal(STRIPE_WEBHOOK_PLAN_BY_PRICE[process.env.STRIPE_PRICE_TEAM ?? "price_team"], "team");
 });
 
 test("plan lock copy separates subscription locks from evidence locks", () => {

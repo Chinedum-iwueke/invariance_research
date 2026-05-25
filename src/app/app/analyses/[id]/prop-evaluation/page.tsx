@@ -186,7 +186,6 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
   const targetWindows = evaluationWindows.filter((window) => window.outcome === "target_before_breach");
   const breachWindows = evaluationWindows.filter((window) => window.outcome === "breach_before_target");
   const targetEvents = recordList(metadata.target_events);
-  const breachEvents = recordList(metadata.breach_events);
   const targetProgress = prop.target_progress ?? {};
   const ruleSource = String(ruleSnapshot.source ?? "fallback");
   const usingExactRules = ruleSource !== "fallback";
@@ -217,6 +216,10 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <WorkspaceCard title="Readiness metrics" subtitle="Pass target, drawdown room, daily-loss pressure, and trading-day coverage">
           <MetricRow metrics={metrics} cols={2} />
+          <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs leading-5 text-text-neutral">
+            <p><span className="font-semibold text-text-institutional">Windows Reaching Target First</span> is the share of rolling evaluation windows where cumulative profit reached the configured target before any configured breach. It is not the profit-target percentage itself.</p>
+            <p className="mt-2"><span className="font-semibold text-text-institutional">Peak Target Progress</span> is the highest cumulative profit observed divided by the configured target profit. Values above 100% mean the path exceeded the profit target at least once; values below 100% mean it never reached the target.</p>
+          </div>
         </WorkspaceCard>
 
         <WorkspaceCard title="Edit rules" subtitle={usingExactRules ? "Runtime or saved rules are active; edit only if the challenge contract changed." : "Replace fallback assumptions with the actual evaluation rules."}>

@@ -62,19 +62,18 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         state: input.state,
         badgeLabel: "Artifact Limited",
         primaryExplanation:
-          "Parameter Stability requires a parameter sweep bundle: multiple runs across parameter combinations with explicit run-to-parameter mapping.",
+          "True parameter stability is a Research Desk scope for launch. A parameter sweep bundle can improve the review packet, but automated upload diagnostics should not claim a validated stability surface.",
         unlockRequirements: [
-          "Upload one structured bundle/ZIP covering multiple strategy runs.",
-          "Include parameter metadata that maps each run_id to its parameter values.",
-          "Include per-run trade history/results files (or one combined table with run_id + parameter columns).",
-          "Use Research Desk when you have only one params file or need sweep design reviewed.",
+          "Provide any available sweep outputs, parameter metadata, and run-to-parameter mapping as supporting evidence.",
+          "Include comparable per-run results only if they were generated under the same evaluation rules.",
+          "Use Research Desk to validate sweep design, fragile regions, and whether the supplied runs support a stability conclusion.",
         ],
         actions: [
-          { label: "Upload parameter sweep bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "Request Research Desk", href: "/contact", emphasis: "secondary" },
+          { label: "Request Research Desk", href: "/strategy-validation", emphasis: "primary" },
+          { label: "View supported bundle format", href: "/docs/lab", emphasis: "secondary" },
         ],
         footerNote:
-          "Parameter Stability also requires Pro access. Artifact structure and plan tier are both required; true stability still depends on real sweep evidence. OHLCV may still be needed for adjacent regime context.",
+          "A single params file documents configuration only; it does not prove parameter stability.",
       };
     }
 
@@ -85,18 +84,17 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         state: input.state,
         badgeLabel: "Artifact Limited",
         primaryExplanation:
-          "Regime Analysis requires market context (OHLCV or equivalent) to classify market conditions such as trend and volatility.",
+          "Regime attribution is a Research Desk scope for launch. Uploaded OHLCV can improve context, but automated upload diagnostics should not claim portfolio-level or multi-asset regime causality.",
         unlockRequirements: [
-          "Required: trade data.",
-          "Required: OHLCV market context.",
-          "Optional improvements: indicators, regime labels, benchmark context, and explicit symbol coverage.",
-          "Use Research Desk for portfolio-level multi-asset attribution unless coverage, timestamp alignment, and regime definitions are explicit.",
+          "Provide OHLCV, symbol coverage, timezone, bar interval, and any explicit regime definitions as supporting evidence.",
+          "For multi-asset strategies, include timestamp alignment and symbol-to-trade mapping so reviewers can inspect attribution quality.",
+          "Use Research Desk to validate regime buckets, data alignment, and whether the supplied context supports a regime-dependence claim.",
         ],
         actions: [
-          { label: "Upload trade + OHLCV bundle", href: "/app/new-analysis", emphasis: "primary" },
-          { label: "Request Research Desk", href: "/contact", emphasis: "secondary" },
+          { label: "Request Research Desk", href: "/strategy-validation", emphasis: "primary" },
+          { label: "View supported bundle format", href: "/docs/lab", emphasis: "secondary" },
         ],
-        footerNote: "No regime classifications or proxy regime results are generated when OHLCV context is missing. Multi-asset attribution is evidence-gated.",
+        footerNote: "No automated regime result should be treated as decision-grade without explicit, auditable regime definitions and reviewer validation.",
       };
     }
 

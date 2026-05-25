@@ -16,6 +16,21 @@ import { requireServerSession } from "@/lib/server/auth/session";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
 import { pageInsightRecommendations } from "@/lib/server/llm-insights";
 
+function findMetric(metrics: Array<{ label: string; value: string }>, patterns: RegExp[]) {
+  return metrics.find((metric) => patterns.some((pattern) => pattern.test(metric.label)));
+}
+
+function metricValue(metrics: Array<{ label: string; value: string }>, patterns: RegExp[], fallback = "Not emitted") {
+  return findMetric(metrics, patterns)?.value ?? fallback;
+}
+
+function parsePercent(value: string | undefined) {
+  if (!value) return undefined;
+  const match = value.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return undefined;
+  return Number(match[0]);
+}
+
 export default async function MonteCarloPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
@@ -75,13 +90,17 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
       : "Not emitted";
 
   const selectedMetrics = selectMonteCarloTopMetrics(record.diagnostics.monte_carlo.metrics, 4);
+  const allMonteCarloMetrics = record.diagnostics.monte_carlo.metrics;
+  const hasRuinMetric = selectedMetrics.some((metric) => metric.label.toLowerCase().includes("ruin") && metric.value.toLowerCase() !== "unavailable");
+  const ruinValue = metricValue(allMonteCarloMetrics, [/ruin/i, /breach probability/i], hasRuinMetric ? "See emitted metric" : "Not emitted");
+  const p95DrawdownValue = metricValue(allMonteCarloMetrics, [/95.*drawdown/i, /p95.*drawdown/i, /drawdown.*95/i], "Not emitted");
+  const worstDrawdownValue = metricValue(allMonteCarloMetrics, [/worst.*drawdown/i, /max.*drawdown/i], "Not emitted");
+  const terminalValue = metricValue(allMonteCarloMetrics, [/terminal/i, /ending/i, /final/i], "Not emitted");
   const metrics = metricsFromScoreBands(selectedMetrics, {
     "P(Ruin)": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
     "Probability of Ruin": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
     "Risk-of-Ruin Probability": "Unavailable values indicate the engine did not emit a ruin estimate for this run.",
   });
-  const hasRuinMetric = selectedMetrics.some((metric) => metric.label.toLowerCase().includes("ruin") && metric.value.toLowerCase() !== "unavailable");
-
   const riskBand = (() => {
     const critical = selectedMetrics.some((metric) => metric.band === "critical");
     const elevated = selectedMetrics.some((metric) => metric.band === "elevated");
@@ -90,6 +109,13 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
     if (selectedMetrics.some((metric) => metric.band === "moderate")) return "Moderate";
     return "Low";
   })();
+  const p95DrawdownPct = parsePercent(p95DrawdownValue);
+  const worstDrawdownPct = parsePercent(worstDrawdownValue);
+  const decisionPosture = selectedMetrics.some((metric) => metric.band === "critical")
+    ? "Do not size up from this evidence."
+    : selectedMetrics.some((metric) => metric.band === "elevated") || (p95DrawdownPct !== undefined && Math.abs(p95DrawdownPct) >= 25)
+      ? "Treat as capital-constrained until sizing is reduced."
+      : "Survivability is not the blocking issue in the emitted simulation.";
 
   const truthContext = buildTruthContext(record, "monte_carlo", { benchmark: analysis.benchmark });
   const monteCarloRecommendations = pageInsightRecommendations(record, "monte_carlo", truthContext.recommendations);
@@ -126,6 +152,57 @@ export default async function MonteCarloPage({ params }: { params: Promise<{ id:
           />
         </WorkspaceCard>
       </div>
+
+      <WorkspaceCard title="Decision-maker crash answer" subtitle="What the simulation says about capital survival, tail loss, and deployment sizing.">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">Deployment answer</p>
+            <p className="mt-2 text-sm font-semibold text-text-institutional">{decisionPosture}</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">Tail drawdown</p>
+            <p className="mt-2 text-2xl font-semibold text-text-institutional">{p95DrawdownValue}</p>
+            <p className="mt-1 text-xs leading-5 text-text-neutral">Decision makers should size against this, not against average-path comfort.</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">Worst simulated path</p>
+            <p className="mt-2 text-2xl font-semibold text-text-institutional">{worstDrawdownValue}</p>
+            <p className="mt-1 text-xs leading-5 text-text-neutral">Use this as a stop-deployment boundary unless the method is too limited.</p>
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-neutral">Ruin / breach risk</p>
+            <p className="mt-2 text-2xl font-semibold text-text-institutional">{ruinValue}</p>
+            <p className="mt-1 text-xs leading-5 text-text-neutral">If absent, the report cannot make a full survival claim.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-md border border-border-subtle bg-surface-white p-4">
+            <p className="text-sm font-semibold text-text-institutional">What this should answer</p>
+            <EvidenceList
+              items={[
+                "How bad can sequencing get if the same trade distribution arrives in a worse order?",
+                "What drawdown should capital planning survive at the 95th percentile or worse?",
+                "Whether the strategy still survives after risk sizing, losses, and path clustering are stressed.",
+                "Which limitation prevents the simulation from being treated as a deployment-grade survival test.",
+              ]}
+              empty="No crash-test questions were emitted."
+            />
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-white p-4">
+            <p className="text-sm font-semibold text-text-institutional">Information quality check</p>
+            <EvidenceList
+              items={[
+                `Simulation paths: ${simulations}`,
+                `Horizon: ${horizon}`,
+                `Method: ${method}`,
+                `Terminal wealth signal: ${terminalValue}`,
+                worstDrawdownPct === undefined ? "Worst-path drawdown was not emitted as a numeric percent." : `Worst-path drawdown parsed as approximately ${Math.abs(worstDrawdownPct).toFixed(1)}%.`,
+              ]}
+              empty="No simulation quality checks were emitted."
+            />
+          </div>
+        </div>
+      </WorkspaceCard>
 
       <FigureCard
         title={primaryFigure.title || "Monte Carlo Fan Chart — Simulated Equity Path Dispersion"}

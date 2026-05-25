@@ -44,24 +44,10 @@ export function PricingCards() {
       features: [
         "Research bundle upload",
         "100 analyses per month",
-        "Regime workspace when aligned OHLCV/context is supplied",
-        "Parameter stability workspace with sweep-required limits clearly shown",
+        "More share links and deeper report workflow",
+        "Research Desk request eligibility for regime, stability, broker, reconstruction, and exposure gaps",
         "Saved prop evaluation profiles and report appendix",
         "25 share links per month",
-      ],
-    },
-    {
-      title: "Team",
-      price: "$399",
-      billing: "per month",
-      ctaLabel: "Choose Team",
-      ctaHref: "/signup",
-      features: [
-        "5 seats and team library",
-        "Shared prop firm profiles and shared reports",
-        "Priority escalation for multi-asset, broker, and portfolio-level evidence gaps",
-        "250 analyses per month",
-        "Premium processing priority",
       ],
     },
     {
@@ -81,7 +67,7 @@ export function PricingCards() {
   ];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-5">
+    <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-4">
       {plans.map((plan) => (
         <Card key={plan.title} className={cn("space-y-5 p-card-lg", plan.highlight && "border-brand shadow-[0_0_0_1px_rgba(185,0,42,0.25)]") }>
           <div>

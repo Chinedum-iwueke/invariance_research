@@ -183,6 +183,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
     await moveToStep(analysisId, STEPS.normalizing);
     const normalizedRecord = normalizeEngineResultToAnalysisRecord({
       analysisId,
+      strategyName: analysis.strategy_name,
       parsedArtifact: artifact.parsed_artifact,
       eligibility,
       engineResult: engineRun.result,

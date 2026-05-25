@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
 import { authTokenRepository, generateAuthToken, hashAuthToken } from "@/lib/server/auth/tokens";
 import { sendTransactionalEmail } from "@/lib/server/email/email-service";
 import { resolveEntitlementsForPlan } from "@/lib/server/entitlements/entitlements";
+import { userHasAdminRole } from "@/lib/server/admin/roles";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 function monthBucket(date: Date) {
@@ -57,6 +58,20 @@ async function sendPasswordResetEmail(user: User) {
   });
 }
 
+async function isUserAdmin(user: User) {
+  return userHasAdminRole({ user_id: user.user_id, email: user.email });
+}
+
+async function ensureAdminAccountEntitlements(user: User, accountId: string) {
+  if (!(await isUserAdmin(user))) return;
+  const repositories = getCoreRepositories();
+  const account = await repositories.accounts.findById(accountId);
+  if (account?.plan_id !== "research_desk" || account.subscription_status !== "active") {
+    await repositories.accounts.updatePlan(accountId, "research_desk", "active");
+  }
+  await repositories.entitlements.set(resolveEntitlementsForPlan(accountId, "research_desk", "admin_override"));
+}
+
 export const accountService = {
   async ensureUserAndAccount(input: { email: string; name?: string; emailVerified?: boolean }) {
     const repositories = getCoreRepositories();
@@ -76,6 +91,8 @@ export const accountService = {
     if (!account) {
       account = await repositories.accounts.save(user.user_id, "free");
     }
+    await ensureAdminAccountEntitlements(user, account.account_id);
+    account = await repositories.accounts.findById(account.account_id) ?? account;
     await ensureDefaultUsageSnapshot(account.account_id);
 
     return { user, account };
@@ -90,6 +107,8 @@ export const accountService = {
     if (!account) {
       account = await repositories.accounts.save(user.user_id, "free");
     }
+    await ensureAdminAccountEntitlements(user, account.account_id);
+    account = await repositories.accounts.findById(account.account_id) ?? account;
     await ensureDefaultUsageSnapshot(account.account_id);
     return { user, account };
   },
@@ -111,6 +130,7 @@ export const accountService = {
       email_verified_at: requiresEmailVerification() ? undefined : new Date().toISOString(),
     });
     const account = await repositories.accounts.save(user.user_id, "free");
+    await ensureAdminAccountEntitlements(user, account.account_id);
     await ensureDefaultUsageSnapshot(account.account_id);
     if (requiresEmailVerification()) {
       await sendVerificationEmail(user);
@@ -132,6 +152,8 @@ export const accountService = {
     if (!account) {
       account = await repositories.accounts.save(user.user_id, "free");
     }
+    await ensureAdminAccountEntitlements(user, account.account_id);
+    account = await repositories.accounts.findById(account.account_id) ?? account;
     await ensureDefaultUsageSnapshot(account.account_id);
 
     await this.recordLogin(user.user_id);
@@ -195,9 +217,16 @@ export const accountService = {
     const repositories = getCoreRepositories();
     const account = await repositories.accounts.findById(accountId);
     if (!account) return undefined;
-    const entitlements = await repositories.entitlements.get(accountId);
+    const owner = await repositories.users.findById(account.owner_user_id);
+    if (owner) {
+      await ensureAdminAccountEntitlements(owner, accountId);
+    }
+    const refreshedAccount = await repositories.accounts.findById(accountId) ?? account;
+    const entitlements = owner && await isUserAdmin(owner)
+      ? resolveEntitlementsForPlan(accountId, "research_desk", "admin_override")
+      : await repositories.entitlements.get(accountId);
     const subscription = await repositories.subscriptions.findByAccountId(accountId);
-    return { account, entitlements, subscription };
+    return { account: refreshedAccount, entitlements, subscription };
   },
 
   async getUsage(accountId: string) {

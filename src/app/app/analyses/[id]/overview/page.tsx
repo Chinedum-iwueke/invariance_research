@@ -182,7 +182,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <p><span className="font-medium text-text-graphite">Execution context level:</span> {toTitleCase(executionContextLevel)}</p>
           <p><span className="font-medium text-text-graphite">Artifact richness:</span> {toTitleCase(artifactRichness)}</p>
           <p><span className="font-medium text-text-graphite">Risk model:</span> {record.run_context.risk_model}</p>
-          <p><span className="font-medium text-text-graphite">Parser/adapter:</span> {analysis.engine_context?.engine_name ?? "N/A"} / {analysis.engine_context?.seam ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Evidence contract:</span> Deterministic artifact validation</p>
           <p><span className="font-medium text-text-graphite">Benchmark status:</span> {benchmarkStatusLabel(benchmarkStatus)}</p>
         </div>
       </WorkspaceCard>

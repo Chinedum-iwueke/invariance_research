@@ -13,7 +13,7 @@ export default async function UpgradePage() {
 
   return (
     <AnalysisPageFrame title="Upgrade">
-      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-5">
+      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
         <WorkspaceCard title="Free" subtitle="$0">
           <p className="text-sm text-text-neutral">Limited trade CSV runs with preview diagnostics, fallback prop evaluation, no exports, and short retention.</p>
           <div className="pt-3">
@@ -27,15 +27,9 @@ export default async function UpgradePage() {
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Pro" subtitle="$99/mo">
-          <p className="text-sm text-text-neutral">Evidence-gated regime and stability workspaces, saved prop profiles, report appendix, and share links.</p>
+          <p className="text-sm text-text-neutral">Higher analysis capacity, research bundle upload, saved prop profiles, more shares, and Research Desk request eligibility.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="pro" />
-          </div>
-        </WorkspaceCard>
-        <WorkspaceCard title="Team" subtitle="$399/mo">
-          <p className="text-sm text-text-neutral">Seats, team library, shared prop firm profiles, shared reports, admin controls, and priority processing.</p>
-          <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="team" />
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Research Desk" subtitle="From $1,000">

@@ -5,6 +5,7 @@ import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/inge
 
 export function normalizeEngineResultToAnalysisRecord(params: {
   analysisId: string;
+  strategyName?: string;
   parsedArtifact: ParsedArtifact;
   eligibility: UploadEligibilitySummary;
   engineResult: EngineAnalysisResult;
@@ -12,6 +13,7 @@ export function normalizeEngineResultToAnalysisRecord(params: {
 }): AnalysisRecord {
   return mapEngineAnalysisResultToAnalysisRecord({
     analysisId: params.analysisId,
+    strategyName: params.strategyName,
     parsedArtifact: params.parsedArtifact,
     eligibility: params.eligibility,
     engine: params.engineResult,

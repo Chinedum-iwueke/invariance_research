@@ -31,6 +31,7 @@ export function ReportExportActions({
   const [status, setStatus] = useState<ExportStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
 
   const pollStatus = useCallback(async (exportId: string) => {
     const response = await fetch(`/api/exports/${exportId}`, { method: "GET", cache: "no-store" });
@@ -99,15 +100,44 @@ export function ReportExportActions({
 
   if (isReportExportPlanRestricted(canExport)) {
     return (
-      <DiagnosticLockPanel
-        model={buildDiagnosticLockModel({
-          state: "plan_locked",
-          diagnosticTitle: "Report Export",
-          diagnosticPurpose: "Generate a downloadable institutional-grade PDF validation report.",
-          currentPlan,
-          requiredPlan: "Individual",
-        })}
-      />
+      <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+        <div className="mb-3 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
+          <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+            <p className="font-semibold text-text-institutional">PDF memo</p>
+            <p className="mt-1">Branded committee-ready validation artifact with charts.</p>
+          </div>
+          <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+            <p className="font-semibold text-text-institutional">Markdown</p>
+            <p className="mt-1">Editable report text for notes, review packets, and follow-up.</p>
+          </div>
+          <div className="rounded-sm border border-border-subtle bg-surface-white p-3">
+            <p className="font-semibold text-text-institutional">JSON</p>
+            <p className="mt-1">Machine-readable evidence, assumptions, verdicts, and limits.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {(["pdf", "md", "json"] as const).map((format) => (
+            <Button key={format} type="button" variant={format === "pdf" ? "primary" : "secondary"} onClick={() => setShowPlanDetails((current) => !current)}>
+              Export {format.toUpperCase()}
+            </Button>
+          ))}
+          <Link href={`/api/analyses/${analysisId}/report-snapshot`} className={buttonVariants({ variant: "secondary" })}>Preview snapshot contract</Link>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-text-neutral">Exports are available on paid plans. Select an export format to see the upgrade requirement.</p>
+        {showPlanDetails ? (
+          <div className="mt-4">
+            <DiagnosticLockPanel
+              model={buildDiagnosticLockModel({
+                state: "plan_locked",
+                diagnosticTitle: "Report Export",
+                diagnosticPurpose: "Generate a downloadable institutional-grade PDF validation report.",
+                currentPlan,
+                requiredPlan: "Individual",
+              })}
+            />
+          </div>
+        ) : null}
+      </div>
     );
   }
 

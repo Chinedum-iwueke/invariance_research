@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { accountService } from "@/lib/server/accounts/service";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
 import { createReportShare } from "@/lib/server/share/share-service";
 
@@ -10,6 +11,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const body = (await request.json().catch(() => ({}))) as { expires_at?: string };
   try {
+    await accountService.getAccountState(session.account_id);
     const created = await createReportShare({
       report_snapshot_id: id,
       account_id: session.account_id,

@@ -22,6 +22,7 @@ import { buildTruthContext } from "@/lib/app/context-truth";
 import type { FigurePayload } from "@/lib/contracts";
 import { mapOverviewBenchmarkPayload } from "@/lib/diagnostics/overview/map-benchmark-payload";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { accountService } from "@/lib/server/accounts/service";
 import { getReportSnapshotState } from "@/lib/server/exports/report-snapshot-service";
 import { getValidationCommandLayer } from "@/lib/server/evidence/validation-command-service";
@@ -89,6 +90,7 @@ function ExplainList({ items }: { items: ValidationExplanation[] }) {
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const accountState = await accountService.getAccountState(session.account_id);
+  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
 
@@ -177,7 +179,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           <p><span className="font-medium text-text-graphite">Generated:</span> {record.report.generated_at ?? record.updated_at}</p>
           <p><span className="font-medium text-text-graphite">Coverage:</span> {record.dataset.start_date ?? "N/A"} &rarr; {record.dataset.end_date ?? "N/A"}</p>
           <p><span className="font-medium text-text-graphite">Trades:</span> {record.dataset.trade_count.toLocaleString()}</p>
-          <p><span className="font-medium text-text-graphite">Engine seam:</span> {analysis.engine_context?.seam ?? "N/A"}</p>
+          <p><span className="font-medium text-text-graphite">Evidence contract:</span> Evidence-bound validation</p>
         </div>
         {snapshotState.warnings.length ? (
           <div className="border-t border-border-subtle bg-evidence-limited-wash px-6 py-3 text-sm text-evidence-limited">
@@ -186,54 +188,6 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           </div>
         ) : null}
       </section>
-
-      <WorkspaceCard title="Export & Sharing" subtitle="Generate a polished report artifact for a committee, allocator, buyer, or internal review packet.">
-        <div className="space-y-4">
-          <ReportExportActions
-            analysisId={record.analysis_id}
-            canExport={record.access.can_export_report}
-            currentPlan={accountState?.account.plan_id}
-          />
-          <ReportShareActions analysisId={record.analysis_id} initialSnapshotId={snapshotState.active?.snapshot_id} />
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Explain Layer" subtitle="Report-safe answers to the questions serious reviewers ask first.">
-        <ExplainList items={commandLayer.explanations} />
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Evidence Alerts" subtitle="Events that change report trust, access state, or diagnostic confidence.">
-        <div id="evidence-alerts">
-          <TimelineList items={commandLayer.alerts} empty="No evidence alerts have been emitted yet." />
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Connected Case File" subtitle="Navigable evidence chain from upload to verdict, snapshot, export, share, and review handoff.">
-        <div id="case-file-timeline">
-          <TimelineList items={commandLayer.timeline} empty="No case-file events have been emitted yet." />
-        </div>
-      </WorkspaceCard>
-
-      <WorkspaceCard title="Share-Safe Proof Boundaries" subtitle="Unsupported claims and exclusions that must travel with the memo.">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
-            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Unsupported claims</p>
-            <BulletList
-              items={(record.claim_inventory ?? [])
-                .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
-                .map((claim) => `${claim.claim} — report wording: ${claim.report_wording}`)}
-              empty="No unsupported claim was emitted for this run."
-            />
-          </div>
-          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
-            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">What this result does not prove</p>
-            <BulletList
-              items={record.proof_report?.what_this_result_does_not_prove ?? []}
-              empty="No explicit proof-report exclusions were emitted."
-            />
-          </div>
-        </div>
-      </WorkspaceCard>
 
       <WorkspaceCard title="Decision Snapshot" subtitle="Highest-signal deployment metrics">
         <MetricRow metrics={metricsFromScoreBands(decisionMetrics)} cols={6} />
@@ -279,6 +233,43 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           <div className="mt-5 rounded-md border border-border-subtle bg-surface-white/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-graphite">Metrics driving posture</p>
             <EvidenceList className="mt-3" items={decisionMetrics.slice(0, 5).map((metric) => `${metric.label}: ${metric.value}`)} empty="No decision metrics were available." />
+          </div>
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Explain Layer" subtitle="Report-safe answers to the questions serious reviewers ask first.">
+        <ExplainList items={commandLayer.explanations} />
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Evidence Alerts" subtitle="Events that change report trust, access state, or diagnostic confidence.">
+        <div id="evidence-alerts">
+          <TimelineList items={commandLayer.alerts} empty="No evidence alerts have been emitted yet." />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Connected Case File" subtitle="Navigable evidence chain from upload to verdict, snapshot, export, share, and review handoff.">
+        <div id="case-file-timeline">
+          <TimelineList items={commandLayer.timeline} empty="No case-file events have been emitted yet." />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Share-Safe Proof Boundaries" subtitle="Unsupported claims and exclusions that must travel with the memo.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Unsupported claims</p>
+            <BulletList
+              items={(record.claim_inventory ?? [])
+                .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
+                .map((claim) => `${claim.claim} — report wording: ${claim.report_wording}`)}
+              empty="No unsupported claim was emitted for this run."
+            />
+          </div>
+          <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">What this result does not prove</p>
+            <BulletList
+              items={record.proof_report?.what_this_result_does_not_prove ?? []}
+              empty="No explicit proof-report exclusions were emitted."
+            />
           </div>
         </div>
       </WorkspaceCard>
@@ -351,14 +342,15 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Regime / Stability / Conditionality" subtitle="Edge concentration, generalization risk, and conditionality diagnostics">
-        <div className="grid gap-4 md:grid-cols-2">
-          <BulletList items={[
-            ...record.diagnostics.regimes.metrics.map((metric) => `${metric.label}: ${metric.value}`),
-            ...record.diagnostics.stability.metrics.map((metric) => `${metric.label}: ${metric.value}`),
-          ]} empty="Regime and stability metrics were not emitted for this run." />
-          <p className="text-sm text-text-neutral">{record.diagnostics.regimes.interpretation.summary} {record.diagnostics.stability.interpretation.summary}</p>
-        </div>
+      <WorkspaceCard title="Deferred Review Scopes" subtitle="High-risk claims that should not be automated from this launch upload alone.">
+        <BulletList
+          items={[
+            "True parameter stability requires a coherent multi-run sweep and reviewer validation of the run-to-parameter mapping.",
+            "Multi-asset regime attribution requires explicit symbol coverage, timestamp alignment, and regime definitions.",
+            "Broker-level execution realism, strategy reconstruction, and portfolio exposure analysis should route to Research Desk when the upload evidence is incomplete.",
+          ]}
+          empty="No deferred review scopes were emitted."
+        />
       </WorkspaceCard>
 
       <ContextFlipCard
@@ -370,6 +362,17 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
           { key: "recommendations", label: "Recommendations", items: [...truthContext.recommendations, ...view.recommendations], empty: "No recommendations were emitted.", tone: "positive" },
         ]}
       />
+
+      <WorkspaceCard title="Export & Sharing" subtitle="Generate a polished report artifact for a committee, allocator, buyer, or internal review packet.">
+        <div className="space-y-4">
+          <ReportExportActions
+            analysisId={record.analysis_id}
+            canExport={isAdmin || record.access.can_export_report}
+            currentPlan={accountState?.account.plan_id}
+          />
+          <ReportShareActions analysisId={record.analysis_id} initialSnapshotId={snapshotState.active?.snapshot_id} />
+        </div>
+      </WorkspaceCard>
 
       <ResearchDeskRequestPanel analysisId={record.analysis_id} limitations={researchDeskLimitations} />
 

@@ -16,20 +16,20 @@ export function buildDiagnosticEligibility(
       distribution: { availability: "available" },
       monte_carlo: { availability: "available" },
       stability: {
-        availability: context?.parameterSweepPresent ? "available" : "limited",
+        availability: "limited",
         reason: context?.parameterSweepPresent
-          ? undefined
-          : "params.json improves parameter context, but true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping or Research Desk review",
+          ? "parameter sweep evidence improves Research Desk packet quality; automated launch reports do not claim true parameter stability from upload alone"
+          : "true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping and Research Desk review",
       },
       execution: {
         availability: context?.assumptionsPresent ? "available" : "limited",
         reason: context?.assumptionsPresent ? undefined : "requires explicit execution/cost assumptions",
       },
       regimes: {
-        availability: context?.ohlcvPresent ? "available" : "limited",
+        availability: "limited",
         reason: context?.ohlcvPresent
-          ? "upload OHLCV supports regime context; portfolio-level multi-asset attribution still requires explicit coverage/alignment and may require Research Desk review"
-          : "requires OHLCV or explicit regime-labeled context",
+          ? "upload OHLCV improves regime context; automated launch reports do not claim multi-asset regime attribution from upload alone"
+          : "regime attribution requires OHLCV or explicit regime-labeled context and Research Desk review",
       },
       ruin: { availability: "available" },
       prop_evaluation_readiness: { availability: "available" },
@@ -65,26 +65,27 @@ export function buildDiagnosticEligibility(
     };
   }
 
-  const regimesAvailable = Boolean(context?.ohlcvPresent);
   return {
     overview: { availability: "available" },
     distribution: { availability: "available" },
     monte_carlo: { availability: "available" },
     stability: {
-      availability: context?.parameterSweepPresent ? "available" : "limited",
+      availability: "limited",
       reason: context?.parameterSweepPresent
-        ? undefined
+        ? "parameter sweep evidence improves Research Desk packet quality; automated launch reports do not claim true parameter stability from upload alone"
         : context?.paramsPresent
-          ? "params.json improves parameter context, but true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping or Research Desk review"
-          : "requires parameter sweep bundle (multi-run parameter combinations with run mapping)",
+          ? "params.json improves parameter context, but true parameter stability requires a multi-run sweep and Research Desk review"
+          : "requires parameter sweep bundle and Research Desk review",
     },
     execution: {
       availability: context?.assumptionsPresent ? "available" : "limited",
       reason: context?.assumptionsPresent ? undefined : "requires richer execution assumptions",
     },
     regimes: {
-      availability: regimesAvailable ? "available" : "limited",
-      reason: regimesAvailable ? undefined : "requires OHLCV or regime-labeled context",
+      availability: "limited",
+      reason: context?.ohlcvPresent
+        ? "upload OHLCV improves regime context; automated launch reports do not claim multi-asset regime attribution from upload alone"
+        : "requires OHLCV or regime-labeled context and Research Desk review",
     },
     ruin: { availability: "available" },
     prop_evaluation_readiness: { availability: context?.assumptionsPresent ? "available" : "limited", reason: context?.assumptionsPresent ? undefined : "uses fallback evaluation rules unless exact rules are supplied" },

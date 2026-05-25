@@ -590,12 +590,13 @@ function extractReportConfidence(report: UnknownRecord | undefined, summary: Unk
 
 export function mapEngineAnalysisResultToAnalysisRecord(params: {
   analysisId: string;
+  strategyName?: string;
   parsedArtifact: ParsedArtifact;
   eligibility: UploadEligibilitySummary;
   engine: EngineAnalysisResult;
   engineContext: EngineRunContext;
 }): AnalysisRecord {
-  const { analysisId, parsedArtifact, eligibility, engine, engineContext } = params;
+  const { analysisId, strategyName, parsedArtifact, eligibility, engine, engineContext } = params;
   const now = new Date().toISOString();
   const firstTrade = parsedArtifact.trades[0];
   const lastTrade = parsedArtifact.trades[parsedArtifact.trades.length - 1];
@@ -1131,7 +1132,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
     created_at: now,
     updated_at: now,
     strategy: {
-      strategy_name: parsedArtifact.strategy_metadata?.strategy_name ?? firstTrade?.strategy_name ?? `Upload ${analysisId.slice(0, 8)}`,
+      strategy_name: strategyName?.trim() || parsedArtifact.strategy_metadata?.strategy_name || firstTrade?.strategy_name || `Upload ${analysisId.slice(0, 8)}`,
       symbols: Array.from(new Set(parsedArtifact.trades.map((trade) => trade.symbol))).slice(0, 8),
       timeframe: firstTrade?.timeframe,
       source_type: "upload",
@@ -1575,7 +1576,7 @@ export function mapEngineAnalysisResultToAnalysisRecord(params: {
         metrics: envelopeByDiagnostic.prop_evaluation_readiness?.summary_metrics.length
           ? envelopeByDiagnostic.prop_evaluation_readiness.summary_metrics.map(envelopeMetricToScore)
           : [
-              score("Target Before Breach", formatPct(propTargetProbability), pctBand(propTargetProbability, 35, 65)),
+              score("Windows Reaching Target First", formatPct(propTargetProbability), pctBand(propTargetProbability, 35, 65)),
               score("Breach Probability", formatPct(propBreachProbability), pctBand(propBreachProbability, 10, 25)),
               score("Profit Target Progress", formatPct(propProfitProgress), propProfitProgress === undefined ? "informational" : propProfitProgress >= 100 ? "good" : "moderate"),
               score("Max Daily Loss", `${formatPct(propMaxDailyLossObserved)} / ${formatPct(propMaxDailyLossAllowed)}`, pctBand(propMaxDailyLossObserved, Math.max((propMaxDailyLossAllowed ?? 5) * 0.7, 0), propMaxDailyLossAllowed ?? 5)),

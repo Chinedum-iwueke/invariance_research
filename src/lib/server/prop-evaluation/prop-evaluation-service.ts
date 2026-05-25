@@ -375,7 +375,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     status,
     verdict,
     metrics: [
-      score("Target Before Breach", formatPctValue(summaryMetrics.target_before_breach_probability), firstBreach ? "elevated" : "moderate"),
+      score("Windows Reaching Target First", formatPctValue(summaryMetrics.target_before_breach_probability), firstBreach ? "elevated" : "moderate"),
       score("Breach Probability", formatPctValue(summaryMetrics.breach_probability), firstBreach ? "critical" : "moderate"),
       score("Peak Target Progress", `${targetProgress.peak_progress_pct.toFixed(1)}%`, path.firstTargetHit ? "good" : "moderate"),
       score("Max Daily Loss", `${pct(path.maxDailyLossPct).toFixed(1)}% / ${pct(rules.max_daily_loss_pct).toFixed(1)}%`, path.firstDailyBreach ? "critical" : "moderate"),

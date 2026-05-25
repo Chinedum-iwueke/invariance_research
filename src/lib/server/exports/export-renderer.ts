@@ -44,26 +44,32 @@ function renderExportPayload(input: { record: AnalysisRecord; snapshot?: ReportS
     `${report.verdict.statusLabel}: ${report.verdict.headline}`,
     report.verdict.summary,
     "",
+    "## Deployment Readiness",
+    `${report.deploymentGuidance.advisoryLabel}: ${report.deploymentGuidance.headline}`,
+    report.deploymentGuidance.summary,
+    ...(report.deploymentGuidance.nextActions.length ? report.deploymentGuidance.nextActions.map((item) => `- ${item}`) : ["No next actions were emitted."]),
+    "",
     "## Evidence Coverage",
     `Included diagnostics: ${proofExport.evidence_coverage.included_diagnostics.join(", ") || "none"}`,
     `Excluded diagnostics: ${proofExport.evidence_coverage.excluded_diagnostics.map((item) => `${item.diagnostic} (${item.reason ?? item.status})`).join(", ") || "none"}`,
-    "",
-    "## Assumptions",
-    ...proofExport.assumptions.map((item) => `- ${item}`),
-    "",
-    "## Unsupported Claims",
-    ...(proofExport.unsupported_claims.length ? proofExport.unsupported_claims.map((item) => `- ${item.claim}: ${item.report_wording}`) : ["No unsupported claims were emitted."]),
-    "",
-    "## What This Result Does Not Prove",
-    ...(proofExport.what_this_result_does_not_prove.length ? proofExport.what_this_result_does_not_prove.map((item) => `- ${item}`) : ["No explicit proof exclusions were emitted."]),
-    "",
-    "## Next Evidence",
-    ...proofExport.next_evidence.map((item) => `- ${item}`),
     "",
     "## Benchmark",
     benchmark?.available
       ? `Strategy return: ${benchmark.summary_metrics?.strategy_return ?? "N/A"} | Benchmark return: ${benchmark.summary_metrics?.benchmark_return ?? "N/A"} | Excess return: ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}`
       : `Unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}`,
+    "",
+    "## Proof Boundaries",
+    "Unsupported claims",
+    ...(proofExport.unsupported_claims.length ? proofExport.unsupported_claims.map((item) => `- ${item.claim}: ${item.report_wording}`) : ["No unsupported claims were emitted."]),
+    "",
+    "What this result does not prove",
+    ...(proofExport.what_this_result_does_not_prove.length ? proofExport.what_this_result_does_not_prove.map((item) => `- ${item}`) : ["No explicit proof exclusions were emitted."]),
+    "",
+    "## Methodology Assumptions",
+    ...proofExport.assumptions.map((item) => `- ${item}`),
+    "",
+    "## Next Evidence",
+    ...proofExport.next_evidence.map((item) => `- ${item}`),
   ].filter((line): line is string => line !== undefined).join("\n");
 
   return { bytes: new Uint8Array(Buffer.from(md, "utf-8")), content_type: "text/markdown", file_name: `${record.analysis_id}-validation-report-${snapshot?.snapshot_id.slice(0, 8) ?? "live"}.md` };
@@ -170,6 +176,7 @@ const PDF_COLORS = {
 function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof buildReportViewModel>, snapshot?: ReportSnapshotRecord): Uint8Array {
   const benchmark = mapOverviewBenchmarkPayload(record.diagnostics.overview.benchmark_comparison);
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
+  const proofExport = buildProofReportExportPayload(record, snapshot);
   const pages: PdfPage[] = [{ ops: [], charts: [] }];
   let current = pages[0];
   let y = PAGE.height - PAGE.margin;
@@ -241,15 +248,17 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
 
   writeBlock("Executive Summary", [{ text: record.report.executive_summary }]);
   writeBlock("Decision Snapshot Metrics", decisionMetrics.map((metric: ScoreBand) => ({ text: `${metric.label}: ${metric.value}` })));
-  writeBlock("Evidence Coverage", [
-    { text: `Included diagnostics: ${(snapshot?.payload.included_diagnostics ?? []).join(", ") || "See diagnostic summary."}` },
-    { text: `Excluded diagnostics: ${(snapshot?.payload.excluded_diagnostics ?? []).map((item) => `${item.diagnostic} (${item.reason ?? item.status})`).join(", ") || "None emitted."}` },
+  writeBlock("Verdict & Deployment Readiness", [
+    { text: `${report.verdict.statusLabel}: ${report.verdict.headline}` },
+    { text: report.verdict.summary },
+    { text: `${report.deploymentGuidance.advisoryLabel}: ${report.deploymentGuidance.headline}` },
+    { text: report.deploymentGuidance.summary },
+    ...report.deploymentGuidance.nextActions.map((item) => ({ text: `Next action: ${item}` })),
   ]);
-  writeBlock("Assumptions", (snapshot?.payload.proof_report?.critical_assumptions ?? record.assumption_ledger ?? []).map((item) => ({ text: `${item.statement}${item.rescue_evidence ? ` Rescue evidence: ${item.rescue_evidence}` : ""}` })));
-  writeBlock("Unsupported Claims", (record.claim_inventory ?? [])
-    .filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status))
-    .map((claim) => ({ text: `${claim.claim}: ${claim.report_wording}` })));
-  writeBlock("What This Result Does Not Prove", (snapshot?.payload.proof_report?.what_this_result_does_not_prove ?? record.proof_report?.what_this_result_does_not_prove ?? []).map((line) => ({ text: line })));
+  writeBlock("Evidence Coverage", [
+    { text: `Included diagnostics: ${proofExport.evidence_coverage.included_diagnostics.join(", ") || "See diagnostic summary."}` },
+    { text: `Excluded diagnostics: ${proofExport.evidence_coverage.excluded_diagnostics.map((item) => `${item.diagnostic} (${item.reason ?? item.status})`).join(", ") || "None emitted."}` },
+  ]);
 
   writeBlock("Top-line Performance & Benchmark", [
     { text: benchmark?.available ? `Strategy return ${benchmark.summary_metrics?.strategy_return ?? "N/A"}, benchmark return ${benchmark.summary_metrics?.benchmark_return ?? "N/A"}, excess return ${benchmark.summary_metrics?.excess_return_vs_benchmark ?? "N/A"}.` : `Benchmark comparison unavailable${benchmark?.reason_label ? ` (${benchmark.reason_label})` : ""}.` },
@@ -261,6 +270,11 @@ function buildInstitutionalPdf(record: AnalysisRecord, report: ReturnType<typeof
   writeBlock("Monte Carlo & Tail Risk", record.diagnostics.monte_carlo.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
   writeBlock("Execution Sensitivity", record.diagnostics.execution.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
   writeBlock("Distribution & Trade Behavior", record.diagnostics.distribution.metrics.map((metric) => ({ text: `${metric.label}: ${metric.value}` })));
+  writeBlock("Proof Boundaries", [
+    ...proofExport.unsupported_claims.map((claim) => ({ text: `Unsupported claim: ${claim.claim}. Report wording: ${claim.report_wording}` })),
+    ...proofExport.what_this_result_does_not_prove.map((line) => ({ text: `Does not prove: ${line}` })),
+  ]);
+  writeBlock("Methodology Assumptions", proofExport.assumptions.map((item) => ({ text: item })));
   writeBlock("Key Limitations", (report.limitations.length ? report.limitations : ["No explicit report limitations were emitted."]).map((line) => ({ text: line })));
   writeBlock("Recommendations", report.recommendations.map((line) => ({ text: line })));
 

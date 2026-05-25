@@ -5,6 +5,7 @@ import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
 
 export type UserRole = "owner" | "admin" | "analyst" | "user";
 const ADMIN_ROLES = new Set<UserRole>(["owner", "admin"]);
+let userRolesSchemaReady: Promise<void> | undefined;
 
 function parseAllowlist(value?: string): Set<string> {
   return new Set((value ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean));
@@ -15,7 +16,38 @@ export function isBootstrapAdminIdentity(input: { user_id: string; email: string
     || parseAllowlist(process.env.ADMIN_USER_IDS).has(input.user_id.toLowerCase());
 }
 
+async function ensureUserRolesSchema() {
+  userRolesSchemaReady ??= (async () => {
+    if (getDatabaseProvider() === "postgres") {
+      await getPostgresPool().query(`
+        CREATE TABLE IF NOT EXISTS user_roles (
+          user_id TEXT NOT NULL REFERENCES users(user_id),
+          role TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL,
+          created_by TEXT,
+          PRIMARY KEY (user_id, role)
+        )
+      `);
+      await getPostgresPool().query("CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role)");
+      return;
+    }
+
+    getSqliteRuntimeDb().exec(`
+      CREATE TABLE IF NOT EXISTS user_roles (
+        user_id TEXT NOT NULL REFERENCES users(user_id),
+        role TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        created_by TEXT,
+        PRIMARY KEY (user_id, role)
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
+    `);
+  })();
+  await userRolesSchemaReady;
+}
+
 export async function assignUserRole(input: { userId: string; role: UserRole; createdBy?: string | null; audit?: boolean }) {
+  await ensureUserRolesSchema();
   const now = new Date().toISOString();
   if (getDatabaseProvider() === "postgres") {
     await getPostgresPool().query(
@@ -42,6 +74,7 @@ export async function assignUserRole(input: { userId: string; role: UserRole; cr
 }
 
 export async function listUserRoles(userId: string): Promise<UserRole[]> {
+  await ensureUserRolesSchema();
   if (getDatabaseProvider() === "postgres") {
     const result = await getPostgresPool().query<{ role: UserRole }>("SELECT role FROM user_roles WHERE user_id = $1", [userId]);
     return result.rows.map((row) => row.role);

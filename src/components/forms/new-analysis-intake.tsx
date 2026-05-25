@@ -19,6 +19,7 @@ import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
 import { isQuotaExceeded, isUploadPlanRestricted } from "@/lib/app/upgrade-visibility";
 import { cn } from "@/lib/utils";
 import type { BenchmarkId } from "@/lib/benchmarks/benchmark-ids";
+import type { DiagnosticName } from "@/lib/server/ingestion";
 
 type IntakeState =
   | "idle"
@@ -449,7 +450,7 @@ export function NewAnalysisIntake() {
               <UpgradePanel
                 title="Monthly analysis limit reached"
                 explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
-                planHint="Individual, Pro, Team, and Research Desk increase monthly analysis throughput."
+                planHint="Individual and Pro increase self-serve throughput. Research Desk is scoped separately."
               />
             )}
             {isUploadPlanRestricted(apiErrorCode) && (
@@ -485,24 +486,44 @@ export function NewAnalysisIntake() {
         <WorkspaceCard title="Eligibility summary" subtitle="Backend-derived diagnostic truth">
           {!inspection && <p className="text-sm text-text-neutral">Upload an artifact to generate eligibility output.</p>}
           {inspection && (
-            <div className="space-y-3 text-sm text-text-neutral">
-              <p>{inspection.upload_summary_text}</p>
-              <p className="text-xs">Available: {inspection.diagnostics_available.join(", ") || "None"}</p>
-              <p className="text-xs">Limited: {inspection.diagnostics_limited.join(", ") || "None"}</p>
-              <p className="text-xs">Unavailable: {inspection.diagnostics_unavailable.join(", ") || "None"}</p>
+            <div className="space-y-4 text-sm text-text-neutral">
+              <p className="leading-6">{inspection.upload_summary_text}</p>
+              <div className="grid gap-2">
+                {eligibilityTiles(inspection).map((tile) => (
+                  <div key={tile.label} className={cn(
+                    "rounded-md border bg-surface-white px-3 py-3",
+                    tile.tone === "supported" && "border-chart-positive/25 bg-chart-positive/10",
+                    tile.tone === "limited" && "border-amber-500/25 bg-amber-500/10",
+                    tile.tone === "locked" && "border-border-subtle bg-surface-panel",
+                  )}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-text-institutional">{tile.label}</p>
+                      <span className={cn(
+                        "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                        tile.tone === "supported" && "border-chart-positive/25 bg-surface-white text-chart-positive",
+                        tile.tone === "limited" && "border-amber-500/25 bg-surface-white text-amber-700",
+                        tile.tone === "locked" && "border-border-subtle bg-surface-white text-text-neutral",
+                      )}>{tile.state}</span>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-text-neutral">{tile.detail}</p>
+                  </div>
+                ))}
+              </div>
               {limitationList.length > 0 && (
-                <ul className="list-disc pl-5 text-xs">
+                <div className="rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs leading-5">
+                  <p className="font-semibold text-text-graphite">Evidence needed next</p>
                   {limitationList.map((reason, index) => (
-                    <li key={`limitation-${index}-${reason.slice(0, 24)}`}>{reason}</li>
+                    <p key={`limitation-${index}-${reason.slice(0, 24)}`} className="mt-2 rounded-sm border border-border-subtle bg-surface-white px-2 py-2">{reason}</p>
                   ))}
-                </ul>
+                </div>
               )}
               {inspection.validation_errors.length > 0 && (
-                <ul className="list-disc pl-5 text-xs text-red-600">
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  <p className="font-semibold">Validation errors</p>
                   {inspection.validation_errors.map((error) => (
-                    <li key={`${error.code}-${error.message}`}>{error.message}</li>
+                    <p key={`${error.code}-${error.message}`} className="mt-2">{error.message}</p>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
           )}
@@ -510,6 +531,40 @@ export function NewAnalysisIntake() {
       </div>
     </div>
   );
+}
+
+const ELIGIBILITY_TILE_ORDER: Array<{ diagnostic: DiagnosticName; label: string; available: string; limited: string; unavailable: string }> = [
+  { diagnostic: "overview", label: "Overview", available: "Report-ready", limited: "Supported with caveats", unavailable: "Unavailable" },
+  { diagnostic: "execution", label: "Execution", available: "Assumptions visible", limited: "Limited", unavailable: "Needs execution context" },
+  { diagnostic: "monte_carlo", label: "Monte Carlo", available: "Crash-test ready", limited: "Bounded confidence", unavailable: "Unavailable" },
+  { diagnostic: "ruin", label: "Ruin", available: "Survivability ready", limited: "Bounded confidence", unavailable: "Unavailable" },
+  { diagnostic: "prop_evaluation_readiness", label: "Prop Evaluation", available: "Rules active", limited: "Fallback rules", unavailable: "Unavailable" },
+  { diagnostic: "report", label: "Report", available: "Safe with caveats", limited: "Limited", unavailable: "Unavailable" },
+];
+
+function eligibilityTiles(inspection: UploadInspectionResponse) {
+  return ELIGIBILITY_TILE_ORDER.map((tile) => {
+    if (inspection.diagnostics_available.includes(tile.diagnostic)) {
+      return { label: tile.label, state: tile.available, detail: "Supported by this upload and eligible for the automated report.", tone: "supported" as const };
+    }
+    if (inspection.diagnostics_limited.includes(tile.diagnostic)) {
+      return { label: tile.label, state: tile.limited, detail: diagnosticLimitedDetail(tile.diagnostic), tone: "limited" as const };
+    }
+    return { label: tile.label, state: tile.unavailable, detail: diagnosticUnavailableDetail(tile.diagnostic), tone: "locked" as const };
+  });
+}
+
+function diagnosticLimitedDetail(diagnostic: DiagnosticName) {
+  if (diagnostic === "execution") return "The Lab can show assumptions and sensitivity, but broker-level realism needs richer execution evidence or Research Desk review.";
+  if (diagnostic === "prop_evaluation_readiness") return "Fallback rules can be used. Add exact challenge rules for a decision-grade prop evaluation.";
+  if (diagnostic === "monte_carlo" || diagnostic === "ruin") return "Path stress is available, but confidence depends on trade count, sizing fields, and explicit risk assumptions.";
+  return "The diagnostic can be shown, but the report will carry explicit caveats.";
+}
+
+function diagnosticUnavailableDetail(diagnostic: DiagnosticName) {
+  if (diagnostic === "execution") return "Upload fees, slippage, spread, broker fills, or execution assumptions.";
+  if (diagnostic === "prop_evaluation_readiness") return "Upload closed trades and prop-rule settings.";
+  return "Upload evidence that directly supports this diagnostic, or route it to Research Desk.";
 }
 
 function UploadReviewPanel({ inspection }: { inspection: UploadInspectionResponse }) {

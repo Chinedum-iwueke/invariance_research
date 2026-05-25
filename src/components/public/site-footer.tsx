@@ -15,7 +15,6 @@ export function SiteFooter({ groups }: { groups: readonly FooterGroup[] }) {
             <p className="max-w-md text-sm leading-relaxed text-text-neutral">
               Evidence-led strategy validation for teams that need every claim, limitation, and diagnostic traceable before capital is deployed.
             </p>
-            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Research red retained. Everything else earned by evidence.</p>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:contents">
             {groups.map((group) => (

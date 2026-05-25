@@ -25,6 +25,10 @@ export async function resolveDiagnosticAccess(input: {
   parsed_artifact?: ParsedArtifact;
   is_admin?: boolean;
 }): Promise<{ allowed: boolean; reason: DiagnosticAccessReason; message: string }> {
+  if (input.is_admin) {
+    return { allowed: true, reason: "enabled", message: "Enabled for admin testing." };
+  }
+
   const evidenceEntry = input.parsed_artifact ? buildAccessEvidenceEntry(input.parsed_artifact, input.diagnostic) : undefined;
 
   if (!evidenceEntry || evidenceEntry.artifact_status === "unavailable") {
@@ -43,7 +47,7 @@ export async function resolveDiagnosticAccess(input: {
     };
   }
 
-  const planEntitled = input.is_admin || (await isPlanEntitled(input.account_id, input.diagnostic));
+  const planEntitled = await isPlanEntitled(input.account_id, input.diagnostic);
   if (!planEntitled) {
     return { allowed: false, reason: "plan_locked", message: "Available on a higher plan." };
   }

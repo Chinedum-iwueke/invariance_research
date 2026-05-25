@@ -1,64 +1,41 @@
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { AnalysisRunState } from "@/components/dashboard/analysis-run-state";
-import { AnalystWorkbenchPanel } from "@/components/dashboard/analyst-workbench";
-import { DiagnosticFigure } from "@/components/dashboard/diagnostic-figure";
-import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
-import { FigureCard } from "@/components/dashboard/figure-card";
-import { InterpretationBlock } from "@/components/dashboard/interpretation-block";
-import { MetricRow } from "@/components/dashboard/metric-row";
-import { buildDiagnosticLockModel } from "@/lib/app/diagnostic-locks";
-import { buildAnalystWorkbenchModel } from "@/lib/app/analyst-workbench";
-import { metricsFromScoreBands, toInterpretationBlockPayload } from "@/lib/app/analysis-ui";
-import { accountService } from "@/lib/server/accounts/service";
+import { EvidenceList } from "@/components/dashboard/evidence-list";
+import { ResearchDeskRequestPanel } from "@/components/dashboard/research-desk-request-panel";
+import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { requireServerSession } from "@/lib/server/auth/session";
-import { isAdminIdentity } from "@/lib/server/admin/guards";
-import { resolveDiagnosticAccess } from "@/lib/server/entitlements/policy";
-import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { requireOwnedAnalysisView } from "@/lib/server/services/analysis-view-service";
+
+const STABILITY_REVIEW_SCOPES = [
+  "True parameter stability requires a coherent multi-run sweep, run-to-parameter mapping, and comparable outputs across each run.",
+  "A single params.json file documents settings but does not prove stability or a robust parameter surface.",
+  "Research Desk can design or review the sweep, identify fragile regions, and attach a reviewer-approved stability addendum.",
+];
 
 export default async function StabilityPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
-  const state = await accountService.getAccountState(session.account_id);
-  const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
   const { id } = await params;
   const { analysis, record } = await requireOwnedAnalysisView(id, session.account_id);
-  const artifact = await getCoreRepositories().artifacts.findById(analysis.artifact_id);
-  const access = await resolveDiagnosticAccess({ account_id: session.account_id, diagnostic: "stability", parsed_artifact: artifact?.parsed_artifact, is_admin: isAdmin });
-
-  if (!access.allowed && access.reason !== "enabled") {
-    const model = buildDiagnosticLockModel({
-      state: access.reason,
-      diagnosticTitle: "Parameter Stability",
-      diagnosticPurpose: "Assess fragility across parameter sweeps and perturbation ranges.",
-      currentPlan: state?.account.plan_id,
-      requiredPlan: "Pro",
-      artifactRequirementProfile: "parameter_sweep_bundle",
-    });
-    return (
-      <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
-        <DiagnosticLockPanel model={model} />
-      </AnalysisPageFrame>
-    );
-  }
 
   if (!record) {
     return (
-      <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
+      <AnalysisPageFrame title="Parameter Stability Review" description="Parameter stability is routed to Research Desk for launch.">
         <AnalysisRunState analysis={analysis} />
       </AnalysisPageFrame>
     );
   }
 
   return (
-    <AnalysisPageFrame title="Parameter Stability" description="Fragility diagnostics across parameter ranges and perturbations.">
-      <AnalystWorkbenchPanel model={buildAnalystWorkbenchModel(record, "stability")} />
-
-      <MetricRow metrics={metricsFromScoreBands(record.diagnostics.stability.metrics)} cols={3} />
-      <FigureCard title={record.diagnostics.stability.figure?.title ?? "Stability Surface"} subtitle={record.diagnostics.stability.figure?.subtitle} figure={<DiagnosticFigure figure={record.diagnostics.stability.figure} />} />
-      <InterpretationBlock {...toInterpretationBlockPayload(record.diagnostics.stability.interpretation)} />
-      {record.diagnostics.stability.limitations?.length ? (
-        <p className="text-sm text-text-neutral">{record.diagnostics.stability.limitations.join(" • ")}</p>
-      ) : null}
+    <AnalysisPageFrame title="Parameter Stability Review" description="Automated parameter-surface claims are deferred to Research Desk until a real sweep can support them.">
+      <WorkspaceCard title="Why this is not an automated launch workspace" subtitle="Stability claims need more than a single parameter file or one backtest path.">
+        <EvidenceList items={STABILITY_REVIEW_SCOPES} empty="No stability review scope emitted." tone="warning" />
+      </WorkspaceCard>
+      <ResearchDeskRequestPanel
+        analysisId={record.analysis_id}
+        limitations={STABILITY_REVIEW_SCOPES}
+        defaultServices={["parameter_stability_review", "claim_validation", "investor_buyer_memo_review"]}
+        evidenceInsufficiencyScopes={STABILITY_REVIEW_SCOPES}
+      />
     </AnalysisPageFrame>
   );
 }

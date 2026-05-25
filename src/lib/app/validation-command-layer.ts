@@ -62,8 +62,6 @@ export type ValidationCommandLayer = {
   explanations: ValidationExplanation[];
 };
 
-const REQUIRED_DIAGNOSTICS = ["overview", "distribution", "monte_carlo", "execution", "stability", "regimes", "ruin", "prop_evaluation_readiness", "report"] as const;
-
 export function buildValidationCommandLayer(input: {
   analysis: AnalysisEntity;
   record?: AnalysisRecord;

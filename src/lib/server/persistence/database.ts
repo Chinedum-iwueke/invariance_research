@@ -35,7 +35,23 @@ function getDatabaseSyncConstructor(): DatabaseSyncConstructor {
   try {
     // node:sqlite is unavailable in the Node 20 worker image and should only be
     // loaded for local SQLite mode, never for DATABASE_PROVIDER=postgres.
-    const sqliteModule = require("node:sqlite") as { DatabaseSync: DatabaseSyncConstructor };
+    const originalEmitWarning = process.emitWarning;
+    let sqliteModule: { DatabaseSync: DatabaseSyncConstructor };
+    try {
+      process.emitWarning = ((warning: string | Error, ...args: unknown[]) => {
+        const warningText = typeof warning === "string" ? warning : warning.message;
+        const type = typeof args[0] === "string"
+          ? args[0]
+          : args[0] && typeof args[0] === "object" && "type" in args[0]
+            ? String((args[0] as { type?: unknown }).type)
+            : undefined;
+        if (type === "ExperimentalWarning" && /SQLite/i.test(warningText)) return;
+        return originalEmitWarning.call(process, warning as string, ...(args as []));
+      }) as typeof process.emitWarning;
+      sqliteModule = require("node:sqlite") as { DatabaseSync: DatabaseSyncConstructor };
+    } finally {
+      process.emitWarning = originalEmitWarning;
+    }
     DatabaseSync = sqliteModule.DatabaseSync;
     return DatabaseSync;
   } catch (error) {

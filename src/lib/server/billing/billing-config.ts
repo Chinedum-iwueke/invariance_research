@@ -20,14 +20,7 @@ export const BILLING_PLAN_CATALOG: PlanCatalogEntry[] = [
     label: "Pro",
     stripe_price_id: process.env.STRIPE_PRICE_PRO ?? process.env.STRIPE_PRICE_RESEARCH_LAB ?? "price_pro",
     self_serve_checkout: true,
-    description: "$99/mo launch tier for strategy sellers and researchers with evidence-gated regime/stability workspaces, saved prop profiles, and share links.",
-  },
-  {
-    id: "team",
-    label: "Team",
-    stripe_price_id: process.env.STRIPE_PRICE_TEAM ?? "price_team",
-    self_serve_checkout: true,
-    description: "$399/mo launch tier with team library, shared prop-firm profiles, higher limits, seats, and priority processing.",
+    description: "$99/mo launch tier for strategy sellers and researchers with research bundle upload, saved prop profiles, share links, and Research Desk request eligibility.",
   },
   {
     id: "research_desk",

@@ -226,8 +226,8 @@ export default function LabDocsPage() {
             <h3 className="text-sm font-semibold text-text-institutional">Research bundle profile</h3>
             <p className="mt-2 text-xs text-text-neutral">Container: <span className="font-mono">bundle_v1</span> with <span className="font-mono">artifact_type: research_bundle</span></p>
             <p className="mt-2 text-sm text-text-neutral">Not a separate parser route; this is a manifest-level artifact profile under bundle_v1.</p>
-            <p className="mt-2 text-xs text-text-neutral">Unlocks: strongest upload eligibility; true parameter stability, portfolio attribution, and broker-level realism can still require Research Desk review.</p>
-            <p className="mt-2 text-xs text-text-neutral">For: teams supplying full contextual artifacts.</p>
+            <p className="mt-2 text-xs text-text-neutral">Unlocks: strongest automated context for core diagnostics; true parameter stability, portfolio attribution, and broker-level realism route to Research Desk for launch.</p>
+            <p className="mt-2 text-xs text-text-neutral">For: users supplying full contextual artifacts before deeper review.</p>
           </article>
         </div>
       </section>
@@ -421,8 +421,8 @@ export default function LabDocsPage() {
               <tr><td className="px-4 py-3 font-medium">risk_amount / stop_distance / R-multiples</td><td className="px-4 py-3 text-text-neutral">Stronger execution-quality framing and risk translation.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Execution diagnostic can move from limited to available.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle params.json</td><td className="px-4 py-3 text-text-neutral">Improves baseline parameter context, but does not prove stability on its own.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Unlocks automated Parameter Stability when run IDs, parameter values, outcomes, and optional per-run trade files are coherent.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Can unlock regime context when timestamps and symbols align. Portfolio-level multi-asset attribution may still require Research Desk review.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Research Desk packet quality for Parameter Stability. Automated launch reports do not claim true stability from upload alone.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Research Desk packet quality. Automated launch reports do not claim multi-asset regime attribution from upload alone.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Runtime account_size + risk_per_trade_pct</td><td className="px-4 py-3 text-text-neutral">Sizing-aware survivability interpretation for ruin diagnostics.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Benchmark selection</td><td className="px-4 py-3 text-text-neutral">Benchmark-relative comparison diagnostics when benchmark data is available.</td></tr>
             </tbody>
@@ -606,8 +606,8 @@ run_manifest.json
         <ul className="space-y-2 text-sm text-text-neutral">
           <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>, up to 10MB.</li>
           <li>• Artifact kinds are currently limited to trade CSV and bundle_v1.</li>
-          <li>• Parameter Stability is unavailable for trade-only uploads. A single params file adds context but does not prove stability; true stability requires a multi-run sweep or Research Desk review.</li>
-          <li>• Regime diagnostics require aligned OHLCV/regime context. Multi-asset attribution may require Research Desk review unless symbol coverage, timestamp alignment, and regime definitions are explicit.</li>
+          <li>• Parameter Stability is a Research Desk scope for launch. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
+          <li>• Regime attribution is a Research Desk scope for launch. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>
           <li>• Execution diagnostics can remain limited without richer assumptions/context artifacts. Broker-level realism requires broker fills, fee/spread evidence, and often Research Desk review.</li>
           <li>• Strategy reconstruction from configs/reports, portfolio-level exposure analysis, and independent validation memos are Research Desk scopes when the upload evidence is incomplete.</li>
         </ul>

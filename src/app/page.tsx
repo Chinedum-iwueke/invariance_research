@@ -41,7 +41,7 @@ export default function HomePage() {
             <SectionHeader
               eyebrow="Claim Discipline"
               title="Every result is treated like a claim that has to earn trust."
-              description="Upload the artifact you already have, then state what you believe it proves. Invariance separates declared claims from claims merely implied by the evidence, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
+              description="Upload the artifact you already have, then state what you believe it proves. The Lab separates declared claims from claims merely implied by the evidence, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
             />
             <ClaimAuditPanel />
             <EvidenceOutcomeGrid />
