@@ -31,8 +31,9 @@ export function MetricTile({ metric, source = "Diagnostic" }: { metric: KeyMetri
   const compactNumeric = (unit === "percent" || unit === "value") && !displayValue.includes("/");
 
   return (
-    <Card className="relative overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-0 shadow-none">
-      <div className="space-y-2 border-b border-border-subtle bg-surface-subtle px-4 py-3">
+    <Card className="relative overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-0 shadow-none hover:-translate-y-px hover:border-border-strong hover:shadow-soft">
+      <div className="space-y-2 border-b border-border-subtle bg-surface-subtle/90 px-4 py-3">
+        <div className="h-px w-10 bg-brand/80" />
         <div className="min-w-0">
           <p className="min-h-[2rem] text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-text-neutral">{metric.label}</p>
           <p className="font-provenance mt-1 text-[10px] uppercase tracking-[0.08em] text-text-muted">{source}</p>

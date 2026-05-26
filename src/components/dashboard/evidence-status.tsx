@@ -17,13 +17,13 @@ const stateConfig = {
   supported: { label: "Supported", icon: CheckCircle2, className: "border-evidence-supported/25 bg-evidence-supported-wash text-evidence-supported" },
   limited: { label: "Limited", icon: AlertTriangle, className: "border-evidence-limited/30 bg-evidence-limited-wash text-evidence-limited" },
   unsupported: { label: "Unsupported", icon: CircleSlash, className: "border-evidence-unsupported/25 bg-evidence-unsupported-wash text-evidence-unsupported" },
-  contradicted: { label: "Contradicted", icon: ShieldAlert, className: "border-evidence-contradicted/25 bg-evidence-contradicted-wash text-evidence-contradicted" },
+  contradicted: { label: "Contradicted", icon: ShieldAlert, className: "border-evidence-contradicted/30 bg-evidence-contradicted-wash text-evidence-contradicted" },
   locked: { label: "Locked", icon: Lock, className: "border-evidence-locked/25 bg-evidence-locked-wash text-evidence-locked" },
   processing: { label: "Processing", icon: Clock3, className: "border-evidence-processing/25 bg-evidence-processing-wash text-evidence-processing" },
-  failed: { label: "Failed", icon: XCircle, className: "border-evidence-contradicted/25 bg-evidence-contradicted-wash text-evidence-contradicted" },
+  failed: { label: "Failed", icon: XCircle, className: "border-evidence-contradicted/30 bg-evidence-contradicted-wash text-evidence-contradicted" },
   superseded: { label: "Superseded", icon: RefreshCw, className: "border-evidence-unsupported/25 bg-evidence-unsupported-wash text-evidence-unsupported" },
   expired: { label: "Expired", icon: FileWarning, className: "border-evidence-unsupported/25 bg-evidence-unsupported-wash text-evidence-unsupported" },
-  revoked: { label: "Revoked", icon: XCircle, className: "border-evidence-contradicted/25 bg-evidence-contradicted-wash text-evidence-contradicted" },
+  revoked: { label: "Revoked", icon: XCircle, className: "border-evidence-contradicted/30 bg-evidence-contradicted-wash text-evidence-contradicted" },
 } as const;
 
 export function normalizeEvidenceState(status?: string): EvidenceState {
@@ -60,6 +60,7 @@ export function EvidenceStatusBadge({
         "inline-flex max-w-full items-center gap-1.5 rounded-full border font-semibold uppercase tracking-[0.1em]",
         compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
         config.className,
+        (state === "contradicted" || state === "failed" || state === "revoked") && "research-red-glow",
         className,
       )}
       title={reason}
@@ -87,7 +88,7 @@ export function EvidenceStatePanel({
 }) {
   const config = stateConfig[state];
   return (
-    <div className={cn("rounded-md border bg-surface-paper p-4 shadow-soft", config.className, className)}>
+    <div className={cn("rounded-md border bg-surface-paper p-4 shadow-soft transition-[box-shadow,border-color,transform] duration-normal hover:-translate-y-px", config.className, (state === "contradicted" || state === "failed" || state === "revoked") && "verdict-glow", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <EvidenceStatusBadge state={state} compact />

@@ -6,6 +6,8 @@ export default {
     extend: {
       colors: {
         brand: "var(--brand-research-red)",
+        "research-red": "var(--brand-research-red)",
+        "research-red-hover": "var(--brand-red-hover)",
         text: {
           institutional: "var(--text-institutional)",
           graphite: "var(--text-graphite)",
@@ -58,6 +60,7 @@ export default {
       boxShadow: {
         soft: "var(--shadow-soft)",
         raised: "var(--shadow-raised)",
+        verdict: "var(--shadow-verdict)",
       },
       maxWidth: {
         container: "var(--container-max)",

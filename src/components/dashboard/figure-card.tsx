@@ -15,7 +15,7 @@ export function FigureCard({ title, subtitle, figure, legend, metadata, note }: 
     <WorkspaceCard title={title} subtitle={subtitle}>
       <div className="space-y-3">
         {metadata ? <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle pb-3 text-xs text-text-neutral">{metadata}</div> : null}
-        <div className="overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-3">
+        <div className="data-grid-surface overflow-hidden rounded-md border border-border-subtle bg-surface-paper p-3">
           {figure}
         </div>
         {note ? <p className="border-t border-border-subtle pt-3 text-xs leading-relaxed text-text-neutral">{note}</p> : null}

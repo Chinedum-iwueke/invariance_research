@@ -10,7 +10,9 @@
 
   --brand-research-red: #b00020;
   --brand-red-dark: #6e0014;
+  --brand-red-hover: #92001b;
   --brand-red-wash: #f7e8eb;
+  --brand-red-glow: rgba(176, 0, 32, 0.18);
 
   --text-institutional: #11100f;
   --text-graphite: #272321;
@@ -56,6 +58,7 @@
 
   --shadow-soft: 0 2px 8px rgba(39, 35, 33, 0.05);
   --shadow-raised: 0 16px 36px rgba(39, 35, 33, 0.10);
+  --shadow-verdict: 0 0 0 1px rgba(176, 0, 32, 0.10), 0 18px 48px rgba(176, 0, 32, 0.10);
   --focus-ring-offset: var(--surface-white);
 
   --container-max: 84rem;
@@ -92,9 +95,11 @@
 }
 
 [data-theme="dark"] {
-  --brand-research-red: #d05266;
-  --brand-red-dark: #f08a9a;
-  --brand-red-wash: #341920;
+  --brand-research-red: #b00020;
+  --brand-red-dark: #f45d76;
+  --brand-red-hover: #d20a31;
+  --brand-red-wash: #321017;
+  --brand-red-glow: rgba(176, 0, 32, 0.38);
 
   --text-institutional: #f1ece6;
   --text-graphite: #d9d1ca;
@@ -116,14 +121,14 @@
   --evidence-limited-wash: #342817;
   --evidence-unsupported: #a5afba;
   --evidence-unsupported-wash: #252a2f;
-  --evidence-contradicted: #d05266;
+  --evidence-contradicted: #b00020;
   --evidence-contradicted-wash: #341920;
   --evidence-locked: #b2a9a1;
   --evidence-locked-wash: #2b2622;
   --evidence-processing: #78a8c6;
   --evidence-processing-wash: #172b36;
 
-  --chart-primary: #d05266;
+  --chart-primary: #b00020;
   --chart-positive: #73b88f;
   --chart-negative: #d97575;
   --chart-benchmark: #7fa9da;
@@ -136,6 +141,7 @@
 
   --shadow-soft: 0 2px 12px rgba(5, 4, 4, 0.45);
   --shadow-raised: 0 18px 38px rgba(2, 2, 2, 0.58);
+  --shadow-verdict: 0 0 0 1px rgba(176, 0, 32, 0.28), 0 20px 58px rgba(176, 0, 32, 0.20);
   --focus-ring-offset: var(--surface-white);
 }
 
@@ -154,6 +160,11 @@ body {
   font-family: var(--font-interface), sans-serif;
   font-feature-settings: "ss01" on, "cv01" on;
   overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand-research-red) 18%, transparent);
+  color: var(--text-institutional);
 }
 
 h1,
@@ -178,7 +189,8 @@ h4 {
   }
 
   .card-shell {
-    @apply rounded-md border border-border-subtle bg-surface-paper shadow-soft;
+    @apply rounded-md border border-border-subtle bg-surface-paper shadow-soft transition-[border-color,box-shadow,background-color,transform] duration-normal ease-out;
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--surface-paper) 94%, white 6%), var(--surface-paper));
   }
 
   .mobile-cta-row {
@@ -200,6 +212,41 @@ h4 {
 
   .artifact-surface {
     @apply rounded-sm border border-border-subtle bg-surface-paper shadow-soft;
+    background-image:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-paper) 96%, white 4%), var(--surface-paper)),
+      linear-gradient(90deg, color-mix(in srgb, var(--brand-research-red) 7%, transparent), transparent 34%);
+  }
+
+  .institutional-panel {
+    @apply rounded-md border border-border-subtle bg-surface-paper shadow-soft;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-paper) 94%, var(--surface-white) 6%), var(--surface-paper)),
+      repeating-linear-gradient(90deg, transparent 0, transparent 31px, color-mix(in srgb, var(--border-divider) 28%, transparent) 32px);
+  }
+
+  .verdict-glow {
+    box-shadow: var(--shadow-verdict);
+  }
+
+  .research-red-glow {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-research-red) 18%, transparent), 0 14px 34px var(--brand-red-glow);
+  }
+
+  .decision-strip {
+    @apply rounded-md border bg-surface-paper;
+    border-color: color-mix(in srgb, var(--brand-research-red) 25%, transparent);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--brand-research-red) 9%, transparent), transparent 38%),
+      linear-gradient(180deg, var(--surface-paper), color-mix(in srgb, var(--surface-paper) 82%, var(--surface-panel) 18%));
+    box-shadow: var(--shadow-verdict);
+  }
+
+  .data-grid-surface {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--border-divider) 44%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--border-divider) 38%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
   }
 
   .workbench-rule {
@@ -208,6 +255,7 @@ h4 {
 
   .public-hero-band {
     background:
+      radial-gradient(circle at 24% 20%, color-mix(in srgb, var(--brand-research-red) 10%, transparent), transparent 32%),
       linear-gradient(90deg, rgba(176, 0, 32, 0.075), transparent 28%),
       linear-gradient(180deg, var(--surface-paper), var(--surface-white) 62%, var(--surface-panel));
   }
@@ -255,6 +303,27 @@ h4 {
       transform: translateY(2px);
       opacity: 0.7;
     }
+  }
+
+  @keyframes verdict-pulse {
+    0%,
+    100% {
+      box-shadow: var(--shadow-verdict);
+    }
+    50% {
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-research-red) 24%, transparent), 0 18px 58px var(--brand-red-glow);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }
 

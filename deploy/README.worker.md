@@ -47,6 +47,8 @@ Fill real values for:
 - `EMAIL_PROVIDER`, `EMAIL_FROM`, and provider API key if worker-side email is enabled
 - `LLM_INSIGHTS_ENABLED=false` for the first production wedge unless Ollama has been explicitly provisioned
 
+Benchmark env vars must be set on both Vercel and the worker host. Vercel resolves and persists the selected benchmark; the worker materializes the actual dataset and passes its worker-local path to the engine. If the worker host is missing `BENCHMARK_PROVIDER=object_storage` or R2 credentials, selected benchmarks will be disabled during analysis even when the UI accepted the selection.
+
 Keep `deploy/.env.worker` untracked. Rotate any key that was copied into logs, screenshots, chat, or a shared machine.
 
 ## Database Readiness

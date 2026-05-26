@@ -18,10 +18,10 @@ export function VerdictCard({
   return (
     <Card
       className={cn(
-        "p-card-md",
-        posture === "robust" && "border-chart-positive/30",
-        posture === "moderate" && "border-brand/30",
-        posture === "fragile" && "border-chart-negative/30",
+        "decision-strip p-card-md",
+        posture === "robust" && "border-chart-positive/35 shadow-soft",
+        posture === "moderate" && "border-brand/35 verdict-glow",
+        posture === "fragile" && "border-chart-negative/35 verdict-glow",
       )}
     >
       <p className="eyebrow">Validation posture</p>

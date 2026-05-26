@@ -13,10 +13,11 @@ export function WorkspaceCard({ title, subtitle, toolbar, children, note }: Work
   const showHeader = Boolean(title || subtitle || toolbar);
 
   return (
-    <Card className="artifact-surface space-y-5 overflow-hidden rounded-md border-border-subtle bg-surface-white p-0 shadow-sm">
+    <Card className="artifact-surface space-y-5 overflow-hidden rounded-md border-border-subtle bg-surface-white p-0 shadow-sm hover:border-border-strong">
       {showHeader ? (
-        <div className="grid gap-3 border-b border-border-subtle bg-surface-subtle px-5 py-4 md:grid-cols-[1fr_auto] md:items-start">
+        <div className="grid gap-3 border-b border-border-subtle bg-surface-subtle/90 px-5 py-4 md:grid-cols-[1fr_auto] md:items-start">
           <div>
+            <div className="mb-3 h-px w-16 bg-brand" />
             {title ? (
               <h2 className="font-display text-[clamp(1.35rem,2.2vw,2rem)] font-medium leading-none tracking-normal text-text-institutional">
                 {title}

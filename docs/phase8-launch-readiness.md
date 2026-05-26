@@ -188,6 +188,8 @@ Required production env vars:
 
 Production must not set local-only paths as durable storage. Any `/home/...` path is acceptable only on the worker host as Docker build context or local scratch/cache, never as a production source of truth for user evidence.
 
+Benchmark variables must be present in both Vercel and the external worker environment. Vercel uses them to resolve and persist the selected benchmark; the worker uses them to download/materialize the selected dataset from R2 before dispatching the engine payload. If only Vercel has the benchmark env vars, the UI can accept a benchmark while the worker disables it at runtime.
+
 ## Admin/Ops refinements
 
 Admin health and jobs/exports dashboards now expose stronger operational context:

@@ -41,8 +41,8 @@ export function EChartsHost({ option, height = 480 }: { option: EChartsOption; h
     <div className="relative w-full" style={{ height }}>
       <div ref={containerRef} className="h-full w-full" aria-label="Diagnostic chart" />
       {!ready ? (
-        <div className="absolute inset-0 grid place-items-center rounded-sm border border-dashed border-border-subtle bg-surface-panel text-xs font-medium uppercase tracking-[0.12em] text-text-neutral">
-          Preparing chart
+        <div className="data-grid-surface absolute inset-0 grid place-items-center rounded-sm border border-dashed border-border-subtle bg-surface-panel text-xs font-medium uppercase tracking-[0.12em] text-text-neutral">
+          <span className="rounded-sm border border-brand/20 bg-surface-paper px-3 py-2 text-brand shadow-soft">Preparing chart</span>
         </div>
       ) : null}
     </div>

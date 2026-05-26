@@ -255,8 +255,8 @@ export function NewAnalysisIntake() {
         </div>
         <div
           className={cn(
-            "rounded-md border border-dashed bg-surface-panel/60 p-8 text-center",
-            state === "drag_over" ? "border-brand" : "border-border",
+            "data-grid-surface rounded-md border border-dashed bg-surface-panel/60 p-8 text-center transition-[border-color,box-shadow,background-color,transform] duration-normal",
+            state === "drag_over" ? "border-brand bg-brand/[0.04] research-red-glow" : "border-border hover:border-brand/35 hover:shadow-soft",
           )}
           onDragOver={(event) => {
             event.preventDefault();
@@ -269,11 +269,12 @@ export function NewAnalysisIntake() {
             if (dropped) void onInspect(dropped);
           }}
         >
-          <p className="text-sm font-medium">Submit artifact into validation intake</p>
+          <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Intake gate</p>
+          <p className="mt-2 text-sm font-medium">Submit artifact into validation intake</p>
           <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1)</p>
           <input
             ref={fileInputRef}
-            className="mt-4 block w-full text-xs"
+            className="mt-4 block w-full text-xs file:mr-3 file:rounded-sm file:border-0 file:bg-brand file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-research-red-hover"
             type="file"
             accept=".csv,.zip"
             onChange={(event) => {

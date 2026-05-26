@@ -64,7 +64,7 @@ Redesign or substantially tighten:
 Research red remains the anchor.
 
 - **Research Red:** `#B00020`
-- **Dark-mode research red:** `#D05266`
+- **Dark-mode research red:** `#B00020`
 - **Muted red wash:** `#F7E8EB`
 - **Deep red ink:** `#6E0014`
 
@@ -140,7 +140,9 @@ Dark mode should be a research-night mode, not a neon trading terminal.
 - **Night Rule:** `#39332F`
 - **Night Text:** `#F1ECE6`
 - **Night Muted:** `#B2A9A1`
-- **Night Red:** `#D05266`
+- **Night Red:** `#B00020`
+
+Dark mode must keep the same bright research red as light mode. Do not shift primary CTAs, contradiction states, chart strategy lines, or active verdict accents to pink, salmon, or washed-out red. Use darker washes, stronger neutral contrast, and glow restraint around the same `#B00020` brand red instead.
 
 Reports and shared reports may remain light by default for artifact credibility and printability.
 
@@ -666,6 +668,140 @@ Recommended icons by concept:
 Icons should label states and commands, not decorate feature cards.
 
 ## Implementation Plan
+
+## Institutional-Grade Tightening Pass
+
+This pass converts the design system from a strong concept into an executable product standard. The interface should feel like a premium quant research product: minimal, analytical, institutional, research-oriented, and credible about execution realism. It should be high density without clutter, using charcoal typography, warm paper surfaces, fine rules, sparse research red, and stateful artifact previews.
+
+### Typography System
+
+Keep the current type direction: `IBM Plex Sans` for interface/body, `IBM Plex Mono` for provenance and data, and `Instrument Serif` for public/report/editorial emphasis. This stack is already stronger than a generic SaaS font pairing and should only change if production readability tests show a measurable issue.
+
+Rules:
+
+- Public pages: serif allowed for major editorial claims and page heroes; sans for dense explanatory copy.
+- App and dashboard pages: mostly sans, with mono for identifiers, versions, reason codes, timestamps, benchmark labels, and compact metadata.
+- Reports/share pages: serif for report titles and executive artifact headers; sans for analysis body; mono for snapshot and reproducibility metadata.
+- Numbers: tabular numerals everywhere metrics, table values, progress, and chart labels appear.
+- Dense labels: 10-11px uppercase mono/sans with 0.10-0.14em tracking. Do not use negative letter spacing.
+
+### Spacing System
+
+Use the existing 4px base unit, but apply it by surface type:
+
+- Public sections: 72-112px desktop, 48-72px mobile.
+- App workbench sections: 24-32px between major zones.
+- Diagnostic panels: 16-24px internal padding, compact metadata rows, no decorative empty whitespace.
+- Report sections: 40-56px between major document sections.
+- Tables and ledgers: 8-12px row padding, clear horizontal rules, stable column widths.
+- Fixed-format elements: define aspect ratio, min-height, or grid tracks so charts, counters, buttons, and status chips cannot resize the layout on state change.
+
+### Color Tokens
+
+Source of truth is `src/app/globals.css` and `tailwind.config.ts`.
+
+- `brand` / `research-red`: `#B00020` in both light and dark.
+- `research-red-hover`: light `#92001B`, dark `#D20A31`.
+- `text-institutional`: charcoal ink, never pure blue-black.
+- `surface-white`, `surface-paper`, `surface-panel`, `surface-subtle`: warm forensic paper and panel stack.
+- Evidence states must use semantic tokens: supported green, limited amber, unsupported slate, contradicted research red, locked graphite, processing blue.
+- Chart strategy/primary series is research red; benchmark is institutional blue; green/amber/red only carry outcome semantics.
+
+Dark mode:
+
+- Keep `#B00020` for primary CTAs, active navigation, contradiction states, strategy chart lines, verdict accents, upload drag state, and Research Desk requests.
+- Never replace brand red with dull pink/salmon. Use darker washes and neutral contrast around the same red.
+- Dark mode panels should be night research surfaces, not neon terminal surfaces.
+
+### Component Hierarchy
+
+1. **Verdict strip / decision strip**: full-width, top-of-flow, reserved for final judgment, contradiction, failure, conditional readiness, and share-critical state.
+2. **Evidence ledger matrix**: central artifact for claims, required evidence, received evidence, missing evidence, limitation language, and next action.
+3. **Diagnostic workbench**: chart/table plus interpretation, assumptions, limitation, provenance, and next experiment.
+4. **Metric instruments**: value, unit, evidence state, threshold/comparison, source diagnostic, limitation note.
+5. **Insight rail**: compact advisory context, not a second dashboard.
+6. **Report snapshot header**: immutable document identity with version, generated time, engine/seam/parser/report metadata, share lifecycle.
+7. **Upload gate**: first trust moment; must explain accepted artifact class, validation state, unlocked diagnostics, missing fields/files, and plan locks separately.
+
+### Chart Styling Philosophy
+
+Charts are evidence figures, not decoration.
+
+- Titles ask the evidence question; subtitles explain the data window or assumption.
+- Include provenance, source diagnostic, data window, and limitation state near the chart.
+- Use fine charcoal axes, low-contrast gridlines, restrained legends, and semantic series colors.
+- Use threshold lines, stress windows, selected regimes, fan percentile bands, and tail annotations before adding visual ornament.
+- Monte Carlo pages: fan charts use muted bands with selected path/strategy in research red; ruin and drawdown thresholds are explicit.
+- Benchmark comparison charts: strategy red, benchmark blue, divergence zones annotated, sorted comparison bars where ranking matters.
+- Diagnostic heatmaps: neutral/risk palette; red only for failure pockets.
+- Always provide table or textual evidence fallback for complex multi-variable views.
+
+### Interaction Philosophy
+
+Motion exists to communicate state and confidence.
+
+- Hover/focus: 80-120ms.
+- Disclosure/tabs: 150-220ms.
+- Workbench transitions: 220-320ms.
+- Hero/artifact reveals: 500-700ms maximum.
+- Use opacity and transform, not width/height/top/left.
+- Respect `prefers-reduced-motion`.
+- No continuous decorative animation. Infinite motion is only for active loading/processing.
+- Final decisions may use a subtle red glow or pulse once, then settle.
+
+### Trust-Building UX Rules
+
+- Every verdict needs a reason, strongest support, strongest doubt, and next experiment.
+- Every unsupported/limited claim needs report-safe wording.
+- Never let locked product entitlement state masquerade as evidence failure.
+- Upload inspection must show exactly what the artifact can and cannot prove before analysis starts.
+- Shared reports must hide raw internals, debug logs, private artifact links, and owner dashboard chrome.
+- Public pages must show real product surfaces, report artifacts, evidence ledgers, diagnostic panels, or Research Desk workflow state.
+- Admin and ops surfaces should be table-first, audit-trail-first, and destructive-action-explicit.
+- Empty states must teach the next evidence step, not celebrate absence.
+
+### Anti-Patterns To Avoid
+
+- Dull dark-mode red, pink CTAs, or red that changes brand identity by theme.
+- Purple/blue gradient SaaS aesthetics.
+- Bubbly 12-20px rounded cards for serious decision surfaces.
+- Equal-weight card mosaics with no decision hierarchy.
+- Charts without provenance or limitation context.
+- Success visuals for incomplete or merely accepted evidence.
+- Public pages that rely on atmospheric imagery instead of product/report/research artifacts.
+- Landing-page copy that says “AI-powered” without showing evidence machinery.
+- In-app explanatory text about design, shortcuts, or visual styling.
+- Nested cards inside cards.
+
+### Tailwind + shadcn/ui Implementation Direction
+
+Tailwind:
+
+- Keep CSS variables in `src/app/globals.css` as the only color source of truth.
+- Expose both `brand` and `research-red` in `tailwind.config.ts`; use `brand` for generic components and `research-red` where the brand mark/state is semantically important.
+- Add component classes for reusable surfaces: `artifact-surface`, `institutional-panel`, `decision-strip`, `data-grid-surface`, `verdict-glow`, and `research-red-glow`.
+- Use `transition-[background-color,border-color,box-shadow,color,transform]`, `duration-normal`, and `ease-out` for premium microinteractions.
+- Use Tailwind arbitrary values only when component-level tokens are insufficient; prefer named tokens/classes.
+
+shadcn/ui:
+
+- Keep shadcn primitives thin and token-driven. Components should wrap local design rules, not fork one-off styling.
+- `Button`: primary is bright research red in both modes; secondary is neutral/paper with stronger hover border; tertiary is quiet text/panel.
+- `Card`: default card is a precise panel with low radius, border-first depth, and subtle hover polish. Avoid card nesting.
+- Future `Badge`, `Tabs`, `Table`, `Sheet`, and `Dialog` additions should be installed through the shadcn CLI, then adapted to these tokens.
+- Tables should use dense rows, mono metadata, sticky context where useful, and semantic state badges.
+- Dialogs/sheets must preserve institutional density: clear title, provenance where relevant, direct action copy, no marketing decoration.
+
+### Page/Area Requirements
+
+- **Robustness Lab:** show the upload gate, evidence capability matrix, diagnostic unlock state, and report preview as first-class surfaces.
+- **Monte Carlo pages:** make path-risk, ruin probability, percentile drawdown, assumptions, and limitation hierarchy visibly primary.
+- **Report pages:** read as immutable artifacts with snapshot identity, decision strip, proof boundaries, figures, appendix, export/share controls.
+- **Analysis dashboard:** prioritize recent analyses by state, evidence coverage, failed/retryable jobs, pending reports, and next best action.
+- **Upload flow:** drag state uses research-red glow; post-upload inspection uses evidence-state panels and explicit missing evidence.
+- **Insight rail:** compact, advisory, evidence-linked, and never visually louder than verdict/report.
+- **Diagnostic panels:** every panel includes what it tests, what evidence shows, what it does not prove, assumptions, and next action.
+- **Benchmark comparison charts:** use strategy red/benchmark blue, visible comparison labels, and sorted bars or divergence annotations.
 
 ### Phase D1: Token Migration
 

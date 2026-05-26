@@ -77,27 +77,43 @@ export function ResearchDeskRequestPanel({
     ));
   }
 
-  const submitLabel = status === "submitting" ? "Creating packet..." : "Request deeper validation";
+  const submitLabel = status === "submitting" ? "Creating packet..." : "Create Research Desk packet";
   const submitDisabled = status === "submitting" || services.length === 0;
 
   return (
     <form onSubmit={submit} className="rounded-md border border-research-red/20 bg-surface-white p-4 shadow-sm">
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-        <div>
-          <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Research Desk request</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-tight text-text-institutional">Turn this limitation into a review packet.</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-neutral">
-            The request is tied to this analysis, immutable report snapshot, source artifact, and selected limitation so a reviewer can add decision-grade context without losing provenance.
-          </p>
+      <div className="rounded-md border border-research-red/20 bg-research-red/5 p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Research Desk request</p>
+            <h3 className="mt-2 text-xl font-semibold tracking-tight text-text-institutional">Turn this limitation into a review packet.</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-neutral">
+              Create a packet tied to this analysis, report snapshot, source artifact, selected limitation, and reviewer questions.
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={submitDisabled}
+            aria-label={submitDisabled ? "Select at least one Research Desk service" : "Create Research Desk packet"}
+            className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+          >
+            {submitLabel}
+            <ArrowUpRight className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          type="submit"
-          disabled={submitDisabled}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
-        >
-          {submitLabel}
-          <ArrowUpRight className="h-4 w-4" />
-        </button>
+        {status === "submitted" ? (
+          <span className="mt-3 inline-flex items-center gap-2 text-sm text-chart-positive">
+            <CheckCircle2 className="h-4 w-4" /> Queued for Research Desk{requestId ? ` · ${requestId.slice(0, 8)}` : ""}
+          </span>
+        ) : null}
+        {status === "error" ? <span className="mt-3 block text-sm text-chart-negative">Request failed. Refresh and try again.</span> : null}
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+        <div>
+          <p className="text-sm font-semibold text-text-institutional">Review scope</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-neutral">Choose the limitation and services that should guide reviewer triage.</p>
+        </div>
       </div>
 
       <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
@@ -168,7 +184,8 @@ export function ResearchDeskRequestPanel({
         <button
           type="submit"
           disabled={submitDisabled}
-          className="inline-flex items-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label={submitDisabled ? "Select at least one Research Desk service" : "Create Research Desk packet"}
+          className="inline-flex min-h-11 items-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLabel}
           <ArrowUpRight className="h-4 w-4" />

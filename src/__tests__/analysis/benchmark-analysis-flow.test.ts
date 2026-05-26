@@ -10,6 +10,7 @@ process.env.INVARIANCE_DB_PATH = path.join(tempDir, "test.sqlite");
 import { parseBenchmarkSelectionFromRequest, buildPersistedBenchmarkConfig } from "@/lib/analyses/create-analysis";
 import { buildAnalysisEngineDispatchPayload } from "@/lib/analyses/analysis-engine-dispatch";
 import { buildBenchmarkEnginePayload } from "@/lib/benchmarks/benchmark-engine-contract";
+import { clearBenchmarkManifestCacheForTests } from "@/server/benchmark-library/load-manifest";
 import { accountService } from "@/lib/server/accounts/service";
 import { getDb, closeDbForTests } from "@/lib/server/persistence/database";
 import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
@@ -62,6 +63,9 @@ function writeBenchmarkManifest(root: string) {
     ].join("\n"),
     "utf8",
   );
+  for (const fileName of ["btc.parquet", "spy.parquet", "xauusd.parquet", "dxy.parquet"]) {
+    fs.writeFileSync(path.join(root, fileName), "test-parquet-placeholder");
+  }
 }
 
 function seedArtifact(accountId: string, userId: string, artifactId: string, eligibility?: Partial<UploadEligibilitySummary>) {
@@ -121,6 +125,7 @@ function seedArtifact(accountId: string, userId: string, artifactId: string, eli
 
 test.beforeEach(() => {
   resetDb();
+  clearBenchmarkManifestCacheForTests();
   const healthyRoot = path.join(tempDir, "benchmark-library-healthy");
   writeBenchmarkManifest(healthyRoot);
   process.env.INVARIANCE_BENCHMARK_LIBRARY_ROOT = healthyRoot;
@@ -182,7 +187,7 @@ test("buildPersistedBenchmarkConfig fails safe when benchmark library is unavail
 });
 
 test("analysis creation persists benchmark + runtime config and dispatch sends explicit engine contract", async () => {
-  const { user, account } = accountService.ensureUserAndAccount({ email: "benchmark-flow@example.com" });
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "benchmark-flow@example.com" });
   seedArtifact(account.account_id, user.user_id, "artifact-flow-1");
 
   const created = await createAnalysisFromArtifact({
@@ -213,6 +218,7 @@ test("analysis creation persists benchmark + runtime config and dispatch sends e
     assert.equal(dispatch.config.benchmark.mode, "manual");
     assert.equal(dispatch.config.benchmark.comparison_frequency, "1d");
     assert.equal(dispatch.config.benchmark.normalization_basis, "100_at_first_common_timestamp");
+    assert.equal(dispatch.config.benchmark.library_root, process.env.INVARIANCE_BENCHMARK_LIBRARY_ROOT);
   }
   assert.equal(dispatch.config.account_size, 250000);
   assert.equal(dispatch.config.risk_per_trade_pct, 1.25);
@@ -282,5 +288,5 @@ test("dispatch fails safe by disabling benchmark when library is unhealthy", asy
   });
 
   assert.deepEqual(dispatch.config.benchmark, { enabled: false, mode: "none" });
-  assert.match(dispatch.warnings.join(","), /benchmark_library_unhealthy_benchmark_disabled/);
+  assert.match(dispatch.warnings.join(","), /selected_benchmark_dataset_missing_benchmark_disabled/);
 });
