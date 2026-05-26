@@ -21,6 +21,7 @@ import type { AnalysisRecord } from "../src/lib/contracts";
 
 function resetDb() {
   getDb().exec(`
+    PRAGMA foreign_keys = OFF;
     DELETE FROM share_access_events;
     DELETE FROM evidence_events;
     DELETE FROM share_tokens;
@@ -37,6 +38,7 @@ function resetDb() {
     DELETE FROM user_roles;
     DELETE FROM accounts;
     DELETE FROM users;
+    PRAGMA foreign_keys = ON;
   `);
 }
 
@@ -201,13 +203,13 @@ test.after(() => {
 
 test("Phase 5.5 command layer exposes commands, explanations, alerts, and case-file timeline", async () => {
   const { user, account, analysis } = await seedCompletedAnalysis();
-  const snapshot = ensureReportSnapshotForAnalysis(analysis);
+  const snapshot = await ensureReportSnapshotForAnalysis(analysis);
   await requestExport({ analysis_id: analysis.analysis_id, account_id: account.account_id, user_id: user.user_id, format: "json" });
   while (await processNextExportJob()) {
     // drain
   }
-  const share = createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
-  resolveSharedReport({ token: share.token, ip: "127.0.0.1", userAgent: "node-test" });
+  const share = await createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
+  await resolveSharedReport({ token: share.token, ip: "127.0.0.1", userAgent: "node-test" });
 
   const layer = await getValidationCommandLayer({ analysis_id: analysis.analysis_id, account_id: account.account_id });
 
@@ -222,4 +224,3 @@ test("Phase 5.5 command layer exposes commands, explanations, alerts, and case-f
   assert.ok(layer.timeline.some((event) => event.event_type === "export_completed"));
   assert.ok(layer.timeline.some((event) => event.event_type === "share_viewed"));
 });
-

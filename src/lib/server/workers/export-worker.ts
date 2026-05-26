@@ -36,24 +36,24 @@ export async function runExportWorkerRuntime() {
 }
 
 export async function processNextExportJob(): Promise<boolean> {
-  const claimed = exportJobRepository.claimNextQueued(new Date().toISOString());
+  const claimed = await exportJobRepository.claimNextQueued(new Date().toISOString());
   if (!claimed) return false;
 
-  const exportRecord = exportRepository.findById(claimed.export_id);
+  const exportRecord = await exportRepository.findById(claimed.export_id);
   if (!exportRecord) return false;
-  exportRepository.update(exportRecord.export_id, (current) => ({ ...current, status: "processing", updated_at: new Date().toISOString() }));
+  await exportRepository.update(exportRecord.export_id, (current) => ({ ...current, status: "processing", updated_at: new Date().toISOString() }));
 
   try {
-    exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Rendering report", progress_pct: 60 }));
+    await exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Rendering report", progress_pct: 60 }));
     const analysis = await analysisRepository.findById(exportRecord.analysis_id);
     if (!analysis?.result) throw new Error("analysis_result_missing");
     const snapshot = exportRecord.report_snapshot_id
-      ? reportSnapshotRepository.findById(exportRecord.report_snapshot_id)
-      : ensureReportSnapshotForAnalysis(analysis);
+      ? await reportSnapshotRepository.findById(exportRecord.report_snapshot_id)
+      : await ensureReportSnapshotForAnalysis(analysis);
     if (!snapshot) throw new Error("report_snapshot_missing");
 
     const rendered = renderExportFromSnapshot(snapshot, exportRecord.format);
-    exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Persisting export", progress_pct: 85 }));
+    await exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Persisting export", progress_pct: 85 }));
 
     const stored = await getObjectStorage().putObject({
       bucket: "reports",
@@ -67,7 +67,7 @@ export async function processNextExportJob(): Promise<boolean> {
       }),
     });
 
-    exportRepository.update(claimed.export_id, (current) => ({
+    await exportRepository.update(claimed.export_id, (current) => ({
       ...current,
       status: "completed",
       report_snapshot_id: snapshot.snapshot_id,
@@ -80,7 +80,7 @@ export async function processNextExportJob(): Promise<boolean> {
       updated_at: new Date().toISOString(),
     }));
 
-    exportJobRepository.updateByExportId(claimed.export_id, (current) => ({
+    await exportJobRepository.updateByExportId(claimed.export_id, (current) => ({
       ...current,
       status: "completed",
       current_step: "Completed",
@@ -91,7 +91,7 @@ export async function processNextExportJob(): Promise<boolean> {
     }));
 
     logger.info("export.completed", { export_id: claimed.export_id, analysis_id: claimed.analysis_id, account_id: claimed.account_id, report_snapshot_id: snapshot.snapshot_id });
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: claimed.analysis_id,
       account_id: claimed.account_id,
       artifact_id: analysis.artifact_id,
@@ -111,14 +111,14 @@ export async function processNextExportJob(): Promise<boolean> {
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "export_failed";
-    exportRepository.update(claimed.export_id, (current) => ({
+    await exportRepository.update(claimed.export_id, (current) => ({
       ...current,
       status: "failed",
       error_code: "export_generation_failed",
       error_message: message,
       updated_at: new Date().toISOString(),
     }));
-    exportJobRepository.updateByExportId(claimed.export_id, (current) => ({
+    await exportJobRepository.updateByExportId(claimed.export_id, (current) => ({
       ...current,
       status: "failed",
       error_code: "export_generation_failed",
@@ -127,7 +127,7 @@ export async function processNextExportJob(): Promise<boolean> {
       finished_at: new Date().toISOString(),
     }));
     logger.error("export.failed", { export_id: claimed.export_id, error: message });
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: claimed.analysis_id,
       account_id: claimed.account_id,
       export_id: claimed.export_id,

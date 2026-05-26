@@ -8,7 +8,7 @@ import { isResearchDeskRequestStatus, RESEARCH_DESK_STATUSES } from "@/lib/serve
 export default async function AdminResearchDeskPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const params = await searchParams;
   const status = params.status && isResearchDeskRequestStatus(params.status) ? params.status : undefined;
-  const requests = listResearchDeskQueue(status);
+  const requests = await listResearchDeskQueue(status);
 
   return (
     <AdminPageShell title="Research Desk Queue" description="Artifact-linked limitation reviews, reviewer addenda, and product-learning promotion gates.">

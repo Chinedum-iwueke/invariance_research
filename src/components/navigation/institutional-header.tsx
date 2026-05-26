@@ -14,28 +14,42 @@ function HeaderDropdowns({ compact }: { compact: boolean }) {
     <div className="hidden items-center gap-1.5 xl:gap-2 lg:flex">
       {headerNavGroups.map((group) => (
         <div key={group.label} className="group relative">
-          <button
-            type="button"
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3.5 text-xs font-bold tracking-[0.12em] text-text-graphite transition-colors hover:text-text-institutional",
-              compact ? "h-14" : "h-16",
-            )}
-          >
-            {group.label}
-            <ChevronDown className="h-3.5 w-3.5 text-brand/70" />
-          </button>
+          {group.href ? (
+            <Link
+              href={group.href}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3.5 text-xs font-bold tracking-[0.12em] text-text-graphite transition-colors hover:text-text-institutional",
+                compact ? "h-14" : "h-16",
+              )}
+            >
+              {group.label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3.5 text-xs font-bold tracking-[0.12em] text-text-graphite transition-colors hover:text-text-institutional",
+                compact ? "h-14" : "h-16",
+              )}
+            >
+              {group.label}
+              <ChevronDown className="h-3.5 w-3.5 text-brand/70" />
+            </button>
+          )}
           <span className="absolute bottom-0 left-3 right-3 h-0.5 origin-left scale-x-0 bg-brand transition-transform duration-normal group-hover:scale-x-100 group-focus-within:scale-x-100" />
-          <div className="invisible absolute left-1/2 top-[calc(100%-0.35rem)] z-[55] w-56 -translate-x-1/2 rounded-sm border border-border-subtle bg-surface-white p-2 opacity-0 shadow-raised transition-all duration-normal group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-            {group.items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-sm px-3 py-2 text-sm text-text-graphite transition-colors hover:bg-surface-panel hover:text-text-institutional"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          {!group.href && (
+            <div className="invisible absolute left-1/2 top-[calc(100%-0.35rem)] z-[55] w-56 -translate-x-1/2 rounded-sm border border-border-subtle bg-surface-white p-2 opacity-0 shadow-raised transition-all duration-normal group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-sm px-3 py-2 text-sm text-text-graphite transition-colors hover:bg-surface-panel hover:text-text-institutional"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -67,7 +81,7 @@ function AccountArea({ authenticated }: { authenticated: boolean }) {
 
 export function InstitutionalHeader({ authenticated = false }: { authenticated?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "OUR APPROACH": true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "IR LABS": true });
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -114,31 +128,39 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
         <div className="container-shell max-h-[calc(100svh-5rem)] overflow-y-auto py-3">
           {headerNavGroups.map((group) => (
             <div key={group.label} className="border-b border-border-subtle/70 last:border-b-0">
-              <button
-                type="button"
-                onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))}
-                className="flex min-h-12 w-full items-center justify-between gap-4 py-2 text-left"
-                aria-expanded={Boolean(openGroups[group.label])}
-              >
-                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-neutral">{group.label}</span>
-                <ChevronDown className={cn("h-4 w-4 text-brand transition-transform duration-300", openGroups[group.label] && "rotate-180")} />
-              </button>
-              <div className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out", openGroups[group.label] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
-                <div className="overflow-hidden">
-                  <div className="space-y-1 pb-3">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="block rounded-sm border-l-2 border-transparent px-3 py-2.5 text-sm text-text-graphite transition-colors hover:border-brand hover:bg-surface-panel"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+              {group.href ? (
+                <Link href={group.href} onClick={() => setMobileOpen(false)} className="flex min-h-12 w-full items-center py-2 text-left">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-neutral">{group.label}</span>
+                </Link>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))}
+                    className="flex min-h-12 w-full items-center justify-between gap-4 py-2 text-left"
+                    aria-expanded={Boolean(openGroups[group.label])}
+                  >
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-neutral">{group.label}</span>
+                    <ChevronDown className={cn("h-4 w-4 text-brand transition-transform duration-300", openGroups[group.label] && "rotate-180")} />
+                  </button>
+                  <div className={cn("grid transition-[grid-template-rows,opacity] duration-300 ease-out", openGroups[group.label] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden">
+                      <div className="space-y-1 pb-3">
+                        {group.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="block rounded-sm border-l-2 border-transparent px-3 py-2.5 text-sm text-text-graphite transition-colors hover:border-brand hover:bg-surface-panel"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           ))}
           <div className="grid grid-cols-2 items-center gap-2 pt-4">

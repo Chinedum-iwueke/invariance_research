@@ -231,5 +231,5 @@ test("learning events only become promotion candidates after repeated evidence",
   assert.equal(events[1].promotion_candidate, false);
   assert.equal(events[2].evidence_count, 3);
   assert.equal(events[2].promotion_candidate, true);
-  assert.equal(researchDeskRepository.listLearningEvents(events[2].learning_key).length, 3);
+  assert.equal((await researchDeskRepository.listLearningEvents(events[2].learning_key)).length, 3);
 });

@@ -6,7 +6,7 @@ import { getObjectStorage, getObjectStorageProvider } from "@/lib/server/storage
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
   const { id } = await params;
-  const record = getExportOwned(id, session.account_id);
+  const record = await getExportOwned(id, session.account_id);
 
   if (!record || record.status !== "completed" || !record.storage_key) {
     return NextResponse.json({ error: { code: "not_found", message: "Export file not available" } }, { status: 404 });

@@ -32,7 +32,7 @@ type IntakeState =
   | "success"
   | "failed";
 
-const MAX_BYTES = 10 * 1024 * 1024;
+const MAX_BROWSER_UPLOAD_BYTES = 250 * 1024 * 1024;
 const CLAIM_PRESETS = [
   "Profitable after realistic costs",
   "Robust enough for live deployment",
@@ -80,8 +80,8 @@ export function NewAnalysisIntake() {
       setClientError("File is empty.");
       return;
     }
-    if (fileToInspect.size > MAX_BYTES) {
-      setClientError("File exceeds 10MB upload limit.");
+    if (fileToInspect.size > MAX_BROWSER_UPLOAD_BYTES) {
+      setClientError("File exceeds the browser upload limit. Use a smaller evidence package or contact Research Desk.");
       return;
     }
 
@@ -489,7 +489,7 @@ export function NewAnalysisIntake() {
             <div className="space-y-4 text-sm text-text-neutral">
               <p className="leading-6">{inspection.upload_summary_text}</p>
               <div className="grid gap-2">
-                {eligibilityTiles(inspection).map((tile) => (
+                {eligibilityTiles(inspection, { hasRuntimePropRules: useCustomPropRules }).map((tile) => (
                   <div key={tile.label} className={cn(
                     "rounded-md border bg-surface-white px-3 py-3",
                     tile.tone === "supported" && "border-chart-positive/25 bg-chart-positive/10",
@@ -542,8 +542,16 @@ const ELIGIBILITY_TILE_ORDER: Array<{ diagnostic: DiagnosticName; label: string;
   { diagnostic: "report", label: "Report", available: "Safe with caveats", limited: "Limited", unavailable: "Unavailable" },
 ];
 
-function eligibilityTiles(inspection: UploadInspectionResponse) {
+function eligibilityTiles(inspection: UploadInspectionResponse, runtime: { hasRuntimePropRules: boolean }) {
   return ELIGIBILITY_TILE_ORDER.map((tile) => {
+    if (tile.diagnostic === "prop_evaluation_readiness" && runtime.hasRuntimePropRules && inspection.diagnostics_limited.includes(tile.diagnostic)) {
+      return {
+        label: tile.label,
+        state: "Runtime rules active",
+        detail: "Exact challenge rules have been entered for this run and will replace fallback prop-evaluation assumptions when analysis starts.",
+        tone: "supported" as const,
+      };
+    }
     if (inspection.diagnostics_available.includes(tile.diagnostic)) {
       return { label: tile.label, state: tile.available, detail: "Supported by this upload and eligible for the automated report.", tone: "supported" as const };
     }

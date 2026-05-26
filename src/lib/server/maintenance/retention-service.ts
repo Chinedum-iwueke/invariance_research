@@ -4,13 +4,13 @@ import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
 export async function cleanupExpiredExports(now = new Date()) {
-  const expired = exportRepository.listExpired(now.toISOString());
+  const expired = await exportRepository.listExpired(now.toISOString());
   let removed = 0;
   for (const item of expired) {
     if (item.storage_key && await getObjectStorage().objectExists(item.storage_key)) {
       await getObjectStorage().deleteObject(item.storage_key);
     }
-    exportRepository.delete(item.export_id);
+    await exportRepository.delete(item.export_id);
     removed += 1;
   }
   logger.info("maintenance.cleanup_expired_exports", { removed });

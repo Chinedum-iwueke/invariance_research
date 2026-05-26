@@ -158,7 +158,7 @@ async function seedSnapshot(input: { email: string; analysis_id: string; artifac
     result: record,
     eligibility_snapshot: artifactRepository.findById(input.artifact_id)?.eligibility_summary,
   });
-  const snapshot = ensureReportSnapshotForAnalysis(analysisRepository.findById(record.analysis_id)!);
+  const snapshot = await ensureReportSnapshotForAnalysis(analysisRepository.findById(record.analysis_id)!);
   return { user, account, record, snapshot };
 }
 
@@ -170,13 +170,13 @@ test.after(() => {
 
 test("share tokens are stored hashed and resolve to an allowlisted public report projection", async () => {
   const { user, account, snapshot } = await seedSnapshot({ email: "slice3-share@example.com", analysis_id: "analysis-slice3-share", artifact_id: "artifact-slice3-share" });
-  const created = createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
+  const created = await createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
 
-  const stored = shareTokenRepository.findByTokenHash(hashShareToken(created.token));
+  const stored = await shareTokenRepository.findByTokenHash(hashShareToken(created.token));
   assert.ok(stored);
   assert.notEqual(stored.token_hash, created.token);
 
-  const resolved = resolveSharedReport({ token: created.token, ip: "203.0.113.10", userAgent: "slice3-test-agent" });
+  const resolved = await resolveSharedReport({ token: created.token, ip: "203.0.113.10", userAgent: "slice3-test-agent" });
   assert.equal(resolved.status, "available");
   assert.equal(resolved.view?.strategy_name, "Share Boundary Strategy");
   assert.equal(resolved.view?.dataset.trade_count, 24);
@@ -195,7 +195,7 @@ test("share tokens are stored hashed and resolve to an allowlisted public report
   assert.equal(serialized.includes("SENSITIVE_RAW_ENGINE_PAYLOAD"), false);
   assert.equal(serialized.includes("SENSITIVE_OWNER_EXECUTIVE_SUMMARY"), false);
 
-  const events = shareAccessEventRepository.listByShare(stored.share_id);
+  const events = await shareAccessEventRepository.listByShare(stored.share_id);
   assert.equal(events.length, 1);
   assert.equal(events[0].outcome, "viewed");
   assert.equal(typeof events[0].ip_hash, "string");
@@ -227,26 +227,26 @@ test("report snapshots carry Phase 5 proof contract and export parity", async ()
 
 test("expired and revoked shares do not return report content", async () => {
   const { user, account, snapshot } = await seedSnapshot({ email: "slice3-expiry@example.com", analysis_id: "analysis-slice3-expiry", artifact_id: "artifact-slice3-expiry" });
-  const expired = createReportShare({
+  const expired = await createReportShare({
     report_snapshot_id: snapshot.snapshot_id,
     account_id: account.account_id,
     user_id: user.user_id,
     expires_at: "2026-05-14T00:00:00.000Z",
   });
-  const expiredResult = resolveSharedReport({ token: expired.token, now: new Date("2026-05-15T00:00:00.000Z") });
+  const expiredResult = await resolveSharedReport({ token: expired.token, now: new Date("2026-05-15T00:00:00.000Z") });
   assert.equal(expiredResult.status, "expired");
   assert.equal(expiredResult.view, undefined);
 
-  const active = createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
-  revokeReportShare({ share_id: active.share.share_id, account_id: account.account_id, revoked_at: "2026-05-15T00:10:00.000Z" });
-  const revokedResult = resolveSharedReport({ token: active.token });
+  const active = await createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
+  await revokeReportShare({ share_id: active.share.share_id, account_id: account.account_id, revoked_at: "2026-05-15T00:10:00.000Z" });
+  const revokedResult = await resolveSharedReport({ token: active.token });
   assert.equal(revokedResult.status, "revoked");
   assert.equal(revokedResult.view, undefined);
 });
 
 test("shares follow snapshot lifecycle and reject cross-account creation", async () => {
   const { user, account, record, snapshot } = await seedSnapshot({ email: "slice3-superseded@example.com", analysis_id: "analysis-slice3-superseded", artifact_id: "artifact-slice3-superseded" });
-  const created = createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
+  const created = await createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
 
   analysisRepository.update(record.analysis_id, (current) => ({
     ...current,
@@ -257,20 +257,20 @@ test("shares follow snapshot lifecycle and reject cross-account creation", async
       summary: { ...record.summary, short_summary: "Changed source result." },
     }),
   }));
-  const replacement = ensureReportSnapshotForAnalysis(analysisRepository.findById(record.analysis_id)!);
+  const replacement = await ensureReportSnapshotForAnalysis(analysisRepository.findById(record.analysis_id)!);
   assert.notEqual(replacement.snapshot_id, snapshot.snapshot_id);
 
-  const supersededResult = resolveSharedReport({ token: created.token });
+  const supersededResult = await resolveSharedReport({ token: created.token });
   assert.equal(supersededResult.status, "superseded");
   assert.equal(supersededResult.view?.status, "superseded");
 
-  assert.throws(
+  await assert.rejects(
     () => createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id }),
     /report_snapshot_superseded/,
   );
 
   const { account: otherAccount } = await accountService.ensureUserAndAccount({ email: "slice3-other@example.com" });
-  assert.throws(
+  await assert.rejects(
     () => createReportShare({ report_snapshot_id: replacement.snapshot_id, account_id: otherAccount.account_id, user_id: user.user_id }),
     /report_snapshot_not_found/,
   );
@@ -278,11 +278,11 @@ test("shares follow snapshot lifecycle and reject cross-account creation", async
 
 test("share access event retention removes old audit events without deleting snapshots or tokens", async () => {
   const { user, account, snapshot } = await seedSnapshot({ email: "slice3-retention@example.com", analysis_id: "analysis-slice3-retention", artifact_id: "artifact-slice3-retention" });
-  const created = createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
-  const resolved = resolveSharedReport({ token: created.token });
+  const created = await createReportShare({ report_snapshot_id: snapshot.snapshot_id, account_id: account.account_id, user_id: user.user_id });
+  const resolved = await resolveSharedReport({ token: created.token });
   assert.equal(resolved.status, "available");
 
-  const events = shareAccessEventRepository.listByShare(created.share.share_id);
+  const events = await shareAccessEventRepository.listByShare(created.share.share_id);
   assert.equal(events.length, 1);
   getDb()
     .prepare("UPDATE share_access_events SET created_at = ? WHERE event_id = ?")
@@ -290,6 +290,6 @@ test("share access event retention removes old audit events without deleting sna
 
   const cleanup = cleanupShareAccessEvents(new Date("2026-05-15T00:00:00.000Z"), 30);
   assert.equal(cleanup.removed, 1);
-  assert.ok(shareTokenRepository.findById(created.share.share_id));
-  assert.equal(resolveSharedReport({ token: created.token }).status, "available");
+  assert.ok(await shareTokenRepository.findById(created.share.share_id));
+  assert.equal((await resolveSharedReport({ token: created.token })).status, "available");
 });

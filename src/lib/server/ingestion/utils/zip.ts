@@ -1,7 +1,4 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import JSZip from "jszip";
 
 export type BundleFileEntry = {
   path: string;
@@ -19,20 +16,14 @@ export function indexBundleEntries(entries: BundleFileEntry[]): Record<string, B
   }, {});
 }
 
-export function extractZipEntries(zipBytes: Uint8Array): BundleFileEntry[] {
-  const tempDir = mkdtempSync(join(tmpdir(), "invariance-zip-"));
-  const zipPath = join(tempDir, "artifact.zip");
+export async function extractZipEntries(zipBytes: Uint8Array): Promise<BundleFileEntry[]> {
+  const zip = await JSZip.loadAsync(Buffer.from(zipBytes));
+  const entries = Object.values(zip.files).filter((entry) => !entry.dir);
 
-  try {
-    writeFileSync(zipPath, Buffer.from(zipBytes));
-    const listing = execFileSync("unzip", ["-Z1", zipPath], { encoding: "utf-8" });
-    const filePaths = listing.split(/\r?\n/).filter(Boolean).filter((filePath) => !filePath.endsWith("/"));
-
-    return filePaths.map((filePath) => ({
-      path: filePath,
-      text: execFileSync("unzip", ["-p", zipPath, filePath], { encoding: "utf-8" }),
-    }));
-  } finally {
-    rmSync(tempDir, { recursive: true, force: true });
-  }
+  return Promise.all(
+    entries.map(async (entry) => ({
+      path: entry.name,
+      text: await entry.async("text"),
+    })),
+  );
 }

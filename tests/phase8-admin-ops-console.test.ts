@@ -135,7 +135,7 @@ test("jobs service lists and filters failures", async () => {
     created_at: now,
     finished_at: now,
   });
-  exportJobRepository.save({
+  await exportJobRepository.save({
     export_job_id: "job-export-1",
     export_id: "export-1",
     analysis_id: "analysis-1",

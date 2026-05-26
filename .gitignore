@@ -7,6 +7,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .env*
+!.env.example
+!.env.*.example
+!deploy/.env.worker.example
 .data/
 .debug-analysis/
 .gstack/

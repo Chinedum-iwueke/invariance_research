@@ -161,8 +161,8 @@ test("report snapshot generation is idempotent for unchanged completed analysis"
   });
 
   const analysis = analysisRepository.findById(record.analysis_id)!;
-  const first = ensureReportSnapshotForAnalysis(analysis);
-  const second = ensureReportSnapshotForAnalysis(analysis);
+  const first = await ensureReportSnapshotForAnalysis(analysis);
+  const second = await ensureReportSnapshotForAnalysis(analysis);
 
   assert.equal(second.snapshot_id, first.snapshot_id);
   assert.equal(second.status, "active");
@@ -193,7 +193,7 @@ test("owner exports render from pinned report snapshots", async () => {
     // drain
   }
 
-  const exported = getExportOwned(requested.export_id, account.account_id);
+  const exported = await getExportOwned(requested.export_id, account.account_id);
   assert.equal(exported?.status, "completed");
   assert.equal(exported?.report_snapshot_id, requested.report_snapshot_id);
   const payload = JSON.parse(Buffer.from(await getObjectStorage().getObject(exported!.storage_key!)).toString("utf-8"));
@@ -217,11 +217,11 @@ test("snapshot state reports stale source analysis after result changes", async 
     eligibility_snapshot: artifactRepository.findById("artifact-slice2-stale")?.eligibility_summary,
   });
   const analysis = analysisRepository.findById(record.analysis_id)!;
-  ensureReportSnapshotForAnalysis(analysis);
+  await ensureReportSnapshotForAnalysis(analysis);
 
   const changed = analysisRecord({ analysis_id: record.analysis_id, summary: { ...record.summary, short_summary: "Changed." } });
   analysisRepository.update(record.analysis_id, (current) => ({ ...current, result: changed, updated_at: "2026-05-15T00:05:00.000Z" }));
-  const state = getReportSnapshotState(analysisRepository.findById(record.analysis_id)!);
+  const state = await getReportSnapshotState(analysisRepository.findById(record.analysis_id)!);
 
   assert.equal(state.stale, true);
   assert.equal(state.warnings.some((warning) => /stale/i.test(warning)), true);
@@ -240,5 +240,5 @@ test("report snapshot generation is guarded by completed analysis state", async 
     updated_at: "2026-05-15T00:00:00.000Z",
   });
 
-  assert.throws(() => ensureReportSnapshotForAnalysis(analysisRepository.findById("analysis-slice2-guard")!), /analysis_not_completed/);
+  await assert.rejects(() => ensureReportSnapshotForAnalysis(analysisRepository.findById("analysis-slice2-guard")!), /analysis_not_completed/);
 });

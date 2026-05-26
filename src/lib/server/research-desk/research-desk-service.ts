@@ -50,7 +50,7 @@ export async function createResearchDeskRequest(input: {
   const state = await accountService.getAccountState(input.account_id);
   if (!state?.entitlements.can_request_research_desk) throw new Error("research_desk_plan_restricted");
 
-  const snapshot = ensureReportSnapshotForAnalysis(analysis);
+  const snapshot = await ensureReportSnapshotForAnalysis(analysis);
   const artifact = await Promise.resolve(getCoreRepositories().artifacts.findById(analysis.artifact_id));
   const packet = buildValidationPacket({
     snapshot_id: snapshot.snapshot_id,
@@ -80,9 +80,9 @@ export async function createResearchDeskRequest(input: {
     updated_at: now,
   };
 
-  researchDeskRepository.saveRequest(request);
-  const learning_event = logRequestLearningEvent(request, now);
-  recordEvidenceEvent({
+  await researchDeskRepository.saveRequest(request);
+  const learning_event = await logRequestLearningEvent(request, now);
+  await recordEvidenceEvent({
     analysis_id: request.analysis_id,
     account_id: request.account_id,
     artifact_id: request.artifact_id,
@@ -103,22 +103,20 @@ export async function createResearchDeskRequest(input: {
   return { request, learning_event };
 }
 
-export function listResearchDeskQueue(status?: string) {
+export async function listResearchDeskQueue(status?: string) {
   const normalizedStatus = status && isResearchDeskRequestStatus(status) ? status : undefined;
-  return researchDeskRepository.listRequests(normalizedStatus);
+  return await researchDeskRepository.listRequests(normalizedStatus);
 }
 
-export function listApprovedReportAddenda(reportSnapshotId: string) {
-  return researchDeskRepository
-    .listApprovedAddendaBySnapshot(reportSnapshotId)
+export async function listApprovedReportAddenda(reportSnapshotId: string) {
+  return (await researchDeskRepository.listApprovedAddendaBySnapshot(reportSnapshotId))
     .filter((addendum) => Boolean(addendum.public_addendum));
 }
 
-export function listResearchDeskRequestsForAnalysis(input: { analysis_id: string; account_id: string }) {
-  return researchDeskRepository
-    .listRequestsByAnalysis(input.analysis_id)
-    .filter((request) => request.account_id === input.account_id)
-    .map((request) => ({ request, timeline: buildResearchDeskTimeline(request, researchDeskRepository.findAddendumByRequest(request.request_id)) }));
+export async function listResearchDeskRequestsForAnalysis(input: { analysis_id: string; account_id: string }) {
+  const requests = (await researchDeskRepository.listRequestsByAnalysis(input.analysis_id))
+    .filter((request) => request.account_id === input.account_id);
+  return await Promise.all(requests.map(async (request) => ({ request, timeline: buildResearchDeskTimeline(request, await researchDeskRepository.findAddendumByRequest(request.request_id)) })));
 }
 
 export async function updateResearchDeskRequest(input: {
@@ -129,7 +127,7 @@ export async function updateResearchDeskRequest(input: {
   internal_note?: string;
   public_addendum?: string;
 }) {
-  const request = researchDeskRepository.findRequestById(input.request_id);
+  const request = await researchDeskRepository.findRequestById(input.request_id);
   if (!request) throw new Error("research_desk_request_not_found");
 
   const now = new Date().toISOString();
@@ -137,8 +135,8 @@ export async function updateResearchDeskRequest(input: {
   const addendumStatus = normalizeAddendumStatus(input.addendum_status);
   let updatedRequest = request;
   if (requestStatus) {
-    updatedRequest = researchDeskRepository.updateRequestStatus(request.request_id, requestStatus, now) ?? request;
-    recordEvidenceEvent({
+    updatedRequest = await researchDeskRepository.updateRequestStatus(request.request_id, requestStatus, now) ?? request;
+    await recordEvidenceEvent({
       analysis_id: request.analysis_id,
       account_id: request.account_id,
       artifact_id: request.artifact_id,
@@ -159,9 +157,9 @@ export async function updateResearchDeskRequest(input: {
 
   let addendum: ReviewerAddendumRecord | undefined;
   if (input.internal_note || input.public_addendum || addendumStatus) {
-    const existing = researchDeskRepository.findAddendumByRequest(request.request_id);
+    const existing = await researchDeskRepository.findAddendumByRequest(request.request_id);
     const status = addendumStatus ?? existing?.status ?? "draft";
-    addendum = researchDeskRepository.upsertAddendum({
+    addendum = await researchDeskRepository.upsertAddendum({
       addendum_id: existing?.addendum_id ?? randomUUID(),
       request_id: request.request_id,
       report_snapshot_id: request.report_snapshot_id,
@@ -176,9 +174,9 @@ export async function updateResearchDeskRequest(input: {
     }) ?? undefined;
 
     if (status === "approved") {
-      updatedRequest = researchDeskRepository.updateRequestStatus(request.request_id, "approved", now) ?? updatedRequest;
-      logAddendumLearningEvent(updatedRequest, now);
-      recordEvidenceEvent({
+      updatedRequest = await researchDeskRepository.updateRequestStatus(request.request_id, "approved", now) ?? updatedRequest;
+      await logAddendumLearningEvent(updatedRequest, now);
+      await recordEvidenceEvent({
         analysis_id: request.analysis_id,
         account_id: request.account_id,
         artifact_id: request.artifact_id,
@@ -196,7 +194,7 @@ export async function updateResearchDeskRequest(input: {
         created_at: now,
       });
     } else if (!requestStatus) {
-      updatedRequest = researchDeskRepository.updateRequestStatus(request.request_id, "addendum_draft", now) ?? updatedRequest;
+      updatedRequest = await researchDeskRepository.updateRequestStatus(request.request_id, "addendum_draft", now) ?? updatedRequest;
     }
   }
 
@@ -282,10 +280,10 @@ function buildValidationPacket(input: {
   };
 }
 
-function logRequestLearningEvent(request: ResearchDeskRequestRecord, now: string): WedgeLearningEventRecord {
+async function logRequestLearningEvent(request: ResearchDeskRequestRecord, now: string): Promise<WedgeLearningEventRecord> {
   const learningKey = limitationLearningKey(request.trigger_limitation);
-  const evidenceCount = researchDeskRepository.countLearningEvidence(learningKey) + 1;
-  return researchDeskRepository.saveLearningEvent({
+  const evidenceCount = await researchDeskRepository.countLearningEvidence(learningKey) + 1;
+  return await researchDeskRepository.saveLearningEvent({
     event_id: randomUUID(),
     request_id: request.request_id,
     report_snapshot_id: request.report_snapshot_id,
@@ -305,10 +303,10 @@ function logRequestLearningEvent(request: ResearchDeskRequestRecord, now: string
   });
 }
 
-function logAddendumLearningEvent(request: ResearchDeskRequestRecord, now: string): WedgeLearningEventRecord {
+async function logAddendumLearningEvent(request: ResearchDeskRequestRecord, now: string): Promise<WedgeLearningEventRecord> {
   const learningKey = `${limitationLearningKey(request.trigger_limitation)}:reviewer_approved`;
-  const evidenceCount = researchDeskRepository.countLearningEvidence(learningKey) + 1;
-  return researchDeskRepository.saveLearningEvent({
+  const evidenceCount = await researchDeskRepository.countLearningEvidence(learningKey) + 1;
+  return await researchDeskRepository.saveLearningEvent({
     event_id: randomUUID(),
     request_id: request.request_id,
     report_snapshot_id: request.report_snapshot_id,

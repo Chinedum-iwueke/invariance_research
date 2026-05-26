@@ -120,12 +120,23 @@ Reason strings explain limited/unavailable diagnostics, e.g.:
 
 ## Validator layers
 
-1. File validators: extension, emptiness, size, readable content.
+1. File validators: extension, emptiness, size, readable content. Current intake accepts `.csv` and Bundle Manifest v1 `.zip` files only. Server-side plan limits are enforced before parsing; the public client also blocks obviously oversized files before upload.
 2. Trade CSV validators: parseability, alias-resolved required fields, timestamp/number/side validity, canonical row validity.
 3. Bundle validators: zip signature, required files, manifest JSON/schema, coherent included files.
 4. Semantic validators: non-empty trade set, coherent timestamps, symbol and quantity sanity, price sanity.
 
 Errors use product-safe codes (e.g. `unsupported_file_type`, `invalid_manifest`, `invalid_trade_row`).
+
+## Abuse controls
+
+Upload intake is protected by DB-backed rate limits and file-size validation:
+
+- upload inspection: `RATE_LIMIT_UPLOAD_MAX` per `RATE_LIMIT_WINDOW_MS`
+- analysis creation: `RATE_LIMIT_ANALYSIS_CREATE_MAX` per `RATE_LIMIT_WINDOW_MS`
+- export/share/research-desk routes have their own route-specific limits
+- oversized requests are rejected before parsing when `Content-Length` exceeds the current account plan limit
+
+Rate limits are enabled by default. Set `RATE_LIMITS_ENABLED=false` only for controlled local debugging.
 
 ## Parser adapter philosophy
 

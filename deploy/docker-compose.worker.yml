@@ -4,21 +4,28 @@ services:
   analysis-worker:
     container_name: invariance-analysis-worker
     build:
-      context: /home/omenka/Projects
+      context: ${INVARIANCE_STACK_ROOT:-/home/omenka/Projects}
       dockerfile: invariance_research/Dockerfile.worker
+    init: true
     env_file:
       - .env.worker
     environment:
       NODE_ENV: production
       WORKER_MODE: external
       INVARIANCE_WORKER_KIND: analysis-worker
+      INVARIANCE_WORKER_INSTANCE_ID: ${INVARIANCE_ANALYSIS_WORKER_INSTANCE_ID:-analysis-worker-1}
       OLLAMA_BASE_URL: http://ollama:11434
       INVARIANCE_PYTHON_BIN: /opt/venv/bin/python
       INVARIANCE_BULLETPROOF_BRIDGE_SCRIPT: /opt/invariance_research/scripts/run_bulletproof_engine.py
-    depends_on:
-      ollama:
-        condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
       interval: 30s
@@ -29,8 +36,9 @@ services:
   export-worker:
     container_name: invariance-export-worker
     build:
-      context: /home/omenka/Projects
+      context: ${INVARIANCE_STACK_ROOT:-/home/omenka/Projects}
       dockerfile: invariance_research/Dockerfile.worker
+    init: true
     command: ["npm", "run", "worker:export"]
     env_file:
       - .env.worker
@@ -38,7 +46,16 @@ services:
       NODE_ENV: production
       WORKER_MODE: external
       INVARIANCE_WORKER_KIND: export-worker
+      INVARIANCE_WORKER_INSTANCE_ID: ${INVARIANCE_EXPORT_WORKER_INSTANCE_ID:-export-worker-1}
     restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
       interval: 30s
@@ -49,11 +66,22 @@ services:
   ollama:
     container_name: invariance-ollama
     image: ollama/ollama:latest
+    profiles:
+      - llm
+    init: true
     expose:
       - "11434"
     volumes:
       - ollama-models:/root/.ollama
     restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s

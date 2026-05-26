@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/server/persistence/database";
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 
 export type EvidenceEventType =
   | "upload_accepted"
@@ -69,12 +71,36 @@ function mapRow(row: Record<string, unknown>): EvidenceEventRecord {
     summary: String(row.summary),
     payload: JSON.parse(String(row.payload_json || "{}")),
     created_by_user_id: row.created_by_user_id ? String(row.created_by_user_id) : undefined,
-    created_at: String(row.created_at),
+    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
   };
 }
 
 export const evidenceEventRepository = {
-  save(input: EvidenceEventRecord) {
+  save(input: EvidenceEventRecord): EvidenceEventRecord | Promise<EvidenceEventRecord> {
+    if (getDatabaseProvider() === "postgres") {
+      return getPostgresPool()
+        .query(
+          `INSERT INTO evidence_events (event_id, analysis_id, account_id, artifact_id, report_snapshot_id, share_id, export_id, event_type, severity, title, summary, payload_json, created_by_user_id, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          [
+            input.event_id,
+            input.analysis_id,
+            input.account_id,
+            input.artifact_id ?? null,
+            input.report_snapshot_id ?? null,
+            input.share_id ?? null,
+            input.export_id ?? null,
+            input.event_type,
+            input.severity,
+            input.title,
+            input.summary,
+            JSON.stringify(input.payload ?? {}),
+            input.created_by_user_id ?? null,
+            input.created_at,
+          ],
+        )
+        .then(() => input);
+    }
     getDb()
       .prepare(
         `INSERT INTO evidence_events (event_id, analysis_id, account_id, artifact_id, report_snapshot_id, share_id, export_id, event_type, severity, title, summary, payload_json, created_by_user_id, created_at)
@@ -99,7 +125,12 @@ export const evidenceEventRepository = {
     return input;
   },
 
-  listByAnalysis(analysisId: string) {
+  listByAnalysis(analysisId: string): EvidenceEventRecord[] | Promise<EvidenceEventRecord[]> {
+    if (getDatabaseProvider() === "postgres") {
+      return getPostgresPool()
+        .query("SELECT * FROM evidence_events WHERE analysis_id = $1 ORDER BY created_at DESC", [analysisId])
+        .then((result) => result.rows.map(mapRow));
+    }
     const rows = getDb()
       .prepare("SELECT * FROM evidence_events WHERE analysis_id = ? ORDER BY created_at DESC")
       .all(analysisId) as Record<string, unknown>[];
@@ -107,8 +138,8 @@ export const evidenceEventRepository = {
   },
 };
 
-export function recordEvidenceEvent(input: EvidenceEventInput): EvidenceEventRecord {
-  return evidenceEventRepository.save({
+export async function recordEvidenceEvent(input: EvidenceEventInput): Promise<EvidenceEventRecord> {
+  return await evidenceEventRepository.save({
     event_id: input.event_id ?? randomUUID(),
     analysis_id: input.analysis_id,
     account_id: input.account_id,

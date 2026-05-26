@@ -40,8 +40,7 @@ export async function inspectUpload(input: {
 }): Promise<UploadInspectionResponse> {
   const extension = input.fileName.split(".").pop()?.toLowerCase() ?? "";
 
-  const accountState = await accountService.getAccountState(input.account_id);
-  const maxUploadBytes = (accountState?.entitlements.max_upload_file_size_mb ?? 10) * 1024 * 1024;
+  const maxUploadBytes = await getMaxUploadBytesForAccount(input.account_id);
   const fileValidation = validateFileBasics(
     {
       fileName: input.fileName,
@@ -57,7 +56,7 @@ export async function inspectUpload(input: {
   }
 
   const contents = extension === "csv" ? Buffer.from(input.bytes).toString("utf-8") : undefined;
-  const extractedBundleEntries = extension === "zip" ? safeExtractZipEntries(input.bytes) : undefined;
+  const extractedBundleEntries = extension === "zip" ? await safeExtractZipEntries(input.bytes) : undefined;
 
   if (extension === "zip" && !extractedBundleEntries) {
     return failedInspection([{ code: "invalid_zip_bundle", message: "ZIP bundle could not be extracted" }]);
@@ -156,9 +155,14 @@ export async function inspectUpload(input: {
   };
 }
 
-function safeExtractZipEntries(bytes: Uint8Array) {
+export async function getMaxUploadBytesForAccount(accountId: string): Promise<number> {
+  const accountState = await accountService.getAccountState(accountId);
+  return (accountState?.entitlements.max_upload_file_size_mb ?? 10) * 1024 * 1024 || DEFAULT_MAX_UPLOAD_BYTES;
+}
+
+async function safeExtractZipEntries(bytes: Uint8Array) {
   try {
-    return extractZipEntries(bytes);
+    return await extractZipEntries(bytes);
   } catch {
     return undefined;
   }

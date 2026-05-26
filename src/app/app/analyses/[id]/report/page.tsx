@@ -103,10 +103,10 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   }
 
   const view = buildReportViewModel(record);
-  const snapshotState = getReportSnapshotState(analysis);
+  const snapshotState = await getReportSnapshotState(analysis);
   const commandLayer = await getValidationCommandLayer({ analysis_id: analysis.analysis_id, account_id: session.account_id });
-  const approvedAddenda = snapshotState.active ? listApprovedReportAddenda(snapshotState.active.snapshot_id) : [];
-  const researchDeskRequests = listResearchDeskRequestsForAnalysis({ analysis_id: analysis.analysis_id, account_id: session.account_id });
+  const approvedAddenda = snapshotState.active ? await listApprovedReportAddenda(snapshotState.active.snapshot_id) : [];
+  const researchDeskRequests = await listResearchDeskRequestsForAnalysis({ analysis_id: analysis.analysis_id, account_id: session.account_id });
   const decisionMetrics = buildDecisionSnapshotMetrics(record);
   const benchmark = mapOverviewBenchmarkPayload(record.engine_payload.diagnostics.overview);
   const reportBranch = view.charts.length > 0 ? "native_figures_branch" : "empty_state_branch";

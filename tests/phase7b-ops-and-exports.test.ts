@@ -168,7 +168,7 @@ test("export request -> queue -> generated artifact", async () => {
     // drain
   }
 
-  const exported = getExportOwned(exportReq.export_id, account.account_id);
+  const exported = await getExportOwned(exportReq.export_id, account.account_id);
   assert.equal(exported?.status, "completed");
   assert.ok(exported?.storage_key);
   assert.equal(await getObjectStorage().objectExists(exported!.storage_key!), true);
@@ -202,8 +202,8 @@ test("export access authorization is account-scoped", async () => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
-  assert.ok(getExportOwned("export-1", a.account.account_id));
-  assert.equal(getExportOwned("export-1", b.account.account_id), undefined);
+  assert.ok(await getExportOwned("export-1", a.account.account_id));
+  assert.equal(await getExportOwned("export-1", b.account.account_id), undefined);
 });
 
 test("health checks show invalid config signal when stripe missing", async () => {

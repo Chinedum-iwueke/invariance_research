@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!analysis || analysis.account_id !== session.account_id) {
     return NextResponse.json({ error: { code: "not_found", message: "Analysis not found." } }, { status: 404 });
   }
-  const state = getReportSnapshotState(analysis);
+  const state = await getReportSnapshotState(analysis);
   return NextResponse.json({
     active: state.active ? snapshotResponse(state.active) : undefined,
     stale: state.stale,
@@ -26,7 +26,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     return NextResponse.json({ error: { code: "not_found", message: "Analysis not found." } }, { status: 404 });
   }
   try {
-    const snapshot = ensureReportSnapshotForAnalysis(analysis);
+    const snapshot = await ensureReportSnapshotForAnalysis(analysis);
     return NextResponse.json({ snapshot: snapshotResponse(snapshot) }, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "snapshot_create_failed";
@@ -35,7 +35,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   }
 }
 
-function snapshotResponse(snapshot: ReturnType<typeof ensureReportSnapshotForAnalysis>) {
+function snapshotResponse(snapshot: Awaited<ReturnType<typeof ensureReportSnapshotForAnalysis>>) {
   return {
     snapshot_id: snapshot.snapshot_id,
     status: snapshot.status,

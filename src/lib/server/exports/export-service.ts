@@ -24,14 +24,14 @@ export async function requestExport(input: { analysis_id: string; account_id: st
   }
 
   await assertExportAllowed(input.account_id, input.is_admin);
-  const snapshot = ensureReportSnapshotForAnalysis(analysis);
+  const snapshot = await ensureReportSnapshotForAnalysis(analysis);
 
   const now = new Date();
   const exportId = randomUUID();
   const createdAt = now.toISOString();
   const expiresAt = new Date(now.getTime() + EXPORT_TTL_DAYS * 86_400_000).toISOString();
 
-  exportRepository.save({
+  await exportRepository.save({
     export_id: exportId,
     analysis_id: analysis.analysis_id,
     account_id: input.account_id,
@@ -45,7 +45,7 @@ export async function requestExport(input: { analysis_id: string; account_id: st
     expires_at: expiresAt,
   });
 
-  exportJobRepository.save({
+  await exportJobRepository.save({
     export_job_id: randomUUID(),
     export_id: exportId,
     analysis_id: analysis.analysis_id,
@@ -60,7 +60,7 @@ export async function requestExport(input: { analysis_id: string; account_id: st
   });
 
   await accountService.incrementUsage(input.account_id, "export");
-  recordEvidenceEvent({
+  await recordEvidenceEvent({
     analysis_id: analysis.analysis_id,
     account_id: input.account_id,
     artifact_id: analysis.artifact_id,
@@ -74,14 +74,14 @@ export async function requestExport(input: { analysis_id: string; account_id: st
     created_by_user_id: input.user_id,
     created_at: createdAt,
   });
-  exportQueue.enqueueRun(exportId);
+  await exportQueue.enqueueRun(exportId);
   logger.info("export.requested", { export_id: exportId, analysis_id: analysis.analysis_id, account_id: input.account_id, report_snapshot_id: snapshot.snapshot_id, format });
 
   return { export_id: exportId, status: "queued", format, expires_at: expiresAt, report_snapshot_id: snapshot.snapshot_id };
 }
 
-export function getExportOwned(exportId: string, accountId: string) {
-  const record = exportRepository.findById(exportId);
+export async function getExportOwned(exportId: string, accountId: string) {
+  const record = await exportRepository.findById(exportId);
   if (!record || record.account_id !== accountId) return undefined;
   return record;
 }
@@ -89,5 +89,5 @@ export function getExportOwned(exportId: string, accountId: string) {
 export async function listExportsForAnalysis(analysisId: string, accountId: string) {
   const analysis = await getCoreRepositories().analyses.findById(analysisId);
   if (!analysis || analysis.account_id !== accountId) throw new Error("analysis_not_found");
-  return exportRepository.listByAnalysis(analysisId);
+  return await exportRepository.listByAnalysis(analysisId);
 }

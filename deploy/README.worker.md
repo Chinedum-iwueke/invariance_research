@@ -1,27 +1,92 @@
 # Production Worker Stack
 
-This stack runs external `analysis-worker` and `export-worker` services with Postgres-backed queueing, Cloudflare R2 object storage, and a colocated Ollama service for LLM-assisted analysis jobs. Research Desk work is still handled inside the web/admin workflow.
+This stack runs the external `analysis-worker` and `export-worker` services for the Vercel web app. Production analysis must not depend on Vercel request lifetimes or embedded workers.
+
+The launch target is:
+
+- Web app on Vercel.
+- Supabase Postgres as the shared queue, account, analysis, export, and share database.
+- Cloudflare R2 as object storage for uploads, reports, exports, and benchmark library objects.
+- Locally hosted worker containers with `bulletproof_bt` installed into the image.
+- Optional local Ollama only when LLM synthesis is explicitly enabled.
 
 ## Repository Layout
 
-The Docker build context is `/home/omenka/Projects` so the image can copy both sibling repositories:
+The Docker build context must contain both repositories as siblings:
 
-- `/home/omenka/Projects/invariance_research`
-- `/home/omenka/Projects/bulletproof_bt`
+```text
+/home/omenka/Projects/
+  invariance_research/
+  bulletproof_bt/
+```
 
-Inside the image, `bulletproof_bt` is installed editable into `/opt/venv`, preserving the local `bt` import used by `scripts/run_bulletproof_engine.py`.
+The default Compose context is `/home/omenka/Projects`. Override it when needed:
+
+```bash
+INVARIANCE_STACK_ROOT=/srv/invariance docker compose -f docker-compose.worker.yml build
+```
+
+Inside the image, `bulletproof_bt` is installed editable into `/opt/venv`, and the app calls the engine through `/opt/invariance_research/scripts/run_bulletproof_engine.py`.
+
+## Environment
+
+Create the worker environment file on the worker host:
+
+```bash
+cp deploy/.env.worker.example deploy/.env.worker
+```
+
+Fill real values for:
+
+- `DATABASE_PROVIDER=postgres`
+- `DATABASE_URL` using the Supabase production connection string
+- `OBJECT_STORAGE_*` using a Cloudflare R2 key scoped to the production bucket
+- `BENCHMARK_PROVIDER=object_storage`
+- `BENCHMARK_OBJECT_PREFIX`
+- `BENCHMARK_MANIFEST_OBJECT_KEY`
+- `EMAIL_PROVIDER`, `EMAIL_FROM`, and provider API key if worker-side email is enabled
+- `LLM_INSIGHTS_ENABLED=false` for the first production wedge unless Ollama has been explicitly provisioned
+
+Keep `deploy/.env.worker` untracked. Rotate any key that was copied into logs, screenshots, chat, or a shared machine.
+
+## Database Readiness
+
+Before starting workers:
+
+1. Confirm Vercel production and workers point at the same Supabase production database.
+2. Apply the production schema/migration path before accepting jobs.
+3. Confirm queue tables exist: `analysis_jobs`, `export_jobs`, and `worker_heartbeats`.
+4. Confirm the web app uses `INVARIANCE_EMBEDDED_WORKERS=false` in production.
+
+The workers lease jobs from Postgres. Multiple workers are only safe when queue leasing and heartbeat behavior have been verified in staging.
+
+## Object Storage Readiness
+
+The R2 key used by workers needs read/write/delete/list access for the production bucket paths used by:
+
+- uploaded artifacts
+- generated reports
+- export files
+- report share assets
+- benchmark library manifest and object keys
+
+For launch, use a dedicated R2 access key for the worker host. Do not reuse a personal Cloudflare admin key.
 
 ## Start
 
 Run from this `deploy/` directory:
 
 ```bash
-docker compose -f docker-compose.worker.yml up -d
+docker compose -f docker-compose.worker.yml up -d --build analysis-worker export-worker
 ```
+
+Check containers:
 
 ```bash
 docker ps
 ```
+
+Follow logs:
 
 ```bash
 docker logs -f invariance-analysis-worker
@@ -31,16 +96,52 @@ docker logs -f invariance-analysis-worker
 docker logs -f invariance-export-worker
 ```
 
-## Ollama Models
+## Optional Ollama
 
-Pull the configured model before processing jobs that require LLM synthesis:
+Core launch analysis should work with `LLM_INSIGHTS_ENABLED=false`. If you intentionally enable LLM synthesis, start the optional profile:
+
+```bash
+docker compose -f docker-compose.worker.yml --profile llm up -d ollama
+```
+
+Pull the configured model:
 
 ```bash
 docker exec -it invariance-ollama ollama pull qwen2.5:14b
 ```
 
+Then set `LLM_INSIGHTS_ENABLED=true` and restart `analysis-worker`.
+
+## Health Checks
+
+Both workers run `scripts/healthcheck-worker.ts`.
+
+Expected checks:
+
+- Postgres connectivity.
+- Object storage connectivity.
+- Worker heartbeat updates in the database.
+- Engine bridge probe for the analysis worker.
+
+The web app admin health page should show:
+
+- database provider as Postgres
+- queue backlog
+- analysis worker heartbeat
+- export worker heartbeat
+- object storage health
+- benchmark library health
+- Stripe config health
+- email config health
+
+If admin health reports no fresh worker heartbeat, do not accept paid production analyses until the worker is restarted or the queue is explicitly paused.
+
+## Rebuild
+
+Rebuild after changing app code, worker scripts, engine code, or Python dependencies:
+
 ```bash
-docker exec -it invariance-ollama ollama list
+docker compose -f docker-compose.worker.yml up -d --build analysis-worker export-worker
 ```
 
 ## Stop
@@ -49,53 +150,32 @@ docker exec -it invariance-ollama ollama list
 docker compose -f docker-compose.worker.yml down
 ```
 
-## Rebuild
+## Smoke Test
 
-```bash
-docker compose -f docker-compose.worker.yml up -d --build
-```
+Before opening production to users:
 
-## Services
+1. Deploy the Vercel build with production env vars.
+2. Start `analysis-worker` and `export-worker`.
+3. Confirm fresh worker heartbeats in Admin Ops.
+4. Upload a small reference trade CSV through the production UI.
+5. Confirm the queued analysis is leased by `analysis-worker`.
+6. Confirm generated artifacts are written to R2.
+7. Open the validation report page.
+8. Request an export.
+9. Confirm `export-worker` renders and persists the export.
+10. Download the export from the UI.
 
-- `analysis-worker`: builds from `/home/omenka/Projects` using `invariance_research/Dockerfile.worker`, runs `npm run worker:analysis`, and restarts unless stopped.
-- `export-worker`: uses the same image, runs `npm run worker:export`, leases queued export jobs, renders report files, persists them to object storage, and restarts unless stopped.
-- `ollama`: runs `ollama/ollama:latest`, exposes `11434:11434`, and persists models in the `ollama-models` Docker volume.
+## Launch Defaults
 
-## Health Checks
+Use conservative first-user settings:
 
-- `analysis-worker`: validates Postgres connectivity with `SELECT 1` and validates configured object storage by listing the bucket.
-- `export-worker`: validates the same Postgres and object-storage dependencies before accepting jobs.
-- `ollama`: validates the Ollama process by running `ollama list`.
+- one analysis worker
+- one export worker
+- analysis concurrency `1`
+- export concurrency `1`
+- embedded web workers disabled
+- LLM synthesis disabled unless deliberately tested
+- benchmark library read from object storage
+- production keys scoped by environment
 
-## Environment
-
-Required variables are stored in `.env.worker`:
-
-- `DATABASE_PROVIDER`
-- `DATABASE_URL`
-- `INVARIANCE_BENCHMARK_LIBRARY_ROOT`
-- `INVARIANCE_EMBEDDED_WORKERS`
-- `INVARIANCE_ANALYSIS_WORKER_POLL_MS`
-- `INVARIANCE_EXPORT_WORKER_POLL_MS`
-- `INVARIANCE_WORKER_STALE_MS`
-- `LLM_INSIGHTS_ENABLED`
-- `LLM_PROVIDER`
-- `OLLAMA_BASE_URL`
-- `OLLAMA_MODEL`
-- `LLM_INSIGHTS_TIMEOUT_MS`
-- `OBJECT_STORAGE_PROVIDER`
-- `OBJECT_STORAGE_BUCKET`
-- `OBJECT_STORAGE_REGION`
-- `OBJECT_STORAGE_ENDPOINT`
-- `OBJECT_STORAGE_ACCESS_KEY_ID`
-- `OBJECT_STORAGE_SECRET_ACCESS_KEY`
-- `OBJECT_STORAGE_FORCE_PATH_STYLE`
-
-`OLLAMA_BASE_URL` must be `http://ollama:11434` inside Docker Compose. Use `http://localhost:11434` only when running the worker directly on the VM host.
-
-## Manual Setup
-
-1. Confirm `/home/omenka/Projects/invariance_research` and `/home/omenka/Projects/bulletproof_bt` both exist on the VM.
-2. Confirm Supabase migrations have created the analysis and export queue tables expected by the workers.
-3. Confirm the R2 API key pair has read/write/list permissions for `invariance-research-prod`, including exported reports.
-4. Pull `qwen2.5:14b` into Ollama before enabling LLM-assisted synthesis for production jobs.
+Scale only after staging proves duplicate leasing, stale heartbeat recovery, retry behavior, and R2 write consistency.

@@ -3,6 +3,7 @@ import path from "node:path";
 import { buildBenchmarkEnginePayload, type EngineBenchmarkConfig } from "@/lib/benchmarks/benchmark-engine-contract";
 import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { ParsedArtifact, UploadEligibilitySummary } from "@/lib/server/ingestion";
+import { materializeBenchmarkDataset } from "@/server/benchmark-library/materialize";
 
 export type AnalysisEngineDispatchPayload = {
   requested_diagnostics: UploadEligibilitySummary["diagnostics_available"];
@@ -13,7 +14,12 @@ export type AnalysisEngineDispatchPayload = {
   declared_claims?: ParsedArtifact["declared_claims"];
 };
 
-function selectedBenchmarkDatasetExists(benchmark: Extract<EngineBenchmarkConfig, { enabled: true }>): boolean {
+async function selectedBenchmarkDatasetExists(benchmark: Extract<EngineBenchmarkConfig, { enabled: true }>): Promise<boolean> {
+  try {
+    await materializeBenchmarkDataset(benchmark.id);
+  } catch {
+    return false;
+  }
   const datasetPath = path.join(benchmark.library_root, benchmark.id, "daily.parquet");
   return fs.existsSync(datasetPath);
 }
@@ -40,7 +46,7 @@ export async function buildAnalysisEngineDispatchPayload(input: {
     };
   }
 
-  if (!selectedBenchmarkDatasetExists(defaultBenchmarkPayload)) {
+  if (!(await selectedBenchmarkDatasetExists(defaultBenchmarkPayload))) {
     warnings.push("selected_benchmark_dataset_missing_benchmark_disabled");
     return {
       config: {

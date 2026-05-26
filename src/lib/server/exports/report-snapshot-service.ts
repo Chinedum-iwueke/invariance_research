@@ -6,20 +6,20 @@ import { recordEvidenceEvent } from "@/lib/server/evidence/evidence-events";
 import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { EngineCapabilityProfile } from "@/lib/server/engine/engine-types";
 import type { ReportSnapshotPayload, ReportSnapshotRecord } from "@/lib/server/exports/models";
-import { artifactRepository } from "@/lib/server/repositories/artifact-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 
 export function checksumAnalysisResult(record: AnalysisRecord): string {
   return createHash("sha256").update(stableStringify(record)).digest("hex");
 }
 
-export function getReportSnapshotState(analysis: AnalysisEntity): {
+export async function getReportSnapshotState(analysis: AnalysisEntity): Promise<{
   active?: ReportSnapshotRecord;
   current_checksum?: string;
   stale: boolean;
   warnings: string[];
-} {
-  const active = reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id);
+}> {
+  const active = await reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id);
   const currentChecksum = analysis.result ? checksumAnalysisResult(analysis.result) : undefined;
   const stale = Boolean(active && currentChecksum && active.source_result_checksum !== currentChecksum);
   const warnings = [
@@ -30,27 +30,27 @@ export function getReportSnapshotState(analysis: AnalysisEntity): {
   return { active, current_checksum: currentChecksum, stale, warnings };
 }
 
-export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): ReportSnapshotRecord {
+export async function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Promise<ReportSnapshotRecord> {
   if (analysis.status !== "completed") throw new Error("analysis_not_completed");
   if (!analysis.result) throw new Error("analysis_result_missing");
   if (!analysis.eligibility_snapshot) throw new Error("analysis_eligibility_missing");
 
   const checksum = checksumAnalysisResult(analysis.result);
-  const existing = reportSnapshotRepository.findByAnalysisAndChecksum(analysis.analysis_id, checksum);
+  const existing = await reportSnapshotRepository.findByAnalysisAndChecksum(analysis.analysis_id, checksum);
   if (existing) {
     if (existing.status !== "active") {
       const now = new Date().toISOString();
-      reportSnapshotRepository.markActive(existing.snapshot_id);
-      reportSnapshotRepository.supersedeActiveForAnalysis(analysis.analysis_id, existing.snapshot_id, now);
-      return reportSnapshotRepository.findById(existing.snapshot_id) ?? existing;
+      await reportSnapshotRepository.markActive(existing.snapshot_id);
+      await reportSnapshotRepository.supersedeActiveForAnalysis(analysis.analysis_id, existing.snapshot_id, now);
+      return await reportSnapshotRepository.findById(existing.snapshot_id) ?? existing;
     }
     return existing;
   }
 
   const now = new Date().toISOString();
   const snapshotId = randomUUID();
-  const previousActive = reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id);
-  const payload = buildReportSnapshotPayload({
+  const previousActive = await reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id);
+  const payload = await buildReportSnapshotPayload({
     snapshot_id: snapshotId,
     analysis,
     record: analysis.result,
@@ -58,7 +58,7 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
     generated_at: now,
   });
 
-  const snapshot = reportSnapshotRepository.save({
+  const snapshot = await reportSnapshotRepository.save({
     snapshot_id: snapshotId,
     analysis_id: analysis.analysis_id,
     account_id: analysis.account_id,
@@ -70,8 +70,8 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
     created_at: now,
   });
 
-  reportSnapshotRepository.supersedeActiveForAnalysis(analysis.analysis_id, snapshot.snapshot_id, now);
-  recordEvidenceEvent({
+  await reportSnapshotRepository.supersedeActiveForAnalysis(analysis.analysis_id, snapshot.snapshot_id, now);
+  await recordEvidenceEvent({
     analysis_id: analysis.analysis_id,
     account_id: analysis.account_id,
     artifact_id: analysis.artifact_id,
@@ -89,7 +89,7 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
   });
   const criticalAssumptions = analysis.result.proof_report?.critical_assumptions ?? [];
   if (criticalAssumptions.length) {
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: analysis.analysis_id,
       account_id: analysis.account_id,
       artifact_id: analysis.artifact_id,
@@ -104,7 +104,7 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
   }
   const unsupportedClaims = (analysis.result.claim_inventory ?? []).filter((claim) => ["unsupported", "contradicted", "outside_scope"].includes(claim.support_status));
   if (unsupportedClaims.length) {
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: analysis.analysis_id,
       account_id: analysis.account_id,
       artifact_id: analysis.artifact_id,
@@ -118,7 +118,7 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
     });
   }
   if (previousActive && previousActive.snapshot_id !== snapshot.snapshot_id) {
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: analysis.analysis_id,
       account_id: analysis.account_id,
       artifact_id: analysis.artifact_id,
@@ -134,15 +134,15 @@ export function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity): Repor
   return snapshot;
 }
 
-function buildReportSnapshotPayload(input: {
+async function buildReportSnapshotPayload(input: {
   snapshot_id: string;
   analysis: AnalysisEntity;
   record: AnalysisRecord;
   checksum: string;
   generated_at: string;
-}): ReportSnapshotPayload {
+}): Promise<ReportSnapshotPayload> {
   const { analysis, record } = input;
-  const artifact = artifactRepository.findById(analysis.artifact_id);
+  const artifact = await getCoreRepositories().artifacts.findById(analysis.artifact_id);
   const capabilityProfile = Object.fromEntries(
     Object.entries(record.diagnostic_statuses).map(([diagnostic, status]) => [
       diagnostic,

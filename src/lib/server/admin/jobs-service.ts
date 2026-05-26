@@ -95,19 +95,19 @@ export async function retryAdminJob(input: { kind: "analysis" | "export"; linked
     return { ok: true, kind: "analysis", linked_id: input.linked_id };
   }
 
-  const job = exportJobRepository.findByExportId(input.linked_id);
-  const record = exportRepository.findById(input.linked_id);
+  const job = await exportJobRepository.findByExportId(input.linked_id);
+  const record = await exportRepository.findById(input.linked_id);
   if (!job || !record || record.status !== "failed") {
     throw new Error("retry_not_allowed");
   }
 
-  exportRepository.update(input.linked_id, (current) => ({
+  await exportRepository.update(input.linked_id, (current) => ({
     ...current,
     status: "queued",
     error_code: undefined,
     error_message: undefined,
     updated_at: new Date().toISOString(),
   }));
-  exportQueue.enqueueRetry(input.linked_id, job.retry_count + 1);
+  await exportQueue.enqueueRetry(input.linked_id, job.retry_count + 1);
   return { ok: true, kind: "export", linked_id: input.linked_id };
 }

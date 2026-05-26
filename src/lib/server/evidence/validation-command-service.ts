@@ -11,12 +11,11 @@ export async function getValidationCommandLayer(input: { analysis_id: string; ac
   return buildValidationCommandLayer({
     analysis,
     record: analysis.result,
-    activeSnapshot: reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id),
-    snapshots: reportSnapshotRepository.listByAnalysis(analysis.analysis_id),
-    exports: exportRepository.listByAnalysis(analysis.analysis_id),
-    shares: shareTokenRepository.listByAnalysis(analysis.analysis_id),
-    shareEvents: shareAccessEventRepository.listByAnalysis(analysis.analysis_id),
-    evidenceEvents: evidenceEventRepository.listByAnalysis(analysis.analysis_id),
+    activeSnapshot: await reportSnapshotRepository.findActiveByAnalysis(analysis.analysis_id),
+    snapshots: await reportSnapshotRepository.listByAnalysis(analysis.analysis_id),
+    exports: await exportRepository.listByAnalysis(analysis.analysis_id),
+    shares: await shareTokenRepository.listByAnalysis(analysis.analysis_id),
+    shareEvents: await shareAccessEventRepository.listByAnalysis(analysis.analysis_id),
+    evidenceEvents: await evidenceEventRepository.listByAnalysis(analysis.analysis_id),
   });
 }
-

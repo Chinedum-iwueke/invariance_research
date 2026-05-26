@@ -233,8 +233,9 @@ Key environment variables currently used:
 - `STRIPE_PRICE_PROFESSIONAL`, `STRIPE_PRICE_RESEARCH_LAB` – Stripe price IDs.
 - `ADMIN_EMAILS`, `ADMIN_USER_IDS` – bootstrap-only admin allowlists; matching users are granted DB-backed roles.
 - `APP_URL` – checkout/portal return URLs.
-- `BENCHMARK_PROVIDER` – benchmark manifest source (`local` for dev, `object_storage` for production).
+- `BENCHMARK_PROVIDER` – benchmark manifest/dataset source (`local` for dev, `object_storage` for production).
 - `BENCHMARK_MANIFEST_OBJECT_KEY` – object storage key for the benchmark manifest (`benchmarks/manifest.v1.yaml` default).
+- `BENCHMARK_OBJECT_PREFIX` – object storage prefix for benchmark datasets (`benchmarks` default). Dataset objects are expected at keys such as `benchmarks/BTC/daily.parquet`.
 - `BENCHMARK_MANIFEST_CACHE_TTL_MS` – in-memory benchmark manifest cache TTL (`300000` default).
 - `RATE_LIMITS_ENABLED`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_UPLOAD_MAX`, `RATE_LIMIT_ANALYSIS_CREATE_MAX`, `RATE_LIMIT_WAITLIST_MAX` – Postgres/SQLite-backed route rate limits.
 - `EMAIL_PROVIDER` – transactional email provider (`resend` supported).
@@ -255,13 +256,15 @@ Key environment variables currently used:
 
 - `ObjectStorage` interface is implemented with local filesystem backing.
 
-### Production benchmark manifest
+### Production benchmark library
 
 - Local development can continue using `INVARIANCE_BENCHMARK_LIBRARY_ROOT`.
-- Production should set `BENCHMARK_PROVIDER=object_storage` and upload the manifest to R2/S3 at `BENCHMARK_MANIFEST_OBJECT_KEY` (default `benchmarks/manifest.v1.yaml`).
-- Upload with the same object storage credentials used by the app, for example by placing `manifest.v1.yaml` under the configured bucket key `benchmarks/manifest.v1.yaml`.
+- Production should set `BENCHMARK_PROVIDER=object_storage` and upload both the manifest and datasets to R2/S3.
+- The manifest object lives at `BENCHMARK_MANIFEST_OBJECT_KEY` (default `benchmarks/manifest.v1.yaml`).
+- Dataset objects live below `BENCHMARK_OBJECT_PREFIX` (default `benchmarks`), for example `benchmarks/BTC/daily.parquet`, `benchmarks/SPY/daily.parquet`, `benchmarks/DXY/daily.parquet`, and `benchmarks/XAUUSD/daily.parquet`.
+- Run `npm run benchmarks:weekly` manually to refresh the local benchmark library and sync it to object storage. The GitHub workflow `.github/workflows/benchmark-library-weekly.yml` runs the same command weekly when object-storage secrets are configured.
 - Vercel should not depend on workstation paths such as `/home/omenka/...`; local paths are treated as development-only and emit a production warning.
-- Workers may use local scratch/cache for downloaded benchmark files, but object storage remains the production source of truth for the manifest.
+- Workers use local scratch/cache for downloaded benchmark files, but object storage remains the production source of truth for both the manifest and datasets.
 - Uploads and exports both persist file metadata (size/content-type/checksum) in DB records.
 - Design is adapter-ready for future S3-compatible backend migration.
 

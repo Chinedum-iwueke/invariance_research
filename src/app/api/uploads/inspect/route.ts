@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireServerSession } from "@/lib/server/auth/session";
-import { inspectUpload } from "@/lib/server/services/upload-intake-service";
+import { getMaxUploadBytesForAccount, inspectUpload } from "@/lib/server/services/upload-intake-service";
 import { ObjectStorageConfigurationError, ObjectStorageOperationError } from "@/lib/server/storage/object-storage";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
 
@@ -8,6 +8,25 @@ export async function POST(request: Request) {
   const session = await requireServerSession();
   const limited = await enforceRateLimit({ request, route: "upload_inspect", kind: "upload", userId: session.user_id, accountId: session.account_id });
   if (limited) return limited;
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  const maxUploadBytes = await getMaxUploadBytesForAccount(session.account_id);
+  if (Number.isFinite(contentLength) && contentLength > maxUploadBytes + 16_384) {
+    return NextResponse.json(
+      {
+        accepted: false,
+        parser_notes: [],
+        validation_errors: [{ code: "file_too_large", message: `Upload exceeds the ${Math.round(maxUploadBytes / 1024 / 1024)}MB plan limit.` }],
+        diagnostics_available: [],
+        diagnostics_limited: [],
+        diagnostics_unavailable: [],
+        limitation_reasons: [],
+        upload_summary_text: "Upload rejected because the file is too large.",
+      },
+      { status: 413 },
+    );
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
 

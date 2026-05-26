@@ -11,6 +11,9 @@
     "worker:export": "tsx scripts/run-export-worker.ts",
     "db:init:postgres": "tsx scripts/init-postgres-schema.ts",
     "usage:recalculate": "tsx scripts/recalculate-usage.ts",
+    "benchmarks:update": "python3 scripts/benchmarks/update_benchmark_library.py",
+    "benchmarks:sync-object-storage": "tsx scripts/benchmarks/sync-benchmark-library-to-object-storage.ts",
+    "benchmarks:weekly": "npm run benchmarks:update && npm run benchmarks:sync-object-storage",
     "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",
     "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts"
@@ -21,6 +24,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "echarts": "^5.6.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.469.0",
     "next": "^15.1.11",
     "next-auth": "^5.0.0-beta.25",

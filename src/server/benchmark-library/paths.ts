@@ -11,6 +11,10 @@ export function getBenchmarkLibraryRoot(): string {
   const configured = process.env.INVARIANCE_BENCHMARK_LIBRARY_ROOT?.trim();
   if (configured) return configured;
 
+  if ((process.env.BENCHMARK_PROVIDER ?? "").trim() === "object_storage") {
+    return path.join(os.tmpdir(), "invariance-benchmark-library");
+  }
+
   if (fs.existsSync(DEFAULT_LIBRARY_ROOT_CWD)) return DEFAULT_LIBRARY_ROOT_CWD;
   if (fs.existsSync(DEFAULT_LIBRARY_ROOT_HOME)) return DEFAULT_LIBRARY_ROOT_HOME;
 

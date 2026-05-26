@@ -6,7 +6,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const limited = await enforceRateLimit({ request, route: "share_access", kind: "share_access" });
   if (limited) return limited;
   const { token } = await params;
-  const result = resolveSharedReport({
+  const result = await resolveSharedReport({
     token,
     ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
     userAgent: request.headers.get("user-agent"),

@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
+import { getDatabaseProvider } from "@/lib/server/persistence/provider";
+import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getBulletproofBridgeConfig, probeBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
@@ -14,12 +16,7 @@ export type StartupCheck = { name: string; status: HealthLevel; detail?: string;
 export async function runStartupValidation(): Promise<StartupCheck[]> {
   const checks: StartupCheck[] = [];
 
-  try {
-    getSqliteRuntimeDb().prepare("SELECT 1").get();
-    checks.push({ name: "database", status: "healthy" });
-  } catch (error) {
-    checks.push({ name: "database", status: "unhealthy", detail: error instanceof Error ? error.message : "db_error" });
-  }
+  checks.push(await getDatabaseCheck());
 
   try {
     const test = await getObjectStorage().putObject({ bucket: "reports", file_name: "healthcheck.txt", content_type: "text/plain", bytes: new Uint8Array(Buffer.from("ok")), storage_key: "reports/healthcheck.txt" });
@@ -29,8 +26,8 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
     checks.push({ name: "storage", status: "unhealthy", detail: error instanceof Error ? error.message : "storage_error" });
   }
 
-  const stripeOk = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
-  checks.push({ name: "stripe_config", status: stripeOk ? "healthy" : "degraded", detail: stripeOk ? undefined : "Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET" });
+  checks.push(getStripeConfigCheck());
+  checks.push(getEmailConfigCheck());
 
   try {
     const workerConfig = assertWorkerRuntimeConfig();
@@ -41,12 +38,59 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
 
   checks.push(...(await getEngineChecks()));
 
-  checks.push(getQueueCheck());
+  checks.push(await getQueueCheck());
   checks.push(await getWorkerCheck("analysis"));
   checks.push(await getWorkerCheck("export"));
 
   logger.info("startup.validation.completed", { checks });
   return checks;
+}
+
+async function getDatabaseCheck(): Promise<StartupCheck> {
+  try {
+    const provider = getDatabaseProvider();
+    if (provider === "postgres") {
+      await getPostgresPool().query("SELECT 1");
+      return { name: "database", status: "healthy", detail: "postgres" };
+    }
+
+    getSqliteRuntimeDb().prepare("SELECT 1").get();
+    return { name: "database", status: "healthy", detail: "sqlite" };
+  } catch (error) {
+    return { name: "database", status: "unhealthy", detail: error instanceof Error ? error.message : "db_error" };
+  }
+}
+
+function getEmailConfigCheck(): StartupCheck {
+  const provider = (process.env.EMAIL_PROVIDER ?? "").trim().toLowerCase();
+  const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+
+  if (provider === "resend") {
+    return {
+      name: "email_config",
+      status: hasResend ? "healthy" : "degraded",
+      detail: hasResend ? "resend_configured" : "EMAIL_PROVIDER=resend requires RESEND_API_KEY and EMAIL_FROM",
+    };
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return { name: "email_config", status: "degraded", detail: "production email provider not configured" };
+  }
+
+  return { name: "email_config", status: "degraded", detail: "email disabled for local development" };
+}
+
+function getStripeConfigCheck(): StartupCheck {
+  const missing = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_INDIVIDUAL", "STRIPE_PRICE_PRO"].filter((key) => !process.env[key]);
+  if (missing.length === 0) {
+    return { name: "stripe_config", status: "healthy" };
+  }
+
+  return {
+    name: "stripe_config",
+    status: process.env.NODE_ENV === "production" ? "unhealthy" : "degraded",
+    detail: `Missing ${missing.join(", ")}`,
+  };
 }
 
 async function getEngineChecks(): Promise<StartupCheck[]> {
@@ -87,17 +131,31 @@ async function getEngineChecks(): Promise<StartupCheck[]> {
   return checks;
 }
 
-function getQueueCheck(): StartupCheck {
-  const row = getSqliteRuntimeDb().prepare(`SELECT
+async function getQueueCheck(): Promise<StartupCheck> {
+  try {
+    const provider = getDatabaseProvider();
+    const row =
+      provider === "postgres"
+        ? (
+            await getPostgresPool().query<{ analysis_backlog: number | string; export_backlog: number | string }>(`SELECT
+      (SELECT COUNT(*)::int FROM analysis_jobs WHERE status IN ('queued','processing')) as analysis_backlog,
+      (SELECT COUNT(*)::int FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog`)
+          ).rows[0]
+        : (getSqliteRuntimeDb().prepare(`SELECT
       (SELECT COUNT(*) FROM analysis_jobs WHERE status IN ('queued','processing')) as analysis_backlog,
-      (SELECT COUNT(*) FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog`).get() as { analysis_backlog: number; export_backlog: number };
+      (SELECT COUNT(*) FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog`).get() as { analysis_backlog: number; export_backlog: number });
 
-  const totalBacklog = Number(row.analysis_backlog) + Number(row.export_backlog);
-  if (totalBacklog > 50) {
-    return { name: "queue", status: "degraded", detail: "queue_backlog_high", meta: { analysis_backlog: row.analysis_backlog, export_backlog: row.export_backlog } };
+    const analysisBacklog = Number(row?.analysis_backlog ?? 0);
+    const exportBacklog = Number(row?.export_backlog ?? 0);
+    const totalBacklog = analysisBacklog + exportBacklog;
+    if (totalBacklog > 50) {
+      return { name: "queue", status: "degraded", detail: "queue_backlog_high", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog } };
+    }
+
+    return { name: "queue", status: "healthy", detail: "db_backed_queue", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog } };
+  } catch (error) {
+    return { name: "queue", status: "unhealthy", detail: error instanceof Error ? error.message : "queue_check_error" };
   }
-
-  return { name: "queue", status: "healthy", detail: "db_backed_queue", meta: { analysis_backlog: row.analysis_backlog, export_backlog: row.export_backlog } };
 }
 
 async function getWorkerCheck(workerType: "analysis" | "export"): Promise<StartupCheck> {

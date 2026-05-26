@@ -5,6 +5,7 @@ import type { BenchmarkLibraryHealthResult, BenchmarkValidationResult } from "@/
 import { BenchmarkManifestError } from "@/lib/benchmarks/benchmark-manifest";
 import { loadBenchmarkManifest } from "@/server/benchmark-library/load-manifest";
 import { getBenchmarkDatasetPath, getBenchmarkManifestPath } from "@/server/benchmark-library/paths";
+import { materializeBenchmarkDataset } from "@/server/benchmark-library/materialize";
 
 export async function getBenchmarkLibraryHealth(): Promise<BenchmarkLibraryHealthResult> {
   const manifestPath = getBenchmarkManifestPath();
@@ -15,7 +16,7 @@ export async function getBenchmarkLibraryHealth(): Promise<BenchmarkLibraryHealt
 
     for (const benchmarkId of BENCHMARK_IDS) {
       const entry = manifest.benchmarks[benchmarkId];
-      const datasetPath = getBenchmarkDatasetPath(entry.file);
+      const datasetPath = await materializeBenchmarkDataset(benchmarkId).catch(() => getBenchmarkDatasetPath(entry.file));
       benchmarkResults[benchmarkId] = await validateBenchmarkDataset({ benchmarkId, datasetPath });
     }
 

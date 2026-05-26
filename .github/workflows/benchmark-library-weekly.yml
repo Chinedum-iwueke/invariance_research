@@ -1,0 +1,33 @@
+name: Benchmark library weekly refresh
+
+on:
+  schedule:
+    - cron: "20 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      OBJECT_STORAGE_PROVIDER: ${{ secrets.OBJECT_STORAGE_PROVIDER }}
+      OBJECT_STORAGE_BUCKET: ${{ secrets.OBJECT_STORAGE_BUCKET }}
+      OBJECT_STORAGE_REGION: ${{ secrets.OBJECT_STORAGE_REGION }}
+      OBJECT_STORAGE_ENDPOINT: ${{ secrets.OBJECT_STORAGE_ENDPOINT }}
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${{ secrets.OBJECT_STORAGE_ACCESS_KEY_ID }}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${{ secrets.OBJECT_STORAGE_SECRET_ACCESS_KEY }}
+      OBJECT_STORAGE_FORCE_PATH_STYLE: ${{ secrets.OBJECT_STORAGE_FORCE_PATH_STYLE }}
+      BENCHMARK_PROVIDER: object_storage
+      BENCHMARK_MANIFEST_OBJECT_KEY: benchmarks/manifest.v1.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: npm ci
+      - run: python -m pip install pandas pyarrow
+      - run: npm run benchmarks:weekly
+      - run: python scripts/benchmarks/validate_benchmark_library.py --json

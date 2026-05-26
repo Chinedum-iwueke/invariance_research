@@ -118,17 +118,17 @@ export async function retryAdminExport(exportId: string) {
     return { ok: true, export_id: exportId };
   }
 
-  const job = exportJobRepository.findByExportId(exportId);
-  const record = exportRepository.findById(exportId);
+  const job = await exportJobRepository.findByExportId(exportId);
+  const record = await exportRepository.findById(exportId);
   if (!job || !record || record.status !== "failed") throw new Error("retry_not_allowed");
-  exportRepository.update(exportId, (current) => ({
+  await exportRepository.update(exportId, (current) => ({
     ...current,
     status: "queued",
     error_code: undefined,
     error_message: undefined,
     updated_at: new Date().toISOString(),
   }));
-  exportQueue.enqueueRetry(exportId, job.retry_count + 1);
+  await exportQueue.enqueueRetry(exportId, job.retry_count + 1);
   return { ok: true, export_id: exportId };
 }
 

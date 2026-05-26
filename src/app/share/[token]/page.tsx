@@ -5,7 +5,7 @@ import { resolveSharedReport } from "@/lib/server/share/share-service";
 
 export default async function SharedReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const result = resolveSharedReport({ token });
+  const result = await resolveSharedReport({ token });
   if (!result.view) notFound();
   const report = result.view;
 

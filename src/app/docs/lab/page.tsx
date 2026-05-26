@@ -604,7 +604,8 @@ run_manifest.json
       <section className="space-y-3 rounded-md border border-border-subtle bg-surface-white p-8">
         <h2 className="text-xl font-semibold text-text-institutional">Current Limits</h2>
         <ul className="space-y-2 text-sm text-text-neutral">
-          <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>, up to 10MB.</li>
+          <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>. Server-side size limits are enforced by account plan; the public client blocks oversized files before upload.</li>
+          <li>• Upload inspection, analysis creation, exports, sharing, and Research Desk requests are protected by route-level rate limits.</li>
           <li>• Artifact kinds are currently limited to trade CSV and bundle_v1.</li>
           <li>• Parameter Stability is a Research Desk scope for launch. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
           <li>• Regime attribution is a Research Desk scope for launch. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>

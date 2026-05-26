@@ -16,7 +16,7 @@ export function UploadPanel() {
       <div className="rounded-md border border-dashed bg-surface-panel/50 p-5 text-center md:p-8">
         <FileUp className="mx-auto h-6 w-6 text-brand" />
         <p className="mt-3 text-sm font-medium">Drag and drop files here</p>
-        <p className="mt-1 text-xs text-text-neutral">Trade CSV or Bundle Manifest v1 ZIP · max 10MB per file</p>
+        <p className="mt-1 text-xs text-text-neutral">Trade CSV or Bundle Manifest v1 ZIP · plan limits enforced before parsing</p>
       </div>
       <div className="rounded-sm border bg-surface-panel p-3 text-xs text-text-neutral">Status: Awaiting secure transfer initialization.</div>
     </Card>

@@ -19,24 +19,24 @@ function hashOptional(value: string | undefined | null) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export function createReportShare(input: {
+export async function createReportShare(input: {
   report_snapshot_id: string;
   account_id: string;
   user_id: string;
   expires_at?: string;
 }) {
-  const snapshot = reportSnapshotRepository.findById(input.report_snapshot_id);
+  const snapshot = await reportSnapshotRepository.findById(input.report_snapshot_id);
   if (!snapshot || snapshot.account_id !== input.account_id) throw new Error("report_snapshot_not_found");
   assertShareCanBeCreated(snapshot.status);
   const entitlements = entitlementRepository.get(input.account_id);
   if (!entitlements.can_create_share_links) throw new Error("share_plan_restricted");
-  const existingShares = shareTokenRepository.listByAnalysis(snapshot.analysis_id).filter((share) => share.status === "active");
+  const existingShares = (await shareTokenRepository.listByAnalysis(snapshot.analysis_id)).filter((share) => share.status === "active");
   if (existingShares.length >= entitlements.share_links_per_month) throw new Error("share_quota_reached");
 
   const token = randomBytes(32).toString("base64url");
   const now = new Date().toISOString();
   const expiresAt = input.expires_at ?? new Date(Date.now() + DEFAULT_SHARE_TTL_DAYS * 86_400_000).toISOString();
-  const record = shareTokenRepository.save({
+  const record = await shareTokenRepository.save({
     share_id: randomUUID(),
     token_hash: hashShareToken(token),
     report_snapshot_id: snapshot.snapshot_id,
@@ -49,7 +49,7 @@ export function createReportShare(input: {
     updated_at: now,
   });
 
-  recordEvidenceEvent({
+  await recordEvidenceEvent({
     analysis_id: snapshot.analysis_id,
     account_id: snapshot.account_id,
     report_snapshot_id: snapshot.snapshot_id,
@@ -66,14 +66,14 @@ export function createReportShare(input: {
   return { token, share: record, url: `/share/${token}` };
 }
 
-export function revokeReportShare(input: { share_id: string; account_id: string; revoked_at?: string }) {
-  const share = shareTokenRepository.findById(input.share_id);
+export async function revokeReportShare(input: { share_id: string; account_id: string; revoked_at?: string }) {
+  const share = await shareTokenRepository.findById(input.share_id);
   if (!share || share.account_id !== input.account_id) throw new Error("share_not_found");
   assertShareCanBeRevoked(share.status);
   if (share.status === "revoked") return share;
-  const revoked = shareTokenRepository.revoke(share.share_id, input.revoked_at);
+  const revoked = await shareTokenRepository.revoke(share.share_id, input.revoked_at);
   if (revoked) {
-    recordEvidenceEvent({
+    await recordEvidenceEvent({
       analysis_id: revoked.analysis_id,
       account_id: revoked.account_id,
       report_snapshot_id: revoked.report_snapshot_id,
@@ -89,25 +89,25 @@ export function revokeReportShare(input: { share_id: string; account_id: string;
   return revoked;
 }
 
-export function resolveSharedReport(input: {
+export async function resolveSharedReport(input: {
   token: string;
   ip?: string | null;
   userAgent?: string | null;
   now?: Date;
-}): { status: SharedReportViewModel["status"] | "not_found"; view?: SharedReportViewModel } {
+}): Promise<{ status: SharedReportViewModel["status"] | "not_found"; view?: SharedReportViewModel }> {
   const tokenHash = hashShareToken(input.token);
   const tokenHashPrefix = tokenHash.slice(0, 12);
-  const share = shareTokenRepository.findByTokenHash(tokenHash);
+  const share = await shareTokenRepository.findByTokenHash(tokenHash);
   const now = input.now ?? new Date();
 
   if (!share) {
-    auditShareAccess({ tokenHashPrefix, outcome: "not_found", ip: input.ip, userAgent: input.userAgent });
+    await auditShareAccess({ tokenHashPrefix, outcome: "not_found", ip: input.ip, userAgent: input.userAgent });
     return { status: "not_found" };
   }
 
   if (share.status === "revoked") {
-    auditShareAccess({ share, tokenHashPrefix, outcome: "revoked", ip: input.ip, userAgent: input.userAgent });
-    recordEvidenceEvent({
+    await auditShareAccess({ share, tokenHashPrefix, outcome: "revoked", ip: input.ip, userAgent: input.userAgent });
+    await recordEvidenceEvent({
       analysis_id: share.analysis_id,
       account_id: share.account_id,
       report_snapshot_id: share.report_snapshot_id,
@@ -122,8 +122,8 @@ export function resolveSharedReport(input: {
   }
 
   if (share.expires_at && new Date(share.expires_at).getTime() <= now.getTime()) {
-    auditShareAccess({ share, tokenHashPrefix, outcome: "expired", ip: input.ip, userAgent: input.userAgent });
-    recordEvidenceEvent({
+    await auditShareAccess({ share, tokenHashPrefix, outcome: "expired", ip: input.ip, userAgent: input.userAgent });
+    await recordEvidenceEvent({
       analysis_id: share.analysis_id,
       account_id: share.account_id,
       report_snapshot_id: share.report_snapshot_id,
@@ -137,19 +137,19 @@ export function resolveSharedReport(input: {
     return { status: "expired" };
   }
 
-  const snapshot = reportSnapshotRepository.findById(share.report_snapshot_id);
+  const snapshot = await reportSnapshotRepository.findById(share.report_snapshot_id);
   if (!snapshot) {
-    auditShareAccess({ share, tokenHashPrefix, outcome: "not_found", ip: input.ip, userAgent: input.userAgent });
+    await auditShareAccess({ share, tokenHashPrefix, outcome: "not_found", ip: input.ip, userAgent: input.userAgent });
     return { status: "not_found" };
   }
 
   if (snapshot.status === "superseded") {
-    auditShareAccess({ share, tokenHashPrefix, outcome: "superseded", ip: input.ip, userAgent: input.userAgent });
-    return { status: "superseded", view: buildSharedReportView(share, snapshot, "superseded") };
+    await auditShareAccess({ share, tokenHashPrefix, outcome: "superseded", ip: input.ip, userAgent: input.userAgent });
+    return { status: "superseded", view: await buildSharedReportView(share, snapshot, "superseded") };
   }
 
-  auditShareAccess({ share, tokenHashPrefix, outcome: "viewed", ip: input.ip, userAgent: input.userAgent });
-  recordEvidenceEvent({
+  await auditShareAccess({ share, tokenHashPrefix, outcome: "viewed", ip: input.ip, userAgent: input.userAgent });
+  await recordEvidenceEvent({
     analysis_id: share.analysis_id,
     account_id: share.account_id,
     report_snapshot_id: share.report_snapshot_id,
@@ -160,16 +160,16 @@ export function resolveSharedReport(input: {
     summary: "A recipient opened the share-safe report view.",
     payload: { token_hash_prefix: tokenHashPrefix },
   });
-  return { status: "available", view: buildSharedReportView(share, snapshot, "available") };
+  return { status: "available", view: await buildSharedReportView(share, snapshot, "available") };
 }
 
-function buildSharedReportView(
+async function buildSharedReportView(
   share: ShareTokenRecord,
   snapshot: ReportSnapshotRecord,
   status: SharedReportViewModel["status"],
-): SharedReportViewModel {
+): Promise<SharedReportViewModel> {
   const record = snapshot.payload.record;
-  const reviewerAddenda = listApprovedReportAddenda(snapshot.snapshot_id);
+  const reviewerAddenda = await listApprovedReportAddenda(snapshot.snapshot_id);
   return {
     share_id: share.share_id,
     snapshot_id: snapshot.snapshot_id,
@@ -223,14 +223,14 @@ function buildSharedReportView(
   };
 }
 
-function auditShareAccess(input: {
+async function auditShareAccess(input: {
   share?: ShareTokenRecord;
   tokenHashPrefix: string;
   outcome: "viewed" | "not_found" | "expired" | "revoked" | "superseded";
   ip?: string | null;
   userAgent?: string | null;
 }) {
-  shareAccessEventRepository.save({
+  await shareAccessEventRepository.save({
     event_id: randomUUID(),
     share_id: input.share?.share_id,
     token_hash_prefix: input.tokenHashPrefix,
