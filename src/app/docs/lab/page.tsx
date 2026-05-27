@@ -5,8 +5,8 @@ import { PublicShell } from "@/components/public/public-shell";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Prop Challenge Truth Room Upload Docs",
-  description: "Canonical upload specification for trade CSVs, exchange exports, optional context ZIPs, prop challenge rules, and runtime assumptions.",
+  title: "Strategy Robustness Lab Upload Docs",
+  description: "Canonical upload specification for trade CSVs, exchange exports, optional context ZIPs, prop evaluation rules, and runtime assumptions.",
 };
 
 const requiredFields = [
@@ -58,13 +58,13 @@ const evidencePackages = [
     name: "Trade CSV / exchange export",
     files: "trades.csv only",
     unlocks: "Prop evaluation preview, first breach, rolling windows, overview, distribution, Monte Carlo, ruin, and report preview/export by plan.",
-    limits: "Decision-grade prop evaluation requires exact challenge rules. Broker realism remains limited without execution evidence.",
+    limits: "Decision-grade prop evaluation requires exact rule inputs. Broker realism remains limited without execution evidence.",
   },
   {
     tier: "Best self-serve path",
     name: "Rich trade CSV + exact prop rules",
-    files: "trades.csv with PnL, fees, MAE/MFE, risk fields, R-multiple fields, plus runtime challenge rules.",
-    unlocks: "Decision-grade automated prop challenge reconstruction, cleaner first-breach timing, target-before-breach windows, and stronger survivability interpretation.",
+    files: "trades.csv with PnL, fees, MAE/MFE, risk fields, R-multiple fields, plus runtime prop evaluation rules.",
+    unlocks: "Decision-grade automated prop evaluation reconstruction, cleaner first-breach timing, target-before-breach windows, and stronger survivability interpretation.",
     limits: "Still does not prove true parameter stability, multi-asset regime attribution, or broker-level microstructure realism.",
   },
   {
@@ -119,11 +119,11 @@ export default function LabDocsPage() {
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-12 lg:px-10">
       <section className="public-hero-band space-y-4 rounded-sm border border-border-subtle p-8">
         <div className="h-1 w-20 rounded-full bg-brand" />
-        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Prop Challenge Upload Specification</p>
-        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Prop Challenge Truth Room Upload Docs</h1>
-        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop challenge rules, runtime assumptions, and what each input unlocks.</p>
+        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Lab Upload Specification</p>
+        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Strategy Robustness Lab Upload Docs</h1>
+        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and what each input unlocks.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
-          The launch product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact challenge rules. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
+          The launch product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact prop rules when evaluation feasibility matters. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <Link href={referenceBundleHref} className={buttonVariants({ variant: "primary" })}>
@@ -146,7 +146,7 @@ export default function LabDocsPage() {
         }, {
           label: "Recommended",
           value: "Rich trade CSV + exact rules",
-          detail: "Add fees, MAE/MFE, risk, R fields, and challenge rules",
+          detail: "Add fees, MAE/MFE, risk, R fields, and prop rules",
         }, {
           label: "Optional context",
           value: "bundle_v1 ZIP",
@@ -417,7 +417,7 @@ export default function LabDocsPage() {
             </thead>
             <tbody className="divide-y divide-border-subtle">
               <tr><td className="px-4 py-3 font-medium">Core trade fields</td><td className="px-4 py-3 text-text-neutral">Prop evaluation baseline, first breach, rolling windows, Overview, Distribution, Monte Carlo, Ruin, and Report available.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">Exact prop challenge rules</td><td className="px-4 py-3 text-text-neutral">Decision-grade target-before-breach, daily-loss breach, total-drawdown breach, and rule-status interpretation.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Exact prop evaluation rules</td><td className="px-4 py-3 text-text-neutral">Decision-grade target-before-breach, daily-loss breach, total-drawdown breach, and rule-status interpretation.</td></tr>
               <tr><td className="px-4 py-3 font-medium">MAE/MFE</td><td className="px-4 py-3 text-text-neutral">Improved excursion interpretation and richer distribution context.</td></tr>
               <tr><td className="px-4 py-3 font-medium">risk_amount / stop_distance / R-multiples</td><td className="px-4 py-3 text-text-neutral">Stronger execution-quality framing and risk translation.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Documents declared cost, slippage, and execution assumptions so the report can separate evidence from assumptions.</td></tr>

@@ -47,7 +47,7 @@ export default function MethodologyPage() {
           <PageHero
             title="Validation Methodology"
             description="The rulebook behind the Lab: a repeatable way to move from strategy claim to evidence sufficiency, stress diagnostics, limitations, and a shareable decision artifact."
-            primaryCta={{ label: "Apply via Truth Room", href: "/robustness-lab" }}
+            primaryCta={{ label: "Apply via Lab", href: "/robustness-lab" }}
             secondaryCta={{ label: "Request Full Audit", href: "/contact" }}
             credibilityLine="Every verdict explains the evidence state that produced it."
             rightSlot={<MethodologyHeroInstrument />}
@@ -120,7 +120,7 @@ export default function MethodologyPage() {
           <CtaBanner
             title="Use the methodology in your validation workflow"
             description="Run diagnostics through the lab or commission an analyst-led review."
-            primary={{ label: "Explore Truth Room", href: "/robustness-lab" }}
+            primary={{ label: "Explore Lab", href: "/robustness-lab" }}
             secondary={{ label: "Request Strategy Audit", href: "/contact" }}
           />
         </section>

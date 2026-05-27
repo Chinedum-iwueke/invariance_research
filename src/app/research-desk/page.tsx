@@ -33,7 +33,7 @@ export default function ResearchDeskPage() {
                   <a href="#waitlist">Join the Waitlist</a>
                 </Button>
                 <Button asChild variant="secondary">
-                  <Link href="/robustness-lab">Explore Truth Room</Link>
+                  <Link href="/robustness-lab">Explore Lab</Link>
                 </Button>
               </div>
             </div>
@@ -48,9 +48,9 @@ export default function ResearchDeskPage() {
         <section className="container-shell space-y-6 py-section-sm">
           <PageTransitionBand
             title="Start with an automated validation record."
-            body="The Prop Challenge Truth Room handles the first pass: trade-history intake, challenge-rule reconstruction, stress testing, and report generation. Research Desk extends that work when the evidence needs deeper review."
+            body="The Strategy Robustness Lab handles the first pass: trade-history intake, evidence-gated diagnostics, prop evaluation when relevant, stress testing, and report generation. Research Desk extends that work when the evidence needs deeper review."
             href="/robustness-lab"
-            label="Start with Truth Room"
+            label="Start with the Lab"
           />
           <div className="grid gap-4 md:grid-cols-3">
             {[

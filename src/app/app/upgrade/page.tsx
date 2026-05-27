@@ -27,7 +27,7 @@ export default async function UpgradePage() {
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Pro" subtitle="$99/mo">
-          <p className="text-sm text-text-neutral">Higher trade-history validation capacity, saved prop challenge profiles, more shares, richer report appendices, and Research Desk request eligibility.</p>
+          <p className="text-sm text-text-neutral">Higher trade-history validation capacity, saved prop evaluation profiles, more shares, richer report appendices, and Research Desk request eligibility.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="pro" />
           </div>

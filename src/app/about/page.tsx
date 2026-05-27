@@ -22,7 +22,7 @@ export default function AboutPage() {
         <section id="hero">
           <PageHero
             title="About Invariance Research"
-            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation, robustness diagnostics, and research systems built around disciplined methodology. The firm develops tools that reflect its validation philosophy — from the Prop Challenge Truth Room available today to the forthcoming Invariance Research Desk, an AI-native research environment designed to make backtesting more structured, realistic, and decision-grade."
+            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation, robustness diagnostics, and research systems built around disciplined methodology. The firm develops tools that reflect its validation philosophy — from the Strategy Robustness Lab available today to the forthcoming Invariance Research Desk, an AI-native research environment designed to make backtesting more structured, realistic, and decision-grade."
             primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
             secondaryCta={{ label: "Contact", href: "/contact" }}
             artifactVariant="report"
@@ -66,8 +66,8 @@ export default function AboutPage() {
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Apply a disciplined validation process"
-            description="Use the Prop Challenge Truth Room or commission a bespoke strategy review."
-            primary={{ label: "Explore Truth Room", href: "/robustness-lab" }}
+            description="Use the Strategy Robustness Lab or commission a bespoke strategy review."
+            primary={{ label: "Explore Lab", href: "/robustness-lab" }}
             secondary={{ label: "Request Audit", href: "/contact" }}
           />
         </section>

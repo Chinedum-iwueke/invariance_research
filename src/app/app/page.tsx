@@ -13,7 +13,7 @@ import { listAnalyses } from "@/lib/server/services/analysis-service";
 
 export const metadata: Metadata = {
   title: "Workspace",
-  description: "Authenticated product shell for the Prop Challenge Truth Room.",
+  description: "Authenticated product shell for the Strategy Robustness Lab.",
 };
 
 export default async function AppHomePage() {

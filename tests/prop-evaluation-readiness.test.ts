@@ -102,3 +102,48 @@ test("target-before-breach windows expose the target event even when a later bre
   assert.equal(diagnostic.target_progress?.ending_profit, -3000);
   assert.equal(diagnostic.target_progress?.peak_profit, 9000);
 });
+
+test("prop evaluation emits survival stress, evidence grade, and decision metadata", () => {
+  const diagnostic = computePropEvaluationReadiness({
+    ...baseArtifact,
+    trades: [
+      { exit_time: "2026-01-01T12:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 100, pnl: 4_000 },
+      { exit_time: "2026-01-02T12:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 100, pnl: 5_000 },
+      { exit_time: "2026-01-03T12:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 100, pnl: -2_000 },
+    ],
+    equity_curve: [
+      { timestamp: "2026-01-01T09:00:00Z", equity: 100_000 },
+      { timestamp: "2026-01-01T12:00:00Z", equity: 104_000 },
+      { timestamp: "2026-01-02T09:00:00Z", equity: 104_000 },
+      { timestamp: "2026-01-02T12:00:00Z", equity: 109_000 },
+    ],
+    broker_exports: [
+      { timestamp: "2026-01-01T12:00:00Z", fee: 4.25, liquidity: "taker" },
+      { timestamp: "2026-01-02T12:00:00Z", fee: 4.5, liquidity: "maker" },
+    ],
+  } as any, {
+    schema_version: "prop_evaluation_rules_v1",
+    source: "runtime",
+    label: "Runtime challenge",
+    account_size: 100_000,
+    profit_target_pct: 0.08,
+    max_total_drawdown_pct: 0.10,
+    max_daily_loss_pct: 0.05,
+    minimum_trading_days: 1,
+    maximum_evaluation_days: 3,
+  });
+
+  const metadata = diagnostic.metadata ?? {};
+  const stress = metadata.stress_test as Record<string, any>;
+  const monteCarlo = metadata.prop_monte_carlo as Record<string, any>;
+  const evidence = metadata.evidence_grade as Record<string, any>;
+  const decision = metadata.decision_card as Record<string, any>;
+
+  assert.equal(Array.isArray(stress.scenarios), true);
+  assert.equal(stress.scenarios.length, 5);
+  assert.equal(typeof monteCarlo.target_before_breach_probability, "number");
+  assert.equal(monteCarlo.iterations, 1000);
+  assert.equal(evidence.equity.quality, "equity_curve_backed");
+  assert.equal(evidence.broker.quality, "broker_context_available");
+  assert.ok(["challenge_ready_with_caveats", "conditional", "not_ready", "needs_more_edge"].includes(decision.readiness));
+});

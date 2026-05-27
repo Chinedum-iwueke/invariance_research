@@ -46,6 +46,7 @@ export const genericBundleV1ParserAdapter: ParserAdapter = {
     const assumptions = parseJsonFile(bundle.files["assumptions.json"]?.text, bundleAssumptionsSchema);
     const params = parseJsonFile(bundle.files["params.json"]?.text, bundleParamsSchema);
     const declaredClaims = parseDeclaredClaims(bundle.files["declared_claims.json"]?.text);
+    const equityCurve = parseLooseCsv(bundle.files["equity_curve.csv"]?.text);
     const ohlcv = parseLooseCsv(bundle.files["ohlcv.csv"]?.text);
     const benchmarkSeries = parseLooseCsv(bundle.files["benchmark.csv"]?.text);
     const brokerExports = parseLooseCsv(bundle.files["broker_export.csv"]?.text);
@@ -75,7 +76,7 @@ export const genericBundleV1ParserAdapter: ParserAdapter = {
       richness,
       strategy_metadata: metadata,
       trades: csvValidation.trades,
-      equity_curve: bundle.files["equity_curve.csv"] ? [{ source: "equity_curve.csv" }] : undefined,
+      equity_curve: equityCurve,
       assumptions,
       params,
       ohlcv,

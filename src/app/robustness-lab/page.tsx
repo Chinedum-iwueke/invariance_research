@@ -11,8 +11,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { UploadPanel } from "@/components/ui/upload-panel";
 
 export const metadata: Metadata = {
-  title: "Prop Challenge Truth Room | Invariance Research",
-  description: "Trade-history validation for prop-firm feasibility, first breach analysis, execution drag, and survivability stress.",
+  title: "Strategy Robustness Lab | Invariance Research",
+  description: "Trade-history validation for strategy robustness, execution drag, survivability stress, distribution quality, and prop evaluation feasibility.",
 };
 
 const DEMO_VIDEO_PATH = "/demo_video.mp4";
@@ -27,11 +27,11 @@ export default function RobustnessLabPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            title="Prop Challenge Truth Room"
-            description="Upload a trade CSV or exchange export, enter the challenge rules, and see whether the strategy reaches target before it breaches daily or total drawdown."
+            title="Strategy Robustness Lab"
+            description="Upload a trade CSV or exchange export and get a falsification-first workbench: overview, execution, distribution, Monte Carlo, ruin, prop evaluation, assumptions, and report."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
-            credibilityLine="Trade-history intake, exact rule reconstruction, first-breach evidence, and a shareable report path."
+            credibilityLine="Trade-history intake, evidence-gated diagnostics, prop evaluation when rules are supplied, and a shareable report path."
             rightSlot={<LabHeroInstrument />}
           />
         </section>
@@ -40,8 +40,8 @@ export default function RobustnessLabPage() {
           <div className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Working Surface"
-            title="See how a trade history becomes a challenge verdict."
-            description="The walkthrough follows the launch sequence: trade intake, rule entry, first breach, survival stress, and report."
+            title="See how a trade history becomes a validation record."
+            description="The walkthrough follows the launch sequence: trade intake, claim/rule entry, execution stress, survival analysis, prop feasibility, and report."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -50,7 +50,7 @@ export default function RobustnessLabPage() {
                   className="h-auto w-full rounded-sm border border-white/10"
                   controls
                   preload="metadata"
-                  aria-label="Prop Challenge Truth Room walkthrough demo"
+                  aria-label="Strategy Robustness Lab walkthrough demo"
                 >
                   <source src={DEMO_VIDEO_PATH} type="video/mp4" />
                   Your browser does not support the demo video.
@@ -80,8 +80,8 @@ export default function RobustnessLabPage() {
         <section id="console" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Evidence Console"
-            title="Track the challenge investigation from the first click."
-            description="See whether prop rules are exact or fallback, which diagnostics are supported, and which claims require Research Desk review."
+            title="Track the investigation from the first click."
+            description="See which diagnostics are supported, whether prop rules are exact or fallback, and which claims require Research Desk review."
           />
           <LabEvidenceConsole />
         </section>
@@ -95,9 +95,9 @@ export default function RobustnessLabPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {[
               [
-                "Prop Evaluation Workspace",
-                "Identify the first breach rule, target progress, rolling pass/fail windows, and challenge readiness under the selected rule sheet.",
-                "Decision value: determines whether the strategy is worth attempting on a funded-account evaluation.",
+                "Prop Evaluation",
+                "When a rule sheet is supplied, identify the first breach rule, target progress, rolling pass/fail windows, and challenge readiness.",
+                "Decision value: determines whether the strategy is worth attempting under a funded-account rule set.",
               ],
               [
                 "Monte Carlo / Risk of Ruin",
@@ -135,8 +135,8 @@ export default function RobustnessLabPage() {
 
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
-            title="Know before you pay for the challenge"
-            description="Start with the trade-history truth room, then request Research Desk only when the missing evidence affects a real deployment, sale, or evaluation decision."
+            title="Know what the trade history can actually prove"
+            description="Start with the Lab, then request Research Desk only when missing evidence affects a real deployment, sale, evaluation, or allocation decision."
             primary={{ label: "Sign up for free", href: "/signup" }}
             secondary={{ label: "Request Validation Audit", href: "/contact" }}
           />

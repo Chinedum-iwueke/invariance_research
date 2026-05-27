@@ -16,7 +16,7 @@ const rows = [
   ["Optional context ZIP", "no", "yes", "yes", "yes"],
   ["Max upload size", "10 MB", "25 MB", "50 MB", "250 MB"],
   ["Analyses per month", "3", "25", "100", "Scoped"],
-  ["Prop Challenge Truth Room", "preview", "full", "full", "reviewed"],
+  ["Core robustness workbench", "preview", "full", "full", "reviewed"],
   ["Exact prop rule entry", "fallback only", "per run", "saved profiles", "reviewed"],
   ["First breach + rolling windows", "preview", "full", "full", "reviewed"],
   ["Distribution / edge concentration", "preview", "full", "full", "reviewed"],

@@ -15,7 +15,7 @@ export function PricingCards() {
       features: [
         "Trade CSV / exchange export upload",
         "3 analyses per month",
-        "Preview prop challenge verdict, Monte Carlo, distribution, and ruin diagnostics",
+        "Preview overview, prop evaluation, Monte Carlo, distribution, and ruin diagnostics",
         "No exports or share links",
         "30-day history retention",
       ],
@@ -45,7 +45,7 @@ export function PricingCards() {
       features: [
         "High-volume trade-history validation",
         "100 analyses per month",
-        "Saved prop challenge profiles and richer report appendix",
+        "Saved prop evaluation profiles and richer report appendix",
         "Research Desk request eligibility when evidence cannot support deeper claims",
         "More share links for buyers, coaches, partners, and allocators",
         "25 share links per month",

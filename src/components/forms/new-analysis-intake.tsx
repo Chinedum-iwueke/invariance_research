@@ -270,7 +270,7 @@ export function NewAnalysisIntake() {
           }}
         >
           <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Intake gate</p>
-          <p className="mt-2 text-sm font-medium">Submit trade history for challenge validation</p>
+          <p className="mt-2 text-sm font-medium">Submit trade history for validation</p>
           <p className="mt-1 text-xs text-text-neutral">Accepted: .csv trade history or exchange export; .zip context bundle</p>
           <input
             ref={fileInputRef}
@@ -307,7 +307,7 @@ export function NewAnalysisIntake() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <WorkspaceCard title="Challenge setup" subtitle="Step 2: declare rules, claims, benchmark, and sizing assumptions">
+          <WorkspaceCard title="Run setup" subtitle="Step 2: declare claims, rules, benchmark, and sizing assumptions">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1 md:col-span-2">
                 <span className="text-sm font-medium text-text-institutional">Strategy name</span>
@@ -408,7 +408,7 @@ export function NewAnalysisIntake() {
                   checked={useCustomPropRules}
                   onChange={(event) => setUseCustomPropRules(event.target.checked)}
                 />
-                Enter exact prop challenge rules for this run
+                Enter exact prop evaluation rules for this run
               </label>
               {useCustomPropRules ? (
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -549,7 +549,7 @@ function eligibilityTiles(inspection: UploadInspectionResponse, runtime: { hasRu
       return {
         label: tile.label,
         state: "Runtime rules active",
-        detail: "Exact challenge rules have been entered for this run and will replace fallback prop-evaluation assumptions when analysis starts.",
+        detail: "Exact prop rules have been entered for this run and will replace fallback prop-evaluation assumptions when analysis starts.",
         tone: "supported" as const,
       };
     }
@@ -565,7 +565,7 @@ function eligibilityTiles(inspection: UploadInspectionResponse, runtime: { hasRu
 
 function diagnosticLimitedDetail(diagnostic: DiagnosticName) {
   if (diagnostic === "execution") return "The Lab can show assumptions and sensitivity, but broker-level realism needs richer execution evidence or Research Desk review.";
-  if (diagnostic === "prop_evaluation_readiness") return "Fallback rules can be used. Add exact challenge rules for a decision-grade prop evaluation.";
+  if (diagnostic === "prop_evaluation_readiness") return "Fallback rules can be used. Add exact prop rules for a decision-grade prop evaluation.";
   if (diagnostic === "monte_carlo" || diagnostic === "ruin") return "Path stress is available, but confidence depends on trade count, sizing fields, and explicit risk assumptions.";
   return "The diagnostic can be shown, but the report will carry explicit caveats.";
 }

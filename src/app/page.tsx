@@ -15,9 +15,9 @@ import { PublicShell } from "@/components/public/public-shell";
 import { HomePageScenesShell } from "@/components/public/home-page-scenes-shell";
 
 export const metadata: Metadata = {
-  title: "Invariance Research | Prop Challenge Truth Room",
+  title: "Invariance Research | Strategy Robustness Lab",
   description:
-    "Upload trade history and test whether a strategy can survive realistic prop-firm rules, execution friction, and capital-risk stress.",
+    "Upload trade history and test whether a strategy survives execution friction, capital-risk stress, concentration, and prop evaluation rules.",
 };
 
 const sceneIds = ["hero", "claim", "lab", "artifact"];
@@ -51,9 +51,9 @@ export default function HomePage() {
         <SectionSceneWrapper id="lab" tone="base">
           <div className="space-y-8">
             <SectionHeader
-              eyebrow="Prop Challenge Truth Room"
+              eyebrow="Strategy Robustness Lab"
               title="Start with the trade history you already have."
-              description="Upload a trade CSV or exchange export, declare the challenge rules, and see whether the path reaches target before daily or total drawdown breaks the account."
+              description="Upload a trade CSV or exchange export, declare the claims and rules that matter, and see what survives execution friction, capital stress, concentration, and prop evaluation constraints."
             />
             <RobustnessLabIntro />
             <LabDiagnosticWorkbench />

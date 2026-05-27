@@ -138,6 +138,8 @@ type PropPathEvent = {
 type DailyPnlRow = {
   day: string;
   pnl: number;
+  notional: number;
+  trade_count: number;
   first_trade_index: number;
   last_trade_index: number;
 };
@@ -147,19 +149,316 @@ function buildDailyRows(trades: CanonicalTradeRecord[]): DailyPnlRow[] {
   trades.forEach((trade, index) => {
     const day = tradeDay(trade, index);
     const existing = rows.get(day);
+    const notional = Math.abs(trade.entry_price * trade.quantity);
     if (existing) {
       existing.pnl += tradePnl(trade);
+      existing.notional += Number.isFinite(notional) ? notional : 0;
+      existing.trade_count += 1;
       existing.last_trade_index = index + 1;
     } else {
       rows.set(day, {
         day,
         pnl: tradePnl(trade),
+        notional: Number.isFinite(notional) ? notional : 0,
+        trade_count: 1,
         first_trade_index: index + 1,
         last_trade_index: index + 1,
       });
     }
   });
   return [...rows.values()];
+}
+
+function adjustedRowsForCostStress(rows: DailyPnlRow[], bpsPerRoundTrip: number): DailyPnlRow[] {
+  return rows.map((row) => ({
+    ...row,
+    pnl: row.pnl - (row.notional * bpsPerRoundTrip / 10_000),
+  }));
+}
+
+function numericFromRecord(row: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = row[key] ?? row[key.toLowerCase()] ?? row[key.toUpperCase()];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const numeric = Number(value.replace(/[$,%\s]/g, ""));
+      if (Number.isFinite(numeric)) return numeric;
+    }
+  }
+  return undefined;
+}
+
+function stringFromRecord(row: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = row[key] ?? row[key.toLowerCase()] ?? row[key.toUpperCase()];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
+function buildEquityEvidence(parsedArtifact: ParsedArtifact, rules: NormalizedRules) {
+  const rows = (parsedArtifact.equity_curve ?? [])
+    .map((row, index) => {
+      const timestamp = stringFromRecord(row, ["timestamp", "time", "date", "datetime", "ts"]) ?? `row_${index + 1}`;
+      const equity = numericFromRecord(row, ["equity", "balance", "account_equity", "account_balance", "closed_balance", "nav", "value"]);
+      const date = new Date(timestamp);
+      return equity === undefined
+        ? undefined
+        : {
+            timestamp,
+            day: Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : timestamp.slice(0, 10),
+            equity,
+          };
+    })
+    .filter((row): row is { timestamp: string; day: string; equity: number } => Boolean(row))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (!rows.length) {
+    return {
+      quality: "closed_trade_only",
+      row_count: 0,
+      can_audit_intraday_daily_loss: false,
+      max_intraday_loss_pct: null,
+      max_close_to_close_loss_pct: null,
+      note: "No usable equity curve rows were supplied; daily loss is reconstructed from closed-trade PnL.",
+    };
+  }
+
+  const byDay = new Map<string, typeof rows>();
+  rows.forEach((row) => byDay.set(row.day, [...(byDay.get(row.day) ?? []), row]));
+  let maxIntradayLossPct = 0;
+  let maxCloseToCloseLossPct = 0;
+  let worstIntradayDay: string | null = null;
+  let previousClose = rules.account_size;
+
+  for (const [day, dayRows] of byDay.entries()) {
+    const startEquity = dayRows[0]?.equity ?? previousClose;
+    const minEquity = Math.min(...dayRows.map((row) => row.equity));
+    const closeEquity = dayRows[dayRows.length - 1]?.equity ?? startEquity;
+    const intradayLossPct = Math.max(0, (startEquity - minEquity) / Math.max(startEquity, 1));
+    const closeLossPct = Math.max(0, (previousClose - closeEquity) / Math.max(previousClose, 1));
+    if (intradayLossPct > maxIntradayLossPct) {
+      maxIntradayLossPct = intradayLossPct;
+      worstIntradayDay = day;
+    }
+    maxCloseToCloseLossPct = Math.max(maxCloseToCloseLossPct, closeLossPct);
+    previousClose = closeEquity;
+  }
+
+  return {
+    quality: rows.length >= 2 ? "equity_curve_backed" : "single_equity_point",
+    row_count: rows.length,
+    can_audit_intraday_daily_loss: rows.length > byDay.size,
+    max_intraday_loss_pct: pct(maxIntradayLossPct),
+    max_close_to_close_loss_pct: pct(maxCloseToCloseLossPct),
+    worst_intraday_day: worstIntradayDay,
+    note: rows.length > byDay.size
+      ? "Equity curve contains multiple observations per day; intraday daily-loss pressure can be reviewed with higher confidence."
+      : "Equity curve has one observation per day; daily-loss review remains close-to-close rather than true intraday.",
+  };
+}
+
+function buildBrokerEvidence(parsedArtifact: ParsedArtifact) {
+  const rows = parsedArtifact.broker_exports ?? [];
+  if (!rows.length) {
+    return {
+      quality: "not_supplied",
+      row_count: 0,
+      fee_rows: 0,
+      liquidity_rows: 0,
+      avg_fee: null,
+      note: "No broker/export fill file was supplied; execution realism remains assumption-led.",
+    };
+  }
+  const fees = rows
+    .map((row) => numericFromRecord(row, ["fee", "fees", "commission", "cost"]))
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const liquidityRows = rows.filter((row) => Boolean(stringFromRecord(row, ["liquidity", "maker_taker", "role"]))).length;
+  return {
+    quality: fees.length || liquidityRows ? "broker_context_available" : "raw_broker_rows_only",
+    row_count: rows.length,
+    fee_rows: fees.length,
+    liquidity_rows: liquidityRows,
+    avg_fee: fees.length ? Number((fees.reduce((sum, value) => sum + value, 0) / fees.length).toFixed(4)) : null,
+    note: fees.length || liquidityRows
+      ? "Broker/export rows include fee or liquidity context and can support stronger execution review."
+      : "Broker/export rows were supplied but do not expose fee or liquidity fields.",
+  };
+}
+
+function eventOrder(event: PropPathEvent | undefined): number {
+  return event?.trade_index ?? Number.MAX_SAFE_INTEGER;
+}
+
+function evaluateTerminalOutcome(rows: DailyPnlRow[], rules: NormalizedRules) {
+  const path = evaluateDailyPath(rows, rules);
+  const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach);
+  const targetBeforeBreach = Boolean(path.firstTargetHit && (!firstBreach || eventOrder(path.firstTargetHit) <= eventOrder(firstBreach)));
+  const breachBeforeTarget = Boolean(firstBreach && (!path.firstTargetHit || eventOrder(firstBreach) < eventOrder(path.firstTargetHit)));
+  return { path, firstBreach, targetBeforeBreach, breachBeforeTarget };
+}
+
+function buildStressScenarios(rows: DailyPnlRow[], rules: NormalizedRules) {
+  const scenarios = [0, 2, 5, 10, 20].map((bps) => {
+    const stressedRows = adjustedRowsForCostStress(rows, bps);
+    const outcome = evaluateTerminalOutcome(stressedRows, rules);
+    const endingProfit = outcome.path.cumulative;
+    const targetProfit = rules.account_size * rules.profit_target_pct;
+    const status = outcome.targetBeforeBreach
+      ? "target_before_breach"
+      : outcome.breachBeforeTarget
+        ? "breach_before_target"
+        : "unresolved";
+    return {
+      scenario: bps === 0 ? "baseline" : `+${bps} bps round-trip cost`,
+      bps_per_round_trip: bps,
+      status,
+      ending_profit: Number(endingProfit.toFixed(2)),
+      target_progress_pct: pct(targetProfit > 0 ? endingProfit / targetProfit : 0),
+      first_breach_rule: outcome.firstBreach?.rule ?? null,
+      first_breach_day: outcome.firstBreach?.day ?? null,
+      max_daily_loss_pct: pct(outcome.path.maxDailyLossPct),
+      max_total_drawdown_pct: pct(outcome.path.maxDrawdownPct),
+    };
+  });
+  const breakEvenScenario = scenarios.find((scenario) => scenario.status !== "target_before_breach" && scenario.bps_per_round_trip > 0);
+  return {
+    scenarios,
+    cost_break_point: breakEvenScenario?.scenario ?? "survives tested cost shocks",
+  };
+}
+
+function seededRandom(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (1664525 * state + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function shuffledRows(rows: DailyPnlRow[], random: () => number): DailyPnlRow[] {
+  const copy = rows.map((row, index) => ({ ...row, day: `sim_day_${index + 1}` }));
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function quantile(values: number[], q: number): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * q)));
+  return sorted[index] ?? 0;
+}
+
+function buildPropMonteCarlo(rows: DailyPnlRow[], rules: NormalizedRules) {
+  const iterations = rows.length >= 2 ? 1000 : 0;
+  if (!iterations) {
+    return {
+      iterations,
+      target_before_breach_probability: null,
+      breach_before_target_probability: null,
+      unresolved_probability: null,
+      median_ending_profit: null,
+      p10_ending_profit: null,
+      p95_max_total_drawdown_pct: null,
+      note: "Monte Carlo prop survival requires at least two trading days.",
+    };
+  }
+  const random = seededRandom(Number.parseInt(hashJson({ rows, rules: rules.rules_hash }).slice(0, 8), 16));
+  let targetBeforeBreach = 0;
+  let breachBeforeTarget = 0;
+  let unresolved = 0;
+  const endingProfits: number[] = [];
+  const maxDrawdowns: number[] = [];
+
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    const outcome = evaluateTerminalOutcome(shuffledRows(rows, random), rules);
+    if (outcome.targetBeforeBreach) targetBeforeBreach += 1;
+    else if (outcome.breachBeforeTarget) breachBeforeTarget += 1;
+    else unresolved += 1;
+    endingProfits.push(outcome.path.cumulative);
+    maxDrawdowns.push(pct(outcome.path.maxDrawdownPct));
+  }
+
+  return {
+    iterations,
+    target_before_breach_probability: Number((targetBeforeBreach / iterations).toFixed(4)),
+    breach_before_target_probability: Number((breachBeforeTarget / iterations).toFixed(4)),
+    unresolved_probability: Number((unresolved / iterations).toFixed(4)),
+    median_ending_profit: Number(quantile(endingProfits, 0.5).toFixed(2)),
+    p10_ending_profit: Number(quantile(endingProfits, 0.1).toFixed(2)),
+    p95_max_total_drawdown_pct: Number(quantile(maxDrawdowns, 0.95).toFixed(2)),
+    note: "Deterministic shuffle simulation estimates whether sequence risk alone changes target-before-breach survival.",
+  };
+}
+
+function buildDecisionCard(input: {
+  verdict: string;
+  fallbackLimited: boolean;
+  dayCountLimited: boolean;
+  targetReached: boolean;
+  firstBreach: PropPathEvent | null;
+  monteCarlo: ReturnType<typeof buildPropMonteCarlo>;
+  stress: ReturnType<typeof buildStressScenarios>;
+  equityEvidence: ReturnType<typeof buildEquityEvidence>;
+  brokerEvidence: ReturnType<typeof buildBrokerEvidence>;
+}) {
+  const targetProbability = input.monteCarlo.target_before_breach_probability;
+  const baseline = input.stress.scenarios[0];
+  const stressedFailure = input.stress.scenarios.find((scenario) => scenario.bps_per_round_trip > 0 && scenario.status !== "target_before_breach");
+  const blockers: string[] = [];
+  if (input.fallbackLimited) blockers.push("Exact prop rules were not supplied.");
+  if (input.dayCountLimited) blockers.push("Trading-day count does not match the configured evaluation contract.");
+  if (input.firstBreach) blockers.push(`First breach is ${input.firstBreach.rule.replaceAll("_", " ")} on ${input.firstBreach.day ?? "an unknown day"}.`);
+  if (targetProbability !== null && targetProbability < 0.5) blockers.push("Sequence simulation shows target-before-breach survival below 50%.");
+  if (stressedFailure) blockers.push(`Cost stress fails at ${stressedFailure.scenario}.`);
+  if (!input.equityEvidence.can_audit_intraday_daily_loss) blockers.push("Intraday daily-loss enforcement is not fully auditable from the submitted evidence.");
+  if (input.brokerEvidence.quality === "not_supplied") blockers.push("Broker/fill evidence was not supplied for execution-cost verification.");
+
+  const readiness = input.firstBreach || (targetProbability !== null && targetProbability < 0.5)
+    ? "not_ready"
+    : input.fallbackLimited || input.dayCountLimited || stressedFailure
+      ? "conditional"
+      : input.targetReached || baseline?.status === "target_before_breach"
+        ? "challenge_ready_with_caveats"
+        : "needs_more_edge";
+
+  return {
+    readiness,
+    headline: readiness === "challenge_ready_with_caveats"
+      ? "Candidate is challenge-ready under submitted rules, with live-execution caveats."
+      : readiness === "conditional"
+        ? "Candidate is conditionally viable, but evidence or stress failures must be resolved first."
+        : readiness === "needs_more_edge"
+          ? "No breach was detected, but the submitted path has not demonstrated enough target progress."
+          : "Do not attempt the evaluation without rule, sizing, or execution changes.",
+    confidence: input.equityEvidence.can_audit_intraday_daily_loss && input.brokerEvidence.quality !== "not_supplied" && !input.fallbackLimited ? "high" : input.fallbackLimited ? "low" : "medium",
+    blockers,
+  };
+}
+
+function buildImprovementTargets(input: {
+  rules: NormalizedRules;
+  totalProfit: number;
+  firstBreach: PropPathEvent | null;
+  path: ReturnType<typeof evaluateDailyPath>;
+}) {
+  const targetProfit = input.rules.account_size * input.rules.profit_target_pct;
+  const profitShortfall = Math.max(0, targetProfit - input.totalProfit);
+  const totalDrawdownBuffer = Math.max(0, pct(input.rules.max_total_drawdown_pct) - pct(input.path.maxDrawdownPct));
+  const dailyLossBuffer = Math.max(0, pct(input.rules.max_daily_loss_pct) - pct(input.path.maxDailyLossPct));
+  const requiredRiskReductionPct = input.firstBreach?.observed_pct && input.firstBreach.allowed_pct
+    ? Math.max(0, Number((((input.firstBreach.observed_pct - input.firstBreach.allowed_pct) / input.firstBreach.observed_pct) * 100).toFixed(1)))
+    : 0;
+  return {
+    profit_shortfall_to_target: Number(profitShortfall.toFixed(2)),
+    total_drawdown_buffer_pct: Number(totalDrawdownBuffer.toFixed(2)),
+    daily_loss_buffer_pct: Number(dailyLossBuffer.toFixed(2)),
+    risk_reduction_needed_to_clear_first_breach_pct: requiredRiskReductionPct,
+  };
 }
 
 function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
@@ -331,6 +630,10 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
   const tradingDays = path.tradingDays;
   const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach) ?? null;
   const windowOutcomes = buildWindowOutcomes(dailyRows, rules);
+  const equityEvidence = buildEquityEvidence(parsedArtifact, rules);
+  const brokerEvidence = buildBrokerEvidence(parsedArtifact);
+  const stressTest = buildStressScenarios(dailyRows, rules);
+  const propMonteCarlo = buildPropMonteCarlo(dailyRows, rules);
   const dayCountLimited = tradingDays < rules.minimum_trading_days || Boolean(rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days);
   const fallbackLimited = rules.source === "fallback";
   const status = fallbackLimited || dayCountLimited ? "limited" : "available";
@@ -370,6 +673,18 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     profit_progress_pct: targetProfit > 0 ? totalProfit / targetProfit : 0,
     trading_days: tradingDays,
   };
+  const decisionCard = buildDecisionCard({
+    verdict,
+    fallbackLimited,
+    dayCountLimited,
+    targetReached,
+    firstBreach,
+    monteCarlo: propMonteCarlo,
+    stress: stressTest,
+    equityEvidence,
+    brokerEvidence,
+  });
+  const improvementTargets = buildImprovementTargets({ rules, totalProfit, firstBreach, path });
 
   return {
     status,
@@ -378,6 +693,17 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       score("Windows Reaching Target First", formatPctValue(summaryMetrics.target_before_breach_probability), firstBreach ? "elevated" : "moderate"),
       score("Breach Probability", formatPctValue(summaryMetrics.breach_probability), firstBreach ? "critical" : "moderate"),
       score("Peak Target Progress", `${targetProgress.peak_progress_pct.toFixed(1)}%`, path.firstTargetHit ? "good" : "moderate"),
+      score(
+        "MC Target-Before-Breach",
+        propMonteCarlo.target_before_breach_probability === null ? "Unavailable" : formatPctValue(propMonteCarlo.target_before_breach_probability),
+        propMonteCarlo.target_before_breach_probability === null
+          ? "informational"
+          : propMonteCarlo.target_before_breach_probability >= 0.7
+            ? "good"
+            : propMonteCarlo.target_before_breach_probability >= 0.45
+              ? "moderate"
+              : "critical",
+      ),
       score("Max Daily Loss", `${pct(path.maxDailyLossPct).toFixed(1)}% / ${pct(rules.max_daily_loss_pct).toFixed(1)}%`, path.firstDailyBreach ? "critical" : "moderate"),
       score("Max Total Drawdown", `${pct(path.maxDrawdownPct).toFixed(1)}% / ${pct(rules.max_total_drawdown_pct).toFixed(1)}%`, path.firstTotalBreach ? "critical" : "moderate"),
       score("Trading Days", String(tradingDays), dayCountLimited ? "informational" : "moderate"),
@@ -398,6 +724,9 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
         firstBreach ? `First breach: ${String(firstBreach.rule).replaceAll("_", " ")}.` : "No configured rule breach was detected.",
         `Peak profit target progress before the path ended: ${targetProgress.peak_progress_pct.toFixed(1)}%.`,
         `${windowOutcomes.target_before_breach_count} rolling evaluation window(s) reached target before breach; ${windowOutcomes.breach_before_target_count} breached before target.`,
+        propMonteCarlo.target_before_breach_probability === null
+          ? "Monte Carlo prop survival is unavailable because the path has fewer than two trading days."
+          : `Monte Carlo target-before-breach survival is ${formatPctValue(propMonteCarlo.target_before_breach_probability)} over ${propMonteCarlo.iterations} deterministic shuffled paths.`,
       ],
     },
     assumptions: [
@@ -408,13 +737,32 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     limitations: [
       ...(fallbackLimited ? ["Default fallback rules are not a substitute for the actual prop firm contract."] : []),
       "Closed-trade PnL is used when intraday equity or broker equity evidence is unavailable.",
+      ...(equityEvidence.can_audit_intraday_daily_loss ? [] : ["Intraday daily loss remains limited unless the upload includes intraday equity/balance observations."]),
+      ...(brokerEvidence.quality === "not_supplied" ? ["Broker/fill evidence was not supplied, so execution-cost verification remains assumption-led."] : []),
     ],
     recommendations: [
       firstBreach ? "Reduce risk per trade or add a daily stop before attempting evaluation." : "Keep the rule sheet saved with the analysis before sharing the verdict.",
       !targetReached ? "Improve profit target progress without increasing daily loss concentration." : "Re-test after any sizing, leverage, or trade-frequency change.",
       "Upload broker equity or intraday balance data to validate daily loss rules with higher precision.",
+      stressTest.cost_break_point === "survives tested cost shocks" ? "Keep testing with broker-specific spread and commission data." : `Investigate execution sensitivity: ${stressTest.cost_break_point}.`,
     ],
-    metadata: { summary_metrics: summaryMetrics, target_progress: targetProgress, rule_status: ruleStatus, breach_events: path.breachEvents, target_events: path.targetEvents, evaluation_windows: windowOutcomes.windows },
+    metadata: {
+      summary_metrics: summaryMetrics,
+      target_progress: targetProgress,
+      rule_status: ruleStatus,
+      breach_events: path.breachEvents,
+      target_events: path.targetEvents,
+      evaluation_windows: windowOutcomes.windows,
+      evidence_grade: {
+        equity: equityEvidence,
+        broker: brokerEvidence,
+        source_files: parsedArtifact.source_files?.map((file) => ({ path: file.path, role: file.role, recognized: file.recognized })) ?? [],
+      },
+      stress_test: stressTest,
+      prop_monte_carlo: propMonteCarlo,
+      decision_card: decisionCard,
+      improvement_targets: improvementTargets,
+    },
   };
 }
 

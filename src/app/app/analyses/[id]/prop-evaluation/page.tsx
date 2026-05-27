@@ -55,6 +55,10 @@ function recordList(value: unknown): Array<Record<string, unknown>> {
     : [];
 }
 
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function labelForKey(key: string) {
   const labels: Record<string, string> = {
     ending_profit: "Ending profit",
@@ -187,6 +191,14 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
   const breachWindows = evaluationWindows.filter((window) => window.outcome === "breach_before_target");
   const targetEvents = recordList(metadata.target_events);
   const targetProgress = prop.target_progress ?? {};
+  const decisionCard = recordValue(metadata.decision_card);
+  const evidenceGrade = recordValue(metadata.evidence_grade);
+  const equityEvidence = recordValue(evidenceGrade.equity);
+  const brokerEvidence = recordValue(evidenceGrade.broker);
+  const stressTest = recordValue(metadata.stress_test);
+  const stressScenarios = recordList(stressTest.scenarios);
+  const propMonteCarlo = recordValue(metadata.prop_monte_carlo);
+  const improvementTargets = recordValue(metadata.improvement_targets);
   const ruleSource = String(ruleSnapshot.source ?? "fallback");
   const usingExactRules = ruleSource !== "fallback";
 
@@ -212,6 +224,64 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
           <p className="text-sm font-semibold text-text-institutional">{fmt(ruleSnapshot.source)}</p>
         </div>
       </Card>
+
+      <WorkspaceCard title="Prop survival verdict" subtitle="Unified decision from rules, path order, cost stress, sequence stress, and evidence quality">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="rounded-md border border-border-subtle bg-surface-white p-4">
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Decision card</p>
+            <h2 className="mt-2 text-xl font-semibold text-text-institutional">{fmt(decisionCard.headline ?? titleCase(prop.verdict))}</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-text-neutral">Readiness</p>
+                <p className="mt-1 text-sm font-semibold text-text-institutional">{fmt(decisionCard.readiness ?? prop.verdict)}</p>
+              </div>
+              <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-text-neutral">Confidence</p>
+                <p className="mt-1 text-sm font-semibold text-text-institutional">{fmt(decisionCard.confidence ?? "bounded")}</p>
+              </div>
+              <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-text-neutral">Cost break point</p>
+                <p className="mt-1 text-sm font-semibold text-text-institutional">{fmt(stressTest.cost_break_point)}</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Decision blockers</p>
+              {Array.isArray(decisionCard.blockers) && decisionCard.blockers.length ? (
+                <div className="mt-2 grid gap-2">
+                  {decisionCard.blockers.map((blocker, index) => (
+                    <p key={`${index}-${String(blocker).slice(0, 24)}`} className="rounded-sm border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-text-neutral">{fmt(blocker)}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-text-neutral">No hard blocker was emitted by the submitted rule/evidence packet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Monte Carlo target-before-breach</p>
+              <p className="mt-2 text-2xl font-semibold text-text-institutional">{typeof propMonteCarlo.target_before_breach_probability === "number" ? fmtPct(propMonteCarlo.target_before_breach_probability * 100) : "Unavailable"}</p>
+              <p className="mt-2 text-xs leading-5 text-text-neutral">{fmt(propMonteCarlo.note)}</p>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Sequence breach probability</p>
+              <p className="mt-2 text-2xl font-semibold text-text-institutional">{typeof propMonteCarlo.breach_before_target_probability === "number" ? fmtPct(propMonteCarlo.breach_before_target_probability * 100) : "Unavailable"}</p>
+              <p className="mt-2 text-xs leading-5 text-text-neutral">P95 max drawdown: {fmtPct(propMonteCarlo.p95_max_total_drawdown_pct)} · P10 ending profit: {fmtCurrency(propMonteCarlo.p10_ending_profit)}</p>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Equity evidence</p>
+              <p className="mt-2 text-sm font-semibold text-text-institutional">{fmt(equityEvidence.quality)}</p>
+              <p className="mt-2 text-xs leading-5 text-text-neutral">{fmt(equityEvidence.note)}</p>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">Broker evidence</p>
+              <p className="mt-2 text-sm font-semibold text-text-institutional">{fmt(brokerEvidence.quality)}</p>
+              <p className="mt-2 text-xs leading-5 text-text-neutral">{fmt(brokerEvidence.note)}</p>
+            </div>
+          </div>
+        </div>
+      </WorkspaceCard>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
         <WorkspaceCard title="Readiness metrics" subtitle="Pass target, drawdown room, daily-loss pressure, and trading-day coverage">
@@ -295,10 +365,54 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
         </WorkspaceCard>
       </div>
 
+      <WorkspaceCard title="Execution-stressed prop survival" subtitle="Whether a small increase in round-trip costs changes the rule outcome">
+        <div className="overflow-hidden rounded-md border border-border-subtle">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-text-neutral">
+              <tr>
+                <th className="px-3 py-2">Scenario</th>
+                <th className="px-3 py-2">Outcome</th>
+                <th className="px-3 py-2">Target progress</th>
+                <th className="px-3 py-2">Ending profit</th>
+                <th className="px-3 py-2">First breach</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stressScenarios.map((scenario) => (
+                <tr key={String(scenario.scenario)} className="border-t border-border-subtle">
+                  <td className="px-3 py-2 font-medium text-text-institutional">{fmt(scenario.scenario)}</td>
+                  <td className={scenario.status === "target_before_breach" ? "px-3 py-2 font-semibold text-chart-positive" : scenario.status === "breach_before_target" ? "px-3 py-2 font-semibold text-chart-negative" : "px-3 py-2 text-text-neutral"}>{fmt(scenario.status)}</td>
+                  <td className="px-3 py-2 text-text-neutral">{fmtPct(scenario.target_progress_pct)}</td>
+                  <td className="px-3 py-2 text-text-neutral">{fmtCurrency(scenario.ending_profit)}</td>
+                  <td className="px-3 py-2 text-text-neutral">{fmt(scenario.first_breach_rule ?? "None")}{scenario.first_breach_day ? ` on ${fmt(scenario.first_breach_day)}` : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </WorkspaceCard>
+
       <WorkspaceCard title="Evaluation windows" subtitle="Where the same submitted path would have passed or failed under the configured challenge window">
         <div className="grid gap-3 lg:grid-cols-2">
           <WindowList title="Target before breach" empty="No rolling window reached the target before breach." windows={targetWindows} />
           <WindowList title="Breach before target" empty="No rolling window breached before reaching target." windows={breachWindows} />
+        </div>
+      </WorkspaceCard>
+
+      <WorkspaceCard title="Improvement targets" subtitle="How far the current path is from a cleaner pass under the configured rules">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["Profit shortfall", fmtCurrency(improvementTargets.profit_shortfall_to_target), "Additional net profit needed to reach the configured target by the end of the submitted path."],
+            ["Total drawdown buffer", fmtPct(improvementTargets.total_drawdown_buffer_pct), "Remaining room before the configured total drawdown limit."],
+            ["Daily loss buffer", fmtPct(improvementTargets.daily_loss_buffer_pct), "Remaining room before the configured daily loss limit."],
+            ["Risk reduction to clear first breach", fmtPct(improvementTargets.risk_reduction_needed_to_clear_first_breach_pct), "Approximate reduction needed for the observed first breach to fall under its rule limit."],
+          ].map(([label, value, helper]) => (
+            <div key={label} className="rounded-md border border-border-subtle bg-surface-subtle p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">{label}</p>
+              <p className="mt-2 text-xl font-semibold text-text-institutional">{value}</p>
+              <p className="mt-2 text-xs leading-5 text-text-neutral">{helper}</p>
+            </div>
+          ))}
         </div>
       </WorkspaceCard>
 

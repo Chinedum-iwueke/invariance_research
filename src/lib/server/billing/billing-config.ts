@@ -13,14 +13,14 @@ export const BILLING_PLAN_CATALOG: PlanCatalogEntry[] = [
     label: "Individual",
     stripe_price_id: process.env.STRIPE_PRICE_INDIVIDUAL ?? process.env.STRIPE_PRICE_PROFESSIONAL ?? "price_individual",
     self_serve_checkout: true,
-    description: "$39/mo launch tier for self-directed traders validating trade histories against prop challenge rules, exports, and core survival diagnostics.",
+    description: "$39/mo launch tier for self-directed traders validating trade histories with exports, core diagnostics, and prop evaluation rules when supplied.",
   },
   {
     id: "pro",
     label: "Pro",
     stripe_price_id: process.env.STRIPE_PRICE_PRO ?? process.env.STRIPE_PRICE_RESEARCH_LAB ?? "price_pro",
     self_serve_checkout: true,
-    description: "$99/mo launch tier for high-volume trade-history validation, saved prop challenge profiles, more share links, optional context ZIPs, and Research Desk request eligibility.",
+    description: "$99/mo launch tier for high-volume trade-history validation, saved prop evaluation profiles, more share links, optional context ZIPs, and Research Desk request eligibility.",
   },
   {
     id: "research_desk",

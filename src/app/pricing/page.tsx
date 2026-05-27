@@ -11,7 +11,7 @@ import { PlanComparisonTable } from "@/components/dashboard/plan-comparison-tabl
 
 export const metadata: Metadata = {
   title: "Pricing | Invariance Research",
-  description: "Launch pricing for trade-history validation, prop challenge feasibility, exports, shares, and Research Desk escalation.",
+  description: "Launch pricing for trade-history validation, core robustness diagnostics, prop evaluation, exports, shares, and Research Desk escalation.",
 };
 
 export default function PricingPage() {
@@ -24,8 +24,8 @@ export default function PricingPage() {
         <section id="hero">
           <PageHero
             eyebrow="Pricing"
-            title="Prop challenge validation plans"
-            description="Start with trade-history validation and prop-rule reconstruction. Upgrade when you need exports, shareable memos, saved challenge profiles, or Research Desk escalation."
+            title="Strategy validation plans"
+            description="Start with trade-history validation. Upgrade when you need exports, shareable memos, saved prop profiles, or Research Desk escalation."
             primaryCta={{ label: "Request Research Desk", href: "/contact" }}
             secondaryCta={{ label: "Explore Lab", href: "/signup" }}
             artifactVariant="lab"
@@ -33,12 +33,12 @@ export default function PricingPage() {
         </section>
 
         <section id="plans" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Launch Plans" description="Self-serve tiers are built around trade CSVs, exchange exports, prop evaluation rules, survival stress, and report sharing. They do not turn weak evidence into stronger proof." />
+          <SectionHeader title="Launch Plans" description="Self-serve tiers are built around trade CSVs, exchange exports, core robustness diagnostics, prop evaluation rules, survival stress, and report sharing. They do not turn weak evidence into stronger proof." />
           <PricingCards />
         </section>
 
         <section id="comparison" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Plan Comparison" description="Capability matrix for the launch wedge: prop challenge truth from submitted trade history." />
+          <SectionHeader title="Plan Comparison" description="Capability matrix for the launch wedge: trade-history validation with prop evaluation as a high-value supported workflow." />
           <PlanComparisonTable />
           <Card className="p-card-md text-sm leading-6 text-text-neutral">
             Research Desk is the escalation path when a trade-history upload cannot honestly support true parameter stability, multi-asset regime attribution, broker-level execution realism, strategy reconstruction, portfolio exposure analysis, or an independent validation memo. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>
@@ -47,8 +47,8 @@ export default function PricingPage() {
 
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
-            title="Start with the narrow truth room"
-            description="Run the trade-history challenge verdict first. Request Research Desk only when missing evidence affects a real deployment, sale, allocation, or evaluation decision."
+            title="Start with the evidence you already have"
+            description="Run the trade-history validation first. Request Research Desk only when missing evidence affects a real deployment, sale, allocation, or evaluation decision."
             primary={{ label: "Sign Up", href: "/signup" }}
             secondary={{ label: "Request Research Desk", href: "/contact" }}
           />

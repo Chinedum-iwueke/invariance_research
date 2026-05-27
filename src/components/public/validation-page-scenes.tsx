@@ -30,7 +30,7 @@ export function LabHeroInstrument() {
         <div className="flex items-start justify-between gap-4 border-b border-border-subtle pb-3">
           <div>
             <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">IR Labs / Active room</p>
-            <h2 className="mt-1 text-xl font-semibold leading-tight text-text-graphite">Prop Challenge Truth Room</h2>
+            <h2 className="mt-1 text-xl font-semibold leading-tight text-text-graphite">Strategy Robustness Lab</h2>
           </div>
           <span className="rounded-full border border-evidence-processing/25 bg-evidence-processing-wash px-2.5 py-1 font-provenance text-[10px] uppercase tracking-[0.1em] text-evidence-processing">
             intake ready
@@ -362,7 +362,7 @@ export function AmbitionBridge() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {[
-        ["Prop Challenge Truth Room", "Upload trade history and receive a grounded challenge verdict."],
+        ["Robustness Lab", "Upload trade history and receive a grounded validation record."],
         ["Report-first", "The report becomes the artifact users share, contest, and request work around."],
         ["Research Desk", "Deeper review and evidence memory support complex validation work."],
       ].map(([title, body], index) => (

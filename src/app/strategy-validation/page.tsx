@@ -87,7 +87,7 @@ export default function StrategyValidationPage() {
             title="Ready for independent review?"
             description="Submit your strategy context for a structured validation engagement."
             primary={{ label: "Request Strategy Audit", href: "/contact" }}
-            secondary={{ label: "Explore Truth Room", href: "/robustness-lab" }}
+            secondary={{ label: "Explore Lab", href: "/robustness-lab" }}
           />
         </section>
       </main>
