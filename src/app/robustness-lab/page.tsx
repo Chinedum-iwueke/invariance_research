@@ -11,8 +11,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { UploadPanel } from "@/components/ui/upload-panel";
 
 export const metadata: Metadata = {
-  title: "Strategy Robustness Lab | Invariance Research",
-  description: "Execution-aware diagnostics platform for testing strategy resilience under realistic market conditions.",
+  title: "Prop Challenge Truth Room | Invariance Research",
+  description: "Trade-history validation for prop-firm feasibility, first breach analysis, execution drag, and survivability stress.",
 };
 
 const DEMO_VIDEO_PATH = "/demo_video.mp4";
@@ -27,11 +27,11 @@ export default function RobustnessLabPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            title="Strategy Robustness Lab"
-            description="Upload a strategy artifact, see what evidence it can support, and turn the claim into a reportable diagnostic record."
+            title="Prop Challenge Truth Room"
+            description="Upload a trade CSV or exchange export, enter the challenge rules, and see whether the strategy reaches target before it breaches daily or total drawdown."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
-            credibilityLine="Fast evidence intake, clear limitations, and a shareable report path."
+            credibilityLine="Trade-history intake, exact rule reconstruction, first-breach evidence, and a shareable report path."
             rightSlot={<LabHeroInstrument />}
           />
         </section>
@@ -40,8 +40,8 @@ export default function RobustnessLabPage() {
           <div className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Working Surface"
-            title="See how evidence moves through the Lab."
-            description="The walkthrough follows the product sequence: intake, eligibility, diagnostics, and report."
+            title="See how a trade history becomes a challenge verdict."
+            description="The walkthrough follows the launch sequence: trade intake, rule entry, first breach, survival stress, and report."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -50,7 +50,7 @@ export default function RobustnessLabPage() {
                   className="h-auto w-full rounded-sm border border-white/10"
                   controls
                   preload="metadata"
-                  aria-label="Strategy Robustness Lab walkthrough demo"
+                  aria-label="Prop Challenge Truth Room walkthrough demo"
                 >
                   <source src={DEMO_VIDEO_PATH} type="video/mp4" />
                   Your browser does not support the demo video.
@@ -71,8 +71,8 @@ export default function RobustnessLabPage() {
         <section id="intake" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Artifact Intake"
-            title="What goes in determines what can be honestly claimed."
-            description="The upload moment is the first trust boundary. Artifact richness determines which diagnostics can produce a strong verdict."
+            title="Trade history first. Everything else is evidence enrichment."
+            description="The launch product is optimized for closed trade logs and exchange/broker exports. Richer files can help, but the self-serve verdict is anchored in the trade path."
           />
           <UploadPanel />
         </section>
@@ -80,8 +80,8 @@ export default function RobustnessLabPage() {
         <section id="console" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Evidence Console"
-            title="Track the investigation from the first click."
-            description="See what has been accepted, what is locked, and what the current evidence can support."
+            title="Track the challenge investigation from the first click."
+            description="See whether prop rules are exact or fallback, which diagnostics are supported, and which claims require Research Desk review."
           />
           <LabEvidenceConsole />
         </section>
@@ -95,9 +95,9 @@ export default function RobustnessLabPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {[
               [
-                "Diagnostics Workspace",
-                "Surface fragility, degradation, and core performance structure across the uploaded strategy profile.",
-                "Decision value: determines whether baseline behavior is stable enough to proceed.",
+                "Prop Evaluation Workspace",
+                "Identify the first breach rule, target progress, rolling pass/fail windows, and challenge readiness under the selected rule sheet.",
+                "Decision value: determines whether the strategy is worth attempting on a funded-account evaluation.",
               ],
               [
                 "Monte Carlo / Risk of Ruin",
@@ -105,9 +105,9 @@ export default function RobustnessLabPage() {
                 "Decision value: sets capital-risk boundaries and stop/go thresholds.",
               ],
               [
-                "What full validation includes",
-                "Advanced diagnostics such as parameter stability and regime analysis are delivered inside structured audits.",
-                "Decision value: confirms whether edge quality remains durable under deeper institutional review.",
+                "What automation refuses to overclaim",
+                "Parameter stability, regime attribution, broker microstructure, reconstruction, and portfolio exposure are routed to Research Desk when evidence is insufficient.",
+                "Decision value: prevents a trade-history upload from pretending to prove what it cannot prove.",
               ],
               [
                 "Validation Report",
@@ -135,8 +135,8 @@ export default function RobustnessLabPage() {
 
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
-            title="Move from diagnostics to a clear deployment decision"
-            description="Start with free diagnostics, then request a structured audit for decision-grade validation depth."
+            title="Know before you pay for the challenge"
+            description="Start with the trade-history truth room, then request Research Desk only when the missing evidence affects a real deployment, sale, or evaluation decision."
             primary={{ label: "Sign up for free", href: "/signup" }}
             secondary={{ label: "Request Validation Audit", href: "/contact" }}
           />

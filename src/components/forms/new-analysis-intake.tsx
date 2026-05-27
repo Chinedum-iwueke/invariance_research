@@ -34,11 +34,11 @@ type IntakeState =
 
 const MAX_BROWSER_UPLOAD_BYTES = 250 * 1024 * 1024;
 const CLAIM_PRESETS = [
+  "Can reach target before max drawdown breach",
+  "Can survive daily loss rules",
   "Profitable after realistic costs",
-  "Robust enough for live deployment",
-  "Prop-firm evaluation ready",
-  "Not dependent on one favorable regime",
-  "Investor or buyer ready",
+  "Not dependent on one rare winning trade",
+  "Ready for a funded-account challenge",
 ] as const;
 
 export function NewAnalysisIntake() {
@@ -73,7 +73,7 @@ export function NewAnalysisIntake() {
     setApiErrorCode(null);
     const extension = fileToInspect.name.split(".").pop()?.toLowerCase();
     if (!extension || !["csv", "zip"].includes(extension)) {
-      setClientError("Unsupported file type. Please upload a trade CSV or structured bundle ZIP.");
+      setClientError("Unsupported file type. Please upload a trade CSV, exchange export CSV, or optional context ZIP.");
       return;
     }
     if (fileToInspect.size <= 0) {
@@ -231,26 +231,26 @@ export function NewAnalysisIntake() {
 
   return (
     <div className="space-y-4">
-      <WorkspaceCard title="Upload research artifact" subtitle="Trade CSV or structured bundle ZIP">
+      <WorkspaceCard title="Upload trade history" subtitle="Step 1: trade CSV, exchange export, or optional context ZIP">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-text-neutral">Use a trade CSV for a quick read, or a research bundle ZIP for the strongest automated diagnostic coverage.</p>
+          <p className="text-xs text-text-neutral">The launch workflow is trade-history first. Optional ZIP files add context; they do not turn incomplete evidence into regime, parameter, broker, or portfolio proof.</p>
           <div className="flex flex-wrap gap-2">
-            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className={buttonVariants({ variant: "secondary", size: "sm" })}>Download Reference Bundle</Link>
+            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className={buttonVariants({ variant: "secondary", size: "sm" })}>Download Context ZIP Reference</Link>
             <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>
           </div>
         </div>
         <div className="mb-4 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
           <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
             <p className="font-semibold text-text-institutional">Trade CSV</p>
-            <p className="mt-1">Fast baseline validation from closed trades.</p>
+            <p className="mt-1">Closed trades are the core launch artifact.</p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
-            <p className="font-semibold text-text-institutional">Rich CSV</p>
-            <p className="mt-1">Add fees, MAE/MFE, risk, and R fields for stronger diagnostics.</p>
+            <p className="font-semibold text-text-institutional">Exchange export</p>
+            <p className="mt-1">Accepted when it normalizes to a closed trade ledger.</p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
-            <p className="font-semibold text-text-institutional">Research ZIP</p>
-            <p className="mt-1">Add manifest, OHLCV, broker export, claims, and parameter sweep files.</p>
+            <p className="font-semibold text-text-institutional">Context ZIP</p>
+            <p className="mt-1">Adds provenance and review context without overclaiming proof.</p>
           </div>
         </div>
         <div
@@ -270,8 +270,8 @@ export function NewAnalysisIntake() {
           }}
         >
           <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Intake gate</p>
-          <p className="mt-2 text-sm font-medium">Submit artifact into validation intake</p>
-          <p className="mt-1 text-xs text-text-neutral">Accepted: .csv (trade history), .zip (Bundle Manifest v1)</p>
+          <p className="mt-2 text-sm font-medium">Submit trade history for challenge validation</p>
+          <p className="mt-1 text-xs text-text-neutral">Accepted: .csv trade history or exchange export; .zip context bundle</p>
           <input
             ref={fileInputRef}
             className="mt-4 block w-full text-xs file:mr-3 file:rounded-sm file:border-0 file:bg-brand file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-research-red-hover"
@@ -285,7 +285,7 @@ export function NewAnalysisIntake() {
           <p className="mt-2 text-xs text-text-neutral">
             <Link href="/docs/lab" className="underline underline-offset-2 hover:text-text-graphite">What files are accepted?</Link>
             <span className="mx-2 text-border">|</span>
-            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className="underline underline-offset-2 hover:text-text-graphite">Download a format reference ZIP</Link>
+            <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className="underline underline-offset-2 hover:text-text-graphite">Download a context ZIP reference</Link>
           </p>
           {file ? (
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-neutral">
@@ -307,7 +307,7 @@ export function NewAnalysisIntake() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <WorkspaceCard title="Analysis orchestration" subtitle="Step 2: choose benchmark/runtime options, then run analysis">
+          <WorkspaceCard title="Challenge setup" subtitle="Step 2: declare rules, claims, benchmark, and sizing assumptions">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1 md:col-span-2">
                 <span className="text-sm font-medium text-text-institutional">Strategy name</span>
@@ -350,7 +350,7 @@ export function NewAnalysisIntake() {
                   className="min-h-10 flex-1 rounded-md border border-border-subtle bg-surface-white px-3 py-2 text-sm text-text-graphite shadow-sm"
                   type="text"
                   maxLength={280}
-                  placeholder="e.g., This strategy can survive a 5 bps slippage increase."
+                    placeholder="e.g., This strategy can reach an 8% target before a 10% total drawdown breach."
                   value={claimDraft}
                   onChange={(event) => setClaimDraft(event.target.value)}
                   onKeyDown={(event) => {
@@ -408,7 +408,7 @@ export function NewAnalysisIntake() {
                   checked={useCustomPropRules}
                   onChange={(event) => setUseCustomPropRules(event.target.checked)}
                 />
-                Add prop evaluation rules for this run
+                Enter exact prop challenge rules for this run
               </label>
               {useCustomPropRules ? (
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -431,7 +431,7 @@ export function NewAnalysisIntake() {
                   <NumberField label="Max single-day profit share (%)" value={propConsistencyMaxDayPct} onChange={setPropConsistencyMaxDayPct} />
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-text-neutral">Default fallback rules will be used, and you can replace them from the Prop Evaluation tab after the run.</p>
+                <p className="mt-2 text-xs text-text-neutral">Fallback rules are only a preview. Exact rules are required for decision-grade prop evaluation, first-breach timing, and rolling pass/fail windows.</p>
               )}
             </div>
             {benchmarkSelection.mode === "auto" && (
@@ -458,8 +458,8 @@ export function NewAnalysisIntake() {
               <DiagnosticLockPanel
                 model={buildDiagnosticLockModel({
                   state: "plan_locked",
-                  diagnosticTitle: "Advanced Artifact Upload",
-                  diagnosticPurpose: "Upload structured or research bundles to unlock richer eligibility and diagnostics.",
+                  diagnosticTitle: "Context ZIP Upload",
+                  diagnosticPurpose: "Upload optional context bundles for stronger provenance and Research Desk packet quality.",
                   requiredPlan: "Individual",
                 })}
               />

@@ -5,8 +5,8 @@ import { PublicShell } from "@/components/public/public-shell";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Strategy Robustness Lab Docs",
-  description: "Canonical upload specification for Strategy Robustness Lab artifacts, fields, aliases, and runtime assumptions.",
+  title: "Prop Challenge Truth Room Upload Docs",
+  description: "Canonical upload specification for trade CSVs, exchange exports, optional context ZIPs, prop challenge rules, and runtime assumptions.",
 };
 
 const requiredFields = [
@@ -54,25 +54,25 @@ const referenceBundleHref = "/downloads/strategy-truth-room-research-bundle-refe
 
 const evidencePackages = [
   {
-    tier: "Fastest baseline",
-    name: "Trade CSV",
+    tier: "Minimum launch path",
+    name: "Trade CSV / exchange export",
     files: "trades.csv only",
-    unlocks: "Overview, distribution, Monte Carlo, ruin, report.",
-    limits: "Execution, regime, and stability conclusions remain limited by missing context.",
+    unlocks: "Prop evaluation preview, first breach, rolling windows, overview, distribution, Monte Carlo, ruin, and report preview/export by plan.",
+    limits: "Decision-grade prop evaluation requires exact challenge rules. Broker realism remains limited without execution evidence.",
   },
   {
-    tier: "Recommended start",
-    name: "Rich Trade CSV",
-    files: "trades.csv with PnL, fees, MAE/MFE, risk fields, R-multiple fields.",
-    unlocks: "Stronger trade distribution, excursion, sizing, and survivability interpretation.",
-    limits: "Still cannot prove parameter stability or regime dependence without separate sweep/context files.",
+    tier: "Best self-serve path",
+    name: "Rich trade CSV + exact prop rules",
+    files: "trades.csv with PnL, fees, MAE/MFE, risk fields, R-multiple fields, plus runtime challenge rules.",
+    unlocks: "Decision-grade automated prop challenge reconstruction, cleaner first-breach timing, target-before-breach windows, and stronger survivability interpretation.",
+    limits: "Still does not prove true parameter stability, multi-asset regime attribution, or broker-level microstructure realism.",
   },
   {
-    tier: "Best automated upload",
-    name: "Research Bundle ZIP",
-    files: "manifest.json, trades.csv, assumptions, OHLCV, broker export, benchmark, claims, parameter sweep files.",
-    unlocks: "Full automated eligibility when the files are aligned and internally consistent.",
-    limits: "Broker-level execution realism, portfolio attribution, and independent memos can still require Research Desk review.",
+    tier: "Optional enrichment",
+    name: "Context ZIP",
+    files: "manifest.json, trades.csv, equity curve, assumptions, broker export, benchmark, claims, and provenance files.",
+    unlocks: "Stronger context, provenance, report quality, and Research Desk packet quality.",
+    limits: "Context ZIPs do not convert incomplete evidence into automated regime, parameter, broker, portfolio, or independent validation proof.",
   },
 ] as const;
 
@@ -119,15 +119,15 @@ export default function LabDocsPage() {
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-12 lg:px-10">
       <section className="public-hero-band space-y-4 rounded-sm border border-border-subtle p-8">
         <div className="h-1 w-20 rounded-full bg-brand" />
-        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Canonical Upload Specification</p>
-        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Strategy Robustness Lab Docs</h1>
-        <p className="text-base text-text-neutral">Accepted upload formats, supported fields, runtime assumptions, and what each artifact unlocks.</p>
+        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Prop Challenge Upload Specification</p>
+        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Prop Challenge Truth Room Upload Docs</h1>
+        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop challenge rules, runtime assumptions, and what each input unlocks.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
-          The lab can analyze multiple artifact classes, but richer uploads unlock deeper diagnostics and stronger interpretation fidelity. Treat this page as the canonical upload and runtime specification for Strategy Robustness Lab.
+          The launch product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact challenge rules. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <Link href={referenceBundleHref} className={buttonVariants({ variant: "primary" })}>
-            Download Reference Bundle
+            Download Context ZIP Reference
           </Link>
           <Link href="#bundle-layout" className={cn(buttonVariants({ variant: "secondary" }))}>
             View Bundle Layout
@@ -141,20 +141,20 @@ export default function LabDocsPage() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[{
           label: "Minimum",
-          value: "Trade CSV",
-          detail: "Canonical core trade fields only",
+          value: "Trade CSV / exchange export",
+          detail: "Closed trades normalized into one ledger",
         }, {
           label: "Recommended",
-          value: "Rich trade CSV",
-          detail: "Add MAE/MFE + risk + R fields",
+          value: "Rich trade CSV + exact rules",
+          detail: "Add fees, MAE/MFE, risk, R fields, and challenge rules",
         }, {
-          label: "Richest accepted",
+          label: "Optional context",
           value: "bundle_v1 ZIP",
-          detail: "trades + metadata + assumptions + params + optional OHLCV",
+          detail: "trades + metadata + assumptions + provenance",
         }, {
           label: "Runtime assumptions",
-          value: "Benchmark + account size + risk %",
-          detail: "Set before running analysis",
+          value: "Prop rules + account size + benchmark",
+          detail: "Set before running analysis for decision-grade context",
         }].map((item) => (
           <article key={item.label} className="artifact-surface p-4">
             <p className="font-provenance text-xs uppercase tracking-wide text-brand">{item.label}</p>
@@ -169,7 +169,7 @@ export default function LabDocsPage() {
           <p className="font-provenance text-xs uppercase tracking-wide text-brand">Evidence package guide</p>
           <h2 className="mt-2 text-xl font-semibold text-text-institutional">Choose the Upload That Matches the Question</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
-            The Lab does not treat every upload as equally evidentiary. Start with a trade CSV for a quick read, use a rich trade CSV for better risk context, and use a research bundle when you want the strongest automated validation path.
+            The Lab does not treat every upload as equally evidentiary. Start with a trade CSV or exchange export, use a rich trade CSV plus exact rules for the strongest self-serve result, and use a context ZIP when you want better provenance or Research Desk handoff quality.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -197,10 +197,10 @@ export default function LabDocsPage() {
         <div className="rounded-md border border-brand/25 bg-brand/5 p-4">
           <h3 className="text-sm font-semibold text-text-institutional">Reference bundle</h3>
           <p className="mt-1 text-sm leading-6 text-text-neutral">
-            Download the reference ZIP to see the exact file names, root-level layout, manifest roles, multi-symbol OHLCV shape, broker export shape, claim format, and parameter sweep files the app can inspect today. The values are synthetic and intended as a format guide.
+            Download the reference ZIP to see the exact file names, root-level layout, manifest roles, broker export shape, claim format, benchmark context, and optional research-only files the app can inspect today. The values are synthetic and intended as a format guide.
           </p>
           <Link href={referenceBundleHref} className={cn(buttonVariants({ variant: "primary", size: "sm" }), "mt-3")}>
-            Download Research Bundle Reference
+            Download Context ZIP Reference
           </Link>
         </div>
       </section>
@@ -212,21 +212,21 @@ export default function LabDocsPage() {
             <h3 className="text-sm font-semibold text-text-institutional">Trade CSV</h3>
             <p className="mt-2 text-xs text-text-neutral">Extension: <span className="font-mono">.csv</span></p>
             <p className="mt-2 text-sm text-text-neutral">Closed trades table resolved through canonical field aliases.</p>
-            <p className="mt-2 text-xs text-text-neutral">Unlocks: overview, distribution, monte carlo, ruin, report (execution/regimes may be limited).</p>
-            <p className="mt-2 text-xs text-text-neutral">For: fastest baseline validation intake.</p>
+            <p className="mt-2 text-xs text-text-neutral">Unlocks: prop evaluation preview, first breach, rolling windows, overview, distribution, monte carlo, ruin, report.</p>
+            <p className="mt-2 text-xs text-text-neutral">For: fastest launch validation intake.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
-            <h3 className="text-sm font-semibold text-text-institutional">Structured bundle (bundle_v1)</h3>
+            <h3 className="text-sm font-semibold text-text-institutional">Context bundle (bundle_v1)</h3>
             <p className="mt-2 text-xs text-text-neutral">Extension: <span className="font-mono">.zip</span></p>
-            <p className="mt-2 text-sm text-text-neutral">ZIP with required <span className="font-mono">manifest.json</span> + <span className="font-mono">trades.csv</span>; optional metadata/assumptions/params/OHLCV files.</p>
-            <p className="mt-2 text-xs text-text-neutral">Unlocks: richer eligibility and context-aware diagnostics.</p>
-            <p className="mt-2 text-xs text-text-neutral">For: institutional upload workflows and reproducibility.</p>
+            <p className="mt-2 text-sm text-text-neutral">ZIP with required <span className="font-mono">manifest.json</span> + <span className="font-mono">trades.csv</span>; optional metadata, assumptions, equity curve, broker export, benchmark, and claims.</p>
+            <p className="mt-2 text-xs text-text-neutral">Unlocks: richer provenance, assumptions, execution context, and report quality where evidence supports it.</p>
+            <p className="mt-2 text-xs text-text-neutral">For: users who want a cleaner audit packet without overclaiming advanced proof.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
-            <h3 className="text-sm font-semibold text-text-institutional">Research bundle profile</h3>
+            <h3 className="text-sm font-semibold text-text-institutional">Research Desk packet profile</h3>
             <p className="mt-2 text-xs text-text-neutral">Container: <span className="font-mono">bundle_v1</span> with <span className="font-mono">artifact_type: research_bundle</span></p>
             <p className="mt-2 text-sm text-text-neutral">Not a separate parser route; this is a manifest-level artifact profile under bundle_v1.</p>
-            <p className="mt-2 text-xs text-text-neutral">Unlocks: strongest automated context for core diagnostics; true parameter stability, portfolio attribution, and broker-level realism route to Research Desk for launch.</p>
+            <p className="mt-2 text-xs text-text-neutral">Unlocks: stronger packet quality for reviewer handoff. True parameter stability, portfolio attribution, and broker-level realism route to Research Desk for launch.</p>
             <p className="mt-2 text-xs text-text-neutral">For: users supplying full contextual artifacts before deeper review.</p>
           </article>
         </div>
@@ -235,9 +235,9 @@ export default function LabDocsPage() {
       <section className="space-y-5 rounded-md border border-border-subtle bg-surface-white p-8">
         <div>
           <p className="font-provenance text-xs uppercase tracking-wide text-brand">Bundle Manifest v1</p>
-          <h2 className="mt-2 text-xl font-semibold text-text-institutional">Structured ZIP Bundle Layout</h2>
+          <h2 className="mt-2 text-xl font-semibold text-text-institutional">Optional Context ZIP Bundle Layout</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
-            Upload a root-level ZIP package when you want the Lab to read more than a trade table. The parser currently requires <span className="font-mono">manifest.json</span> and <span className="font-mono">trades.csv</span>. Other files improve eligibility, diagnostic confidence, provenance, or Research Desk packet quality.
+            Upload a root-level ZIP package when you want the Lab to read more than a trade table. The parser currently requires <span className="font-mono">manifest.json</span> and <span className="font-mono">trades.csv</span>. Other files improve prop-rule context, diagnostic confidence, provenance, or Research Desk packet quality.
           </p>
         </div>
 
@@ -270,7 +270,7 @@ export default function LabDocsPage() {
         <div className="rounded-md border border-amber-500/25 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
           <p className="font-semibold">Current parser boundary</p>
           <p className="mt-1">
-            <span className="font-mono">metadata.json</span>, <span className="font-mono">assumptions.json</span>, <span className="font-mono">params.json</span>, <span className="font-mono">ohlcv.csv</span>, <span className="font-mono">benchmark.csv</span>, <span className="font-mono">broker_export.csv</span>, and <span className="font-mono">declared_claims.json</span> are parsed today. <span className="font-mono">ohlcv.parquet</span>, <span className="font-mono">strategy_config.json</span>, and <span className="font-mono">backtest_report.json</span> are recognized for manifest/provenance and future deeper parsing.
+            <span className="font-mono">metadata.json</span>, <span className="font-mono">assumptions.json</span>, <span className="font-mono">params.json</span>, <span className="font-mono">ohlcv.csv</span>, <span className="font-mono">benchmark.csv</span>, <span className="font-mono">broker_export.csv</span>, and <span className="font-mono">declared_claims.json</span> are parsed today for context and packet quality. <span className="font-mono">ohlcv.parquet</span>, <span className="font-mono">strategy_config.json</span>, and <span className="font-mono">backtest_report.json</span> are recognized for manifest/provenance and future deeper parsing.
           </p>
         </div>
 
@@ -282,18 +282,18 @@ export default function LabDocsPage() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Recommended ZIP tree</h3>
-          <CodeBlock>{`research_bundle.zip
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Recommended context ZIP tree</h3>
+          <CodeBlock>{`context_bundle.zip
   manifest.json
   trades.csv
   metadata.json
   assumptions.json
-  params.json
-  ohlcv.csv
   benchmark.csv
   broker_export.csv
   equity_curve.csv
   declared_claims.json
+  params.json
+  ohlcv.csv
   strategy_config.json
   backtest_report.json
   parameter_results.csv
@@ -332,7 +332,7 @@ export default function LabDocsPage() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Research-complete manifest.json</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Research Desk manifest.json</h3>
           <CodeBlock>{`{
   "schema_version": "1.0",
   "bundle_type": "strategy_truth_room_bundle_v1",
@@ -416,10 +416,11 @@ export default function LabDocsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              <tr><td className="px-4 py-3 font-medium">Core trade fields</td><td className="px-4 py-3 text-text-neutral">Overview, Distribution, Monte Carlo, Ruin, Report available.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Core trade fields</td><td className="px-4 py-3 text-text-neutral">Prop evaluation baseline, first breach, rolling windows, Overview, Distribution, Monte Carlo, Ruin, and Report available.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Exact prop challenge rules</td><td className="px-4 py-3 text-text-neutral">Decision-grade target-before-breach, daily-loss breach, total-drawdown breach, and rule-status interpretation.</td></tr>
               <tr><td className="px-4 py-3 font-medium">MAE/MFE</td><td className="px-4 py-3 text-text-neutral">Improved excursion interpretation and richer distribution context.</td></tr>
               <tr><td className="px-4 py-3 font-medium">risk_amount / stop_distance / R-multiples</td><td className="px-4 py-3 text-text-neutral">Stronger execution-quality framing and risk translation.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Execution diagnostic can move from limited to available.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Documents declared cost, slippage, and execution assumptions so the report can separate evidence from assumptions.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle params.json</td><td className="px-4 py-3 text-text-neutral">Improves baseline parameter context, but does not prove stability on its own.</td></tr>
               <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Research Desk packet quality for Parameter Stability. Automated launch reports do not claim true stability from upload alone.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Research Desk packet quality. Automated launch reports do not claim multi-asset regime attribution from upload alone.</td></tr>
@@ -474,7 +475,7 @@ export default function LabDocsPage() {
         </div>
 
         <div className="space-y-3 rounded-md border border-border-subtle bg-surface-subtle p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">true parameter stability bundle</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-neutral">Research Desk parameter sweep packet</h3>
           <p className="text-sm leading-6 text-text-neutral">
             A single <span className="font-mono">params.json</span> describes one parameter set. It does not prove stability. A true parameter-stability submission needs multiple runs across nearby parameter combinations, explicit run IDs, per-run outcomes, and a mapping from every run to its parameters. Include per-run trade files under <span className="font-mono">runs/</span> when available so reviewers can audit whether the sweep changed only parameters or also changed the trading universe, date range, cost model, or execution rules.
           </p>
@@ -555,8 +556,8 @@ run_manifest.json
         <h2 className="text-xl font-semibold text-text-institutional">Runtime Assumptions You Can Set</h2>
         <div className="grid gap-3 md:grid-cols-3">
           <article className="rounded-md border border-border-subtle p-4">
-            <h3 className="text-sm font-semibold text-text-institutional">Benchmark</h3>
-            <p className="mt-2 text-xs text-text-neutral">Optional but recommended for relative performance framing. Used to configure benchmark comparison diagnostics.</p>
+            <h3 className="text-sm font-semibold text-text-institutional">Exact prop rules</h3>
+            <p className="mt-2 text-xs text-text-neutral">Recommended for launch. Used to compute first breach, target progress, rolling challenge windows, and rule-status truth.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
             <h3 className="text-sm font-semibold text-text-institutional">Account size</h3>
@@ -565,6 +566,10 @@ run_manifest.json
           <article className="rounded-md border border-border-subtle p-4">
             <h3 className="text-sm font-semibold text-text-institutional">Risk per trade %</h3>
             <p className="mt-2 text-xs text-text-neutral">Optional positive percent. Used in sizing-aware ruin/survivability interpretation.</p>
+          </article>
+          <article className="rounded-md border border-border-subtle p-4">
+            <h3 className="text-sm font-semibold text-text-institutional">Benchmark</h3>
+            <p className="mt-2 text-xs text-text-neutral">Optional but useful for relative performance framing when benchmark data is available.</p>
           </article>
         </div>
         <p className="text-xs text-text-neutral">Runtime assumptions enrich interpretation; they do not replace missing trade-level fields.</p>
@@ -596,7 +601,7 @@ run_manifest.json
           <li>• Include MAE/MFE whenever available.</li>
           <li>• Include risk_amount and/or R-multiples for stronger risk diagnostics.</li>
           <li>• Set benchmark, account size, and risk per trade % for decision-grade survivability interpretation.</li>
-          <li>• Keep one strategy per upload unless your bundle is explicitly structured for multi-run parameter analysis.</li>
+          <li>• Keep one strategy per upload for launch self-serve. Use Research Desk for multi-run parameter sweeps or portfolio-level review.</li>
           <li>• For multi-asset OHLCV, include every traded symbol for the full trade window with exact symbol matching and one timestamp convention.</li>
         </ul>
       </section>
@@ -606,7 +611,7 @@ run_manifest.json
         <ul className="space-y-2 text-sm text-text-neutral">
           <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>. Server-side size limits are enforced by account plan; the public client blocks oversized files before upload.</li>
           <li>• Upload inspection, analysis creation, exports, sharing, and Research Desk requests are protected by route-level rate limits.</li>
-          <li>• Artifact kinds are currently limited to trade CSV and bundle_v1.</li>
+          <li>• Artifact kinds are currently limited to trade CSV, exchange-export-like CSVs that normalize to trades, and bundle_v1 context ZIPs.</li>
           <li>• Parameter Stability is a Research Desk scope for launch. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
           <li>• Regime attribution is a Research Desk scope for launch. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>
           <li>• Execution diagnostics can remain limited without richer assumptions/context artifacts. Broker-level realism requires broker fills, fee/spread evidence, and often Research Desk review.</li>

@@ -21,13 +21,13 @@ export default async function UpgradePage() {
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Individual" subtitle="$39/mo">
-          <p className="text-sm text-text-neutral">Trade CSV and basic bundles, full exports, core diagnostics, and one custom prop evaluation profile per analysis.</p>
+          <p className="text-sm text-text-neutral">Trade CSV or exchange export validation, optional context ZIPs, full exports, core diagnostics, and exact prop rules per analysis.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="individual" />
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Pro" subtitle="$99/mo">
-          <p className="text-sm text-text-neutral">Higher analysis capacity, research bundle upload, saved prop profiles, more shares, and Research Desk request eligibility.</p>
+          <p className="text-sm text-text-neutral">Higher trade-history validation capacity, saved prop challenge profiles, more shares, richer report appendices, and Research Desk request eligibility.</p>
           <div className="pt-3">
             <PlanAction currentPlan={currentPlan} targetPlan="pro" />
           </div>

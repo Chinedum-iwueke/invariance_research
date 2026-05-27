@@ -69,7 +69,7 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
         <div className="flex h-full flex-col px-4 py-6">
           <Link href="/app" className="mb-7 block rounded-sm border border-border-subtle bg-surface-white px-3 py-3 text-sm font-semibold tracking-wide text-text-institutional">
             <span className="font-provenance block text-[10px] uppercase tracking-[0.14em] text-research-red">IR Labs</span>
-            <span>Strategy Robustness Lab</span>
+            <span>Prop Challenge Truth Room</span>
           </Link>
           <div className="space-y-7 overflow-y-auto pb-4">
             {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} /> : null}
@@ -87,7 +87,7 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
         <div className="fixed inset-0 z-[60] bg-black/20 lg:hidden" onClick={() => setOpen(false)}>
           <aside className="h-full w-80 border-r bg-surface-white p-4" onClick={(e) => e.stopPropagation()}>
             <Link href="/app" className="mb-6 block px-3 text-sm font-semibold tracking-wide" onClick={() => setOpen(false)}>
-              Strategy Robustness Lab
+              Prop Challenge Truth Room
             </Link>
             <div className="space-y-6">
               {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} onNavigate={() => setOpen(false)} /> : null}

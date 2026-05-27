@@ -96,13 +96,13 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               Put the strategy claim on trial.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-text-neutral md:text-xl md:leading-8">
-              Invariance Research turns backtests, assumptions, and diagnostic evidence into a shareable record of what survives realistic market pressure.
+              Invariance Research turns trade history and challenge rules into a shareable record of what survives realistic prop-firm pressure.
             </p>
           </div>
 
           <div className="mobile-cta-row max-w-[22rem] sm:max-w-none">
             <Button asChild className="max-w-full">
-              <Link href="/robustness-lab">Enter the Robustness Lab</Link>
+              <Link href="/robustness-lab">Enter the Truth Room</Link>
             </Button>
             <Button asChild variant="secondary" className="max-w-full">
               <Link href="/strategy-validation">See validation method</Link>
@@ -110,7 +110,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
           </div>
 
           <div className="grid max-w-2xl gap-2 border-l border-border-strong pl-4 text-sm text-text-neutral sm:grid-cols-3">
-            {["Execution friction", "Regime sensitivity", "Shareable report"].map((item) => (
+            {["First breach", "Target before drawdown", "Shareable report"].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-brand" />
                 {item}
@@ -179,7 +179,7 @@ export function EvidenceDocketShowcase() {
             <div className="flex items-center justify-between border-b border-border-subtle pb-3">
               <div>
                 <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Live evidence docket</p>
-                <p className="mt-1 text-sm text-text-neutral">Strategy Robustness Lab preview</p>
+                <p className="mt-1 text-sm text-text-neutral">Prop Challenge Truth Room preview</p>
               </div>
               <div className="font-provenance text-right">
                 <p className="text-3xl leading-none text-text-institutional">{active.score}</p>
