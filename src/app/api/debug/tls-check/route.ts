@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
 import https from "https";
 
+type TestResult = {
+  statusCode?: number;
+  statusMessage?: string;
+  elapsed_ms: number;
+  headers?: Record<string, string | undefined>;
+  success: boolean;
+  error?: Record<string, unknown>;
+};
+
+type ApiResponse = {
+  timestamp: string;
+  nodeVersion: string;
+  env: Record<string, string>;
+  tests: Record<string, TestResult>;
+};
+
 export async function GET() {
-  const testUrls = ["https://accounts.google.com", "https://oauth2.googleapis.com"];
-  const results: Record<string, any> = {
+  const testUrls = ["https://accounts.google.com", "https://oauth2.googleapis.com"] as const;
+  const results: ApiResponse = {
     timestamp: new Date().toISOString(),
     nodeVersion: process.version,
     env: {
@@ -13,7 +29,7 @@ export async function GET() {
       HTTPS_PROXY: process.env.HTTPS_PROXY || "(not set)",
       HTTP_PROXY: process.env.HTTP_PROXY || "(not set)",
     },
-    tests: {} as Record<string, any>,
+    tests: {},
   };
 
   for (const url of testUrls) {
@@ -23,17 +39,17 @@ export async function GET() {
   return NextResponse.json(results);
 }
 
-async function testHttpsConnection(url: string): Promise<any> {
+async function testHttpsConnection(url: string): Promise<TestResult> {
   return new Promise((resolve) => {
     const startTime = Date.now();
     const req = https.get(url, (res) => {
       resolve({
         statusCode: res.statusCode,
-        statusMessage: res.statusMessage,
+        statusMessage: res.statusMessage ?? undefined,
         elapsed_ms: Date.now() - startTime,
         headers: {
-          "content-type": res.headers["content-type"],
-          "server": res.headers["server"],
+          "content-type": (res.headers["content-type"] as string) || undefined,
+          "server": (res.headers["server"] as string) || undefined,
         },
         success: true,
       });
@@ -41,7 +57,7 @@ async function testHttpsConnection(url: string): Promise<any> {
       res.on("end", () => {});
     });
 
-    req.on("error", (e: any) => {
+    req.on("error", (e: NodeJS.ErrnoException) => {
       resolve({
         success: false,
         elapsed_ms: Date.now() - startTime,
