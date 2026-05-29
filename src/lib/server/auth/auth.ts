@@ -89,17 +89,24 @@ export const authConfig: NextAuthConfig = {
         user.session_version = provisioned.user.session_version ?? 0;
         return true;
       } catch (error) {
-        const errorDetails = error instanceof Error ? {
-          message: error.message,
-          code: (error as any).code,
-          errno: (error as any).errno,
-          syscall: (error as any).syscall,
-          stack: error.stack,
-          fullError: error.toString(),
-        } : {
-          type: typeof error,
-          value: error,
+        const systemError = error as NodeJS.ErrnoException | Error;
+        const errorDetails: Record<string, unknown> = {
+          message: systemError instanceof Error ? systemError.message : String(error),
         };
+        
+        if (systemError instanceof Error && "code" in systemError) {
+          errorDetails.code = systemError.code;
+        }
+        if (systemError instanceof Error && "errno" in systemError) {
+          errorDetails.errno = systemError.errno;
+        }
+        if (systemError instanceof Error && "syscall" in systemError) {
+          errorDetails.syscall = systemError.syscall;
+        }
+        if (systemError instanceof Error) {
+          errorDetails.stack = systemError.stack;
+        }
+        
         logger.error("oauth.user.provision_failed", {
           provider: "google",
           email: user.email,

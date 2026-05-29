@@ -58,16 +58,16 @@ async function testHttpsConnection(url: string): Promise<TestResult> {
     });
 
     req.on("error", (e: NodeJS.ErrnoException) => {
+      const errorDetails: Record<string, unknown> = {
+        message: e.message,
+      };
+      if (e.code) errorDetails.code = e.code;
+      if (e.errno) errorDetails.errno = e.errno;
+      if (e.syscall) errorDetails.syscall = e.syscall;
       resolve({
         success: false,
         elapsed_ms: Date.now() - startTime,
-        error: {
-          message: e.message,
-          code: e.code,
-          errno: e.errno,
-          syscall: e.syscall,
-          hostname: e.hostname,
-        },
+        error: errorDetails,
       });
     });
 
