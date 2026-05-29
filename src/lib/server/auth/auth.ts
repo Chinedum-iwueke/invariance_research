@@ -89,10 +89,21 @@ export const authConfig: NextAuthConfig = {
         user.session_version = provisioned.user.session_version ?? 0;
         return true;
       } catch (error) {
+        const errorDetails = error instanceof Error ? {
+          message: error.message,
+          code: (error as any).code,
+          errno: (error as any).errno,
+          syscall: (error as any).syscall,
+          stack: error.stack,
+          fullError: error.toString(),
+        } : {
+          type: typeof error,
+          value: error,
+        };
         logger.error("oauth.user.provision_failed", {
           provider: "google",
           email: user.email,
-          error: error instanceof Error ? error.message : "unknown_error",
+          ...errorDetails,
         });
         return "/login?error=OAuthProvisioning";
       }

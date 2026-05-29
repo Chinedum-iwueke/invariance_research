@@ -314,8 +314,20 @@ function buildStressScenarios(rows: DailyPnlRow[], rules: NormalizedRules) {
       scenario: bps === 0 ? "baseline" : `+${bps} bps round-trip cost`,
       bps_per_round_trip: bps,
       status,
+      decisive_event: status === "target_before_breach"
+        ? "target_reached_first"
+        : status === "breach_before_target"
+          ? "breach_happened_first"
+          : "unresolved",
+      decisive_day: status === "target_before_breach"
+        ? outcome.path.firstTargetHit?.day ?? null
+        : outcome.firstBreach?.day ?? null,
+      target_hit_day: outcome.path.firstTargetHit?.day ?? null,
+      target_hit_profit: outcome.path.firstTargetHit?.cumulative_profit ?? null,
+      target_hit_profit_pct: outcome.path.firstTargetHit?.observed_pct ?? null,
       ending_profit: Number(endingProfit.toFixed(2)),
-      target_progress_pct: pct(targetProfit > 0 ? endingProfit / targetProfit : 0),
+      ending_target_progress_pct: pct(targetProfit > 0 ? endingProfit / targetProfit : 0),
+      peak_target_progress_pct: pct(targetProfit > 0 ? outcome.path.peakProfit / targetProfit : 0),
       first_breach_rule: outcome.firstBreach?.rule ?? null,
       first_breach_day: outcome.firstBreach?.day ?? null,
       max_daily_loss_pct: pct(outcome.path.maxDailyLossPct),

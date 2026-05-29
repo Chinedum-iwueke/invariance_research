@@ -365,31 +365,56 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
         </WorkspaceCard>
       </div>
 
-      <WorkspaceCard title="Execution-stressed prop survival" subtitle="Whether a small increase in round-trip costs changes the rule outcome">
+      <WorkspaceCard title="Execution-stressed prop survival" subtitle="Whether higher round-trip costs change the first decisive event under the configured rules">
         <div className="overflow-hidden rounded-md border border-border-subtle">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-text-neutral">
               <tr>
                 <th className="px-3 py-2">Scenario</th>
-                <th className="px-3 py-2">Outcome</th>
-                <th className="px-3 py-2">Target progress</th>
+                <th className="px-3 py-2">First decisive event</th>
+                <th className="px-3 py-2">Target evidence</th>
                 <th className="px-3 py-2">Ending profit</th>
-                <th className="px-3 py-2">First breach</th>
+                <th className="px-3 py-2">Breach evidence</th>
               </tr>
             </thead>
             <tbody>
               {stressScenarios.map((scenario) => (
                 <tr key={String(scenario.scenario)} className="border-t border-border-subtle">
                   <td className="px-3 py-2 font-medium text-text-institutional">{fmt(scenario.scenario)}</td>
-                  <td className={scenario.status === "target_before_breach" ? "px-3 py-2 font-semibold text-chart-positive" : scenario.status === "breach_before_target" ? "px-3 py-2 font-semibold text-chart-negative" : "px-3 py-2 text-text-neutral"}>{fmt(scenario.status)}</td>
-                  <td className="px-3 py-2 text-text-neutral">{fmtPct(scenario.target_progress_pct)}</td>
+                  <td className={scenario.status === "target_before_breach" ? "px-3 py-2 font-semibold text-chart-positive" : scenario.status === "breach_before_target" ? "px-3 py-2 font-semibold text-chart-negative" : "px-3 py-2 text-text-neutral"}>
+                    {fmt(scenario.decisive_event)}
+                    {scenario.decisive_day ? <span className="block text-xs font-normal text-text-neutral">{fmt(scenario.decisive_day)}</span> : null}
+                  </td>
+                  <td className="px-3 py-2 text-text-neutral">
+                    {scenario.target_hit_day ? (
+                      <>
+                        <span className="font-medium text-text-institutional">{fmt(scenario.target_hit_day)}</span>
+                        <span className="block text-xs">{fmtCurrency(scenario.target_hit_profit)} / {fmtPct(scenario.target_hit_profit_pct)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Not reached before breach</span>
+                        <span className="block text-xs">Peak progress {fmtPct(scenario.peak_target_progress_pct)}</span>
+                      </>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-text-neutral">{fmtCurrency(scenario.ending_profit)}</td>
-                  <td className="px-3 py-2 text-text-neutral">{fmt(scenario.first_breach_rule ?? "None")}{scenario.first_breach_day ? ` on ${fmt(scenario.first_breach_day)}` : ""}</td>
+                  <td className="px-3 py-2 text-text-neutral">
+                    {scenario.first_breach_rule ? (
+                      <>
+                        <span>{fmt(scenario.first_breach_rule)}</span>
+                        <span className="block text-xs">{scenario.status === "target_before_breach" ? "After target: " : ""}{fmt(scenario.first_breach_day)}</span>
+                      </>
+                    ) : "None"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="mt-3 text-xs leading-5 text-text-neutral">
+          A row can reach target first and still end negative if the submitted path later gives back profits and breaches. The decisive event is what would happen first under the evaluation rules; ending profit is the full submitted path after that event.
+        </p>
       </WorkspaceCard>
 
       <WorkspaceCard title="Evaluation windows" subtitle="Where the same submitted path would have passed or failed under the configured challenge window">
