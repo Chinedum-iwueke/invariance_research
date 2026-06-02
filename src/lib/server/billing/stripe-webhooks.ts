@@ -17,7 +17,7 @@ async function applyEvent(event: Stripe.Event) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const accountId = session.metadata?.account_id;
-    const planId = (session.metadata?.plan_id as PlanId | undefined) ?? "individual";
+    const planId = (session.metadata?.plan_id as PlanId | undefined) ?? "explorer";
     if (!accountId || !session.customer || !session.subscription) return;
 
     await accountService.applySubscription({
@@ -40,7 +40,7 @@ async function applyEvent(event: Stripe.Event) {
       account_id: accountId,
       provider_customer_id: String(subscription.customer),
       provider_subscription_id: subscription.id,
-      plan_id: STRIPE_WEBHOOK_PLAN_BY_PRICE[priceId] ?? "individual",
+      plan_id: STRIPE_WEBHOOK_PLAN_BY_PRICE[priceId] ?? "explorer",
       status: toSubscriptionStatus(subscription.status),
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),

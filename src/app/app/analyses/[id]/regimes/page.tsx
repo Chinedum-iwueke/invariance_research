@@ -19,7 +19,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
 
   if (!record) {
     return (
-      <AnalysisPageFrame title="Regime Review" description="Market-state attribution is routed to Research Desk for launch.">
+      <AnalysisPageFrame title="Regime Review" description="Market-state attribution is routed to Research Desk when self-serve evidence is insufficient.">
         <AnalysisRunState analysis={analysis} />
       </AnalysisPageFrame>
     );
@@ -27,7 +27,7 @@ export default async function RegimesPage({ params }: { params: Promise<{ id: st
 
   return (
     <AnalysisPageFrame title="Regime Review" description="Automated regime attribution is deferred to Research Desk until the evidence can support it cleanly.">
-      <WorkspaceCard title="Why this is not an automated launch workspace" subtitle="Regime attribution is easy to overstate when market context is incomplete or misaligned.">
+      <WorkspaceCard title="Why this is not an automated workspace" subtitle="Regime attribution is easy to overstate when market context is incomplete or misaligned.">
         <EvidenceList items={REGIME_REVIEW_SCOPES} empty="No regime review scope emitted." tone="warning" />
       </WorkspaceCard>
       <ResearchDeskRequestPanel

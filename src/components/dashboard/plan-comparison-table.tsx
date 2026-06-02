@@ -3,9 +3,9 @@ import { Card } from "@/components/ui/card";
 import type { PlanId } from "@/lib/contracts/account";
 import { PlanAction } from "@/components/dashboard/plan-action";
 
-const launchPlans = [
+const validationPlans = [
   { id: "free" as const, label: "Free" },
-  { id: "individual" as const, label: "Individual" },
+  { id: "explorer" as const, label: "Explorer" },
   { id: "pro" as const, label: "Pro" },
   { id: "research_desk" as const, label: "Research Desk" },
 ];
@@ -46,7 +46,7 @@ export function PlanComparisonTable({ currentPlan }: { currentPlan?: PlanId }) {
         <thead>
           <tr className="border-b bg-surface-panel text-left">
             <th className="px-4 py-3 font-semibold">Capability</th>
-            {launchPlans.map((plan) => (
+            {validationPlans.map((plan) => (
               <th key={plan.id} className="px-4 py-3 text-center font-semibold">{plan.label}</th>
             ))}
           </tr>
@@ -56,14 +56,14 @@ export function PlanComparisonTable({ currentPlan }: { currentPlan?: PlanId }) {
             <tr key={row[0]} className="border-b last:border-b-0">
               <td className="px-4 py-3 text-text-graphite">{row[0]}</td>
               {row.slice(1).map((value, index) => (
-                <td key={`${row[0]}-${launchPlans[index]?.id}`} className="px-4 py-3 text-center">{cell(value)}</td>
+                <td key={`${row[0]}-${validationPlans[index]?.id}`} className="px-4 py-3 text-center">{cell(value)}</td>
               ))}
             </tr>
           ))}
           {currentPlan ? (
             <tr>
               <td className="px-4 py-3 text-text-graphite">Plan action</td>
-              {launchPlans.map((plan) => (
+              {validationPlans.map((plan) => (
                 <td key={`action-${plan.id}`} className="px-4 py-3 text-center">
                   <PlanAction currentPlan={currentPlan} targetPlan={plan.id} className="mx-auto" />
                 </td>

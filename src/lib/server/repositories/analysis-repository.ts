@@ -2,6 +2,11 @@ import type { AnalysisEntity } from "@/lib/server/analysis/models";
 import type { AnalysisRepository } from "@/lib/server/persistence/contracts";
 import { getDb } from "@/lib/server/persistence/database";
 
+function parseJson<T>(value: unknown): T | undefined {
+  if (value === undefined || value === null) return undefined;
+  return typeof value === "string" ? (JSON.parse(value) as T) : (value as T);
+}
+
 function mapRow(row: Record<string, unknown>): AnalysisEntity {
   return {
     analysis_id: String(row.analysis_id),
@@ -12,11 +17,11 @@ function mapRow(row: Record<string, unknown>): AnalysisEntity {
     artifact_id: String(row.artifact_id),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
-    result: row.result_json ? JSON.parse(String(row.result_json)) : undefined,
-    eligibility_snapshot: row.eligibility_snapshot_json ? JSON.parse(String(row.eligibility_snapshot_json)) : undefined,
-    engine_context: row.engine_context_json ? JSON.parse(String(row.engine_context_json)) : undefined,
-    benchmark: row.benchmark_json ? JSON.parse(String(row.benchmark_json)) : undefined,
-    runtime_config: row.runtime_config_json ? JSON.parse(String(row.runtime_config_json)) : undefined,
+    result: parseJson<AnalysisEntity["result"]>(row.result_json),
+    eligibility_snapshot: parseJson<AnalysisEntity["eligibility_snapshot"]>(row.eligibility_snapshot_json),
+    engine_context: parseJson<AnalysisEntity["engine_context"]>(row.engine_context_json),
+    benchmark: parseJson<AnalysisEntity["benchmark"]>(row.benchmark_json),
+    runtime_config: parseJson<AnalysisEntity["runtime_config"]>(row.runtime_config_json),
     failure_code: row.failure_code ? String(row.failure_code) : undefined,
     failure_message: row.failure_message ? String(row.failure_message) : undefined,
   };

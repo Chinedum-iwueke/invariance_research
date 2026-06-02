@@ -81,7 +81,7 @@ function getEmailConfigCheck(): StartupCheck {
 }
 
 function getStripeConfigCheck(): StartupCheck {
-  const missing = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_INDIVIDUAL", "STRIPE_PRICE_PRO"].filter((key) => !process.env[key]);
+  const missing = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_EXPLORER", "STRIPE_PRICE_PRO"].filter((key) => !process.env[key]);
   if (missing.length === 0) {
     return { name: "stripe_config", status: "healthy" };
   }

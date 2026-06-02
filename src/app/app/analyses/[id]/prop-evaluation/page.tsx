@@ -158,7 +158,7 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
       diagnosticTitle: "Prop Evaluation Readiness",
       diagnosticPurpose: "Check whether a strategy can pass a prop-firm evaluation without breaching max loss, daily loss, target, or consistency rules.",
       currentPlan: state?.account.plan_id,
-      requiredPlan: "Individual",
+      requiredPlan: "Explorer",
     });
     return (
       <AnalysisPageFrame title="Prop Evaluation Readiness" description="Funding challenge feasibility, breach risk, rule edits, and improvement targets.">
@@ -198,6 +198,11 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
   const stressTest = recordValue(metadata.stress_test);
   const stressScenarios = recordList(stressTest.scenarios);
   const propMonteCarlo = recordValue(metadata.prop_monte_carlo);
+  const failureModes = recordList(propMonteCarlo.failure_mode_breakdown);
+  const riskSensitivity = recordValue(metadata.risk_sensitivity);
+  const riskRows = recordList(riskSensitivity.rows);
+  const lossCluster = recordValue(metadata.loss_cluster_analysis);
+  const dataQuality = recordValue(metadata.data_quality_check);
   const improvementTargets = recordValue(metadata.improvement_targets);
   const ruleSource = String(ruleSnapshot.source ?? "fallback");
   const usingExactRules = ruleSource !== "fallback";
@@ -284,6 +289,24 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
       </WorkspaceCard>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+        <WorkspaceCard title="Data quality check" subtitle="What the trade file can and cannot support">
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              ["Trades", fmt(dataQuality.trade_count), "Closed trades available for sequence replay."],
+              ["Trading days", fmt(dataQuality.trading_days), "Distinct evaluation days in the submitted path."],
+              ["MAE/MFE", dataQuality.has_mae_mfe ? "Present" : "Missing", "Unlocks intratrade danger review when available."],
+              ["Risk sizing fields", dataQuality.has_risk_sizing_fields ? "Present" : dataQuality.has_pnl_pct ? "Proxy via pnl_pct" : "Missing", "Unlocks decision-grade risk-per-trade sensitivity."],
+            ].map(([label, value, helper]) => (
+              <div key={label} className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">{label}</p>
+                <p className="mt-1 text-lg font-semibold text-text-institutional">{value}</p>
+                <p className="mt-1 text-xs leading-5 text-text-neutral">{helper}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 rounded-sm border border-border-subtle bg-surface-white px-3 py-2 text-xs leading-5 text-text-neutral">{fmt(dataQuality.note)}</p>
+        </WorkspaceCard>
+
         <WorkspaceCard title="Readiness metrics" subtitle="Pass target, drawdown room, daily-loss pressure, and trading-day coverage">
           <MetricRow metrics={metrics} cols={2} />
           <div className="mt-4 rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs leading-5 text-text-neutral">
@@ -296,6 +319,86 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
           <PropEvaluationRulesForm analysisId={analysis.analysis_id} initialRules={ruleSnapshot} />
         </WorkspaceCard>
       </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <WorkspaceCard title="Failure-mode breakdown" subtitle="Why simulated paths fail before they reach the funding target">
+          {failureModes.length ? (
+            <div className="space-y-2">
+              {failureModes.map((mode) => (
+                <div key={String(mode.mode)} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-border-subtle bg-surface-subtle p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-text-institutional">{fmt(mode.mode)}</p>
+                    <p className="text-xs text-text-neutral">{fmt(mode.count)} simulated path(s)</p>
+                  </div>
+                  <p className="text-lg font-semibold text-text-institutional">{typeof mode.probability === "number" ? fmtPct(mode.probability * 100) : "Unavailable"}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-neutral">Failure-mode simulation is unavailable for this artifact.</p>
+          )}
+          <p className="mt-3 text-xs leading-5 text-text-neutral">{fmt(propMonteCarlo.note)}</p>
+        </WorkspaceCard>
+
+        <WorkspaceCard title="Loss cluster analysis" subtitle="Whether the strategy is vulnerable to concentrated losing runs">
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              ["Max consecutive losses", fmt(lossCluster.max_consecutive_losses)],
+              ["Worst loss run", fmtCurrency(lossCluster.worst_loss_run_pnl)],
+              ["Worst 3-trade cluster", fmtCurrency(recordValue(lossCluster.worst_three_trade_cluster).pnl)],
+              ["Worst 5-trade cluster", fmtCurrency(recordValue(lossCluster.worst_five_trade_cluster).pnl)],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-neutral">{label}</p>
+                <p className="mt-1 text-lg font-semibold text-text-institutional">{value}</p>
+              </div>
+            ))}
+          </div>
+          {recordValue(lossCluster.worst_day).day ? (
+            <p className="mt-3 rounded-sm border border-border-subtle bg-surface-white px-3 py-2 text-xs leading-5 text-text-neutral">
+              Worst day: {fmt(recordValue(lossCluster.worst_day).day)} with {fmtCurrency(recordValue(lossCluster.worst_day).pnl)} across {fmt(recordValue(lossCluster.worst_day).trade_count)} trade(s).
+            </p>
+          ) : null}
+        </WorkspaceCard>
+      </div>
+
+      <WorkspaceCard title="Risk-per-trade sensitivity" subtitle="Sizing map for target progress versus drawdown failure">
+        <div className="mb-3 rounded-sm border border-border-subtle bg-surface-subtle px-3 py-2 text-xs leading-5 text-text-neutral">
+          <p><span className="font-semibold text-text-institutional">Basis:</span> {fmt(riskSensitivity.basis)}.</p>
+          <p className="mt-1"><span className="font-semibold text-text-institutional">Best range:</span> {fmt(riskSensitivity.best_range ?? "No tested risk level reached target before breach")}.</p>
+          <p className="mt-1">{fmt(riskSensitivity.note)}</p>
+        </div>
+        {riskRows.length ? (
+          <div className="overflow-hidden rounded-md border border-border-subtle">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-surface-subtle text-xs uppercase tracking-[0.08em] text-text-neutral">
+                <tr>
+                  <th className="px-3 py-2">Risk</th>
+                  <th className="px-3 py-2">Outcome</th>
+                  <th className="px-3 py-2">Failure mode</th>
+                  <th className="px-3 py-2">Peak target progress</th>
+                  <th className="px-3 py-2">Max DD</th>
+                  <th className="px-3 py-2">Daily loss</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riskRows.map((row) => (
+                  <tr key={String(row.risk_per_trade_pct)} className="border-t border-border-subtle">
+                    <td className="px-3 py-2 font-medium text-text-institutional">{fmtPct(row.risk_per_trade_pct)}</td>
+                    <td className={row.outcome === "target_before_breach" ? "px-3 py-2 font-semibold text-chart-positive" : row.outcome === "breach_before_target" ? "px-3 py-2 font-semibold text-chart-negative" : "px-3 py-2 text-text-neutral"}>{fmt(row.outcome)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmt(row.failure_mode)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmtPct(row.peak_target_progress_pct)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmtPct(row.max_total_drawdown_pct)}</td>
+                    <td className="px-3 py-2 text-text-neutral">{fmtPct(row.max_daily_loss_pct)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-text-neutral">Risk sensitivity is unavailable for this upload. Add `risk_R`, `r_multiple`, or complete `pnl_pct` values to unlock it.</p>
+        )}
+      </WorkspaceCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <WorkspaceCard title="Rule status" subtitle="Each rule is checked against the emitted strategy path">

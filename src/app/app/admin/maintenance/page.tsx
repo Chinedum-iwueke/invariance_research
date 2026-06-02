@@ -21,6 +21,12 @@ async function runStaleJobsCleanup() {
   await runAdminMaintenanceAction("stale_failed_jobs");
 }
 
+async function refreshBenchmarkLibrary() {
+  "use server";
+  await requireAdminSession();
+  await runAdminMaintenanceAction("benchmark_library_refresh");
+}
+
 export default function AdminMaintenancePage() {
   return (
     <AdminPageShell title="Maintenance Controls" description="Run bounded maintenance primitives with explicit confirmation.">
@@ -28,6 +34,7 @@ export default function AdminMaintenancePage() {
         <MaintenanceActionCard title="Run full maintenance sweep" description="Runs expired export cleanup and stale failed jobs cleanup." actionLabel="Run sweep" action={runSweep} />
         <MaintenanceActionCard title="Clean expired exports" description="Deletes expired export records and related storage artifacts." actionLabel="Clean exports" action={runExpiredCleanup} />
         <MaintenanceActionCard title="Clean stale failed jobs" description="Deletes failed analysis/export jobs older than retention threshold." actionLabel="Clean stale jobs" action={runStaleJobsCleanup} />
+        <MaintenanceActionCard title="Refresh benchmark library" description="Downloads current daily benchmark datasets, rebuilds the manifest, and syncs the benchmark library to object storage. Run this from the worker/admin VM with R2 credentials configured." actionLabel="Refresh benchmarks" action={refreshBenchmarkLibrary} />
       </div>
     </AdminPageShell>
   );

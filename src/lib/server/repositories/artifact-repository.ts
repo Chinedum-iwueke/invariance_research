@@ -2,6 +2,10 @@ import type { UploadArtifact } from "@/lib/server/analysis/models";
 import type { ArtifactRepository } from "@/lib/server/persistence/contracts";
 import { getDb } from "@/lib/server/persistence/database";
 
+function parseJson<T>(value: unknown): T {
+  return typeof value === "string" ? (JSON.parse(value) as T) : (value as T);
+}
+
 function mapRow(row: Record<string, unknown>): UploadArtifact {
   return {
     artifact_id: String(row.artifact_id),
@@ -16,8 +20,8 @@ function mapRow(row: Record<string, unknown>): UploadArtifact {
     artifact_kind: row.artifact_kind as UploadArtifact["artifact_kind"],
     richness: row.richness as UploadArtifact["richness"],
     uploaded_at: String(row.uploaded_at),
-    parsed_artifact: JSON.parse(String(row.parsed_artifact_json)),
-    eligibility_summary: JSON.parse(String(row.eligibility_summary_json)),
+    parsed_artifact: parseJson<UploadArtifact["parsed_artifact"]>(row.parsed_artifact_json),
+    eligibility_summary: parseJson<UploadArtifact["eligibility_summary"]>(row.eligibility_summary_json),
   };
 }
 

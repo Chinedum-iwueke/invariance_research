@@ -144,35 +144,70 @@ type DailyPnlRow = {
   last_trade_index: number;
 };
 
-function buildDailyRows(trades: CanonicalTradeRecord[]): DailyPnlRow[] {
-  const rows = new Map<string, DailyPnlRow>();
-  trades.forEach((trade, index) => {
-    const day = tradeDay(trade, index);
-    const existing = rows.get(day);
-    const notional = Math.abs(trade.entry_price * trade.quantity);
-    if (existing) {
-      existing.pnl += tradePnl(trade);
-      existing.notional += Number.isFinite(notional) ? notional : 0;
-      existing.trade_count += 1;
-      existing.last_trade_index = index + 1;
-    } else {
-      rows.set(day, {
-        day,
+type PropTradeStep = {
+  day: string;
+  trade_index: number;
+  pnl: number;
+  notional: number;
+  symbol: string;
+  exit_time: string;
+  r_multiple?: number;
+  pnl_pct?: number;
+};
+
+function buildTradeSteps(trades: CanonicalTradeRecord[]): PropTradeStep[] {
+  return trades
+    .map((trade, index) => {
+      const notional = Math.abs(trade.entry_price * trade.quantity);
+      return {
+        day: tradeDay(trade, index),
+        trade_index: index + 1,
         pnl: tradePnl(trade),
         notional: Number.isFinite(notional) ? notional : 0,
+        symbol: trade.symbol,
+        exit_time: trade.exit_time || trade.entry_time || "",
+        r_multiple: typeof trade.r_multiple === "number" && Number.isFinite(trade.r_multiple)
+          ? trade.r_multiple
+          : typeof trade.risk_r === "number" && Number.isFinite(trade.risk_r)
+            ? trade.risk_r
+            : undefined,
+        pnl_pct: typeof trade.pnl_pct === "number" && Number.isFinite(trade.pnl_pct) ? (Math.abs(trade.pnl_pct) > 1 ? trade.pnl_pct / 100 : trade.pnl_pct) : undefined,
+      };
+    })
+    .sort((a, b) => {
+      const timeOrder = a.exit_time.localeCompare(b.exit_time);
+      return timeOrder || a.trade_index - b.trade_index;
+    })
+    .map((step, index) => ({ ...step, trade_index: index + 1 }));
+}
+
+function stepsToDailyRows(steps: PropTradeStep[]): DailyPnlRow[] {
+  const rows = new Map<string, DailyPnlRow>();
+  steps.forEach((step) => {
+    const existing = rows.get(step.day);
+    if (existing) {
+      existing.pnl += step.pnl;
+      existing.notional += step.notional;
+      existing.trade_count += 1;
+      existing.last_trade_index = step.trade_index;
+    } else {
+      rows.set(step.day, {
+        day: step.day,
+        pnl: step.pnl,
+        notional: step.notional,
         trade_count: 1,
-        first_trade_index: index + 1,
-        last_trade_index: index + 1,
+        first_trade_index: step.trade_index,
+        last_trade_index: step.trade_index,
       });
     }
   });
   return [...rows.values()];
 }
 
-function adjustedRowsForCostStress(rows: DailyPnlRow[], bpsPerRoundTrip: number): DailyPnlRow[] {
-  return rows.map((row) => ({
-    ...row,
-    pnl: row.pnl - (row.notional * bpsPerRoundTrip / 10_000),
+function stepsForCostStress(steps: PropTradeStep[], bpsPerRoundTrip: number): PropTradeStep[] {
+  return steps.map((step) => ({
+    ...step,
+    pnl: step.pnl - (step.notional * bpsPerRoundTrip / 10_000),
   }));
 }
 
@@ -291,18 +326,18 @@ function eventOrder(event: PropPathEvent | undefined): number {
   return event?.trade_index ?? Number.MAX_SAFE_INTEGER;
 }
 
-function evaluateTerminalOutcome(rows: DailyPnlRow[], rules: NormalizedRules) {
-  const path = evaluateDailyPath(rows, rules);
+function evaluateTerminalOutcome(steps: PropTradeStep[], rules: NormalizedRules) {
+  const path = evaluateTradePath(steps, rules);
   const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach);
   const targetBeforeBreach = Boolean(path.firstTargetHit && (!firstBreach || eventOrder(path.firstTargetHit) <= eventOrder(firstBreach)));
   const breachBeforeTarget = Boolean(firstBreach && (!path.firstTargetHit || eventOrder(firstBreach) < eventOrder(path.firstTargetHit)));
   return { path, firstBreach, targetBeforeBreach, breachBeforeTarget };
 }
 
-function buildStressScenarios(rows: DailyPnlRow[], rules: NormalizedRules) {
+function buildStressScenarios(steps: PropTradeStep[], rules: NormalizedRules) {
   const scenarios = [0, 2, 5, 10, 20].map((bps) => {
-    const stressedRows = adjustedRowsForCostStress(rows, bps);
-    const outcome = evaluateTerminalOutcome(stressedRows, rules);
+    const stressedSteps = stepsForCostStress(steps, bps);
+    const outcome = evaluateTerminalOutcome(stressedSteps, rules);
     const endingProfit = outcome.path.cumulative;
     const targetProfit = rules.account_size * rules.profit_target_pct;
     const status = outcome.targetBeforeBreach
@@ -349,15 +384,6 @@ function seededRandom(seed: number) {
   };
 }
 
-function shuffledRows(rows: DailyPnlRow[], random: () => number): DailyPnlRow[] {
-  const copy = rows.map((row, index) => ({ ...row, day: `sim_day_${index + 1}` }));
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
-  }
-  return copy;
-}
-
 function quantile(values: number[], q: number): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -365,8 +391,45 @@ function quantile(values: number[], q: number): number {
   return sorted[index] ?? 0;
 }
 
-function buildPropMonteCarlo(rows: DailyPnlRow[], rules: NormalizedRules) {
-  const iterations = rows.length >= 2 ? 1000 : 0;
+function shuffleSteps(steps: PropTradeStep[], random: () => number): PropTradeStep[] {
+  const copy = steps.map((step, index) => ({ ...step, day: `sim_day_${index + 1}`, trade_index: index + 1 }));
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy.map((step, index) => ({ ...step, trade_index: index + 1 }));
+}
+
+function bootstrapSteps(steps: PropTradeStep[], random: () => number): PropTradeStep[] {
+  return steps.map((_, index) => {
+    const sampled = steps[Math.floor(random() * steps.length)] ?? steps[0]!;
+    return { ...sampled, day: `sim_day_${index + 1}`, trade_index: index + 1 };
+  });
+}
+
+function blockBootstrapByDay(steps: PropTradeStep[], random: () => number): PropTradeStep[] {
+  const days = [...new Set(steps.map((step) => step.day))];
+  const byDay = days.map((day) => steps.filter((step) => step.day === day));
+  const sampled: PropTradeStep[] = [];
+  for (let index = 0; index < byDay.length; index += 1) {
+    const block = byDay[Math.floor(random() * byDay.length)] ?? [];
+    block.forEach((step) => sampled.push({ ...step, day: `sim_day_${index + 1}` }));
+  }
+  return sampled.map((step, index) => ({ ...step, trade_index: index + 1 }));
+}
+
+function classifyFailure(outcome: ReturnType<typeof evaluateTerminalOutcome>): string {
+  if (outcome.targetBeforeBreach) return "target_before_breach";
+  const rule = outcome.firstBreach?.rule;
+  if (rule === "max_daily_loss") return "daily_drawdown_breach";
+  if (rule === "max_total_drawdown") return "max_drawdown_breach";
+  if (rule === "consistency_max_day_profit") return "consistency_violation";
+  return "target_not_reached";
+}
+
+function buildPropMonteCarlo(steps: PropTradeStep[], rules: NormalizedRules) {
+  const dayCount = new Set(steps.map((step) => step.day)).size;
+  const iterations = steps.length >= 2 ? 1000 : 0;
   if (!iterations) {
     return {
       iterations,
@@ -376,21 +439,34 @@ function buildPropMonteCarlo(rows: DailyPnlRow[], rules: NormalizedRules) {
       median_ending_profit: null,
       p10_ending_profit: null,
       p95_max_total_drawdown_pct: null,
+      failure_mode_breakdown: [],
+      methods: [],
       note: "Monte Carlo prop survival requires at least two trading days.",
     };
   }
-  const random = seededRandom(Number.parseInt(hashJson({ rows, rules: rules.rules_hash }).slice(0, 8), 16));
+  const random = seededRandom(Number.parseInt(hashJson({ steps, rules: rules.rules_hash }).slice(0, 8), 16));
   let targetBeforeBreach = 0;
   let breachBeforeTarget = 0;
   let unresolved = 0;
   const endingProfits: number[] = [];
   const maxDrawdowns: number[] = [];
+  const failures = new Map<string, number>();
 
   for (let iteration = 0; iteration < iterations; iteration += 1) {
-    const outcome = evaluateTerminalOutcome(shuffledRows(rows, random), rules);
+    const method = iteration % 3;
+    const sampledSteps = method === 0
+      ? shuffleSteps(steps, random)
+      : method === 1
+        ? bootstrapSteps(steps, random)
+        : dayCount >= 2
+          ? blockBootstrapByDay(steps, random)
+          : bootstrapSteps(steps, random);
+    const outcome = evaluateTerminalOutcome(sampledSteps, rules);
     if (outcome.targetBeforeBreach) targetBeforeBreach += 1;
     else if (outcome.breachBeforeTarget) breachBeforeTarget += 1;
     else unresolved += 1;
+    const failureMode = classifyFailure(outcome);
+    failures.set(failureMode, (failures.get(failureMode) ?? 0) + 1);
     endingProfits.push(outcome.path.cumulative);
     maxDrawdowns.push(pct(outcome.path.maxDrawdownPct));
   }
@@ -403,7 +479,11 @@ function buildPropMonteCarlo(rows: DailyPnlRow[], rules: NormalizedRules) {
     median_ending_profit: Number(quantile(endingProfits, 0.5).toFixed(2)),
     p10_ending_profit: Number(quantile(endingProfits, 0.1).toFixed(2)),
     p95_max_total_drawdown_pct: Number(quantile(maxDrawdowns, 0.95).toFixed(2)),
-    note: "Deterministic shuffle simulation estimates whether sequence risk alone changes target-before-breach survival.",
+    failure_mode_breakdown: [...failures.entries()]
+      .map(([mode, count]) => ({ mode, count, probability: Number((count / iterations).toFixed(4)) }))
+      .sort((a, b) => b.count - a.count),
+    methods: dayCount >= 2 ? ["trade_shuffle", "bootstrap_with_replacement", "day_block_bootstrap"] : ["trade_shuffle", "bootstrap_with_replacement"],
+    note: "Deterministic trade-sequence simulations estimate whether order, replacement sampling, and day-block clustering change target-before-breach survival.",
   };
 }
 
@@ -456,7 +536,7 @@ function buildImprovementTargets(input: {
   rules: NormalizedRules;
   totalProfit: number;
   firstBreach: PropPathEvent | null;
-  path: ReturnType<typeof evaluateDailyPath>;
+  path: ReturnType<typeof evaluateTradePath>;
 }) {
   const targetProfit = input.rules.account_size * input.rules.profit_target_pct;
   const profitShortfall = Math.max(0, targetProfit - input.totalProfit);
@@ -473,13 +553,130 @@ function buildImprovementTargets(input: {
   };
 }
 
-function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
+function buildLossClusterAnalysis(steps: PropTradeStep[]) {
+  let currentLossRun = 0;
+  let maxConsecutiveLosses = 0;
+  let currentLossPnl = 0;
+  let worstLossRunPnl = 0;
+  steps.forEach((step) => {
+    if (step.pnl < 0) {
+      currentLossRun += 1;
+      currentLossPnl += step.pnl;
+      maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentLossRun);
+      worstLossRunPnl = Math.min(worstLossRunPnl, currentLossPnl);
+    } else {
+      currentLossRun = 0;
+      currentLossPnl = 0;
+    }
+  });
+
+  function worstRollingLoss(windowSize: number) {
+    if (steps.length < windowSize) return null;
+    let worst = 0;
+    let startIndex = 0;
+    for (let index = 0; index <= steps.length - windowSize; index += 1) {
+      const slice = steps.slice(index, index + windowSize);
+      const pnl = slice.reduce((sum, step) => sum + step.pnl, 0);
+      if (pnl < worst) {
+        worst = pnl;
+        startIndex = index;
+      }
+    }
+    return {
+      window_size: windowSize,
+      pnl: Number(worst.toFixed(2)),
+      start_trade_index: steps[startIndex]?.trade_index ?? null,
+      end_trade_index: steps[startIndex + windowSize - 1]?.trade_index ?? null,
+      start_day: steps[startIndex]?.day ?? null,
+      end_day: steps[startIndex + windowSize - 1]?.day ?? null,
+    };
+  }
+
+  const byDay = stepsToDailyRows(steps);
+  const worstDay = [...byDay].sort((a, b) => a.pnl - b.pnl)[0];
+  return {
+    max_consecutive_losses: maxConsecutiveLosses,
+    worst_loss_run_pnl: Number(worstLossRunPnl.toFixed(2)),
+    worst_three_trade_cluster: worstRollingLoss(3),
+    worst_five_trade_cluster: worstRollingLoss(5),
+    worst_day: worstDay ? {
+      day: worstDay.day,
+      pnl: Number(worstDay.pnl.toFixed(2)),
+      trade_count: worstDay.trade_count,
+      first_trade_index: worstDay.first_trade_index,
+      last_trade_index: worstDay.last_trade_index,
+    } : null,
+  };
+}
+
+function buildRiskSensitivity(steps: PropTradeStep[], rules: NormalizedRules) {
+  const riskLevels = [0.0025, 0.005, 0.0075, 0.01, 0.015, 0.02];
+  const hasRMultiples = steps.every((step) => typeof step.r_multiple === "number" && Number.isFinite(step.r_multiple));
+  const hasPnlPct = steps.every((step) => typeof step.pnl_pct === "number" && Number.isFinite(step.pnl_pct));
+
+  if (!hasRMultiples && !hasPnlPct) {
+    return {
+      status: "unavailable",
+      basis: "missing_r_multiple_or_pnl_pct",
+      rows: [],
+      best_range: null,
+      note: "Risk-per-trade sensitivity requires risk_R/r_multiple or pnl_pct for every trade. The page omits sizing claims rather than estimating from raw PnL.",
+    };
+  }
+
+  const rows = riskLevels.map((riskPct) => {
+    const sizedSteps = steps.map((step, index) => {
+      const pnl = hasRMultiples
+        ? (step.r_multiple ?? 0) * riskPct * rules.account_size
+        : ((step.pnl_pct ?? 0) / 0.01) * riskPct * rules.account_size;
+      return {
+        ...step,
+        pnl,
+        notional: step.notional * (riskPct / 0.01),
+        trade_index: index + 1,
+      };
+    });
+    const outcome = evaluateTerminalOutcome(sizedSteps, rules);
+    const failureMode = classifyFailure(outcome);
+    const targetProfit = rules.account_size * rules.profit_target_pct;
+    return {
+      risk_per_trade_pct: pct(riskPct),
+      outcome: outcome.targetBeforeBreach ? "target_before_breach" : outcome.breachBeforeTarget ? "breach_before_target" : "unresolved",
+      failure_mode: failureMode,
+      first_breach_rule: outcome.firstBreach?.rule ?? null,
+      first_breach_day: outcome.firstBreach?.day ?? null,
+      target_hit_day: outcome.path.firstTargetHit?.day ?? null,
+      ending_profit: Number(outcome.path.cumulative.toFixed(2)),
+      peak_target_progress_pct: pct(targetProfit > 0 ? outcome.path.peakProfit / targetProfit : 0),
+      max_daily_loss_pct: pct(outcome.path.maxDailyLossPct),
+      max_total_drawdown_pct: pct(outcome.path.maxDrawdownPct),
+    };
+  });
+
+  const passing = rows.filter((row) => row.outcome === "target_before_breach");
+  return {
+    status: hasRMultiples ? "r_multiple_backed" : "pnl_pct_scaled",
+    basis: hasRMultiples ? "risk_R/r_multiple" : "pnl_pct scaled to requested risk levels",
+    rows,
+    best_range: passing.length
+      ? `${passing[0]!.risk_per_trade_pct.toFixed(2)}%-${passing[passing.length - 1]!.risk_per_trade_pct.toFixed(2)}%`
+      : null,
+    note: hasRMultiples
+      ? "Risk map is computed from trade R-multiples and configured account size."
+      : "Risk map uses pnl_pct as a per-trade return proxy. Upload risk_R/r_multiple for decision-grade risk-per-trade sizing.",
+  };
+}
+
+function evaluateTradePath(steps: PropTradeStep[], rules: NormalizedRules) {
   const accountSize = rules.account_size;
   const targetProfit = accountSize * rules.profit_target_pct;
   let cumulative = 0;
   let highWater = accountSize;
   let maxDrawdownPct = 0;
   let maxDailyLossPct = 0;
+  let currentDay: string | undefined;
+  let dayStartEquity = accountSize;
+  let dayClosedPnl = 0;
   let firstTotalBreach: PropPathEvent | undefined;
   let firstDailyBreach: PropPathEvent | undefined;
   let firstTargetHit: PropPathEvent | undefined;
@@ -488,15 +685,23 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
   let peakProfitTradeIndex: number | undefined;
   const breachEvents: PropPathEvent[] = [];
   const targetEvents: PropPathEvent[] = [];
+  const dayPnl = new Map<string, number>();
 
-  rows.forEach((row) => {
-    const dayStartEquity = accountSize + cumulative;
-    cumulative += row.pnl;
+  steps.forEach((step) => {
+    if (currentDay !== step.day) {
+      currentDay = step.day;
+      dayStartEquity = accountSize + cumulative;
+      dayClosedPnl = 0;
+    }
+
+    dayClosedPnl += step.pnl;
+    dayPnl.set(step.day, (dayPnl.get(step.day) ?? 0) + step.pnl);
+    cumulative += step.pnl;
     const equity = accountSize + cumulative;
     if (cumulative > peakProfit) {
       peakProfit = cumulative;
-      peakProfitDay = row.day;
-      peakProfitTradeIndex = row.last_trade_index;
+      peakProfitDay = step.day;
+      peakProfitTradeIndex = step.trade_index;
     }
     highWater = Math.max(highWater, equity);
 
@@ -507,8 +712,8 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     if (!firstTotalBreach && totalDrawdownPct > rules.max_total_drawdown_pct) {
       firstTotalBreach = {
         rule: "max_total_drawdown",
-        day: row.day,
-        trade_index: row.last_trade_index,
+        day: step.day,
+        trade_index: step.trade_index,
         observed_pct: pct(totalDrawdownPct),
         allowed_pct: pct(rules.max_total_drawdown_pct),
         cumulative_profit: Number(cumulative.toFixed(2)),
@@ -518,17 +723,17 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     }
 
     const dailyLossBasis = rules.daily_loss_basis === "closed_balance" ? Math.max(dayStartEquity, 1) : accountSize;
-    const dailyLossAmount = Math.max(0, -row.pnl);
+    const dailyLossAmount = Math.max(0, -dayClosedPnl);
     const dailyLossPct = dailyLossAmount / dailyLossBasis;
     maxDailyLossPct = Math.max(maxDailyLossPct, dailyLossPct);
     if (!firstDailyBreach && dailyLossPct > rules.max_daily_loss_pct) {
       firstDailyBreach = {
         rule: "max_daily_loss",
-        day: row.day,
-        trade_index: row.last_trade_index,
+        day: step.day,
+        trade_index: step.trade_index,
         observed_pct: pct(dailyLossPct),
         allowed_pct: pct(rules.max_daily_loss_pct),
-        pnl: Number(row.pnl.toFixed(2)),
+        pnl: Number(dayClosedPnl.toFixed(2)),
         cumulative_profit: Number(cumulative.toFixed(2)),
       };
       breachEvents.push(firstDailyBreach);
@@ -537,8 +742,8 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     if (!firstTargetHit && cumulative >= targetProfit) {
       firstTargetHit = {
         rule: "profit_target",
-        day: row.day,
-        trade_index: row.last_trade_index,
+        day: step.day,
+        trade_index: step.trade_index,
         observed_pct: pct(cumulative / accountSize),
         allowed_pct: pct(rules.profit_target_pct),
         cumulative_profit: Number(cumulative.toFixed(2)),
@@ -548,7 +753,8 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
     }
   });
 
-  const largestDayProfit = Math.max(0, ...rows.map((row) => row.pnl));
+  const rows = stepsToDailyRows(steps);
+  const largestDayProfit = Math.max(0, ...[...dayPnl.values()]);
   const consistencyShare = cumulative > 0 ? largestDayProfit / cumulative : 0;
   const consistencyBreach = rules.consistency_max_day_profit_pct && consistencyShare > rules.consistency_max_day_profit_pct
     ? ({
@@ -579,19 +785,24 @@ function evaluateDailyPath(rows: DailyPnlRow[], rules: NormalizedRules) {
   };
 }
 
-function buildWindowOutcomes(rows: DailyPnlRow[], rules: NormalizedRules) {
-  const maxDays = Math.max(1, Math.min(rules.maximum_evaluation_days ?? rows.length, rows.length));
-  const windows = rows.map((_, startIndex) => {
-    const windowRows = rows.slice(startIndex, startIndex + maxDays);
-    const path = evaluateDailyPath(windowRows, rules);
+function buildWindowOutcomes(steps: PropTradeStep[], rules: NormalizedRules) {
+  const days = [...new Set(steps.map((step) => step.day))];
+  const maxDays = Math.max(1, Math.min(rules.maximum_evaluation_days ?? days.length, days.length));
+  const windows = days.map((_, startIndex) => {
+    const windowDays = new Set(days.slice(startIndex, startIndex + maxDays));
+    const windowSteps = steps
+      .filter((step) => windowDays.has(step.day))
+      .map((step, index) => ({ ...step, trade_index: index + 1 }));
+    const path = evaluateTradePath(windowSteps, rules);
     const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach);
     const targetBeforeBreach = Boolean(path.firstTargetHit && (!firstBreach || ((path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER) <= (firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER))));
     const breachBeforeTarget = Boolean(firstBreach && (!path.firstTargetHit || ((firstBreach.trade_index ?? Number.MAX_SAFE_INTEGER) < (path.firstTargetHit.trade_index ?? Number.MAX_SAFE_INTEGER))));
     const resolution = targetBeforeBreach ? path.firstTargetHit : breachBeforeTarget ? firstBreach : undefined;
     return {
-      start_day: windowRows[0]?.day,
-      end_day: windowRows[windowRows.length - 1]?.day,
-      trading_days: windowRows.length,
+      start_day: windowSteps[0]?.day,
+      end_day: windowSteps[windowSteps.length - 1]?.day,
+      trading_days: new Set(windowSteps.map((step) => step.day)).size,
+      trade_count: windowSteps.length,
       outcome: targetBeforeBreach ? "target_before_breach" : breachBeforeTarget ? "breach_before_target" : "unresolved",
       resolution_day: resolution?.day,
       resolution_trade_index: resolution?.trade_index,
@@ -634,18 +845,21 @@ function earliestBreach(...events: Array<PropPathEvent | undefined>): PropPathEv
 export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, rawRules?: PropEvaluationRulesV1 | Record<string, unknown> | null): PropEvaluationDiagnostic {
   const rules = normalizePropEvaluationRules(rawRules ?? parsedArtifact.prop_evaluation_rules);
   const accountSize = rules.account_size;
-  const dailyRows = buildDailyRows(parsedArtifact.trades);
-  const path = evaluateDailyPath(dailyRows, rules);
+  const tradeSteps = buildTradeSteps(parsedArtifact.trades);
+  const dailyRows = stepsToDailyRows(tradeSteps);
+  const path = evaluateTradePath(tradeSteps, rules);
   const totalProfit = path.cumulative;
   const targetProfit = accountSize * rules.profit_target_pct;
   const targetReached = totalProfit >= targetProfit;
   const tradingDays = path.tradingDays;
   const firstBreach = earliestBreach(path.firstDailyBreach, path.firstTotalBreach, path.consistencyBreach) ?? null;
-  const windowOutcomes = buildWindowOutcomes(dailyRows, rules);
+  const windowOutcomes = buildWindowOutcomes(tradeSteps, rules);
   const equityEvidence = buildEquityEvidence(parsedArtifact, rules);
   const brokerEvidence = buildBrokerEvidence(parsedArtifact);
-  const stressTest = buildStressScenarios(dailyRows, rules);
-  const propMonteCarlo = buildPropMonteCarlo(dailyRows, rules);
+  const stressTest = buildStressScenarios(tradeSteps, rules);
+  const propMonteCarlo = buildPropMonteCarlo(tradeSteps, rules);
+  const riskSensitivity = buildRiskSensitivity(tradeSteps, rules);
+  const lossClusterAnalysis = buildLossClusterAnalysis(tradeSteps);
   const dayCountLimited = tradingDays < rules.minimum_trading_days || Boolean(rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days);
   const fallbackLimited = rules.source === "fallback";
   const status = fallbackLimited || dayCountLimited ? "limited" : "available";
@@ -772,8 +986,21 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       },
       stress_test: stressTest,
       prop_monte_carlo: propMonteCarlo,
+      risk_sensitivity: riskSensitivity,
+      loss_cluster_analysis: lossClusterAnalysis,
       decision_card: decisionCard,
       improvement_targets: improvementTargets,
+      data_quality_check: {
+        trade_count: tradeSteps.length,
+        trading_days: dailyRows.length,
+        has_mae_mfe: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number"),
+        has_risk_sizing_fields: parsedArtifact.trades.some((trade) => typeof trade.r_multiple === "number" || typeof trade.risk_r === "number"),
+        has_pnl_pct: parsedArtifact.trades.some((trade) => typeof trade.pnl_pct === "number"),
+        can_audit_intratrade_danger: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number"),
+        note: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number")
+          ? "MAE/MFE is present for at least some trades; intratrade danger can be discussed with caveats."
+          : "No MAE/MFE was supplied; evaluator reports sequence feasibility but does not claim intratrade danger.",
+      },
     },
   };
 }

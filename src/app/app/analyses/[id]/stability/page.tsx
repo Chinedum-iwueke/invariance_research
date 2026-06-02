@@ -19,7 +19,7 @@ export default async function StabilityPage({ params }: { params: Promise<{ id: 
 
   if (!record) {
     return (
-      <AnalysisPageFrame title="Parameter Stability Review" description="Parameter stability is routed to Research Desk for launch.">
+      <AnalysisPageFrame title="Parameter Stability Review" description="Parameter stability is routed to Research Desk when self-serve evidence is insufficient.">
         <AnalysisRunState analysis={analysis} />
       </AnalysisPageFrame>
     );
@@ -27,7 +27,7 @@ export default async function StabilityPage({ params }: { params: Promise<{ id: 
 
   return (
     <AnalysisPageFrame title="Parameter Stability Review" description="Automated parameter-surface claims are deferred to Research Desk until a real sweep can support them.">
-      <WorkspaceCard title="Why this is not an automated launch workspace" subtitle="Stability claims need more than a single parameter file or one backtest path.">
+      <WorkspaceCard title="Why this is not an automated workspace" subtitle="Stability claims need more than a single parameter file or one backtest path.">
         <EvidenceList items={STABILITY_REVIEW_SCOPES} empty="No stability review scope emitted." tone="warning" />
       </WorkspaceCard>
       <ResearchDeskRequestPanel

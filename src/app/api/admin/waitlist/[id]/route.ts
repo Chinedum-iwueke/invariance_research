@@ -33,7 +33,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     status = rawStatus;
   }
 
-  const ok = updateWaitlistEntry({
+  const ok = await updateWaitlistEntry({
     waitlistEntryId: id,
     status,
     note: parsed.data.note,

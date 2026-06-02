@@ -342,7 +342,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         </div>
       </WorkspaceCard>
 
-      <WorkspaceCard title="Deferred Review Scopes" subtitle="High-risk claims that should not be automated from this launch upload alone.">
+      <WorkspaceCard title="Deferred Review Scopes" subtitle="High-risk claims that should not be automated from this upload alone.">
         <BulletList
           items={[
             "True parameter stability requires a coherent multi-run sweep and reviewer validation of the run-to-parameter mapping.",

@@ -69,7 +69,12 @@ function mapRow(row: Record<string, unknown>): EvidenceEventRecord {
     severity: row.severity as EvidenceEventSeverity,
     title: String(row.title),
     summary: String(row.summary),
-    payload: JSON.parse(String(row.payload_json || "{}")),
+    payload:
+      row.payload_json === undefined || row.payload_json === null
+        ? {}
+        : typeof row.payload_json === "string"
+        ? JSON.parse(row.payload_json)
+        : (row.payload_json as Record<string, unknown>),
     created_by_user_id: row.created_by_user_id ? String(row.created_by_user_id) : undefined,
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
   };

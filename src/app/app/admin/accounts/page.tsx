@@ -6,7 +6,10 @@ import { AdminTable } from "@/components/admin/admin-table";
 import { AccountPlanBadge, WebhookStatusBadge } from "@/components/admin/status-badges";
 import { writeAdminAuditLog } from "@/lib/server/admin/audit-log";
 import { requireAdminSession } from "@/lib/server/admin/guards";
+import { accountService } from "@/lib/server/accounts/service";
 import { adminSetAccountPassword, listAdminAccounts } from "@/lib/server/admin/accounts-service";
+import { PLAN_LABELS, canonicalPlanId } from "@/lib/server/entitlements/plans";
+import type { PlanId } from "@/lib/contracts/account";
 
 export default async function AdminAccountsPage({ searchParams }: { searchParams: Promise<{ plan?: string; status?: string; highUsage?: string }> }) {
   const params = await searchParams;
@@ -37,11 +40,29 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
     revalidatePath("/app/admin/accounts");
   }
 
+  async function overridePlan(formData: FormData) {
+    "use server";
+    const accountId = String(formData.get("account_id") ?? "").trim();
+    const planId = String(formData.get("plan_id") ?? "").trim() as PlanId;
+    if (!accountId || !planId) return;
+    const actor = await requireAdminSession();
+    const canonical = canonicalPlanId(planId);
+    const account = await accountService.applyAdminPlanOverride({ account_id: accountId, plan_id: canonical });
+    await writeAdminAuditLog({
+      actor,
+      action: "account.plan_override",
+      resourceType: "account",
+      resourceId: accountId,
+      metadata: { plan_id: account.plan_id, requested_plan_id: planId, source: "admin_accounts_table" },
+    });
+    revalidatePath("/app/admin/accounts");
+  }
+
   return (
     <AdminPageShell title="Accounts & Subscriptions" description="Operational overview for account plans, billing status, entitlement footprint, and credential controls.">
       <AdminFilterBar>
         <Link href="/app/admin/accounts" className="text-xs underline">All</Link>
-        <Link href="/app/admin/accounts?plan=individual" className="text-xs underline">Individual</Link>
+        <Link href="/app/admin/accounts?plan=explorer" className="text-xs underline">Explorer</Link>
         <Link href="/app/admin/accounts?status=past_due" className="text-xs underline">Past due</Link>
         <Link href="/app/admin/accounts?highUsage=1" className="text-xs underline">High usage</Link>
       </AdminFilterBar>
@@ -66,13 +87,24 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
         ))}
       </div>
       <AdminTable>
-        <thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral"><tr><th className="px-3 py-2">Account</th><th>Owner</th><th>Plan</th><th>Subscription</th><th>Usage</th><th>Entitlements</th><th>Password</th><th>Stripe refs</th></tr></thead>
+        <thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral"><tr><th className="px-3 py-2">Account</th><th>Owner</th><th>Plan</th><th>Override</th><th>Subscription</th><th>Usage</th><th>Entitlements</th><th>Password</th><th>Stripe refs</th></tr></thead>
         <tbody>
           {view.rows.map((item) => (
             <tr key={item.account_id} className="border-b border-border-subtle/60 text-xs">
               <td className="px-3 py-2">{item.account_id}<div className="text-text-neutral">created {item.created_at}</div></td>
               <td>{item.owner_email}</td>
               <td><AccountPlanBadge value={item.plan_id} /></td>
+              <td>
+                <form action={overridePlan} className="flex min-w-[180px] items-center gap-2">
+                  <input type="hidden" name="account_id" value={item.account_id} />
+                  <select name="plan_id" defaultValue={canonicalPlanId(item.plan_id)} className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1 text-xs text-text-graphite">
+                    {Object.entries(PLAN_LABELS).map(([plan, label]) => (
+                      <option key={plan} value={plan}>{label}</option>
+                    ))}
+                  </select>
+                  <button type="submit" className="rounded-sm border border-border-subtle bg-surface-white px-2 py-1 text-xs text-text-graphite hover:bg-surface-panel">Apply</button>
+                </form>
+              </td>
               <td><WebhookStatusBadge value={item.subscription_status} /><div className="text-text-neutral">period end: {item.current_period_end ?? "-"} {item.cancel_at_period_end ? "(canceling)" : ""}</div></td>
               <td>{item.usage_this_month.analyses_created} analyses / {item.usage_this_month.report_exports} exports</td>
               <td>{item.entitlement_summary}</td>

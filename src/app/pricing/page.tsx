@@ -11,7 +11,7 @@ import { PlanComparisonTable } from "@/components/dashboard/plan-comparison-tabl
 
 export const metadata: Metadata = {
   title: "Pricing | Invariance Research",
-  description: "Launch pricing for trade-history validation, core robustness diagnostics, prop evaluation, exports, shares, and Research Desk escalation.",
+  description: "Pricing for trade-history validation, core robustness diagnostics, prop evaluation, exports, shares, and Research Desk escalation.",
 };
 
 export default function PricingPage() {
@@ -33,12 +33,12 @@ export default function PricingPage() {
         </section>
 
         <section id="plans" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Launch Plans" description="Self-serve tiers are built around trade CSVs, exchange exports, core robustness diagnostics, prop evaluation rules, survival stress, and report sharing. They do not turn weak evidence into stronger proof." />
+          <SectionHeader title="Validation Plans" description="Self-serve tiers are built around trade CSVs, exchange exports, core robustness diagnostics, prop evaluation rules, survival stress, and report sharing. They do not turn weak evidence into stronger proof." />
           <PricingCards />
         </section>
 
         <section id="comparison" className="container-shell space-y-6 py-section-sm">
-          <SectionHeader title="Plan Comparison" description="Capability matrix for the launch wedge: trade-history validation with prop evaluation as a high-value supported workflow." />
+          <SectionHeader title="Plan Comparison" description="Capability matrix for trade-history validation, prop evaluation, report exports, share links, and Research Desk escalation." />
           <PlanComparisonTable />
           <Card className="p-card-md text-sm leading-6 text-text-neutral">
             Research Desk is the escalation path when a trade-history upload cannot honestly support true parameter stability, multi-asset regime attribution, broker-level execution realism, strategy reconstruction, portfolio exposure analysis, or an independent validation memo. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>

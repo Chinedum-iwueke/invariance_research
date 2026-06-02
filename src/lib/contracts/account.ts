@@ -1,5 +1,5 @@
-export type LaunchPlanId = "free" | "individual" | "pro" | "team" | "research_desk";
-export type LegacyPlanId = "explorer" | "professional" | "research_lab" | "advisory";
+export type LaunchPlanId = "free" | "explorer" | "pro" | "team" | "research_desk";
+export type LegacyPlanId = "individual" | "professional" | "research_lab" | "advisory";
 export type PlanId = LaunchPlanId | LegacyPlanId;
 export type SubscriptionStatus =
   | "trialing"

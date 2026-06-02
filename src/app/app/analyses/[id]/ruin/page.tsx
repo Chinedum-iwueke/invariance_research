@@ -109,7 +109,7 @@ export default async function RuinPage({ params }: { params: Promise<{ id: strin
       diagnosticTitle: "Risk of Ruin",
       diagnosticPurpose: "Estimate capital survivability and catastrophic drawdown exposure under stress assumptions.",
       currentPlan: state?.account.plan_id,
-      requiredPlan: "Individual",
+      requiredPlan: "Explorer",
     });
     return (
       <AnalysisPageFrame title="Risk of Ruin" description="Capital survivability, drawdown breach probabilities, and execution stress tolerance.">

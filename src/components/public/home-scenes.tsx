@@ -105,7 +105,7 @@ export function HeroScene({ style }: { style?: CSSProperties }) {
               <Link href="/robustness-lab">Enter the Lab</Link>
             </Button>
             <Button asChild variant="secondary" className="max-w-full">
-              <Link href="/strategy-validation">See validation method</Link>
+              <Link href="/strategy-validation">Request strategy validation</Link>
             </Button>
           </div>
 

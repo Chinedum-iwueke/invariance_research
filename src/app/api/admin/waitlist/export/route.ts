@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const statusParam = searchParams.get("status");
   const status = statusParam && isValidWaitlistStatus(statusParam) ? statusParam : undefined;
 
-  const rows = listWaitlistEntries(status);
+  const rows = await listWaitlistEntries(status);
   const header = ["email", "name", "source_page", "role_or_team", "status", "note", "created_at", "updated_at"];
   const lines = [
     header.join(","),

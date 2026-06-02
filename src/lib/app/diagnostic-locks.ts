@@ -62,7 +62,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         state: input.state,
         badgeLabel: "Artifact Limited",
         primaryExplanation:
-          "True parameter stability is a Research Desk scope for launch. A parameter sweep bundle can improve the review packet, but automated upload diagnostics should not claim a validated stability surface.",
+          "True parameter stability is a Research Desk scope. A parameter sweep bundle can improve the review packet, but automated upload diagnostics should not claim a validated stability surface.",
         unlockRequirements: [
           "Provide any available sweep outputs, parameter metadata, and run-to-parameter mapping as supporting evidence.",
           "Include comparable per-run results only if they were generated under the same evaluation rules.",
@@ -84,7 +84,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
         state: input.state,
         badgeLabel: "Artifact Limited",
         primaryExplanation:
-          "Regime attribution is a Research Desk scope for launch. Uploaded OHLCV can improve context, but automated upload diagnostics should not claim portfolio-level or multi-asset regime causality.",
+          "Regime attribution is a Research Desk scope. Uploaded OHLCV can improve context, but automated upload diagnostics should not claim portfolio-level or multi-asset regime causality.",
         unlockRequirements: [
           "Provide OHLCV, symbol coverage, timezone, bar interval, and any explicit regime definitions as supporting evidence.",
           "For multi-asset strategies, include timestamp alignment and symbol-to-trade mapping so reviewers can inspect attribution quality.",
@@ -144,10 +144,10 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
     diagnosticPurpose: input.diagnosticPurpose,
     state: input.state,
     badgeLabel: "Plan Locked",
-    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Individual"} plan and above.${input.artifactRequirementProfile ? " It also requires specific structured artifact inputs." : ""}`,
+    primaryExplanation: `This diagnostic is available on the ${input.requiredPlan ?? "Explorer"} plan and above.${input.artifactRequirementProfile ? " It also requires specific structured artifact inputs." : ""}`,
     unlockRequirements: [
       `Current plan: ${input.currentPlan ?? "Free"}`,
-      `Required plan: ${input.requiredPlan ?? "Individual"}`,
+      `Required plan: ${input.requiredPlan ?? "Explorer"}`,
       ...(input.artifactRequirementProfile === "parameter_sweep_bundle"
         ? ["Artifact requirement: parameter sweep bundle with run-to-parameter mapping."]
         : input.artifactRequirementProfile === "regime_analysis"
@@ -156,7 +156,7 @@ export function buildDiagnosticLockModel(input: BuildDiagnosticLockModelInput): 
       "Upgrade unlocks deeper diagnostics and workflow capacity for this surface.",
     ],
     actions: [
-      ...(showUpgradeCta ? [{ label: `Upgrade to ${input.requiredPlan ?? "Individual"}`, href: "/app/upgrade", emphasis: "primary" as const }] : []),
+      ...(showUpgradeCta ? [{ label: `Upgrade to ${input.requiredPlan ?? "Explorer"}`, href: "/app/upgrade", emphasis: "primary" as const }] : []),
       { label: "Request Strategy Validation", href: "/strategy-validation", emphasis: "secondary" },
     ],
     footerNote: showUpgradeCta

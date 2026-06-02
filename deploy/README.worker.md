@@ -51,6 +51,29 @@ Benchmark env vars must be set on both Vercel and the worker host. Vercel resolv
 
 Keep `deploy/.env.worker` untracked. Rotate any key that was copied into logs, screenshots, chat, or a shared machine.
 
+## Benchmark Library Refresh
+
+The admin Maintenance page exposes a `Refresh benchmark library` button. Run it only from an environment that has Python, pandas/parquet support, network egress, and production R2 credentials. It executes the same weekly command sequence below.
+
+Manual refresh from the worker/admin VM:
+
+```bash
+cd /opt/invariance_research
+set -a
+source deploy/.env.worker
+set +a
+npm run benchmarks:weekly
+```
+
+Equivalent expanded commands:
+
+```bash
+npm run benchmarks:update
+npm run benchmarks:sync-object-storage
+```
+
+Expected result: local benchmark parquet files are refreshed, `manifest.v1.yaml` is rebuilt, and `benchmarks/manifest.v1.yaml` plus the benchmark parquet files are uploaded to the configured R2 bucket. After refresh, verify `/api/benchmark-library/health` and Admin Health show an object-storage benchmark provider with a valid manifest.
+
 ## Database Readiness
 
 Before starting workers:

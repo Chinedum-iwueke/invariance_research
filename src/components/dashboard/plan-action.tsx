@@ -5,13 +5,13 @@ import { useState } from "react";
 import type { PlanId } from "@/lib/contracts/account";
 import { buttonVariants } from "@/components/ui/button";
 
-const PLAN_ORDER = ["free", "individual", "pro", "team", "research_desk"] as const;
+const PLAN_ORDER = ["free", "explorer", "pro", "team", "research_desk"] as const;
 
 type ActionKind = "upgrade" | "downgrade" | "current" | "request";
 
 function canonicalPlanId(planId: PlanId): (typeof PLAN_ORDER)[number] {
-  if (planId === "individual" || planId === "pro" || planId === "team" || planId === "research_desk" || planId === "free") return planId;
-  if (planId === "professional") return "individual";
+  if (planId === "explorer" || planId === "pro" || planId === "team" || planId === "research_desk" || planId === "free") return planId;
+  if (planId === "individual" || planId === "professional") return "explorer";
   if (planId === "research_lab") return "pro";
   if (planId === "advisory") return "research_desk";
   return "free";

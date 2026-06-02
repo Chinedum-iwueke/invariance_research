@@ -54,7 +54,7 @@ const referenceBundleHref = "/downloads/strategy-truth-room-research-bundle-refe
 
 const evidencePackages = [
   {
-    tier: "Minimum launch path",
+    tier: "Minimum upload path",
     name: "Trade CSV / exchange export",
     files: "trades.csv only",
     unlocks: "Prop evaluation preview, first breach, rolling windows, overview, distribution, Monte Carlo, ruin, and report preview/export by plan.",
@@ -123,7 +123,7 @@ export default function LabDocsPage() {
         <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Strategy Robustness Lab Upload Docs</h1>
         <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and what each input unlocks.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
-          The launch product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact prop rules when evaluation feasibility matters. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
+          The self-serve product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact prop rules when evaluation feasibility matters. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <Link href={referenceBundleHref} className={buttonVariants({ variant: "primary" })}>
@@ -213,7 +213,7 @@ export default function LabDocsPage() {
             <p className="mt-2 text-xs text-text-neutral">Extension: <span className="font-mono">.csv</span></p>
             <p className="mt-2 text-sm text-text-neutral">Closed trades table resolved through canonical field aliases.</p>
             <p className="mt-2 text-xs text-text-neutral">Unlocks: prop evaluation preview, first breach, rolling windows, overview, distribution, monte carlo, ruin, report.</p>
-            <p className="mt-2 text-xs text-text-neutral">For: fastest launch validation intake.</p>
+            <p className="mt-2 text-xs text-text-neutral">For: fastest validation intake.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
             <h3 className="text-sm font-semibold text-text-institutional">Context bundle (bundle_v1)</h3>
@@ -226,7 +226,7 @@ export default function LabDocsPage() {
             <h3 className="text-sm font-semibold text-text-institutional">Research Desk packet profile</h3>
             <p className="mt-2 text-xs text-text-neutral">Container: <span className="font-mono">bundle_v1</span> with <span className="font-mono">artifact_type: research_bundle</span></p>
             <p className="mt-2 text-sm text-text-neutral">Not a separate parser route; this is a manifest-level artifact profile under bundle_v1.</p>
-            <p className="mt-2 text-xs text-text-neutral">Unlocks: stronger packet quality for reviewer handoff. True parameter stability, portfolio attribution, and broker-level realism route to Research Desk for launch.</p>
+            <p className="mt-2 text-xs text-text-neutral">Unlocks: stronger packet quality for reviewer handoff. True parameter stability, portfolio attribution, and broker-level realism route to Research Desk when evidence is insufficient for self-serve automation.</p>
             <p className="mt-2 text-xs text-text-neutral">For: users supplying full contextual artifacts before deeper review.</p>
           </article>
         </div>
@@ -418,14 +418,42 @@ export default function LabDocsPage() {
             <tbody className="divide-y divide-border-subtle">
               <tr><td className="px-4 py-3 font-medium">Core trade fields</td><td className="px-4 py-3 text-text-neutral">Prop evaluation baseline, first breach, rolling windows, Overview, Distribution, Monte Carlo, Ruin, and Report available.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Exact prop evaluation rules</td><td className="px-4 py-3 text-text-neutral">Decision-grade target-before-breach, daily-loss breach, total-drawdown breach, and rule-status interpretation.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">MAE/MFE</td><td className="px-4 py-3 text-text-neutral">Improved excursion interpretation and richer distribution context.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">risk_amount / stop_distance / R-multiples</td><td className="px-4 py-3 text-text-neutral">Stronger execution-quality framing and risk translation.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">pnl + pnl_pct + fees</td><td className="px-4 py-3 text-text-neutral">Cleaner trade-sequence replay, cost-aware interpretation, and better distinction between gross edge and net challenge feasibility.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">MAE/MFE</td><td className="px-4 py-3 text-text-neutral">Intratrade danger context. Without MAE/MFE, the Lab evaluates closed-trade pass probability but does not claim to know intratrade drawdown pressure.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">risk_R / r_multiple / risk_amount</td><td className="px-4 py-3 text-text-neutral">Decision-grade risk-per-trade sensitivity map, best risk range, and sizing failure attribution. Without these, pnl_pct can only support a labeled sizing proxy.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">exit_reason / strategy_tag / setup_tag / session</td><td className="px-4 py-3 text-text-neutral">Cleaner failure attribution by setup/session when supplied. These fields are optional and are not used to infer market regime unless the user explicitly tags state.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Documents declared cost, slippage, and execution assumptions so the report can separate evidence from assumptions.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle params.json</td><td className="px-4 py-3 text-text-neutral">Improves baseline parameter context, but does not prove stability on its own.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Research Desk packet quality for Parameter Stability. Automated launch reports do not claim true stability from upload alone.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Research Desk packet quality. Automated launch reports do not claim multi-asset regime attribution from upload alone.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Research Desk packet quality for Parameter Stability. Automated reports do not claim true stability from upload alone.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Research Desk packet quality. Automated reports do not claim multi-asset regime attribution from upload alone.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Runtime account_size + risk_per_trade_pct</td><td className="px-4 py-3 text-text-neutral">Sizing-aware survivability interpretation for ruin diagnostics.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Benchmark selection</td><td className="px-4 py-3 text-text-neutral">Benchmark-relative comparison diagnostics when benchmark data is available.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-md border border-border-subtle bg-surface-white p-8">
+        <h2 className="text-xl font-semibold text-text-institutional">Prop Evaluation Unlocks</h2>
+        <p className="max-w-4xl text-sm leading-6 text-text-neutral">
+          With only a trade CSV, the Lab treats prop evaluation as a trade-sequence feasibility problem. It does not infer market regime, liquidity state, funding conditions, or volatility context unless those fields are explicitly supplied.
+        </p>
+        <div className="overflow-x-auto rounded-md border border-border-subtle">
+          <table className="min-w-full divide-y divide-border-subtle text-sm">
+            <thead className="bg-surface-panel/70 text-left text-xs uppercase tracking-wide text-text-neutral">
+              <tr>
+                <th className="px-4 py-3">Evidence supplied</th>
+                <th className="px-4 py-3">Prop evaluation output</th>
+                <th className="px-4 py-3">Boundary</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-subtle">
+              <tr><td className="px-4 py-3 font-medium">Core trades</td><td className="px-4 py-3 text-text-neutral">Historical challenge replay, first breach, first target hit, rolling pass/fail windows, rule status, and target progress.</td><td className="px-4 py-3 text-text-neutral">Closed-trade sequence only.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Enough trades/trading days</td><td className="px-4 py-3 text-text-neutral">Monte Carlo pass probability using trade shuffle, bootstrap sampling, and day-block clustering when possible.</td><td className="px-4 py-3 text-text-neutral">Simulation estimates sequence risk; it is not a guarantee.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">risk_R or r_multiple</td><td className="px-4 py-3 text-text-neutral">Risk-per-trade survival map across 0.25%, 0.50%, 0.75%, 1.00%, 1.50%, and 2.00% risk.</td><td className="px-4 py-3 text-text-neutral">Decision-grade sizing requires R fields for every trade.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">pnl_pct without R fields</td><td className="px-4 py-3 text-text-neutral">Labeled sizing proxy using trade return percentages.</td><td className="px-4 py-3 text-text-neutral">Useful for orientation, not a true risk-per-trade claim.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">MAE/MFE</td><td className="px-4 py-3 text-text-neutral">Intratrade danger and excursion context.</td><td className="px-4 py-3 text-text-neutral">Missing MAE/MFE means no intratrade drawdown claim.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Exact prop rules</td><td className="px-4 py-3 text-text-neutral">Decision-grade replay against profit target, daily drawdown, max drawdown, trading-day limits, and consistency rule.</td><td className="px-4 py-3 text-text-neutral">Fallback rules are only a preview.</td></tr>
             </tbody>
           </table>
         </div>
@@ -557,7 +585,7 @@ run_manifest.json
         <div className="grid gap-3 md:grid-cols-3">
           <article className="rounded-md border border-border-subtle p-4">
             <h3 className="text-sm font-semibold text-text-institutional">Exact prop rules</h3>
-            <p className="mt-2 text-xs text-text-neutral">Recommended for launch. Used to compute first breach, target progress, rolling challenge windows, and rule-status truth.</p>
+            <p className="mt-2 text-xs text-text-neutral">Recommended. Used to compute first breach, target progress, rolling challenge windows, and rule-status truth.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
             <h3 className="text-sm font-semibold text-text-institutional">Account size</h3>
@@ -601,7 +629,7 @@ run_manifest.json
           <li>• Include MAE/MFE whenever available.</li>
           <li>• Include risk_amount and/or R-multiples for stronger risk diagnostics.</li>
           <li>• Set benchmark, account size, and risk per trade % for decision-grade survivability interpretation.</li>
-          <li>• Keep one strategy per upload for launch self-serve. Use Research Desk for multi-run parameter sweeps or portfolio-level review.</li>
+          <li>• Keep one strategy per upload for self-serve analysis. Use Research Desk for multi-run parameter sweeps or portfolio-level review.</li>
           <li>• For multi-asset OHLCV, include every traded symbol for the full trade window with exact symbol matching and one timestamp convention.</li>
         </ul>
       </section>
@@ -612,8 +640,8 @@ run_manifest.json
           <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>. Server-side size limits are enforced by account plan; the public client blocks oversized files before upload.</li>
           <li>• Upload inspection, analysis creation, exports, sharing, and Research Desk requests are protected by route-level rate limits.</li>
           <li>• Artifact kinds are currently limited to trade CSV, exchange-export-like CSVs that normalize to trades, and bundle_v1 context ZIPs.</li>
-          <li>• Parameter Stability is a Research Desk scope for launch. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
-          <li>• Regime attribution is a Research Desk scope for launch. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>
+          <li>• Parameter Stability is a Research Desk scope. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
+          <li>• Regime attribution is a Research Desk scope. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>
           <li>• Execution diagnostics can remain limited without richer assumptions/context artifacts. Broker-level realism requires broker fills, fee/spread evidence, and often Research Desk review.</li>
           <li>• Strategy reconstruction from configs/reports, portfolio-level exposure analysis, and independent validation memos are Research Desk scopes when the upload evidence is incomplete.</li>
         </ul>

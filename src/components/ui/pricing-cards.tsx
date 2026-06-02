@@ -21,10 +21,10 @@ export function PricingCards() {
       ],
     },
     {
-      title: "Individual",
+      title: "Explorer",
       price: "$39",
       billing: "per month",
-      ctaLabel: "Choose Individual",
+      ctaLabel: "Choose Explorer",
       ctaHref: "/signup",
       features: [
         "Trade CSV, exchange export, and optional context ZIP upload",

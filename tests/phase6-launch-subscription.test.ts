@@ -6,7 +6,7 @@ import { buildDiagnosticLockModel } from "../src/lib/app/diagnostic-locks.ts";
 import { PLAN_MATRIX, PLAN_PRICE_COPY, canonicalPlanId } from "../src/lib/server/entitlements/plans.ts";
 
 test("phase 6 launch plan matrix matches sellable packaging", () => {
-  assert.equal(PLAN_PRICE_COPY.individual, "$39/mo");
+  assert.equal(PLAN_PRICE_COPY.explorer, "$39/mo");
   assert.equal(PLAN_PRICE_COPY.pro, "$99/mo");
   assert.equal(PLAN_PRICE_COPY.research_desk, "From $1,000");
 
@@ -14,10 +14,10 @@ test("phase 6 launch plan matrix matches sellable packaging", () => {
   assert.equal(PLAN_MATRIX.free.can_export_report, false);
   assert.equal(PLAN_MATRIX.free.can_create_share_links, false);
 
-  assert.equal(PLAN_MATRIX.individual.can_export_report, true);
-  assert.equal(PLAN_MATRIX.individual.can_view_execution, true);
-  assert.equal(PLAN_MATRIX.individual.prop_evaluation_profiles, 1);
-  assert.equal(PLAN_MATRIX.individual.share_links_per_month, 5);
+  assert.equal(PLAN_MATRIX.explorer.can_export_report, true);
+  assert.equal(PLAN_MATRIX.explorer.can_view_execution, true);
+  assert.equal(PLAN_MATRIX.explorer.prop_evaluation_profiles, 1);
+  assert.equal(PLAN_MATRIX.explorer.share_links_per_month, 5);
 
   assert.equal(PLAN_MATRIX.pro.can_view_regimes, false);
   assert.equal(PLAN_MATRIX.pro.can_view_stability, false);
@@ -27,16 +27,16 @@ test("phase 6 launch plan matrix matches sellable packaging", () => {
 });
 
 test("legacy plan ids map safely into launch plan semantics", () => {
-  assert.equal(canonicalPlanId("explorer"), "free");
-  assert.equal(canonicalPlanId("professional"), "individual");
+  assert.equal(canonicalPlanId("individual"), "explorer");
+  assert.equal(canonicalPlanId("professional"), "explorer");
   assert.equal(canonicalPlanId("research_lab"), "pro");
   assert.equal(canonicalPlanId("advisory"), "research_desk");
-  assert.equal(PLAN_MATRIX.professional.can_export_report, PLAN_MATRIX.individual.can_export_report);
+  assert.equal(PLAN_MATRIX.professional.can_export_report, PLAN_MATRIX.explorer.can_export_report);
 });
 
 test("stripe test-mode catalog has every paid self-serve launch tier", () => {
   const byId = new Map(BILLING_PLAN_CATALOG.map((entry) => [entry.id, entry]));
-  for (const plan of ["individual", "pro"] as const) {
+  for (const plan of ["explorer", "pro"] as const) {
     const entry = byId.get(plan);
     assert.equal(entry?.self_serve_checkout, true);
     assert.ok(entry?.stripe_price_id?.startsWith("price_") || entry?.stripe_price_id?.startsWith("prod_") || entry?.stripe_price_id);

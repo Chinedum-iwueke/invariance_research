@@ -233,7 +233,7 @@ export function NewAnalysisIntake() {
     <div className="space-y-4">
       <WorkspaceCard title="Upload trade history" subtitle="Step 1: trade CSV, exchange export, or optional context ZIP">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-text-neutral">The launch workflow is trade-history first. Optional ZIP files add context; they do not turn incomplete evidence into regime, parameter, broker, or portfolio proof.</p>
+          <p className="text-xs text-text-neutral">The recommended workflow is trade-history first. Optional ZIP files add context; they do not turn incomplete evidence into regime, parameter, broker, or portfolio proof.</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className={buttonVariants({ variant: "secondary", size: "sm" })}>Download Context ZIP Reference</Link>
             <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>
@@ -242,7 +242,7 @@ export function NewAnalysisIntake() {
         <div className="mb-4 grid gap-2 text-xs text-text-neutral md:grid-cols-3">
           <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
             <p className="font-semibold text-text-institutional">Trade CSV</p>
-            <p className="mt-1">Closed trades are the core launch artifact.</p>
+            <p className="mt-1">Closed trades are the core validation artifact.</p>
           </div>
           <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
             <p className="font-semibold text-text-institutional">Exchange export</p>
@@ -451,7 +451,7 @@ export function NewAnalysisIntake() {
               <UpgradePanel
                 title="Monthly analysis limit reached"
                 explanation="You have reached your current monthly analysis capacity. Upgrade to continue running additional diagnostics this month."
-                planHint="Individual and Pro increase self-serve throughput. Research Desk is scoped separately."
+                planHint="Explorer and Pro increase self-serve throughput. Research Desk is scoped separately."
               />
             )}
             {isUploadPlanRestricted(apiErrorCode) && (
@@ -460,7 +460,7 @@ export function NewAnalysisIntake() {
                   state: "plan_locked",
                   diagnosticTitle: "Context ZIP Upload",
                   diagnosticPurpose: "Upload optional context bundles for stronger provenance and Research Desk packet quality.",
-                  requiredPlan: "Individual",
+                  requiredPlan: "Explorer",
                 })}
               />
             )}

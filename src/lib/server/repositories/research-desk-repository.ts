@@ -16,7 +16,7 @@ function iso(value: unknown): string {
 function parseJson<T>(value: unknown, fallback: T): T {
   if (!value) return fallback;
   try {
-    return JSON.parse(String(value)) as T;
+    return typeof value === "string" ? (JSON.parse(value) as T) : (value as T);
   } catch {
     return fallback;
   }

@@ -7,7 +7,7 @@ export function UploadPanel() {
     <Card className="space-y-4 p-card-md">
       <div>
         <h3 className="text-lg font-semibold">Upload Trade History</h3>
-        <p className="mt-1 text-sm text-text-neutral">Start with a trade CSV or exchange export. Optional ZIP bundles add context, but the launch verdict is trade-path first.</p>
+        <p className="mt-1 text-sm text-text-neutral">Start with a trade CSV or exchange export. Optional ZIP bundles add context, but the verdict is trade-path first.</p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs font-medium">
           <Link href="/docs/lab" className="text-brand hover:underline">View upload docs</Link>
           <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className="text-brand hover:underline">Download optional ZIP reference</Link>

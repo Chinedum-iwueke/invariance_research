@@ -41,7 +41,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Working Surface"
             title="See how a trade history becomes a validation record."
-            description="The walkthrough follows the launch sequence: trade intake, claim/rule entry, execution stress, survival analysis, prop feasibility, and report."
+            description="The walkthrough follows the validation sequence: trade intake, claim/rule entry, execution stress, survival analysis, prop feasibility, and report."
           />
           <Card className="overflow-hidden border-border-subtle bg-surface-panel p-2 md:p-3">
             <div className="rounded-sm border border-border-subtle bg-[#0f141c] p-4 md:p-6">
@@ -72,7 +72,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Artifact Intake"
             title="Trade history first. Everything else is evidence enrichment."
-            description="The launch product is optimized for closed trade logs and exchange/broker exports. Richer files can help, but the self-serve verdict is anchored in the trade path."
+            description="The self-serve product is optimized for closed trade logs and exchange/broker exports. Richer files can help, but the verdict is anchored in the trade path."
           />
           <UploadPanel />
         </section>

@@ -3,18 +3,18 @@ import type { EntitlementSnapshot } from "@/lib/contracts/entitlements";
 
 type EntitlementTemplate = Omit<EntitlementSnapshot, "account_id" | "effective_at" | "source_of_truth">;
 
-export const LAUNCH_PLAN_IDS = ["free", "individual", "pro", "team", "research_desk"] as const satisfies readonly LaunchPlanId[];
+export const LAUNCH_PLAN_IDS = ["free", "explorer", "pro", "team", "research_desk"] as const satisfies readonly LaunchPlanId[];
 
 export const LEGACY_PLAN_ALIASES: Record<LegacyPlanId, LaunchPlanId> = {
-  explorer: "free",
-  professional: "individual",
+  individual: "explorer",
+  professional: "explorer",
   research_lab: "pro",
   advisory: "research_desk",
 };
 
 export const PLAN_LABELS: Record<LaunchPlanId, string> = {
   free: "Free",
-  individual: "Individual",
+  explorer: "Explorer",
   pro: "Pro",
   team: "Team",
   research_desk: "Research Desk",
@@ -22,15 +22,15 @@ export const PLAN_LABELS: Record<LaunchPlanId, string> = {
 
 export const PLAN_PRICE_COPY: Record<LaunchPlanId, string> = {
   free: "$0",
-  individual: "$39/mo",
+  explorer: "$39/mo",
   pro: "$99/mo",
   team: "$399/mo",
   research_desk: "From $1,000",
 };
 
 export function canonicalPlanId(planId: PlanId | string | undefined): LaunchPlanId {
-  if (planId === "free" || planId === "individual" || planId === "pro" || planId === "team" || planId === "research_desk") return planId;
-  if (planId === "explorer" || planId === "professional" || planId === "research_lab" || planId === "advisory") return LEGACY_PLAN_ALIASES[planId];
+  if (planId === "free" || planId === "explorer" || planId === "pro" || planId === "team" || planId === "research_desk") return planId;
+  if (planId === "individual" || planId === "professional" || planId === "research_lab" || planId === "advisory") return LEGACY_PLAN_ALIASES[planId];
   return "free";
 }
 
@@ -61,8 +61,8 @@ const launchPlans: Record<LaunchPlanId, EntitlementTemplate> = {
     processing_priority: "standard",
     consulting_cta_variant: "soft",
   },
-  individual: {
-    plan_id: "individual",
+  explorer: {
+    plan_id: "explorer",
     analyses_per_month: 25,
     max_upload_file_size_mb: 25,
     can_upload_trade_csv: true,
@@ -174,7 +174,7 @@ function aliasTemplate(alias: LegacyPlanId): EntitlementTemplate {
 
 export const PLAN_MATRIX: Record<PlanId, EntitlementTemplate> = {
   ...launchPlans,
-  explorer: aliasTemplate("explorer"),
+  individual: aliasTemplate("individual"),
   professional: aliasTemplate("professional"),
   research_lab: aliasTemplate("research_lab"),
   advisory: aliasTemplate("advisory"),

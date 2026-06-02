@@ -15,12 +15,20 @@ export async function POST(request: Request) {
   const parsed = waitlistSubmissionSchema.safeParse(json);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_payload", message: "Please enter a valid email and try again." }, { status: 400 });
   }
   const limited = await enforceRateLimit({ request, route: "waitlist", kind: "waitlist", email: parsed.data.email });
   if (limited) return limited;
 
-  const created = createWaitlistEntry(parsed.data);
+  let created: Awaited<ReturnType<typeof createWaitlistEntry>>;
+  try {
+    created = await createWaitlistEntry(parsed.data);
+  } catch {
+    return NextResponse.json(
+      { error: "waitlist_unavailable", message: "Unable to join the waitlist right now. Please retry shortly." },
+      { status: 503 },
+    );
+  }
 
   if (created.duplicate) {
     return NextResponse.json(

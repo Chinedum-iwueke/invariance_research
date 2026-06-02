@@ -9,7 +9,7 @@ const STATUSES = ["new", "contacted", "invited", "archived"] as const;
 export default async function AdminWaitlistPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const params = await searchParams;
   const status = params.status && isValidWaitlistStatus(params.status) ? params.status : undefined;
-  const entries = listWaitlistEntries(status);
+  const entries = await listWaitlistEntries(status);
 
   return (
     <AdminPageShell title="Research Desk Waitlist" description="Manage early-access interest, outreach state, and invitation readiness.">

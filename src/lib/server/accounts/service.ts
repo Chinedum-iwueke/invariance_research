@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from "@/lib/server/auth/passwords";
 import { authTokenRepository, generateAuthToken, hashAuthToken } from "@/lib/server/auth/tokens";
 import { sendTransactionalEmail } from "@/lib/server/email/email-service";
 import { resolveEntitlementsForPlan } from "@/lib/server/entitlements/entitlements";
+import { canonicalPlanId } from "@/lib/server/entitlements/plans";
 import { userHasAdminRole } from "@/lib/server/admin/roles";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
@@ -253,27 +254,29 @@ export const accountService = {
     cancel_at_period_end?: boolean;
   }) {
     const repositories = getCoreRepositories();
+    const planId = canonicalPlanId(input.plan_id);
     await repositories.subscriptions.upsert({
       subscription_id: `${input.account_id}:${input.provider_subscription_id}`,
       account_id: input.account_id,
       provider: "stripe",
       provider_customer_id: input.provider_customer_id,
       provider_subscription_id: input.provider_subscription_id,
-      plan_id: input.plan_id,
+      plan_id: planId,
       status: input.status,
       current_period_start: input.current_period_start,
       current_period_end: input.current_period_end,
       cancel_at_period_end: Boolean(input.cancel_at_period_end),
     });
 
-    await repositories.accounts.updatePlan(input.account_id, input.plan_id, input.status);
+    await repositories.accounts.updatePlan(input.account_id, planId, input.status);
   },
 
   async applyAdminPlanOverride(input: { account_id: string; plan_id: PlanId }) {
     const repositories = getCoreRepositories();
-    const account = await repositories.accounts.updatePlan(input.account_id, input.plan_id, "active");
+    const planId = canonicalPlanId(input.plan_id);
+    const account = await repositories.accounts.updatePlan(input.account_id, planId, "active");
     if (!account) throw new Error("account_not_found");
-    await repositories.entitlements.set(resolveEntitlementsForPlan(input.account_id, input.plan_id, "admin_override"));
+    await repositories.entitlements.set(resolveEntitlementsForPlan(input.account_id, planId, "admin_override"));
     return account;
   },
 };

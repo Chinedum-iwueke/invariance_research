@@ -72,7 +72,7 @@ export default function ResearchDeskPage() {
               <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Research Desk waitlist</p>
               <h2 className="text-xl font-semibold leading-tight text-text-institutional md:text-2xl">Get early access when Research Desk opens</h2>
               <p className="max-w-3xl text-sm text-text-neutral">
-                Join the waitlist for launch updates, product previews, and limited early-access invitations as the next generation of Invariance Research takes shape.
+                Join the waitlist for product updates, Research Desk availability, and limited early-access invitations as the next generation of Invariance Research takes shape.
               </p>
             </div>
             <ResearchDeskWaitlistForm sourcePage="/research-desk" />

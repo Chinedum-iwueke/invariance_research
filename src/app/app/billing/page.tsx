@@ -54,7 +54,7 @@ export default async function BillingPage() {
       <UpgradePanel
         title="Need deeper diagnostics or more monthly capacity?"
         explanation="Upgrade decisions should follow analytical need: richer artifacts, more runs, and deeper report sections."
-        planHint="Individual and Pro expand self-serve workflow capacity. Research Desk handles high-touch validation scopes."
+        planHint="Explorer and Pro expand self-serve workflow capacity. Research Desk handles high-touch validation scopes."
       />
     </AnalysisPageFrame>
   );

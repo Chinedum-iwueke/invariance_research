@@ -20,10 +20,10 @@ export default async function UpgradePage() {
             <PlanAction currentPlan={currentPlan} targetPlan="free" />
           </div>
         </WorkspaceCard>
-        <WorkspaceCard title="Individual" subtitle="$39/mo">
+        <WorkspaceCard title="Explorer" subtitle="$39/mo">
           <p className="text-sm text-text-neutral">Trade CSV or exchange export validation, optional context ZIPs, full exports, core diagnostics, and exact prop rules per analysis.</p>
           <div className="pt-3">
-            <PlanAction currentPlan={currentPlan} targetPlan="individual" />
+            <PlanAction currentPlan={currentPlan} targetPlan="explorer" />
           </div>
         </WorkspaceCard>
         <WorkspaceCard title="Pro" subtitle="$99/mo">

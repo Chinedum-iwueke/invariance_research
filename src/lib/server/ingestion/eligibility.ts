@@ -18,7 +18,7 @@ export function buildDiagnosticEligibility(
       stability: {
         availability: "limited",
         reason: context?.parameterSweepPresent
-          ? "parameter sweep evidence improves Research Desk packet quality; automated launch reports do not claim true parameter stability from upload alone"
+          ? "parameter sweep evidence improves Research Desk packet quality; automated reports do not claim true parameter stability from upload alone"
           : "true parameter stability requires a multi-run parameter sweep with run-to-parameter mapping and Research Desk review",
       },
       execution: {
@@ -28,7 +28,7 @@ export function buildDiagnosticEligibility(
       regimes: {
         availability: "limited",
         reason: context?.ohlcvPresent
-          ? "upload OHLCV improves regime context; automated launch reports do not claim multi-asset regime attribution from upload alone"
+          ? "upload OHLCV improves regime context; automated reports do not claim multi-asset regime attribution from upload alone"
           : "regime attribution requires OHLCV or explicit regime-labeled context and Research Desk review",
       },
       ruin: { availability: "available" },
@@ -72,7 +72,7 @@ export function buildDiagnosticEligibility(
     stability: {
       availability: "limited",
       reason: context?.parameterSweepPresent
-        ? "parameter sweep evidence improves Research Desk packet quality; automated launch reports do not claim true parameter stability from upload alone"
+        ? "parameter sweep evidence improves Research Desk packet quality; automated reports do not claim true parameter stability from upload alone"
         : context?.paramsPresent
           ? "params.json improves parameter context, but true parameter stability requires a multi-run sweep and Research Desk review"
           : "requires parameter sweep bundle and Research Desk review",
@@ -84,7 +84,7 @@ export function buildDiagnosticEligibility(
     regimes: {
       availability: "limited",
       reason: context?.ohlcvPresent
-        ? "upload OHLCV improves regime context; automated launch reports do not claim multi-asset regime attribution from upload alone"
+        ? "upload OHLCV improves regime context; automated reports do not claim multi-asset regime attribution from upload alone"
         : "requires OHLCV or regime-labeled context and Research Desk review",
     },
     ruin: { availability: "available" },
