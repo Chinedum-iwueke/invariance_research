@@ -46,6 +46,14 @@ function shouldRefreshSessionAccount(token: Record<string, unknown>) {
   return Date.now() - checkedAt >= getSessionDbCheckIntervalMs();
 }
 
+function authErrorDetails(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) return { message: String(error) };
+  const details: Record<string, unknown> = { message: error.message };
+  if ("code" in error) details.code = (error as { code?: unknown }).code;
+  if ("cause" in error) details.cause = (error as { cause?: unknown }).cause;
+  return details;
+}
+
 export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   providers: [
@@ -136,17 +144,34 @@ export const authConfig: NextAuthConfig = {
         token.session_version = user.session_version ?? 0;
         mutableToken.session_checked_at = Date.now();
       } else if (token.sub && shouldRefreshSessionAccount(mutableToken)) {
-        const repaired = await accountService.ensureAccountForUserId(String(token.sub));
-        if (repaired) {
-          token.email = repaired.user.email;
-          token.account_id = repaired.account.account_id;
-          token.session_version = repaired.user.session_version ?? 0;
-          mutableToken.session_checked_at = Date.now();
-        } else {
-          token.invalidated = true;
-        }
-        if (repaired && Number(token.session_version ?? 0) !== Number(repaired.user.session_version ?? 0)) {
-          token.invalidated = true;
+        try {
+          const repaired = await accountService.ensureAccountForUserId(String(token.sub));
+          if (repaired) {
+            token.email = repaired.user.email;
+            token.account_id = repaired.account.account_id;
+            token.session_version = repaired.user.session_version ?? 0;
+            mutableToken.session_checked_at = Date.now();
+          } else {
+            token.invalidated = true;
+          }
+          if (repaired && Number(token.session_version ?? 0) !== Number(repaired.user.session_version ?? 0)) {
+            token.invalidated = true;
+          }
+        } catch (error) {
+          if (token.account_id) {
+            mutableToken.session_checked_at = Date.now();
+            logger.error("auth.session_refresh_failed_preserved", {
+              user_id: token.sub,
+              account_id: token.account_id,
+              ...authErrorDetails(error),
+            });
+          } else {
+            token.invalidated = true;
+            logger.error("auth.session_repair_failed_invalidated", {
+              user_id: token.sub,
+              ...authErrorDetails(error),
+            });
+          }
         }
       }
       return token;
