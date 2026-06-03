@@ -194,6 +194,7 @@ export async function processNextAnalysisJob(): Promise<boolean> {
       computePropEvaluationReadiness(
         artifact.parsed_artifact,
         analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules,
+        analysis.runtime_config,
       ),
     );
     await moveToStep(analysisId, STEPS.llm);

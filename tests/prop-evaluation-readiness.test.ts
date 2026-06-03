@@ -43,6 +43,61 @@ test("prop evaluation uses runtime rules and does not pass a negative profit tar
   assert.equal(dailyLoss?.status, "fail");
 });
 
+test("prop evaluation marks consistency limited on losing paths instead of pass", () => {
+  const diagnostic = computePropEvaluationReadiness({
+    ...baseArtifact,
+    trades: [
+      { exit_time: "2026-01-01T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: -2_000 },
+      { exit_time: "2026-01-02T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: -1_000 },
+    ],
+  } as any, {
+    schema_version: "prop_evaluation_rules_v1",
+    source: "runtime",
+    label: "Runtime challenge",
+    account_size: 100_000,
+    profit_target_pct: 0.08,
+    max_total_drawdown_pct: 0.10,
+    max_daily_loss_pct: 0.05,
+    minimum_trading_days: 1,
+    maximum_evaluation_days: 30,
+    consistency_max_day_profit_pct: 0.35,
+  });
+
+  const consistency = diagnostic.rule_status.find((row) => row.rule === "consistency_max_day_profit");
+  assert.equal(consistency?.status, "limited");
+  assert.equal(consistency?.observed, null);
+  assert.equal(consistency?.allowed, 35);
+});
+
+test("runtime risk per trade unlocks scaled risk sensitivity without per-trade R", () => {
+  const diagnostic = computePropEvaluationReadiness({
+    ...baseArtifact,
+    trades: [
+      { exit_time: "2026-01-01T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: 2_000 },
+      { exit_time: "2026-01-02T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: -1_000 },
+      { exit_time: "2026-01-03T00:00:00Z", side: "long", entry_price: 100, exit_price: 100, quantity: 1, pnl: 3_000 },
+    ],
+  } as any, {
+    schema_version: "prop_evaluation_rules_v1",
+    source: "runtime",
+    label: "Runtime challenge",
+    account_size: 100_000,
+    profit_target_pct: 0.08,
+    max_total_drawdown_pct: 0.10,
+    max_daily_loss_pct: 0.05,
+    minimum_trading_days: 1,
+    maximum_evaluation_days: 30,
+  }, {
+    account_size: 100_000,
+    risk_per_trade_pct: 1,
+  });
+
+  const riskSensitivity = diagnostic.metadata?.risk_sensitivity as Record<string, any>;
+  assert.equal(riskSensitivity.status, "runtime_risk_scaled");
+  assert.equal(riskSensitivity.rows.length, 6);
+  assert.equal(diagnostic.metadata?.data_quality_check && (diagnostic.metadata.data_quality_check as Record<string, unknown>).has_risk_sizing_fields, true);
+});
+
 test("prop evaluation emits rolling windows for target-before-breach and breach-before-target periods", () => {
   const diagnostic = computePropEvaluationReadiness({
     ...baseArtifact,

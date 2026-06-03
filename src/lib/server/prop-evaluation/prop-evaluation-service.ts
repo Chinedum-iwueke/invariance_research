@@ -13,6 +13,11 @@ type NormalizedRules = Required<Pick<
   "source" | "label" | "account_size" | "profit_target_pct" | "max_total_drawdown_pct" | "total_drawdown_basis" | "max_daily_loss_pct" | "daily_loss_basis" | "reset_timezone" | "minimum_trading_days"
 >> & PropEvaluationRulesV1 & { schema_version: "prop_evaluation_rules_v1"; rules_hash: string };
 
+type PropEvaluationRuntimeContext = {
+  account_size?: number;
+  risk_per_trade_pct?: number;
+};
+
 type PropEvaluationResultRecord = {
   result_id: string;
   analysis_id: string;
@@ -64,6 +69,20 @@ function hashJson(value: unknown): string {
 function normalizePct(value: unknown, fallback: number): number {
   const numeric = typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
   return numeric > 1 ? numeric / 100 : numeric;
+}
+
+function normalizeOptionalPct(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  return value > 1 ? value / 100 : value;
+}
+
+function mergeRuntimeRules(raw: PropEvaluationRulesV1 | Record<string, unknown> | null | undefined, runtimeContext?: PropEvaluationRuntimeContext) {
+  return {
+    ...(raw ?? {}),
+    account_size: typeof (raw as Record<string, unknown> | undefined)?.account_size === "number"
+      ? (raw as Record<string, unknown>).account_size
+      : runtimeContext?.account_size,
+  };
 }
 
 export function normalizePropEvaluationRules(raw?: PropEvaluationRulesV1 | Record<string, unknown> | null): NormalizedRules {
@@ -609,18 +628,19 @@ function buildLossClusterAnalysis(steps: PropTradeStep[]) {
   };
 }
 
-function buildRiskSensitivity(steps: PropTradeStep[], rules: NormalizedRules) {
+function buildRiskSensitivity(steps: PropTradeStep[], rules: NormalizedRules, runtimeContext?: PropEvaluationRuntimeContext) {
   const riskLevels = [0.0025, 0.005, 0.0075, 0.01, 0.015, 0.02];
   const hasRMultiples = steps.every((step) => typeof step.r_multiple === "number" && Number.isFinite(step.r_multiple));
   const hasPnlPct = steps.every((step) => typeof step.pnl_pct === "number" && Number.isFinite(step.pnl_pct));
+  const runtimeRiskPct = normalizeOptionalPct(runtimeContext?.risk_per_trade_pct);
 
-  if (!hasRMultiples && !hasPnlPct) {
+  if (!hasRMultiples && !hasPnlPct && !runtimeRiskPct) {
     return {
       status: "unavailable",
-      basis: "missing_r_multiple_or_pnl_pct",
+      basis: "missing_r_multiple_pnl_pct_or_runtime_risk",
       rows: [],
       best_range: null,
-      note: "Risk-per-trade sensitivity requires risk_R/r_multiple or pnl_pct for every trade. The page omits sizing claims rather than estimating from raw PnL.",
+      note: "Risk-per-trade sensitivity requires risk_R/r_multiple, complete pnl_pct values, or a runtime risk-per-trade assumption. The page omits sizing claims rather than guessing the submitted path's baseline risk.",
     };
   }
 
@@ -628,7 +648,9 @@ function buildRiskSensitivity(steps: PropTradeStep[], rules: NormalizedRules) {
     const sizedSteps = steps.map((step, index) => {
       const pnl = hasRMultiples
         ? (step.r_multiple ?? 0) * riskPct * rules.account_size
-        : ((step.pnl_pct ?? 0) / 0.01) * riskPct * rules.account_size;
+        : hasPnlPct
+          ? ((step.pnl_pct ?? 0) / 0.01) * riskPct * rules.account_size
+          : step.pnl * (riskPct / (runtimeRiskPct ?? riskPct));
       return {
         ...step,
         pnl,
@@ -654,16 +676,20 @@ function buildRiskSensitivity(steps: PropTradeStep[], rules: NormalizedRules) {
   });
 
   const passing = rows.filter((row) => row.outcome === "target_before_breach");
+  const status = hasRMultiples ? "r_multiple_backed" : hasPnlPct ? "pnl_pct_scaled" : "runtime_risk_scaled";
+  const basis = hasRMultiples ? "risk_R/r_multiple" : hasPnlPct ? "pnl_pct scaled to requested risk levels" : "submitted PnL scaled from runtime risk_per_trade_pct";
   return {
-    status: hasRMultiples ? "r_multiple_backed" : "pnl_pct_scaled",
-    basis: hasRMultiples ? "risk_R/r_multiple" : "pnl_pct scaled to requested risk levels",
+    status,
+    basis,
     rows,
     best_range: passing.length
       ? `${passing[0]!.risk_per_trade_pct.toFixed(2)}%-${passing[passing.length - 1]!.risk_per_trade_pct.toFixed(2)}%`
       : null,
     note: hasRMultiples
       ? "Risk map is computed from trade R-multiples and configured account size."
-      : "Risk map uses pnl_pct as a per-trade return proxy. Upload risk_R/r_multiple for decision-grade risk-per-trade sizing.",
+      : hasPnlPct
+        ? "Risk map uses pnl_pct as a per-trade return proxy. Upload risk_R/r_multiple for decision-grade risk-per-trade sizing."
+        : "Risk map scales the submitted PnL path from the runtime risk-per-trade assumption. Upload risk_R/r_multiple for decision-grade per-trade sizing.",
   };
 }
 
@@ -755,14 +781,16 @@ function evaluateTradePath(steps: PropTradeStep[], rules: NormalizedRules) {
 
   const rows = stepsToDailyRows(steps);
   const largestDayProfit = Math.max(0, ...[...dayPnl.values()]);
-  const consistencyShare = cumulative > 0 ? largestDayProfit / cumulative : 0;
-  const consistencyBreach = rules.consistency_max_day_profit_pct && consistencyShare > rules.consistency_max_day_profit_pct
+  const consistencyLimitPct = rules.consistency_max_day_profit_pct;
+  const consistencyApplicable = Boolean(consistencyLimitPct && cumulative > 0 && largestDayProfit > 0);
+  const consistencyShare = consistencyApplicable ? largestDayProfit / cumulative : 0;
+  const consistencyBreach = consistencyApplicable && consistencyLimitPct && consistencyShare > consistencyLimitPct
     ? ({
         rule: "consistency_max_day_profit",
         day: rows[rows.length - 1]?.day,
         trade_index: rows[rows.length - 1]?.last_trade_index,
         observed_pct: pct(consistencyShare),
-        allowed_pct: pct(rules.consistency_max_day_profit_pct),
+        allowed_pct: pct(consistencyLimitPct),
         pnl: Number(largestDayProfit.toFixed(2)),
       } satisfies PropPathEvent)
     : undefined;
@@ -775,6 +803,7 @@ function evaluateTradePath(steps: PropTradeStep[], rules: NormalizedRules) {
     firstDailyBreach,
     firstTargetHit,
     consistencyShare,
+    consistencyApplicable,
     consistencyBreach,
     breachEvents: consistencyBreach ? [...breachEvents, consistencyBreach] : breachEvents,
     targetEvents,
@@ -842,8 +871,12 @@ function earliestBreach(...events: Array<PropPathEvent | undefined>): PropPathEv
     .sort((a, b) => (a.trade_index ?? Number.MAX_SAFE_INTEGER) - (b.trade_index ?? Number.MAX_SAFE_INTEGER))[0];
 }
 
-export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, rawRules?: PropEvaluationRulesV1 | Record<string, unknown> | null): PropEvaluationDiagnostic {
-  const rules = normalizePropEvaluationRules(rawRules ?? parsedArtifact.prop_evaluation_rules);
+export function computePropEvaluationReadiness(
+  parsedArtifact: ParsedArtifact,
+  rawRules?: PropEvaluationRulesV1 | Record<string, unknown> | null,
+  runtimeContext?: PropEvaluationRuntimeContext,
+): PropEvaluationDiagnostic {
+  const rules = normalizePropEvaluationRules(mergeRuntimeRules(rawRules ?? parsedArtifact.prop_evaluation_rules, runtimeContext));
   const accountSize = rules.account_size;
   const tradeSteps = buildTradeSteps(parsedArtifact.trades);
   const dailyRows = stepsToDailyRows(tradeSteps);
@@ -858,7 +891,7 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
   const brokerEvidence = buildBrokerEvidence(parsedArtifact);
   const stressTest = buildStressScenarios(tradeSteps, rules);
   const propMonteCarlo = buildPropMonteCarlo(tradeSteps, rules);
-  const riskSensitivity = buildRiskSensitivity(tradeSteps, rules);
+  const riskSensitivity = buildRiskSensitivity(tradeSteps, rules, runtimeContext);
   const lossClusterAnalysis = buildLossClusterAnalysis(tradeSteps);
   const dayCountLimited = tradingDays < rules.minimum_trading_days || Boolean(rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days);
   const fallbackLimited = rules.source === "fallback";
@@ -868,13 +901,21 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
     : targetReached && !dayCountLimited
       ? "pass_ready"
       : "target_not_reached";
+  const consistencyRuleConfigured = Boolean(rules.consistency_max_day_profit_pct);
+  const consistencyStatus: PropEvaluationRuleStatus["status"] = !consistencyRuleConfigured
+    ? "limited"
+    : !path.consistencyApplicable
+      ? "limited"
+      : path.consistencyBreach
+        ? "fail"
+        : "pass";
   const ruleStatus: PropEvaluationRuleStatus[] = [
     { rule: "profit_target", status: targetReached ? "pass" : "fail", observed: pct(totalProfit / accountSize), allowed: pct(rules.profit_target_pct) },
     { rule: "max_total_drawdown", status: path.firstTotalBreach ? "fail" : "pass", observed: pct(path.maxDrawdownPct), allowed: pct(rules.max_total_drawdown_pct) },
     { rule: "max_daily_loss", status: path.firstDailyBreach ? "fail" : "pass", observed: pct(path.maxDailyLossPct), allowed: pct(rules.max_daily_loss_pct) },
     { rule: "minimum_trading_days", status: tradingDays >= rules.minimum_trading_days ? "pass" : "limited", observed: tradingDays, allowed: rules.minimum_trading_days },
     { rule: "maximum_evaluation_days", status: rules.maximum_evaluation_days && tradingDays > rules.maximum_evaluation_days ? "fail" : "pass", observed: tradingDays, allowed: rules.maximum_evaluation_days ?? null },
-    { rule: "consistency_max_day_profit", status: path.consistencyBreach ? "fail" : "pass", observed: pct(path.consistencyShare), allowed: pct(rules.consistency_max_day_profit_pct ?? 0) },
+    { rule: "consistency_max_day_profit", status: consistencyStatus, observed: path.consistencyApplicable ? pct(path.consistencyShare) : null, allowed: rules.consistency_max_day_profit_pct ? pct(rules.consistency_max_day_profit_pct) : null },
   ];
   const targetProgress = {
     ending_profit: Number(totalProfit.toFixed(2)),
@@ -990,11 +1031,15 @@ export function computePropEvaluationReadiness(parsedArtifact: ParsedArtifact, r
       loss_cluster_analysis: lossClusterAnalysis,
       decision_card: decisionCard,
       improvement_targets: improvementTargets,
+      runtime_context: {
+        account_size: runtimeContext?.account_size ?? null,
+        risk_per_trade_pct: runtimeContext?.risk_per_trade_pct ?? null,
+      },
       data_quality_check: {
         trade_count: tradeSteps.length,
         trading_days: dailyRows.length,
         has_mae_mfe: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number"),
-        has_risk_sizing_fields: parsedArtifact.trades.some((trade) => typeof trade.r_multiple === "number" || typeof trade.risk_r === "number"),
+        has_risk_sizing_fields: parsedArtifact.trades.some((trade) => typeof trade.r_multiple === "number" || typeof trade.risk_r === "number") || Boolean(normalizeOptionalPct(runtimeContext?.risk_per_trade_pct)),
         has_pnl_pct: parsedArtifact.trades.some((trade) => typeof trade.pnl_pct === "number"),
         can_audit_intratrade_danger: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number"),
         note: parsedArtifact.trades.some((trade) => typeof trade.mae === "number" || typeof trade.mfe === "number")
@@ -1115,12 +1160,12 @@ export async function recomputePropEvaluationForAnalysis(input: {
   const artifact = await repositories.artifacts.findById(analysis.artifact_id);
   if (!artifact || artifact.account_id !== input.accountId) throw new Error("artifact_not_found");
 
-  const rules = normalizePropEvaluationRules({
+  const rules = normalizePropEvaluationRules(mergeRuntimeRules({
     ...(analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules ?? {}),
     ...(input.rules ?? {}),
     source: input.rules ? "post_run_edit" : (analysis.runtime_config?.prop_evaluation_rules?.source ?? artifact.parsed_artifact.prop_evaluation_rules?.source ?? "fallback"),
-  });
-  const diagnostic = computePropEvaluationReadiness(artifact.parsed_artifact, rules);
+  }, analysis.runtime_config));
+  const diagnostic = computePropEvaluationReadiness(artifact.parsed_artifact, rules, analysis.runtime_config);
   const persisted = await persistSnapshotAndResult({ analysis, rules, diagnostic, userId: input.userId });
   const nextRecord = mergePropDiagnostic(analysis.result, diagnostic);
   await repositories.analyses.update(analysis.analysis_id, (current) => ({

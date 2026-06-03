@@ -34,6 +34,18 @@ export async function provisionGoogleOAuthUser(input: { email?: string | null; n
   return provisioned;
 }
 
+function getSessionDbCheckIntervalMs(): number {
+  const raw = process.env.AUTH_SESSION_DB_CHECK_INTERVAL_MS;
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 5 * 60 * 1000;
+}
+
+function shouldRefreshSessionAccount(token: Record<string, unknown>) {
+  if (!token.account_id) return true;
+  const checkedAt = typeof token.session_checked_at === "number" ? token.session_checked_at : 0;
+  return Date.now() - checkedAt >= getSessionDbCheckIntervalMs();
+}
+
 export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
   providers: [
@@ -116,21 +128,24 @@ export const authConfig: NextAuthConfig = {
       }
     },
     async jwt({ token, user }) {
+      const mutableToken = token as Record<string, unknown>;
       if (user) {
         token.sub = user.id;
         token.email = user.email;
         token.account_id = user.account_id;
         token.session_version = user.session_version ?? 0;
-      } else if (token.sub && !token.account_id) {
+        mutableToken.session_checked_at = Date.now();
+      } else if (token.sub && shouldRefreshSessionAccount(mutableToken)) {
         const repaired = await accountService.ensureAccountForUserId(String(token.sub));
         if (repaired) {
           token.email = repaired.user.email;
           token.account_id = repaired.account.account_id;
           token.session_version = repaired.user.session_version ?? 0;
+          mutableToken.session_checked_at = Date.now();
+        } else {
+          token.invalidated = true;
         }
-      } else if (token.sub) {
-        const repaired = await accountService.ensureAccountForUserId(String(token.sub));
-        if (!repaired || Number(token.session_version ?? 0) !== Number(repaired.user.session_version ?? 0)) {
+        if (repaired && Number(token.session_version ?? 0) !== Number(repaired.user.session_version ?? 0)) {
           token.invalidated = true;
         }
       }

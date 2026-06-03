@@ -16,7 +16,15 @@ let pool: PgPool | undefined;
 let rawPool: PgPool | undefined;
 let schemaReady: Promise<void> | undefined;
 
-function loadPgPoolConstructor(): new (config: { connectionString: string }) => PgPool {
+type PgPoolConfig = {
+  connectionString: string;
+  max?: number;
+  idleTimeoutMillis?: number;
+  connectionTimeoutMillis?: number;
+  allowExitOnIdle?: boolean;
+};
+
+function loadPgPoolConstructor(): new (config: PgPoolConfig) => PgPool {
   const require = createRequire(import.meta.url);
   try {
     return require("pg").Pool;
@@ -25,12 +33,29 @@ function loadPgPoolConstructor(): new (config: { connectionString: string }) => 
   }
 }
 
+function readPositiveIntegerEnv(key: string, fallback: number): number {
+  const raw = process.env[key];
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getDefaultPoolMax(): number {
+  if (process.env.POSTGRES_POOL_MAX) return readPositiveIntegerEnv("POSTGRES_POOL_MAX", 1);
+  return process.env.VERCEL || process.env.NODE_ENV === "production" ? 1 : 5;
+}
+
 function getRawPostgresPool(): PgPool {
   if (rawPool) return rawPool;
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is required when DATABASE_PROVIDER=postgres.");
   const Pool = loadPgPoolConstructor();
-  rawPool = new Pool({ connectionString });
+  rawPool = new Pool({
+    connectionString,
+    max: getDefaultPoolMax(),
+    idleTimeoutMillis: readPositiveIntegerEnv("POSTGRES_IDLE_TIMEOUT_MS", 10_000),
+    connectionTimeoutMillis: readPositiveIntegerEnv("POSTGRES_CONNECTION_TIMEOUT_MS", 5_000),
+    allowExitOnIdle: true,
+  });
   return rawPool;
 }
 

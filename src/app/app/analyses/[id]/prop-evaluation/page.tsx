@@ -176,7 +176,7 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
   }
 
   const computedProp = artifact
-    ? computePropEvaluationReadiness(artifact.parsed_artifact, analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules)
+    ? computePropEvaluationReadiness(artifact.parsed_artifact, analysis.runtime_config?.prop_evaluation_rules ?? artifact.parsed_artifact.prop_evaluation_rules, analysis.runtime_config)
     : record.diagnostics.prop_evaluation_readiness;
   const displayRecord = mergePropDiagnostic(record, computedProp);
   const prop = displayRecord.diagnostics.prop_evaluation_readiness;
@@ -396,7 +396,7 @@ export default async function PropEvaluationPage({ params }: { params: Promise<{
             </table>
           </div>
         ) : (
-          <p className="text-sm text-text-neutral">Risk sensitivity is unavailable for this upload. Add `risk_R`, `r_multiple`, or complete `pnl_pct` values to unlock it.</p>
+          <p className="text-sm text-text-neutral">Risk sensitivity is unavailable for this upload. Add risk_R, r_multiple, complete pnl_pct values, or set runtime risk per trade before running the analysis.</p>
         )}
       </WorkspaceCard>
 
