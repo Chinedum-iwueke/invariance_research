@@ -60,7 +60,8 @@ function getRawPostgresPool(): PgPool {
 }
 
 export async function ensurePostgresSchema(): Promise<void> {
-  if (process.env.POSTGRES_SCHEMA_AUTO_INIT === "false") return;
+  const autoInit = (process.env.POSTGRES_SCHEMA_AUTO_INIT ?? (process.env.VERCEL || process.env.NODE_ENV === "production" ? "false" : "true")).trim().toLowerCase();
+  if (autoInit !== "true") return;
   if (schemaReady) return schemaReady;
 
   schemaReady = getRawPostgresPool()

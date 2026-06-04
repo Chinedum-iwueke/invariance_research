@@ -30,7 +30,8 @@ export default function SignupPage() {
   const mismatch = useMemo(() => confirmPassword.length > 0 && password !== confirmPassword, [password, confirmPassword]);
 
   useEffect(() => {
-    setOauthError(new URLSearchParams(window.location.search).get("error") === "OAuthProvisioning");
+    const errorCode = new URLSearchParams(window.location.search).get("error");
+    setOauthError(errorCode === "OAuthProvisioning" || errorCode === "OAuthSession");
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) { /* unchanged */
@@ -93,7 +94,7 @@ export default function SignupPage() {
           <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required minLength={10} className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           <label className="block text-sm">Confirm password<input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} name="confirm_password" type="password" required minLength={10} className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           {oauthError ? (
-            <p className="text-xs text-red-600">Google sign-in succeeded, but we could not finish creating your workspace. Please try again.</p>
+            <p className="text-xs text-red-600">Google sign-in could not finish. Start a fresh sign-in from this page.</p>
           ) : null}
           {mismatch ? <p className="text-xs text-red-600">Passwords do not match.</p> : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}

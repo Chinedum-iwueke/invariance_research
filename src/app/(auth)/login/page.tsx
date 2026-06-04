@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { LogoMonogram } from "@/components/ui/logo";
 
 function GoogleMark() {
@@ -26,7 +27,8 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    setOauthError(new URLSearchParams(window.location.search).get("error") === "OAuthProvisioning");
+    const errorCode = new URLSearchParams(window.location.search).get("error");
+    setOauthError(errorCode === "OAuthProvisioning" || errorCode === "OAuthSession");
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -47,6 +49,10 @@ export default function LoginPage() {
     <main className="public-hero-band flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 md:py-10">
       <div className="artifact-surface w-full max-w-md space-y-5 overflow-hidden p-5 sm:p-8">
         <div className="-mx-5 -mt-5 h-1 bg-brand sm:-mx-8 sm:-mt-8" />
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-text-neutral transition hover:text-brand">
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
         <div className="flex flex-col items-center gap-4 text-center md:gap-5">
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <div>
@@ -74,7 +80,7 @@ export default function LoginPage() {
           <label className="block text-sm">Email<input value={email} onChange={(event) => setEmail(event.target.value)} name="email" type="email" required className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           <label className="block text-sm">Password<input value={password} onChange={(event) => setPassword(event.target.value)} name="password" type="password" required className="mt-1 min-h-11 w-full rounded-sm border px-3 py-2" /></label>
           {oauthError ? (
-            <p className="text-xs text-red-600">Google sign-in succeeded, but we could not finish creating your workspace. Please try again.</p>
+            <p className="text-xs text-red-600">Google sign-in could not finish. Start a fresh sign-in from this page.</p>
           ) : null}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
           <button disabled={busy} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
