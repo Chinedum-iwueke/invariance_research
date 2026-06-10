@@ -223,9 +223,13 @@ export const accountService = {
       await ensureAdminAccountEntitlements(owner, accountId);
     }
     const refreshedAccount = await repositories.accounts.findById(accountId) ?? account;
-    const entitlements = owner && await isUserAdmin(owner)
+    const expectedEntitlements = resolveEntitlementsForPlan(accountId, refreshedAccount.plan_id, "stripe_webhook");
+    let entitlements = owner && await isUserAdmin(owner)
       ? resolveEntitlementsForPlan(accountId, "research_desk", "admin_override")
       : await repositories.entitlements.get(accountId);
+    if (entitlements.plan_id !== expectedEntitlements.plan_id || entitlements.analyses_per_month !== expectedEntitlements.analyses_per_month) {
+      entitlements = await repositories.entitlements.set(expectedEntitlements);
+    }
     const subscription = await repositories.subscriptions.findByAccountId(accountId);
     return { account: refreshedAccount, entitlements, subscription };
   },

@@ -9,6 +9,7 @@ process.env.INVARIANCE_DB_PATH = path.join(tempDir, "test.sqlite");
 process.env.DATABASE_PROVIDER = "sqlite";
 
 import { buildTruthContext } from "../src/lib/app/context-truth";
+import { buildAnalystWorkbenchModel } from "../src/lib/app/analyst-workbench";
 import { mapDeploymentReadinessStatus, deriveReportVerdict } from "../src/lib/app/report-view";
 import {
   buildDiagnosticInsightContext,
@@ -222,6 +223,14 @@ test("duplicate and audit-level recommendations are deduplicated away from diagn
   assert.equal(new Set(overview.map((item) => item.toLowerCase())).size, overview.length);
   assert.equal(distribution.some((item) => /ohlcv|regime labels|parameter sweep/i.test(item)), false);
   assert.equal(distribution.some((item) => /payoff concentration/i.test(item)), true);
+});
+
+test("report workbench tolerates legacy records without prop evaluation diagnostics", () => {
+  const model = buildAnalystWorkbenchModel(record(), "report");
+
+  assert.equal(model.diagnostic, "report");
+  assert.equal(model.title, "Proof Report");
+  assert.ok(model.attackAnswer.length > 0);
 });
 
 test("Ollama unavailable falls back without throwing and persists fallback status", async () => {

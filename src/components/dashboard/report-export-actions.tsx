@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DiagnosticLockPanel } from "@/components/dashboard/diagnostic-lock-panel";
@@ -15,6 +15,10 @@ interface ExportStatusResponse {
   current_step?: string;
   download_url?: string;
   error?: { code: string; message: string };
+}
+
+function shortId(value: string) {
+  return value.slice(0, 8);
 }
 
 export function ReportExportActions({
@@ -32,12 +36,22 @@ export function ReportExportActions({
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [showPlanDetails, setShowPlanDetails] = useState(false);
+  const pollingRef = useRef(false);
 
   const pollStatus = useCallback(async (exportId: string) => {
-    const response = await fetch(`/api/exports/${exportId}`, { method: "GET", cache: "no-store" });
-    if (!response.ok) throw new Error("Unable to fetch export status.");
-    const payload = (await response.json()) as ExportStatusResponse;
-    setStatus(payload);
+    if (pollingRef.current) return;
+    pollingRef.current = true;
+    try {
+      const response = await fetch(`/api/exports/${exportId}`, { method: "GET", cache: "no-store" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => undefined) as { error?: { message?: string; code?: string } } | undefined;
+        throw new Error(payload?.error?.message ?? "Unable to fetch export status.");
+      }
+      const payload = (await response.json()) as ExportStatusResponse;
+      setStatus(payload);
+    } finally {
+      pollingRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
@@ -56,7 +70,7 @@ export function ReportExportActions({
     void tick();
     interval = setInterval(() => {
       void tick();
-    }, 1500);
+    }, 5000);
 
     return () => {
       if (interval) clearInterval(interval);
@@ -176,6 +190,16 @@ export function ReportExportActions({
         </div>
       ) : null}
       <p className="mt-3 text-sm leading-6 text-text-neutral">{error ?? info}</p>
+      {status ? (
+        <div className="mt-3 grid gap-2 rounded-sm border border-border-subtle bg-surface-white p-3 text-xs text-text-neutral md:grid-cols-3">
+          <p><span className="font-semibold text-text-institutional">Export:</span> {shortId(status.export_id)}</p>
+          <p><span className="font-semibold text-text-institutional">Status:</span> {status.status}{status.current_step ? ` · ${status.current_step}` : ""}</p>
+          <p><span className="font-semibold text-text-institutional">Format:</span> {status.format.toUpperCase()}</p>
+          {status.error ? (
+            <p className="md:col-span-3"><span className="font-semibold text-text-institutional">Failure:</span> {status.error.code} · {status.error.message}</p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

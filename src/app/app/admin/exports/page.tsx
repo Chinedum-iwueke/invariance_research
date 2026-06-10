@@ -30,9 +30,17 @@ export default async function AdminExportsPage({ searchParams }: { searchParams:
           {view.rows.map((item) => (
             <tr key={item.export_id} className="border-b border-border-subtle/60 text-xs">
               <td className="px-3 py-2">{item.export_id}<div className="text-text-neutral">analysis: {item.analysis_id}</div></td>
-              <td><ExportStatusBadge value={item.status} /></td>
+              <td>
+                <ExportStatusBadge value={item.status} />
+                {item.error_summary ? <div className="mt-1 max-w-xs break-words text-text-danger">{item.error_summary}</div> : null}
+                {item.current_step ? <div className="mt-1 text-text-neutral">{item.current_step}</div> : null}
+              </td>
               <td>{item.owner_email ?? item.account_id}</td>
-              <td>{item.content_type ?? "-"}<div className="text-text-neutral">{item.file_size_bytes ?? 0} bytes</div></td>
+              <td>
+                {item.content_type ?? "-"}
+                <div className="text-text-neutral">{item.file_size_bytes ?? 0} bytes</div>
+                {item.storage_key ? <div className="max-w-xs break-words text-text-neutral">{item.storage_key}</div> : null}
+              </td>
               <td>{item.created_at}<div className="text-text-neutral">{item.expires_at ?? "-"}</div></td>
               <td>
                 {item.status === "failed" ? <form method="post" action={`/api/admin/exports/${item.export_id}/retry`}><button type="submit" className="underline">Regenerate</button></form> : null}

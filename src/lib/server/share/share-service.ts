@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 import { shareAccessEventRepository, shareTokenRepository } from "@/lib/server/repositories/share-token-repository";
-import { entitlementRepository } from "@/lib/server/accounts/repositories";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { listApprovedReportAddenda } from "@/lib/server/research-desk/research-desk-service";
 import { assertShareCanBeCreated, assertShareCanBeRevoked } from "@/lib/server/share/share-state-machine";
 import { recordEvidenceEvent } from "@/lib/server/evidence/evidence-events";
@@ -28,7 +28,7 @@ export async function createReportShare(input: {
   const snapshot = await reportSnapshotRepository.findById(input.report_snapshot_id);
   if (!snapshot || snapshot.account_id !== input.account_id) throw new Error("report_snapshot_not_found");
   assertShareCanBeCreated(snapshot.status);
-  const entitlements = entitlementRepository.get(input.account_id);
+  const entitlements = await getCoreRepositories().entitlements.get(input.account_id);
   if (!entitlements.can_create_share_links) throw new Error("share_plan_restricted");
   const existingShares = (await shareTokenRepository.listByAnalysis(snapshot.analysis_id)).filter((share) => share.status === "active");
   if (existingShares.length >= entitlements.share_links_per_month) throw new Error("share_quota_reached");

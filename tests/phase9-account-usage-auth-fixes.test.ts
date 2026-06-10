@@ -126,6 +126,27 @@ test("completed analyses consume quota and enforce cap", async () => {
   await assert.rejects(() => assertUsageWithinPlan(account.account_id), /monthly_analysis_limit_reached/);
 });
 
+test("account state reconciles stale free entitlements after explorer subscription", async () => {
+  const { account } = await accountService.ensureUserAndAccount({ email: "explorer-stale@example.com" });
+  await accountService.applySubscription({
+    account_id: account.account_id,
+    provider_customer_id: "cus_explorer_stale",
+    provider_subscription_id: "sub_explorer_stale",
+    plan_id: "explorer",
+    status: "trialing",
+  });
+  getDb()
+    .prepare("UPDATE entitlement_snapshots SET snapshot_json = json_set(snapshot_json, '$.plan_id', 'free', '$.analyses_per_month', 3, '$.history_retention_days', 30) WHERE account_id = ?")
+    .run(account.account_id);
+
+  const state = await accountService.getAccountState(account.account_id);
+  assert.equal(state?.account.plan_id, "explorer");
+  assert.equal(state?.account.subscription_status, "trialing");
+  assert.equal(state?.entitlements.plan_id, "explorer");
+  assert.equal(state?.entitlements.analyses_per_month, 25);
+  assert.equal(state?.entitlements.history_retention_days, 365);
+});
+
 test("admin accounts bypass run cap", async () => {
   const { user, account } = await accountService.ensureUserAndAccount({ email: "admin@example.com" });
   await createAndMark(account.account_id, user.user_id, "artifact-a1", "completed");

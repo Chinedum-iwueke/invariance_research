@@ -132,6 +132,11 @@ function truthyMetadata(value: unknown): boolean {
   return value === true || value === "true" || value === "available" || value === "present";
 }
 
+function propEvaluationRuleSource(record: AnalysisRecord): string {
+  const diagnostic = (record.diagnostics as Partial<typeof record.diagnostics>).prop_evaluation_readiness;
+  return String(diagnostic?.rule_snapshot?.source ?? "");
+}
+
 function recommendationSupportedByCurrentEvidence(record: AnalysisRecord, diagnostic: AnalystWorkbenchDiagnostic, item: string): string | undefined {
   const normalized = item.toLowerCase();
   const distributionMetadata = record.diagnostics.distribution.metadata ?? {};
@@ -142,7 +147,7 @@ function recommendationSupportedByCurrentEvidence(record: AnalysisRecord, diagno
   const hasExecution = record.diagnostic_statuses.execution.status === "available";
   const hasRegimes = record.diagnostic_statuses.regimes.status === "available";
   const hasStability = record.diagnostic_statuses.stability.status === "available";
-  const propRuleSource = String(record.diagnostics.prop_evaluation_readiness.rule_snapshot?.source ?? "");
+  const propRuleSource = propEvaluationRuleSource(record);
   const hasExactPropRules = propRuleSource.length > 0 && propRuleSource !== "fallback";
 
   if (diagnostic === "distribution") {
@@ -227,7 +232,7 @@ function missingEvidenceFor(record: AnalysisRecord, diagnostic: AnalystWorkbench
   const copy = DIAGNOSTIC_COPY[diagnostic];
   const status = diagnostic === "assumptions" ? undefined : record.diagnostic_statuses[diagnostic]?.status;
   const propRuleSource = diagnostic === "prop_evaluation_readiness"
-    ? String(record.diagnostics.prop_evaluation_readiness.rule_snapshot?.source ?? "")
+    ? propEvaluationRuleSource(record)
     : "";
   const hasExactPropRules = diagnostic === "prop_evaluation_readiness" && propRuleSource.length > 0 && propRuleSource !== "fallback";
   return groundRecommendations(record, diagnostic, [
@@ -247,8 +252,8 @@ function attackAnswer(record: AnalysisRecord, diagnostic: AnalystWorkbenchDiagno
       ? `${unsupported} claim${unsupported === 1 ? "" : "s"} still need stronger evidence or narrower wording before the report should present them as proven.`
       : "No unsupported high-priority claim was emitted, but the ledger still defines the assumptions that keep the verdict bounded.";
   }
-  const source = record.diagnostics[diagnostic];
-  const summary = source.interpretation?.summary;
+  const source = (record.diagnostics as Partial<typeof record.diagnostics>)[diagnostic];
+  const summary = source?.interpretation?.summary;
   if (summary) return summary;
   if (limitations.length) return limitations[0];
   if (missingEvidence.length) return `Current evidence is incomplete: ${missingEvidence[0]}`;
