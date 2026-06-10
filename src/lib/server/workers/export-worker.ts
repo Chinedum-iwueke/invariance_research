@@ -2,7 +2,7 @@ import { renderExportFromSnapshot } from "@/lib/server/exports/export-renderer";
 import { logger } from "@/lib/server/ops/logger";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
-import { analysisRepository } from "@/lib/server/repositories/analysis-repository";
+import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 import { ensureReportSnapshotForAnalysis } from "@/lib/server/exports/report-snapshot-service";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
@@ -45,7 +45,7 @@ export async function processNextExportJob(): Promise<boolean> {
 
   try {
     await exportJobRepository.updateByExportId(claimed.export_id, (current) => ({ ...current, current_step: "Rendering report", progress_pct: 60 }));
-    const analysis = await analysisRepository.findById(exportRecord.analysis_id);
+    const analysis = await getCoreRepositories().analyses.findById(exportRecord.analysis_id);
     if (!analysis?.result) throw new Error("analysis_result_missing");
     const snapshot = exportRecord.report_snapshot_id
       ? await reportSnapshotRepository.findById(exportRecord.report_snapshot_id)
