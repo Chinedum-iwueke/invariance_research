@@ -28,7 +28,7 @@ const tables: TablePlan[] = [
   },
   {
     name: "analyses",
-    columns: ["analysis_id", "owner_user_id", "account_id", "status", "strategy_name", "artifact_id", "created_at", "updated_at", "result_json", "eligibility_snapshot_json", "engine_context_json", "benchmark_json", "runtime_config_json", "failure_code", "failure_message"],
+    columns: ["analysis_id", "owner_user_id", "account_id", "status", "strategy_name", "program_id", "artifact_id", "created_at", "updated_at", "result_json", "eligibility_snapshot_json", "engine_context_json", "benchmark_json", "runtime_config_json", "failure_code", "failure_message"],
     jsonColumns: ["result_json", "eligibility_snapshot_json", "engine_context_json", "benchmark_json", "runtime_config_json"],
   },
   {
@@ -41,7 +41,86 @@ const tables: TablePlan[] = [
   },
   {
     name: "exports",
-    columns: ["export_id", "analysis_id", "account_id", "requested_by_user_id", "format", "status", "storage_key", "content_type", "file_size_bytes", "checksum_sha256", "error_code", "error_message", "requested_at", "expires_at", "created_at", "updated_at"],
+    columns: ["export_id", "analysis_id", "program_id", "account_id", "requested_by_user_id", "format", "status", "storage_key", "content_type", "file_size_bytes", "checksum_sha256", "error_code", "error_message", "requested_at", "expires_at", "created_at", "updated_at"],
+  },
+  {
+    name: "report_snapshots",
+    columns: ["snapshot_id", "analysis_id", "program_id", "account_id", "status", "source_analysis_updated_at", "source_result_checksum", "payload_json", "warning_count", "created_at", "superseded_at"],
+    jsonColumns: ["payload_json"],
+  },
+  {
+    name: "research_programs",
+    columns: ["program_id", "account_id", "owner_user_id", "title", "thesis", "status", "market", "asset_universe", "timeframe", "next_action", "created_at", "updated_at", "archived_at"],
+  },
+  {
+    name: "program_members",
+    columns: ["program_id", "account_id", "user_id", "role", "created_at"],
+    conflictColumns: ["program_id", "user_id"],
+  },
+  {
+    name: "program_events",
+    columns: ["event_id", "program_id", "account_id", "actor_user_id", "event_type", "title", "summary", "payload_json", "created_at"],
+    jsonColumns: ["payload_json"],
+  },
+  {
+    name: "program_artifacts",
+    columns: ["program_artifact_id", "program_id", "account_id", "artifact_id", "analysis_id", "artifact_role", "attached_by_user_id", "created_at"],
+  },
+  {
+    name: "program_notes",
+    columns: ["note_id", "program_id", "account_id", "author_user_id", "note_type", "body", "created_at", "updated_at"],
+  },
+  {
+    name: "program_report_snapshots",
+    columns: ["program_report_snapshot_id", "program_id", "account_id", "report_snapshot_id", "title", "status", "payload_json", "created_at"],
+    jsonColumns: ["payload_json"],
+  },
+  {
+    name: "program_clarification_sessions",
+    columns: ["session_id", "program_id", "account_id", "created_by_user_id", "status", "raw_intuition", "intake_fields_json", "assistant_questions_json", "missing_assumptions_json", "accepted_answers_json", "research_brief_json", "provider", "model", "error_summary", "created_at", "updated_at", "accepted_at"],
+    jsonColumns: ["intake_fields_json", "assistant_questions_json", "missing_assumptions_json", "accepted_answers_json", "research_brief_json"],
+  },
+  {
+    name: "research_briefs",
+    columns: ["brief_id", "program_id", "account_id", "clarification_session_id", "version", "status", "brief_json", "created_by_user_id", "created_at", "accepted_at"],
+    jsonColumns: ["brief_json"],
+  },
+  {
+    name: "hypotheses",
+    columns: ["hypothesis_id", "program_id", "account_id", "title", "status", "active_version_id", "created_by_user_id", "created_at", "updated_at"],
+  },
+  {
+    name: "hypothesis_versions",
+    columns: ["hypothesis_version_id", "hypothesis_id", "program_id", "account_id", "version", "status", "source_brief_id", "spec_json", "validation_errors_json", "created_by_user_id", "created_at", "approved_at", "approved_by_user_id"],
+    jsonColumns: ["spec_json", "validation_errors_json"],
+  },
+  {
+    name: "hypothesis_approvals",
+    columns: ["approval_id", "hypothesis_version_id", "hypothesis_id", "program_id", "account_id", "actor_user_id", "from_status", "to_status", "note", "created_at"],
+  },
+  {
+    name: "strategy_specs",
+    columns: ["strategy_spec_record_id", "program_id", "account_id", "hypothesis_version_id", "version", "status", "spec_json", "validation_errors_json", "created_by_user_id", "created_at", "approved_at", "approved_by_user_id"],
+    jsonColumns: ["spec_json", "validation_errors_json"],
+  },
+  {
+    name: "experiment_plans",
+    columns: ["experiment_plan_id", "program_id", "account_id", "strategy_spec_record_id", "hypothesis_version_id", "status", "plan_json", "validation_errors_json", "created_by_user_id", "created_at", "approved_at", "approved_by_user_id", "queued_at"],
+    jsonColumns: ["plan_json", "validation_errors_json"],
+  },
+  {
+    name: "experiment_plan_items",
+    columns: ["experiment_plan_item_id", "experiment_plan_id", "program_id", "account_id", "item_key", "experiment_type", "title", "status", "priority", "required_datasets_json", "runtime_budget_json", "config_patch_json", "falsification_question", "created_at", "queued_at"],
+    jsonColumns: ["required_datasets_json", "runtime_budget_json", "config_patch_json"],
+  },
+  {
+    name: "experiment_jobs",
+    columns: ["experiment_job_id", "experiment_plan_item_id", "experiment_plan_id", "program_id", "account_id", "status", "priority", "progress_pct", "current_step", "retry_count", "max_attempts", "available_at", "leased_until", "last_error", "created_at", "updated_at", "started_at", "finished_at"],
+  },
+  {
+    name: "experiment_job_events",
+    columns: ["experiment_job_event_id", "experiment_job_id", "experiment_plan_id", "program_id", "account_id", "event_type", "message", "payload_json", "actor_user_id", "created_at"],
+    jsonColumns: ["payload_json"],
   },
   { name: "webhook_events", columns: ["webhook_event_id", "provider", "provider_event_id", "event_type", "received_at", "processed_at", "status", "attempt_count", "error_summary", "payload_json"], jsonColumns: ["payload_json"] },
   {

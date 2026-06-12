@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS analyses (
   account_id TEXT NOT NULL REFERENCES accounts(account_id),
   status TEXT NOT NULL,
   strategy_name TEXT,
+  program_id TEXT,
   artifact_id TEXT NOT NULL REFERENCES artifacts(artifact_id),
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
@@ -87,6 +88,8 @@ CREATE TABLE IF NOT EXISTS analyses (
   failure_code TEXT,
   failure_message TEXT
 );
+
+ALTER TABLE analyses ADD COLUMN IF NOT EXISTS program_id TEXT;
 
 CREATE TABLE IF NOT EXISTS analysis_jobs (
   job_id TEXT PRIMARY KEY,
@@ -255,6 +258,7 @@ CREATE TABLE IF NOT EXISTS export_jobs (
 CREATE TABLE IF NOT EXISTS exports (
   export_id TEXT PRIMARY KEY,
   analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  program_id TEXT,
   account_id TEXT NOT NULL REFERENCES accounts(account_id),
   requested_by_user_id TEXT NOT NULL REFERENCES users(user_id),
   report_snapshot_id TEXT,
@@ -272,12 +276,15 @@ CREATE TABLE IF NOT EXISTS exports (
   updated_at TIMESTAMPTZ NOT NULL
 );
 
+ALTER TABLE exports ADD COLUMN IF NOT EXISTS program_id TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_export_jobs_status_available_at ON export_jobs(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_exports_account_analysis ON exports(account_id, analysis_id);
 
 CREATE TABLE IF NOT EXISTS report_snapshots (
   snapshot_id TEXT PRIMARY KEY,
   analysis_id TEXT NOT NULL REFERENCES analyses(analysis_id),
+  program_id TEXT,
   account_id TEXT NOT NULL REFERENCES accounts(account_id),
   status TEXT NOT NULL,
   source_analysis_updated_at TIMESTAMPTZ NOT NULL,
@@ -287,6 +294,8 @@ CREATE TABLE IF NOT EXISTS report_snapshots (
   created_at TIMESTAMPTZ NOT NULL,
   superseded_at TIMESTAMPTZ
 );
+
+ALTER TABLE report_snapshots ADD COLUMN IF NOT EXISTS program_id TEXT;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_report_snapshots_analysis_checksum
   ON report_snapshots(analysis_id, source_result_checksum);
@@ -450,6 +459,255 @@ CREATE INDEX IF NOT EXISTS idx_prop_rule_snapshots_analysis
   ON prop_evaluation_rule_snapshots(analysis_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_prop_results_analysis
   ON prop_evaluation_results(analysis_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS research_programs (
+  program_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  owner_user_id TEXT NOT NULL REFERENCES users(user_id),
+  title TEXT NOT NULL,
+  thesis TEXT NOT NULL,
+  status TEXT NOT NULL,
+  market TEXT,
+  asset_universe TEXT,
+  timeframe TEXT,
+  next_action TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  archived_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS program_members (
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  user_id TEXT NOT NULL REFERENCES users(user_id),
+  role TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (program_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS program_events (
+  event_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  actor_user_id TEXT,
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  payload_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_artifacts (
+  program_artifact_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  artifact_id TEXT REFERENCES artifacts(artifact_id),
+  analysis_id TEXT REFERENCES analyses(analysis_id),
+  artifact_role TEXT NOT NULL,
+  attached_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_notes (
+  note_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  author_user_id TEXT NOT NULL REFERENCES users(user_id),
+  note_type TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_report_snapshots (
+  program_report_snapshot_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  report_snapshot_id TEXT REFERENCES report_snapshots(snapshot_id),
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payload_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_clarification_sessions (
+  session_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  status TEXT NOT NULL,
+  raw_intuition TEXT NOT NULL,
+  intake_fields_json JSONB NOT NULL,
+  assistant_questions_json JSONB NOT NULL,
+  missing_assumptions_json JSONB NOT NULL,
+  accepted_answers_json JSONB,
+  research_brief_json JSONB,
+  provider TEXT NOT NULL,
+  model TEXT,
+  error_summary TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  accepted_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS research_briefs (
+  brief_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  clarification_session_id TEXT REFERENCES program_clarification_sessions(session_id),
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  brief_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  accepted_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_programs_account_updated ON research_programs(account_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_program_members_user ON program_members(user_id, program_id);
+CREATE INDEX IF NOT EXISTS idx_program_events_program_created ON program_events(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_program_artifacts_program ON program_artifacts(program_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_program_artifacts_unique_analysis ON program_artifacts(program_id, analysis_id) WHERE analysis_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_analyses_program ON analyses(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_program_report_snapshots_program ON program_report_snapshots(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_clarification_sessions_program_created ON program_clarification_sessions(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_briefs_program_version ON research_briefs(program_id, version DESC);
+
+CREATE TABLE IF NOT EXISTS hypotheses (
+  hypothesis_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  active_version_id TEXT,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS hypothesis_versions (
+  hypothesis_version_id TEXT PRIMARY KEY,
+  hypothesis_id TEXT NOT NULL REFERENCES hypotheses(hypothesis_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  source_brief_id TEXT REFERENCES research_briefs(brief_id),
+  spec_json JSONB NOT NULL,
+  validation_errors_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  approved_by_user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS hypothesis_approvals (
+  approval_id TEXT PRIMARY KEY,
+  hypothesis_version_id TEXT NOT NULL REFERENCES hypothesis_versions(hypothesis_version_id),
+  hypothesis_id TEXT NOT NULL REFERENCES hypotheses(hypothesis_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  actor_user_id TEXT NOT NULL REFERENCES users(user_id),
+  from_status TEXT,
+  to_status TEXT NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS strategy_specs (
+  strategy_spec_record_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  hypothesis_version_id TEXT NOT NULL REFERENCES hypothesis_versions(hypothesis_version_id),
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  spec_json JSONB NOT NULL,
+  validation_errors_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  approved_by_user_id TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_hypotheses_program_updated ON hypotheses(program_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hypothesis_versions_program_created ON hypothesis_versions(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hypothesis_approvals_version ON hypothesis_approvals(hypothesis_version_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_strategy_specs_program_created ON strategy_specs(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_strategy_specs_hypothesis_version ON strategy_specs(hypothesis_version_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS experiment_plans (
+  experiment_plan_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  strategy_spec_record_id TEXT NOT NULL REFERENCES strategy_specs(strategy_spec_record_id),
+  hypothesis_version_id TEXT NOT NULL REFERENCES hypothesis_versions(hypothesis_version_id),
+  status TEXT NOT NULL,
+  plan_json JSONB NOT NULL,
+  validation_errors_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  approved_by_user_id TEXT,
+  queued_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS experiment_plan_items (
+  experiment_plan_item_id TEXT PRIMARY KEY,
+  experiment_plan_id TEXT NOT NULL REFERENCES experiment_plans(experiment_plan_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  item_key TEXT NOT NULL,
+  experiment_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  required_datasets_json JSONB NOT NULL,
+  runtime_budget_json JSONB NOT NULL,
+  config_patch_json JSONB NOT NULL,
+  falsification_question TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  queued_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS experiment_jobs (
+  experiment_job_id TEXT PRIMARY KEY,
+  experiment_plan_item_id TEXT NOT NULL REFERENCES experiment_plan_items(experiment_plan_item_id),
+  experiment_plan_id TEXT NOT NULL REFERENCES experiment_plans(experiment_plan_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  status TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  progress_pct INTEGER NOT NULL,
+  current_step TEXT NOT NULL,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  available_at TIMESTAMPTZ NOT NULL,
+  leased_until TIMESTAMPTZ,
+  last_error TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS experiment_job_events (
+  experiment_job_event_id TEXT PRIMARY KEY,
+  experiment_job_id TEXT NOT NULL REFERENCES experiment_jobs(experiment_job_id),
+  experiment_plan_id TEXT NOT NULL REFERENCES experiment_plans(experiment_plan_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  event_type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  payload_json JSONB NOT NULL,
+  actor_user_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_experiment_plans_program_created ON experiment_plans(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_experiment_plan_items_plan ON experiment_plan_items(experiment_plan_id, priority DESC);
+CREATE INDEX IF NOT EXISTS idx_experiment_jobs_claimable ON experiment_jobs(status, priority DESC, available_at, created_at);
+CREATE INDEX IF NOT EXISTS idx_experiment_jobs_account_status ON experiment_jobs(account_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_experiment_job_events_job ON experiment_job_events(experiment_job_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
   worker_type TEXT NOT NULL,

@@ -61,6 +61,7 @@ export async function ensureReportSnapshotForAnalysis(analysis: AnalysisEntity):
   const snapshot = await reportSnapshotRepository.save({
     snapshot_id: snapshotId,
     analysis_id: analysis.analysis_id,
+    program_id: analysis.program_id,
     account_id: analysis.account_id,
     status: "active",
     source_analysis_updated_at: analysis.updated_at,
@@ -165,6 +166,7 @@ async function buildReportSnapshotPayload(input: {
     report_schema_version: "strategy_truth_room_report_snapshot_v1",
     snapshot_id: input.snapshot_id,
     analysis_id: analysis.analysis_id,
+    program_id: analysis.program_id,
     artifact_identity: {
       artifact_id: analysis.artifact_id,
       checksum_sha256: artifact?.checksum_sha256,

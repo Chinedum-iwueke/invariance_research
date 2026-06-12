@@ -15,6 +15,7 @@ function mapRow(row: Record<string, unknown>): ReportSnapshotRecord {
   return {
     snapshot_id: String(row.snapshot_id),
     analysis_id: String(row.analysis_id),
+    program_id: row.program_id ? String(row.program_id) : undefined,
     account_id: String(row.account_id),
     status: row.status as ReportSnapshotRecord["status"],
     source_analysis_updated_at: iso(row.source_analysis_updated_at),
@@ -31,11 +32,12 @@ export const reportSnapshotRepository = {
     if (getDatabaseProvider() === "postgres") {
       return getPostgresPool()
         .query(
-          `INSERT INTO report_snapshots (snapshot_id, analysis_id, account_id, status, source_analysis_updated_at, source_result_checksum, payload_json, warning_count, created_at, superseded_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          `INSERT INTO report_snapshots (snapshot_id, analysis_id, program_id, account_id, status, source_analysis_updated_at, source_result_checksum, payload_json, warning_count, created_at, superseded_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [
             snapshot.snapshot_id,
             snapshot.analysis_id,
+            snapshot.program_id ?? null,
             snapshot.account_id,
             snapshot.status,
             snapshot.source_analysis_updated_at,
@@ -50,12 +52,13 @@ export const reportSnapshotRepository = {
     }
     getDb()
       .prepare(
-        `INSERT INTO report_snapshots (snapshot_id, analysis_id, account_id, status, source_analysis_updated_at, source_result_checksum, payload_json, warning_count, created_at, superseded_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO report_snapshots (snapshot_id, analysis_id, program_id, account_id, status, source_analysis_updated_at, source_result_checksum, payload_json, warning_count, created_at, superseded_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         snapshot.snapshot_id,
         snapshot.analysis_id,
+        snapshot.program_id ?? null,
         snapshot.account_id,
         snapshot.status,
         snapshot.source_analysis_updated_at,

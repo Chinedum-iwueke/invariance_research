@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AnalysisTable } from "@/components/dashboard/analysis-table";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -10,46 +9,44 @@ import { buttonVariants } from "@/components/ui/button";
 import { accountService } from "@/lib/server/accounts/service";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { listAnalyses } from "@/lib/server/services/analysis-service";
+import { listResearchPrograms } from "@/lib/server/research-programs/service";
 
 export const metadata: Metadata = {
   title: "Workspace",
-  description: "Authenticated product shell for the Strategy Robustness Lab.",
+  description: "Authenticated research pipeline workspace.",
 };
 
 export default async function AppHomePage() {
   const session = await requireServerSession();
   const usage = await accountService.getUsage(session.account_id);
   const analyses = await listAnalyses(session.account_id);
-
-  if (analyses.length === 0) {
-    redirect("/app/new-analysis");
-  }
+  const programs = await listResearchPrograms(session.account_id);
 
   const completed = analyses.filter((item) => item.status === "completed").length;
   const processing = analyses.filter((item) => item.status === "processing" || item.status === "queued").length;
-  const failed = analyses.filter((item) => item.status === "failed").length;
   const latestCompleted = analyses.find((item) => item.status === "completed");
 
   return (
     <AnalysisPageFrame
       title="Research Workspace"
-      description="A command surface for turning uploaded strategy evidence into decision-grade validation artifacts."
+      description="A command surface for turning market intuition into research programs, falsification runs, durable memory, and validation artifacts."
     >
       <section className="artifact-surface overflow-hidden rounded-md border border-border-subtle bg-surface-white shadow-sm">
         <div className="grid gap-5 bg-surface-subtle px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Current operating picture</p>
             <h2 className="font-display mt-2 text-[clamp(2rem,5vw,4rem)] font-medium leading-none text-text-institutional">
-              {latestCompleted ? latestCompleted.strategy_name : "Validation workspace"}
+              {programs[0]?.title ?? latestCompleted?.strategy_name ?? "Research pipeline"}
             </h2>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-text-neutral">
-              This workspace is organized around evidence quality, diagnostic coverage, and whether the current report can stand up to buyer, allocator, or internal committee scrutiny.
+              This workspace is organized around research programs first. Upload audits remain available as imported evidence, but the durable product loop is thesis, hypothesis, experiment, verdict, memory, and report.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Link href="/app/new-analysis" className={buttonVariants()}>New analysis</Link>
+            <Link href="/app/programs/new" className={buttonVariants()}>Start Program</Link>
+            <Link href="/app/new-analysis" className={buttonVariants({ variant: "secondary" })}>Import Evidence</Link>
             {latestCompleted ? (
-              <Link href={`/app/analyses/${latestCompleted.analysis_id}/report`} className={buttonVariants({ variant: "secondary" })}>Open latest report</Link>
+              <Link href={`/app/analyses/${latestCompleted.analysis_id}/report`} className={buttonVariants({ variant: "tertiary" })}>Open latest report</Link>
             ) : null}
           </div>
         </div>
@@ -57,10 +54,10 @@ export default async function AppHomePage() {
 
       <MetricRow
         metrics={[
-          { label: "Total Analyses", value: String(analyses.length), helper: "Owned by this account" },
+          { label: "Programs", value: String(programs.length), helper: "Active research containers" },
+          { label: "Audit Imports", value: String(analyses.length), helper: "Uploaded analyses" },
           { label: "Completed", value: String(completed), tone: completed > 0 ? "positive" : "neutral", helper: "Persisted results" },
           { label: "In Progress", value: String(processing), helper: "Queued + processing" },
-          { label: "Failed", value: String(failed), tone: failed > 0 ? "warning" : "neutral", helper: "Require retry or fix" },
         ]}
       />
 
@@ -73,14 +70,24 @@ export default async function AppHomePage() {
       </WorkspaceCard>
 
       <div className="grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
-        <WorkspaceCard title="Validation flow" subtitle="The product path from evidence intake to shareable artifact" note="Upload, inspect eligibility, run, and review diagnostics with explicit gating reasons.">
-          <ol className="space-y-2 text-sm text-text-neutral">
-            <li>1. Upload backtest and trade artifacts.</li>
-            <li>2. Review dataset quality and analysis readiness.</li>
-            <li>3. Review diagnostics and interpretation summaries.</li>
-          </ol>
+        <WorkspaceCard title="Research flow" subtitle="The product path from thesis to evidence-backed decision" note="Approach A upload audits now operate as import mode inside the larger research pipeline.">
+          <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-3">
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+              <p className="font-medium text-text-institutional">1. Start a program</p>
+              <p className="mt-1 leading-6">Create the thesis container before chasing runs.</p>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+              <p className="font-medium text-text-institutional">2. Import evidence</p>
+              <p className="mt-1 leading-6">Attach uploads as audit evidence when useful.</p>
+            </div>
+            <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
+              <p className="font-medium text-text-institutional">3. Build experiments</p>
+              <p className="mt-1 leading-6">Upcoming phases add hypothesis specs and queue runs.</p>
+            </div>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/app/new-analysis" className={buttonVariants({ size: "sm" })}>New Analysis</Link>
+            <Link href="/app/programs/new" className={buttonVariants({ size: "sm" })}>Start Program</Link>
+            <Link href="/app/new-analysis" className={buttonVariants({ size: "sm", variant: "secondary" })}>Import Evidence</Link>
             {latestCompleted ? (
               <Link href={`/app/analyses/${latestCompleted.analysis_id}/overview`} className={buttonVariants({ size: "sm", variant: "secondary" })}>Open Latest Completed</Link>
             ) : (
@@ -90,12 +97,12 @@ export default async function AppHomePage() {
           </div>
         </WorkspaceCard>
 
-        <WorkspaceCard title="Recent research artifacts" subtitle="Latest validation workbenches">
+        <WorkspaceCard title="Recent audit imports" subtitle="Latest validation workbenches">
           {analyses.length === 0 ? (
             <EmptyState
-              title="No analyses yet"
-              body="Upload your first artifact to begin. Completed analyses will appear here."
-              cta={{ label: "Create New Analysis", href: "/app/new-analysis" }}
+              title="No audit imports yet"
+              body="Start a program first, or import existing evidence if you already have a trade history to audit."
+              cta={{ label: "Start Program", href: "/app/programs/new" }}
             />
           ) : (
             <AnalysisTable analyses={analyses.slice(0, 5)} />

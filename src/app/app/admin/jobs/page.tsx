@@ -6,12 +6,12 @@ import { AdminTable } from "@/components/admin/admin-table";
 import { JobStatusBadge } from "@/components/admin/status-badges";
 import { listAdminJobs } from "@/lib/server/admin/jobs-service";
 
-export default async function AdminJobsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: "analysis" | "export" }> }) {
+export default async function AdminJobsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: "analysis" | "export" | "experiment" }> }) {
   const params = await searchParams;
   const view = await listAdminJobs({ status: params.status, type: params.type });
 
   return (
-    <AdminPageShell title="Jobs Dashboard" description="Analysis and export job queue visibility with safe retry controls.">
+    <AdminPageShell title="Jobs Dashboard" description="Analysis, export, and research experiment queue visibility with safe retry controls.">
       <div className="grid gap-3 md:grid-cols-5">
         <AdminStatCard label="Total" value={view.summary.total} />
         <AdminStatCard label="Queued" value={view.summary.queued} />
@@ -25,6 +25,7 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Pr
         <Link href="/app/admin/jobs?status=queued" className="text-xs underline">Queued</Link>
         <Link href="/app/admin/jobs?type=analysis" className="text-xs underline">Analysis</Link>
         <Link href="/app/admin/jobs?type=export" className="text-xs underline">Export</Link>
+        <Link href="/app/admin/jobs?type=experiment" className="text-xs underline">Experiment</Link>
       </AdminFilterBar>
       <AdminTable>
         <thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral">

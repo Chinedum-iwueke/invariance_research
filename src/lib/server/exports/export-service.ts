@@ -34,6 +34,7 @@ export async function requestExport(input: { analysis_id: string; account_id: st
   await exportRepository.save({
     export_id: exportId,
     analysis_id: analysis.analysis_id,
+    program_id: analysis.program_id,
     account_id: input.account_id,
     requested_by_user_id: input.user_id,
     report_snapshot_id: snapshot.snapshot_id,

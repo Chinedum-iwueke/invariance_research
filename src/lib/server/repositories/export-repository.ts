@@ -11,6 +11,7 @@ function mapRow(row: Record<string, unknown>): ExportRecord {
   return {
     export_id: String(row.export_id),
     analysis_id: String(row.analysis_id),
+    program_id: row.program_id ? String(row.program_id) : undefined,
     account_id: String(row.account_id),
     requested_by_user_id: String(row.requested_by_user_id),
     report_snapshot_id: row.report_snapshot_id ? String(row.report_snapshot_id) : undefined,
@@ -34,11 +35,12 @@ export const exportRepository = {
     if (getDatabaseProvider() === "postgres") {
       return getPostgresPool()
         .query(
-          `INSERT INTO exports (export_id, analysis_id, account_id, requested_by_user_id, report_snapshot_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+          `INSERT INTO exports (export_id, analysis_id, program_id, account_id, requested_by_user_id, report_snapshot_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
           [
             record.export_id,
             record.analysis_id,
+            record.program_id ?? null,
             record.account_id,
             record.requested_by_user_id,
             record.report_snapshot_id ?? null,
@@ -59,11 +61,12 @@ export const exportRepository = {
         .then(() => record);
     }
     getDb()
-      .prepare(`INSERT INTO exports (export_id, analysis_id, account_id, requested_by_user_id, report_snapshot_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .prepare(`INSERT INTO exports (export_id, analysis_id, program_id, account_id, requested_by_user_id, report_snapshot_id, format, status, storage_key, content_type, file_size_bytes, checksum_sha256, error_code, error_message, requested_at, expires_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         record.export_id,
         record.analysis_id,
+        record.program_id ?? null,
         record.account_id,
         record.requested_by_user_id,
         record.report_snapshot_id ?? null,

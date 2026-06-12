@@ -5,7 +5,8 @@ import { retryAdminJob } from "@/lib/server/admin/jobs-service";
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   await requireAdminSession();
   const body = await request.formData();
-  const kind = body.get("kind") === "export" ? "export" : "analysis";
+  const rawKind = String(body.get("kind") ?? "");
+  const kind = rawKind === "export" || rawKind === "experiment" ? rawKind : "analysis";
   const { id } = await params;
   try {
     const result = await retryAdminJob({ kind, linked_id: id });

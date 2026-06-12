@@ -11,8 +11,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { UploadPanel } from "@/components/ui/upload-panel";
 
 export const metadata: Metadata = {
-  title: "Strategy Robustness Lab | Invariance Research",
-  description: "Trade-history validation for strategy robustness, execution drag, survivability stress, distribution quality, and prop evaluation feasibility.",
+  title: "Audit Import Lab | Invariance Research",
+  description: "Trade-history audit mode for strategy robustness, execution drag, survivability stress, distribution quality, and prop evaluation feasibility.",
 };
 
 const DEMO_VIDEO_PATH = "/demo_video.mp4";
@@ -27,11 +27,11 @@ export default function RobustnessLabPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            title="Strategy Robustness Lab"
-            description="Upload a trade CSV or exchange export and get a falsification-first workbench: overview, execution, distribution, Monte Carlo, ruin, prop evaluation, assumptions, and report."
+            title="Audit Import Lab"
+            description="Import a trade CSV or exchange export into the research pipeline and get a falsification-first workbench: overview, execution, distribution, Monte Carlo, ruin, prop evaluation, assumptions, and report."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
-            credibilityLine="Trade-history intake, evidence-gated diagnostics, prop evaluation when rules are supplied, and a shareable report path."
+            credibilityLine="Trade-history intake remains available as audit mode inside the broader Research Program workflow."
             rightSlot={<LabHeroInstrument />}
           />
         </section>
@@ -71,8 +71,8 @@ export default function RobustnessLabPage() {
         <section id="intake" className="container-shell space-y-6 py-section-sm">
           <SectionHeader
             eyebrow="Artifact Intake"
-            title="Trade history first. Everything else is evidence enrichment."
-            description="The self-serve product is optimized for closed trade logs and exchange/broker exports. Richer files can help, but the verdict is anchored in the trade path."
+            title="Audit existing evidence when you already have it."
+            description="The broader product starts with Research Programs. This Lab is the import path for closed trade logs and exchange/broker exports."
           />
           <UploadPanel />
         </section>
@@ -136,7 +136,7 @@ export default function RobustnessLabPage() {
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Know what the trade history can actually prove"
-            description="Start with the Lab, then request Research Desk only when missing evidence affects a real deployment, sale, evaluation, or allocation decision."
+            description="Use Audit Import for existing trade history, then attach the result to a Research Program when it becomes part of a larger thesis."
             primary={{ label: "Sign up for free", href: "/signup" }}
             secondary={{ label: "Request Validation Audit", href: "/contact" }}
           />

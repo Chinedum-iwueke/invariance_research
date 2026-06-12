@@ -231,9 +231,9 @@ export function NewAnalysisIntake() {
 
   return (
     <div className="space-y-4">
-      <WorkspaceCard title="Upload trade history" subtitle="Step 1: trade CSV, exchange export, or optional context ZIP">
+      <WorkspaceCard title="Import trade history" subtitle="Audit mode: trade CSV, exchange export, or optional context ZIP">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-text-neutral">The recommended workflow is trade-history first. Optional ZIP files add context; they do not turn incomplete evidence into regime, parameter, broker, or portfolio proof.</p>
+          <p className="text-xs text-text-neutral">Use this path when you already have evidence to audit. Research Programs are the main workspace; imports become evidence objects inside that larger research loop.</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/downloads/strategy-truth-room-research-bundle-reference.zip" className={buttonVariants({ variant: "secondary", size: "sm" })}>Download Context ZIP Reference</Link>
             <Link href="/docs/lab" className={buttonVariants({ variant: "primary", size: "sm" })}>View Upload Docs</Link>

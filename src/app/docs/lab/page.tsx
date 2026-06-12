@@ -5,8 +5,8 @@ import { PublicShell } from "@/components/public/public-shell";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Strategy Robustness Lab Upload Docs",
-  description: "Canonical upload specification for trade CSVs, exchange exports, optional context ZIPs, prop evaluation rules, and runtime assumptions.",
+  title: "Audit Import Upload Docs",
+  description: "Canonical audit-import specification for trade CSVs, exchange exports, optional context ZIPs, prop evaluation rules, and runtime assumptions.",
 };
 
 const requiredFields = [
@@ -119,11 +119,11 @@ export default function LabDocsPage() {
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-12 lg:px-10">
       <section className="public-hero-band space-y-4 rounded-sm border border-border-subtle p-8">
         <div className="h-1 w-20 rounded-full bg-brand" />
-        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Lab Upload Specification</p>
-        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Strategy Robustness Lab Upload Docs</h1>
-        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and what each input unlocks.</p>
+        <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Audit Import Specification</p>
+        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Audit Import Upload Docs</h1>
+        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and how imports fit inside Research Programs.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
-          The self-serve product is optimized for closed trade history. Use a trade CSV or exchange export first, then add exact prop rules when evaluation feasibility matters. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
+          Audit Import is one path into the research pipeline. Use a trade CSV or exchange export when you already have evidence to audit, then attach the result to a Research Program when it belongs to a larger thesis. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <Link href={referenceBundleHref} className={buttonVariants({ variant: "primary" })}>
@@ -169,7 +169,7 @@ export default function LabDocsPage() {
           <p className="font-provenance text-xs uppercase tracking-wide text-brand">Evidence package guide</p>
           <h2 className="mt-2 text-xl font-semibold text-text-institutional">Choose the Upload That Matches the Question</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
-            The Lab does not treat every upload as equally evidentiary. Start with a trade CSV or exchange export, use a rich trade CSV plus exact rules for the strongest self-serve result, and use a context ZIP when you want better provenance or Research Desk handoff quality.
+            Audit Import does not treat every upload as equally evidentiary. Start with a trade CSV or exchange export when you already have closed trades, use a rich trade CSV plus exact rules for the strongest self-serve result, and use a context ZIP when you want better provenance or Research Desk handoff quality.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">

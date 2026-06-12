@@ -1,13 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { retryAnalysis } from "@/lib/server/services/analysis-service";
+import { researchProgramRepository } from "@/lib/server/research-programs/repository";
 import { exportQueue } from "@/lib/server/queue/export-queue";
 import { exportJobRepository } from "@/lib/server/repositories/export-job-repository";
 import { exportRepository } from "@/lib/server/repositories/export-repository";
 
 export type AdminJobView = {
-  kind: "analysis" | "export";
+  kind: "analysis" | "export" | "experiment";
   job_id: string;
   linked_id: string;
   status: string;
@@ -30,15 +32,18 @@ function iso(value: unknown) {
 async function readAdminJobRows() {
   if (getDatabaseProvider() === "postgres") {
     const pool = getPostgresPool();
-    const [analysisRows, exportRows] = await Promise.all([
+    const [analysisRows, exportRows, experimentRows] = await Promise.all([
       pool.query<Record<string, unknown>>(
         `SELECT 'analysis' as kind, job_id, analysis_id as linked_id, status, job_type, current_step, progress_pct, retry_count, available_at, last_attempt_at, created_at, COALESCE(finished_at, started_at, updated_at, created_at) as updated_at, error_code, error_message as error_summary FROM analysis_jobs`,
       ),
       pool.query<Record<string, unknown>>(
         `SELECT 'export' as kind, export_job_id as job_id, export_id as linked_id, status, 'export_render' as job_type, current_step, progress_pct, retry_count, available_at, last_attempt_at, created_at, COALESCE(finished_at, started_at, created_at) as updated_at, error_code, error_message as error_summary FROM export_jobs`,
       ),
+      pool.query<Record<string, unknown>>(
+        `SELECT 'experiment' as kind, experiment_job_id as job_id, experiment_job_id as linked_id, status, 'research_experiment' as job_type, current_step, progress_pct, retry_count, available_at, updated_at as last_attempt_at, created_at, updated_at, NULL as error_code, last_error as error_summary FROM experiment_jobs`,
+      ),
     ]);
-    return [...analysisRows.rows, ...exportRows.rows];
+    return [...analysisRows.rows, ...exportRows.rows, ...experimentRows.rows];
   }
 
   const db = getSqliteRuntimeDb();
@@ -48,13 +53,16 @@ async function readAdminJobRows() {
   const exportRows = (db
     .prepare(`SELECT 'export' as kind, export_job_id as job_id, export_id as linked_id, status, 'export_render' as job_type, current_step, progress_pct, retry_count, available_at, last_attempt_at, created_at, COALESCE(finished_at, started_at, created_at) as updated_at, error_code, error_message as error_summary FROM export_jobs`)
     .all() ?? []) as Record<string, unknown>[];
-  return [...analysisRows, ...exportRows];
+  const experimentRows = (db
+    .prepare(`SELECT 'experiment' as kind, experiment_job_id as job_id, experiment_job_id as linked_id, status, 'research_experiment' as job_type, current_step, progress_pct, retry_count, available_at, updated_at as last_attempt_at, created_at, updated_at, NULL as error_code, last_error as error_summary FROM experiment_jobs`)
+    .all() ?? []) as Record<string, unknown>[];
+  return [...analysisRows, ...exportRows, ...experimentRows];
 }
 
-export async function listAdminJobs(filters: { status?: string; type?: "analysis" | "export" } = {}) {
+export async function listAdminJobs(filters: { status?: string; type?: "analysis" | "export" | "experiment" } = {}) {
   const rows = (await readAdminJobRows())
     .map((row) => ({
-      kind: row.kind as "analysis" | "export",
+      kind: row.kind as "analysis" | "export" | "experiment",
       job_id: String(row.job_id),
       linked_id: String(row.linked_id),
       status: String(row.status),
@@ -88,11 +96,39 @@ export async function listAdminJobs(filters: { status?: string; type?: "analysis
   return { rows, summary, recentFailures: rows.filter((job) => job.status === "failed").slice(0, 10) };
 }
 
-export async function retryAdminJob(input: { kind: "analysis" | "export"; linked_id: string }) {
+export async function retryAdminJob(input: { kind: "analysis" | "export" | "experiment"; linked_id: string }) {
   if (input.kind === "analysis") {
     const retried = await retryAnalysis(input.linked_id);
     if (!retried) throw new Error("retry_not_allowed");
     return { ok: true, kind: "analysis", linked_id: input.linked_id };
+  }
+
+  if (input.kind === "experiment") {
+    const job = await researchProgramRepository.findExperimentJob(input.linked_id);
+    if (!job || job.status !== "failed") throw new Error("retry_not_allowed");
+    await researchProgramRepository.updateExperimentJob({
+      job_id: job.experiment_job_id,
+      account_id: job.account_id,
+      patch: {
+        status: "queued",
+        retry_count: job.retry_count + 1,
+        current_step: "Queued for admin retry",
+        available_at: new Date().toISOString(),
+        last_error: undefined,
+      },
+      event: {
+        experiment_job_event_id: randomUUID(),
+        experiment_job_id: job.experiment_job_id,
+        experiment_plan_id: job.experiment_plan_id,
+        program_id: job.program_id,
+        account_id: job.account_id,
+        event_type: "retried",
+        message: "Experiment job queued for admin retry.",
+        payload: { retry_count: job.retry_count + 1 },
+        created_at: new Date().toISOString(),
+      },
+    });
+    return { ok: true, kind: "experiment", linked_id: input.linked_id };
   }
 
   const job = await exportJobRepository.findByExportId(input.linked_id);

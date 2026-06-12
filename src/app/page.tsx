@@ -15,9 +15,9 @@ import { PublicShell } from "@/components/public/public-shell";
 import { HomePageScenesShell } from "@/components/public/home-page-scenes-shell";
 
 export const metadata: Metadata = {
-  title: "Invariance Research | Strategy Robustness Lab",
+  title: "Invariance Research | Research Pipeline for Strategy Validation",
   description:
-    "Upload trade history and test whether a strategy survives execution friction, capital-risk stress, concentration, and prop evaluation rules.",
+    "Turn trading intuition into research programs, experiments, validation reports, and durable strategy memory.",
 };
 
 const sceneIds = ["hero", "claim", "lab", "artifact"];
@@ -41,7 +41,7 @@ export default function HomePage() {
             <SectionHeader
               eyebrow="Claim Discipline"
               title="Every result is treated like a claim that has to earn trust."
-              description="Upload the artifact you already have, then state what you believe it proves. The Lab separates declared claims from claims merely implied by the evidence, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
+              description="Start from a thesis or import evidence you already have. Invariance separates declared claims from claims merely implied by the data, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
             />
             <ClaimAuditPanel />
             <EvidenceOutcomeGrid />
@@ -52,8 +52,8 @@ export default function HomePage() {
           <div className="space-y-8">
             <SectionHeader
               eyebrow="Strategy Robustness Lab"
-              title="Start with the trade history you already have."
-              description="Upload a trade CSV or exchange export, declare the claims and rules that matter, and see what survives execution friction, capital stress, concentration, and prop evaluation constraints."
+              title="Import existing evidence when the research loop needs an audit."
+              description="The Lab remains the fastest way to audit a trade CSV or exchange export. Research Programs provide the larger workspace for hypotheses, experiments, verdicts, memory, and reports."
             />
             <RobustnessLabIntro />
             <LabDiagnosticWorkbench />

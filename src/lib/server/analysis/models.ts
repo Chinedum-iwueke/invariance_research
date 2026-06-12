@@ -50,6 +50,7 @@ export type AnalysisEntity = {
   account_id: string;
   status: AnalysisStatus;
   strategy_name?: string;
+  program_id?: string;
   artifact_id: string;
   created_at: string;
   updated_at: string;

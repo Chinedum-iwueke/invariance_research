@@ -28,6 +28,14 @@ import { resetAnalysisQueueForTests } from "../src/lib/server/queue/provider";
 
 function resetDb() {
   getDb().exec(`
+    DELETE FROM research_briefs;
+    DELETE FROM program_clarification_sessions;
+    DELETE FROM program_report_snapshots;
+    DELETE FROM program_notes;
+    DELETE FROM program_artifacts;
+    DELETE FROM program_events;
+    DELETE FROM program_members;
+    DELETE FROM research_programs;
     DELETE FROM evidence_events;
     DELETE FROM export_jobs;
     DELETE FROM exports;
@@ -111,7 +119,7 @@ test.after(() => {
 });
 
 test("local object storage issues signed read URLs and keeps predictable storage keys", async () => {
-  const { user, account } = accountService.ensureUserAndAccount({ email: "storage@example.com" });
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "storage@example.com" });
   const artifactId = "artifact-phase23";
   await seedStoredArtifact(account.account_id, user.user_id, artifactId);
   const artifact = artifactRepository.findById(artifactId);
@@ -155,7 +163,7 @@ test("web analysis creation enqueues only when production uses external workers"
     ALLOW_EMBEDDED_WORKERS: "false",
   });
 
-  const { user, account } = accountService.ensureUserAndAccount({ email: "queue-only@example.com" });
+  const { user, account } = await accountService.ensureUserAndAccount({ email: "queue-only@example.com" });
   await seedStoredArtifact(account.account_id, user.user_id, "artifact-queue-only");
 
   const created = await createAnalysisFromArtifact({
@@ -165,7 +173,7 @@ test("web analysis creation enqueues only when production uses external workers"
   });
 
   await new Promise((resolve) => setTimeout(resolve, 25));
-  const status = getAnalysisStatus(created.analysis_id);
+  const status = await getAnalysisStatus(created.analysis_id);
   assert.equal(status?.status, "queued");
   assert.equal(status?.job_status, "queued");
 });

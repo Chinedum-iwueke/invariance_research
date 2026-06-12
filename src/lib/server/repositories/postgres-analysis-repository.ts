@@ -17,6 +17,7 @@ function mapRow(row: Record<string, unknown>): AnalysisEntity {
     account_id: String(row.account_id),
     status: row.status as AnalysisEntity["status"],
     strategy_name: row.strategy_name ? String(row.strategy_name) : undefined,
+    program_id: row.program_id ? String(row.program_id) : undefined,
     artifact_id: String(row.artifact_id),
     created_at: iso(row.created_at),
     updated_at: iso(row.updated_at),
@@ -34,14 +35,15 @@ export const postgresAnalysisRepository = {
   mode: "read-write",
   async save(analysis: AnalysisEntity) {
     await getPostgresPool().query(
-      `INSERT INTO analyses (analysis_id, owner_user_id, account_id, status, strategy_name, artifact_id, created_at, updated_at, result_json, eligibility_snapshot_json, engine_context_json, benchmark_json, runtime_config_json, failure_code, failure_message)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+      `INSERT INTO analyses (analysis_id, owner_user_id, account_id, status, strategy_name, program_id, artifact_id, created_at, updated_at, result_json, eligibility_snapshot_json, engine_context_json, benchmark_json, runtime_config_json, failure_code, failure_message)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
       [
         analysis.analysis_id,
         analysis.owner_user_id,
         analysis.account_id,
         analysis.status,
         analysis.strategy_name ?? null,
+        analysis.program_id ?? null,
         analysis.artifact_id,
         analysis.created_at,
         analysis.updated_at,
@@ -61,10 +63,11 @@ export const postgresAnalysisRepository = {
     if (!current) return undefined;
     const next = updater(current);
     await getPostgresPool().query(
-      `UPDATE analyses SET status=$1, strategy_name=$2, updated_at=$3, result_json=$4, eligibility_snapshot_json=$5, engine_context_json=$6, benchmark_json=$7, runtime_config_json=$8, failure_code=$9, failure_message=$10 WHERE analysis_id=$11`,
+      `UPDATE analyses SET status=$1, strategy_name=$2, program_id=$3, updated_at=$4, result_json=$5, eligibility_snapshot_json=$6, engine_context_json=$7, benchmark_json=$8, runtime_config_json=$9, failure_code=$10, failure_message=$11 WHERE analysis_id=$12`,
       [
         next.status,
         next.strategy_name ?? null,
+        next.program_id ?? null,
         next.updated_at,
         next.result ? JSON.stringify(next.result) : null,
         next.eligibility_snapshot ? JSON.stringify(next.eligibility_snapshot) : null,

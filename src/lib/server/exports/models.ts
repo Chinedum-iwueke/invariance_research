@@ -3,6 +3,7 @@ export type ExportFormat = "json" | "md" | "pdf";
 export type ExportRecord = {
   export_id: string;
   analysis_id: string;
+  program_id?: string;
   account_id: string;
   requested_by_user_id: string;
   report_snapshot_id?: string;
@@ -26,6 +27,7 @@ export type ReportSnapshotPayload = {
   report_schema_version: "strategy_truth_room_report_snapshot_v1";
   snapshot_id: string;
   analysis_id: string;
+  program_id?: string;
   artifact_identity: {
     artifact_id: string;
     checksum_sha256?: string;
@@ -56,6 +58,7 @@ export type ReportSnapshotPayload = {
 export type ReportSnapshotRecord = {
   snapshot_id: string;
   analysis_id: string;
+  program_id?: string;
   account_id: string;
   status: ReportSnapshotStatus;
   source_analysis_updated_at: string;

@@ -35,7 +35,9 @@ export async function POST(request: Request) {
       {
         ok: true,
         duplicate: true,
-        message: "You're already on the waitlist for this release. We'll keep you updated.",
+        message: parsed.data.sourcePage === "preview_gate"
+          ? "You're already on the early-access list. We'll follow up when another testing seat opens."
+          : "You're already on the waitlist for this release. We'll keep you updated.",
       },
       { status: 200 },
     );
@@ -45,7 +47,9 @@ export async function POST(request: Request) {
     {
       ok: true,
       duplicate: false,
-      message: "Thank you. You are on the Research Desk waitlist.",
+      message: parsed.data.sourcePage === "preview_gate"
+        ? "Thank you. Your early-access request has been received."
+        : "Thank you. You are on the Research Desk waitlist.",
     },
     { status: 201 },
   );
