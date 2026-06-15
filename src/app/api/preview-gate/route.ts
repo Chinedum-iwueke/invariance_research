@@ -12,17 +12,10 @@ export async function POST(request: Request) {
     const limited = await enforceRateLimit({ request, route: "preview_gate", kind: "auth" });
     if (limited) return limited;
   } catch (error) {
-    console.error("[preview-gate] rate limit check failed", {
+    console.warn("[preview-gate] rate limit check failed; continuing with password verification", {
       message: error instanceof Error ? error.message : String(error),
       code: typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined,
     });
-    return NextResponse.json(
-      {
-        error: "preview_gate_dependency_unavailable",
-        message: "Preview access could not be verified because the access check service is not ready. Check database connectivity and schema initialization.",
-      },
-      { status: 503 },
-    );
   }
 
   if (!previewGateEnabled()) {
