@@ -14,6 +14,23 @@ function toBool(value: unknown) {
   return Boolean(Number(value));
 }
 
+function usageSnapshot(row: Partial<UsageSnapshot> | undefined, accountId: string, bucket: string): UsageSnapshot {
+  return {
+    account_id: row?.account_id ?? accountId,
+    month_bucket: row?.month_bucket ?? bucket,
+    analyses_created: Number(row?.analyses_created ?? 0),
+    artifacts_uploaded: Number(row?.artifacts_uploaded ?? 0),
+    report_exports: Number(row?.report_exports ?? 0),
+    programs_created: Number(row?.programs_created ?? 0),
+    hypotheses_created: Number(row?.hypotheses_created ?? 0),
+    experiments_queued: Number(row?.experiments_queued ?? 0),
+    experiment_compute_units: Number(row?.experiment_compute_units ?? 0),
+    assistant_calls: Number(row?.assistant_calls ?? 0),
+    share_links_created: Number(row?.share_links_created ?? 0),
+    research_desk_requests: Number(row?.research_desk_requests ?? 0),
+  };
+}
+
 export const userRepository: UserRepository = {
   mode: "read-write",
   findById(userId: string) {
@@ -151,15 +168,7 @@ export const usageRepository: UsageSnapshotRepository = {
   mode: "read-write",
   get(accountId, bucket) {
     const row = getDb().prepare("SELECT * FROM usage_snapshots WHERE account_id = ? AND month_bucket = ?").get(accountId, bucket) as UsageSnapshot | undefined;
-    return (
-      row ?? {
-        account_id: accountId,
-        month_bucket: bucket,
-        analyses_created: 0,
-        artifacts_uploaded: 0,
-        report_exports: 0,
-      }
-    );
+    return usageSnapshot(row, accountId, bucket);
   },
   increment(input: UsageInput) {
     const bucket = monthBucket(input.at ?? new Date());
@@ -170,16 +179,43 @@ export const usageRepository: UsageSnapshotRepository = {
       analyses_created: existing.analyses_created + (input.kind === "analysis" ? inc : 0),
       artifacts_uploaded: existing.artifacts_uploaded + (input.kind === "upload" ? inc : 0),
       report_exports: existing.report_exports + (input.kind === "export" ? inc : 0),
+      programs_created: existing.programs_created + (input.kind === "program" ? inc : 0),
+      hypotheses_created: existing.hypotheses_created + (input.kind === "hypothesis" ? inc : 0),
+      experiments_queued: existing.experiments_queued + (input.kind === "experiment" ? inc : 0),
+      experiment_compute_units: existing.experiment_compute_units + (input.kind === "experiment_compute" ? inc : 0),
+      assistant_calls: existing.assistant_calls + (input.kind === "assistant" ? inc : 0),
+      share_links_created: existing.share_links_created + (input.kind === "share" ? inc : 0),
+      research_desk_requests: existing.research_desk_requests + (input.kind === "research_desk" ? inc : 0),
     };
     getDb()
       .prepare(
-        `INSERT INTO usage_snapshots (account_id, month_bucket, analyses_created, artifacts_uploaded, report_exports) VALUES (?, ?, ?, ?, ?)
+        `INSERT INTO usage_snapshots (account_id, month_bucket, analyses_created, artifacts_uploaded, report_exports, programs_created, hypotheses_created, experiments_queued, experiment_compute_units, assistant_calls, share_links_created, research_desk_requests) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(account_id, month_bucket) DO UPDATE SET
           analyses_created=excluded.analyses_created,
           artifacts_uploaded=excluded.artifacts_uploaded,
-          report_exports=excluded.report_exports`,
+          report_exports=excluded.report_exports,
+          programs_created=excluded.programs_created,
+          hypotheses_created=excluded.hypotheses_created,
+          experiments_queued=excluded.experiments_queued,
+          experiment_compute_units=excluded.experiment_compute_units,
+          assistant_calls=excluded.assistant_calls,
+          share_links_created=excluded.share_links_created,
+          research_desk_requests=excluded.research_desk_requests`,
       )
-      .run(next.account_id, next.month_bucket, next.analyses_created, next.artifacts_uploaded, next.report_exports);
+      .run(
+        next.account_id,
+        next.month_bucket,
+        next.analyses_created,
+        next.artifacts_uploaded,
+        next.report_exports,
+        next.programs_created,
+        next.hypotheses_created,
+        next.experiments_queued,
+        next.experiment_compute_units,
+        next.assistant_calls,
+        next.share_links_created,
+        next.research_desk_requests,
+      );
     return next;
   },
 };

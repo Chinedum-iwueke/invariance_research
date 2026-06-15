@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { accountService } from "@/lib/server/accounts/service";
 import { reportSnapshotRepository } from "@/lib/server/repositories/report-snapshot-repository";
 import { shareAccessEventRepository, shareTokenRepository } from "@/lib/server/repositories/share-token-repository";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
@@ -62,6 +63,7 @@ export async function createReportShare(input: {
     created_by_user_id: input.user_id,
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "share");
 
   return { token, share: record, url: `/share/${token}` };
 }

@@ -1,4 +1,5 @@
 import type { AnalysisListItem } from "@/lib/contracts";
+import type { ResearchMemorySnapshot } from "@/lib/server/research-memory/models";
 
 export type ResearchProgramStatus = "active" | "paused" | "archived";
 export type ProgramMemberRole = "owner" | "editor" | "viewer";
@@ -83,8 +84,99 @@ export type ProgramReportSnapshot = {
   report_snapshot_id?: string;
   title: string;
   status: "draft" | "active" | "superseded";
-  payload: Record<string, unknown>;
+  payload: ProgramReportPayload;
   created_at: string;
+};
+
+export type ProgramReportMemorySummary = {
+  items: number;
+  findings: Array<{ headline: string; detail: string; severity: string }>;
+  recommendations: Array<{ recommendation: string; status: string; confidence: number }>;
+  similar_signatures: string[];
+};
+
+export type ProgramReportPayload = {
+  schema_version: "program_report_snapshot_v1";
+  program_id: string;
+  title: string;
+  generated_at: string;
+  research_question: {
+    thesis: string;
+    market?: string;
+    asset_universe?: string;
+    timeframe?: string;
+  };
+  hypotheses_tested: Array<{
+    hypothesis_version_id: string;
+    title: string;
+    thesis: string;
+    status: string;
+    invalidation_criteria: string[];
+    required_datasets: string[];
+  }>;
+  experiments_run: Array<{
+    experiment_job_id: string;
+    status: ExperimentJobStatus;
+    current_step: string;
+    progress_pct: number;
+    verdict?: string;
+    confidence?: string;
+    decision_grade?: boolean;
+    recommended_action?: string;
+    artifact_summary?: Record<string, unknown>;
+    last_error?: string;
+    created_at: string;
+    finished_at?: string;
+  }>;
+  rejected_variants: Array<{
+    title: string;
+    reason: string;
+    evidence: Record<string, unknown>;
+  }>;
+  surviving_candidates: Array<{
+    title: string;
+    support: string;
+    evidence: Record<string, unknown>;
+  }>;
+  evidence_limits: string[];
+  next_experiment_plan: string[];
+  memory_summary: ProgramReportMemorySummary;
+  imports: Array<{
+    analysis_id: string;
+    strategy_name: string;
+    status: string;
+    trade_count: number;
+    robustness_score: string;
+  }>;
+  research_desk_packet: {
+    hypothesis_specs: string[];
+    strategy_specs: string[];
+    experiment_plans: string[];
+    run_artifacts: Array<Record<string, unknown>>;
+    verdict_cards: Array<Record<string, unknown>>;
+    memory_summary: ProgramReportMemorySummary;
+  };
+  redaction_policy: {
+    policy_version: "program_share_room_redaction_v1";
+    public_share_excludes: string[];
+    public_share_includes: string[];
+    raw_artifacts_public: false;
+    pii_exposure: "none";
+  };
+};
+
+export type ProgramReportShareToken = {
+  share_id: string;
+  token_hash: string;
+  program_report_snapshot_id: string;
+  program_id: string;
+  account_id: string;
+  created_by_user_id: string;
+  status: "active" | "revoked";
+  expires_at?: string;
+  revoked_at?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ResearchBriefIntakeFields = {
@@ -375,7 +467,7 @@ export type ExperimentJobEventRecord = {
   experiment_plan_id: string;
   program_id: string;
   account_id: string;
-  event_type: "queued" | "paused" | "canceled" | "retried" | "priority_changed" | "lease_expired" | "worker_note";
+  event_type: "queued" | "claimed" | "completed" | "failed" | "paused" | "canceled" | "retried" | "priority_changed" | "lease_expired" | "worker_note";
   message: string;
   payload: Record<string, unknown>;
   actor_user_id?: string;
@@ -405,6 +497,9 @@ export type ProgramDetail = {
   experiment_plans: ExperimentPlanRecord[];
   experiment_plan_items: ExperimentPlanItemRecord[];
   experiment_jobs: ExperimentJobRecord[];
+  experiment_job_events: ExperimentJobEventRecord[];
+  reports: ProgramReportSnapshot[];
+  memory: ResearchMemorySnapshot;
 };
 
 export type CreateProgramInput = {

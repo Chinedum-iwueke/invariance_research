@@ -99,6 +99,7 @@ export async function createResearchDeskRequest(input: {
     created_by_user_id: request.requested_by_user_id,
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "research_desk");
   await notifyResearchDeskRequestCreated(request);
   return { request, learning_event };
 }

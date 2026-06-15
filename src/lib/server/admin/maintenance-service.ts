@@ -1,5 +1,11 @@
 import { spawn } from "node:child_process";
-import { cleanupExpiredExports, cleanupShareAccessEvents, cleanupStaleFailedJobs, runMaintenanceSweep } from "@/lib/server/maintenance/retention-service";
+import {
+  cleanupExpiredExports,
+  cleanupShareAccessEvents,
+  cleanupStaleFailedJobs,
+  recoverStaleProcessingJobs,
+  runMaintenanceSweep,
+} from "@/lib/server/maintenance/retention-service";
 
 function runCommand(command: string, args: string[]) {
   return new Promise<{ ok: boolean; command: string; exit_code: number | null; output: string }>((resolve) => {
@@ -24,10 +30,11 @@ function runCommand(command: string, args: string[]) {
   });
 }
 
-export function runAdminMaintenanceAction(action: "sweep" | "expired_exports" | "stale_failed_jobs" | "share_access_events" | "benchmark_library_refresh") {
+export function runAdminMaintenanceAction(action: "sweep" | "expired_exports" | "stale_failed_jobs" | "stale_processing_jobs" | "share_access_events" | "benchmark_library_refresh") {
   if (action === "sweep") return runMaintenanceSweep();
   if (action === "expired_exports") return cleanupExpiredExports();
   if (action === "share_access_events") return cleanupShareAccessEvents();
+  if (action === "stale_processing_jobs") return recoverStaleProcessingJobs();
   if (action === "benchmark_library_refresh") return runCommand("npm", ["run", "benchmarks:weekly"]);
   return cleanupStaleFailedJobs();
 }

@@ -2,6 +2,7 @@ import { getHealthSnapshot } from "@/lib/server/ops/health-service";
 import { getBenchmarkManifestCacheStatus } from "@/lib/benchmarks/benchmark-library";
 import { countRecentRateLimitEvents } from "@/lib/server/rate-limits";
 import { listAdminJobs } from "@/lib/server/admin/jobs-service";
+import { getOperationControls } from "@/lib/server/ops/operations-policy";
 
 export async function getAdminHealthSnapshot() {
   const snapshot = await getHealthSnapshot();
@@ -12,6 +13,7 @@ export async function getAdminHealthSnapshot() {
   const queue = snapshot.checks.find((check) => check.name === "queue");
   const analysisWorker = snapshot.checks.find((check) => check.name === "analysis_worker");
   const exportWorker = snapshot.checks.find((check) => check.name === "export_worker");
+  const experimentWorker = snapshot.checks.find((check) => check.name === "experiment_worker");
   return {
     ...snapshot,
     startup_validation_state: snapshot.status,
@@ -20,7 +22,9 @@ export async function getAdminHealthSnapshot() {
     workers: {
       analysis: analysisWorker?.status ?? "degraded",
       export: exportWorker?.status ?? "degraded",
+      experiment: experimentWorker?.status ?? "degraded",
     },
+    operation_controls: getOperationControls(),
     jobs: jobs.summary,
     rate_limit_events_last_hour: rateLimitEventsLastHour,
     benchmark_manifest_cache: benchmarkManifestCache,

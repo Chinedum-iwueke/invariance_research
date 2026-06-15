@@ -63,6 +63,38 @@ services:
       start_period: 30s
       retries: 3
 
+  experiment-worker:
+    container_name: invariance-experiment-worker
+    build:
+      context: ${INVARIANCE_STACK_ROOT:-/home/omenka/Projects}
+      dockerfile: invariance_research/Dockerfile.worker
+    init: true
+    command: ["npm", "run", "worker:experiment"]
+    env_file:
+      - .env.worker
+    environment:
+      NODE_ENV: production
+      WORKER_MODE: external
+      INVARIANCE_WORKER_KIND: experiment-worker
+      INVARIANCE_EXPERIMENT_WORKER_INSTANCE_ID: ${INVARIANCE_EXPERIMENT_WORKER_INSTANCE_ID:-experiment-worker-1}
+      INVARIANCE_PYTHON_BIN: /opt/venv/bin/python
+      INVARIANCE_BULLETPROOF_ROOT: /opt/bulletproof_bt
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
   ollama:
     container_name: invariance-ollama
     image: ollama/ollama:latest

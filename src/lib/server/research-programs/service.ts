@@ -24,10 +24,25 @@ import {
 } from "@/lib/server/research-programs/spec-generation";
 import {
   buildExperimentPlanFromStrategySpec,
-  experimentLimitsForPlan,
   validateExperimentPlan,
 } from "@/lib/server/research-programs/experiment-planning";
 import { accountService } from "@/lib/server/accounts/service";
+import {
+  assertAssistantCallAllowed,
+  assertExperimentQueueAllowed,
+  assertHypothesisCreationAllowed,
+  assertProgramCreationAllowed,
+} from "@/lib/server/entitlements/research-policy";
+import { logger } from "@/lib/server/ops/logger";
+import { assertAssistantAccepting, assertQueueAccepting } from "@/lib/server/ops/operations-policy";
+import { emptyResearchMemorySnapshot, listResearchMemory } from "@/lib/server/research-memory/service";
+
+function isMissingPostgresRelation(error: unknown) {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && (error as { code?: unknown }).code === "42P01";
+}
 
 function cleanText(value: FormDataEntryValue | null | undefined): string | undefined {
   const text = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
@@ -51,6 +66,7 @@ export function parseCreateProgramForm(formData: FormData, session: { account_id
 }
 
 export async function createResearchProgram(input: CreateProgramInput): Promise<ResearchProgram> {
+  await assertProgramCreationAllowed(input.account_id);
   const now = new Date().toISOString();
   const program: ResearchProgram = {
     program_id: randomUUID(),
@@ -90,16 +106,39 @@ export async function createResearchProgram(input: CreateProgramInput): Promise<
     },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "program");
 
   return program;
 }
 
 export async function listResearchPrograms(accountId: string) {
-  return researchProgramRepository.listSummaries(accountId);
+  try {
+    return await researchProgramRepository.listSummaries(accountId);
+  } catch (error) {
+    if (isMissingPostgresRelation(error)) {
+      logger.error("research_programs.schema_missing", {
+        account_id: accountId,
+        message: error instanceof Error ? error.message : "missing relation",
+      });
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function listExperimentJobsForAccount(accountId: string) {
-  return researchProgramRepository.listExperimentJobsForAccount(accountId);
+  try {
+    return await researchProgramRepository.listExperimentJobsForAccount(accountId);
+  } catch (error) {
+    if (isMissingPostgresRelation(error)) {
+      logger.error("experiment_jobs.schema_missing", {
+        account_id: accountId,
+        message: error instanceof Error ? error.message : "missing relation",
+      });
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getResearchProgramDetail(programId: string, accountId: string): Promise<ProgramDetail | undefined> {
@@ -125,6 +164,19 @@ export async function getResearchProgramDetail(programId: string, accountId: str
     experiment_plans: await researchProgramRepository.listExperimentPlans(programId),
     experiment_plan_items: await researchProgramRepository.listExperimentPlanItems(programId),
     experiment_jobs: await researchProgramRepository.listExperimentJobs(programId),
+    experiment_job_events: await researchProgramRepository.listExperimentJobEventsForProgram(programId),
+    reports: await researchProgramRepository.listProgramReports(programId),
+    memory: await listResearchMemory(accountId, programId).catch((error) => {
+      if (isMissingPostgresRelation(error)) {
+        logger.error("research_memory.schema_missing", {
+          account_id: accountId,
+          program_id: programId,
+          message: error instanceof Error ? error.message : "missing relation",
+        });
+        return emptyResearchMemorySnapshot();
+      }
+      throw error;
+    }),
   };
 }
 
@@ -182,6 +234,8 @@ export async function createClarificationSession(input: {
 }) {
   const program = await researchProgramRepository.findSummaryById(input.program_id);
   if (!program || program.account_id !== input.account_id) throw new Error("program_not_found");
+  assertAssistantAccepting();
+  await assertAssistantCallAllowed(input.account_id);
 
   const intake = normalizeIntake(input.intake);
   const draft = await buildClarificationDraft(program, intake);
@@ -219,6 +273,7 @@ export async function createClarificationSession(input: {
     },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "assistant");
 
   return session;
 }
@@ -300,6 +355,8 @@ export async function createHypothesisFromBrief(input: {
 }) {
   const program = await researchProgramRepository.findSummaryById(input.program_id);
   if (!program || program.account_id !== input.account_id) throw new Error("program_not_found");
+  assertAssistantAccepting();
+  await assertHypothesisCreationAllowed({ account_id: input.account_id, program_id: input.program_id });
   const briefs = await researchProgramRepository.listResearchBriefs(program.program_id);
   const brief = briefs.find((item) => item.brief_id === input.brief_id);
   if (!brief) throw new Error("research_brief_not_found");
@@ -364,6 +421,8 @@ export async function createHypothesisFromBrief(input: {
     },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "hypothesis");
+  await accountService.incrementUsage(input.account_id, "assistant");
   return version;
 }
 
@@ -486,6 +545,8 @@ export async function createStrategySpecFromHypothesis(input: {
 }) {
   const program = await researchProgramRepository.findSummaryById(input.program_id);
   if (!program || program.account_id !== input.account_id) throw new Error("program_not_found");
+  assertAssistantAccepting();
+  await assertAssistantCallAllowed(input.account_id);
   const hypothesis = await researchProgramRepository.findHypothesisVersion(input.hypothesis_version_id);
   if (!hypothesis || hypothesis.program_id !== program.program_id || hypothesis.account_id !== input.account_id) throw new Error("hypothesis_version_not_found");
   if (hypothesis.status !== "approved_for_strategy_generation") throw new Error("hypothesis_not_approved");
@@ -528,6 +589,7 @@ export async function createStrategySpecFromHypothesis(input: {
     },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "assistant");
   return record;
 }
 
@@ -617,6 +679,8 @@ export async function createExperimentPlanFromStrategySpec(input: {
 }) {
   const program = await researchProgramRepository.findSummaryById(input.program_id);
   if (!program || program.account_id !== input.account_id) throw new Error("program_not_found");
+  assertAssistantAccepting();
+  await assertAssistantCallAllowed(input.account_id);
   const strategy = await researchProgramRepository.findStrategySpec(input.strategy_spec_record_id);
   if (!strategy || strategy.program_id !== program.program_id || strategy.account_id !== input.account_id) throw new Error("strategy_spec_not_found");
   if (strategy.status !== "approved_for_execution") throw new Error("strategy_spec_not_approved");
@@ -672,6 +736,7 @@ export async function createExperimentPlanFromStrategySpec(input: {
     },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "assistant");
   return record;
 }
 
@@ -683,6 +748,7 @@ export async function approveExperimentPlan(input: {
 }) {
   const program = await researchProgramRepository.findSummaryById(input.program_id);
   if (!program || program.account_id !== input.account_id) throw new Error("program_not_found");
+  assertQueueAccepting("experiment");
   const plan = await researchProgramRepository.findExperimentPlan(input.experiment_plan_id);
   if (!plan || plan.program_id !== program.program_id || plan.account_id !== input.account_id) throw new Error("experiment_plan_not_found");
   if (plan.validation_errors.length > 0) throw new Error("experiment_plan_invalid");
@@ -718,18 +784,18 @@ export async function queueExperimentPlan(input: {
   if (!plan || plan.program_id !== program.program_id || plan.account_id !== input.account_id) throw new Error("experiment_plan_not_found");
   if (plan.status !== "approved") throw new Error("experiment_plan_not_approved");
   if (plan.validation_errors.length > 0) throw new Error("experiment_plan_invalid");
-  const state = await accountService.getAccountState(input.account_id);
-  if (!state) throw new Error("account_not_found");
-  const limits = experimentLimitsForPlan(state.account.plan_id);
-  const existingJobs = await researchProgramRepository.listExperimentJobsForAccount(input.account_id);
-  const activeJobs = existingJobs.filter((job) => ["queued", "paused", "processing"].includes(job.status));
-  const activeComputeUnits = activeJobs.length;
   const items = (await researchProgramRepository.listExperimentPlanItems(program.program_id))
     .filter((item) => item.experiment_plan_id === plan.experiment_plan_id && item.status === "draft");
-  const queuedItems = items.slice(0, limits.maxQueued - activeJobs.length);
+  const requestedUnits = items.reduce((sum, item) => sum + item.runtime_budget.max_variants, 0);
+  const { state, activeJobs } = await assertExperimentQueueAllowed({
+    account_id: input.account_id,
+    requested_jobs: items.length,
+    requested_compute_units: requestedUnits,
+  });
+  const remainingQueueSlots = Math.max(0, state.entitlements.queued_experiments_limit - activeJobs.length);
+  const queuedItems = items.slice(0, remainingQueueSlots);
   if (queuedItems.length === 0) throw new Error("experiment_queue_limit_reached");
-  const requestedUnits = queuedItems.reduce((sum, item) => sum + item.runtime_budget.max_variants, 0);
-  if (activeComputeUnits + requestedUnits > limits.monthlyComputeUnits) throw new Error("monthly_compute_budget_reached");
+  const queuedUnits = queuedItems.reduce((sum, item) => sum + item.runtime_budget.max_variants, 0);
   const now = new Date().toISOString();
   const jobs = queuedItems.map((item) => ({
     experiment_job_id: randomUUID(),
@@ -760,7 +826,11 @@ export async function queueExperimentPlan(input: {
       account_id: input.account_id,
       event_type: "queued",
       message: "Experiment job queued for B6 execution.",
-      payload: { max_concurrent: limits.maxConcurrent, plan_id: state.account.plan_id },
+      payload: {
+        max_concurrent: state.entitlements.concurrent_experiments_limit,
+        plan_id: state.account.plan_id,
+        compute_units_reserved: queuedUnits,
+      },
       actor_user_id: input.user_id,
       created_at: now,
     })),
@@ -776,6 +846,8 @@ export async function queueExperimentPlan(input: {
     payload: { experiment_plan_id: plan.experiment_plan_id, job_count: jobs.length },
     created_at: now,
   });
+  await accountService.incrementUsage(input.account_id, "experiment", jobs.length);
+  await accountService.incrementUsage(input.account_id, "experiment_compute", queuedUnits);
   return { queued_count: jobs.length, jobs };
 }
 

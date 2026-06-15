@@ -24,8 +24,15 @@ export interface EntitlementSnapshot {
   share_links_per_month: number;
   can_request_research_desk: boolean;
   max_seats: number;
+  programs_limit: number;
+  active_hypotheses_limit: number;
+  queued_experiments_limit: number;
+  concurrent_experiments_limit: number;
+  monthly_experiment_compute_units: number;
+  monthly_assistant_calls: number;
   prop_evaluation_profiles: number | "shared" | "unlimited";
   history_retention_days: number;
+  memory_retention_days: number;
   processing_priority: "standard" | "priority" | "premium" | "institutional";
   consulting_cta_variant: "soft" | "serious" | "institutional";
   effective_at: string;
@@ -38,6 +45,13 @@ export interface UsageSnapshot {
   analyses_created: number;
   artifacts_uploaded: number;
   report_exports: number;
+  programs_created: number;
+  hypotheses_created: number;
+  experiments_queued: number;
+  experiment_compute_units: number;
+  assistant_calls: number;
+  share_links_created: number;
+  research_desk_requests: number;
 }
 
 export type DiagnosticAccessReason = "artifact_unavailable" | "engine_unavailable" | "plan_locked" | "enabled";

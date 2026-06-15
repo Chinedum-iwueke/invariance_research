@@ -1,5 +1,6 @@
 const ANALYSIS_POLL_MS_DEFAULT = "1500";
 const EXPORT_POLL_MS_DEFAULT = "2000";
+const EXPERIMENT_POLL_MS_DEFAULT = "3000";
 const WORKER_STALE_MS_DEFAULT = "120000";
 
 function parseBool(value: string | undefined, fallback: boolean): boolean {
@@ -46,8 +47,9 @@ export function shouldRunEmbeddedWorkers() {
   return nodeEnv === "development" && mode === "embedded" && allowEmbedded;
 }
 
-export function getWorkerPollIntervalMs(kind: "analysis" | "export") {
+export function getWorkerPollIntervalMs(kind: "analysis" | "export" | "experiment") {
   if (kind === "analysis") return parseMs(process.env.INVARIANCE_ANALYSIS_WORKER_POLL_MS, ANALYSIS_POLL_MS_DEFAULT);
+  if (kind === "experiment") return parseMs(process.env.INVARIANCE_EXPERIMENT_WORKER_POLL_MS, EXPERIMENT_POLL_MS_DEFAULT);
   return parseMs(process.env.INVARIANCE_EXPORT_WORKER_POLL_MS, EXPORT_POLL_MS_DEFAULT);
 }
 

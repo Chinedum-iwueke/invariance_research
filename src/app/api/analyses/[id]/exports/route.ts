@@ -3,6 +3,7 @@ import { isAdminIdentity } from "@/lib/server/admin/guards";
 import { requireServerSession } from "@/lib/server/auth/session";
 import { listExportsForAnalysis, requestExport } from "@/lib/server/exports/export-service";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
+import { assertQueueAccepting, isOperationalPauseError } from "@/lib/server/ops/operations-policy";
 
 function exportRouteError(error: unknown, fallbackCode = "export_request_failed") {
   const candidate = error as { code?: string; message?: string };
@@ -19,7 +20,7 @@ function exportRouteError(error: unknown, fallbackCode = "export_request_failed"
     );
   }
   const code = candidate?.message ?? fallbackCode;
-  const status = code === "report_export_plan_restricted" ? 403 : code === "analysis_not_completed" ? 422 : 404;
+  const status = isOperationalPauseError(code) ? 503 : code === "report_export_plan_restricted" ? 403 : code === "analysis_not_completed" ? 422 : 404;
   return NextResponse.json({ error: { code, message: "Export request rejected." } }, { status });
 }
 
@@ -39,6 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const session = await requireServerSession();
     const limited = await enforceRateLimit({ request, route: "export_request", kind: "export", userId: session.user_id, accountId: session.account_id });
     if (limited) return limited;
+    assertQueueAccepting("export");
     const isAdmin = await isAdminIdentity({ user_id: session.user_id, email: session.email });
     const { id } = await params;
     const body = (await request.json().catch(() => ({}))) as { format?: "json" | "md" | "pdf" };

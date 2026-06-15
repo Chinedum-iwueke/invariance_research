@@ -5,6 +5,7 @@ import type {
   ProgramNote,
   ProgramClarificationSession,
   ProgramReportSnapshot,
+  ProgramReportShareToken,
   ExperimentJobEventRecord,
   ExperimentJobRecord,
   ExperimentPlanItemRecord,
@@ -108,8 +109,24 @@ function mapReport(row: Record<string, unknown>): ProgramReportSnapshot {
     report_snapshot_id: row.report_snapshot_id ? String(row.report_snapshot_id) : undefined,
     title: String(row.title),
     status: row.status as ProgramReportSnapshot["status"],
-    payload: json(row.payload_json, {}),
+    payload: json(row.payload_json, {}) as ProgramReportSnapshot["payload"],
     created_at: iso(row.created_at),
+  };
+}
+
+function mapProgramShare(row: Record<string, unknown>): ProgramReportShareToken {
+  return {
+    share_id: String(row.share_id),
+    token_hash: String(row.token_hash),
+    program_report_snapshot_id: String(row.program_report_snapshot_id),
+    program_id: String(row.program_id),
+    account_id: String(row.account_id),
+    created_by_user_id: String(row.created_by_user_id),
+    status: row.status as ProgramReportShareToken["status"],
+    expires_at: row.expires_at ? iso(row.expires_at) : undefined,
+    revoked_at: row.revoked_at ? iso(row.revoked_at) : undefined,
+    created_at: iso(row.created_at),
+    updated_at: iso(row.updated_at),
   };
 }
 
@@ -257,6 +274,21 @@ function mapExperimentJob(row: Record<string, unknown>): ExperimentJobRecord {
     updated_at: iso(row.updated_at),
     started_at: row.started_at ? iso(row.started_at) : undefined,
     finished_at: row.finished_at ? iso(row.finished_at) : undefined,
+  };
+}
+
+function mapExperimentJobEvent(row: Record<string, unknown>): ExperimentJobEventRecord {
+  return {
+    experiment_job_event_id: String(row.experiment_job_event_id),
+    experiment_job_id: String(row.experiment_job_id),
+    experiment_plan_id: String(row.experiment_plan_id),
+    program_id: String(row.program_id),
+    account_id: String(row.account_id),
+    event_type: row.event_type as ExperimentJobEventRecord["event_type"],
+    message: String(row.message),
+    payload: json<Record<string, unknown>>(row.payload_json, {}),
+    actor_user_id: row.actor_user_id ? String(row.actor_user_id) : undefined,
+    created_at: iso(row.created_at),
   };
 }
 
@@ -457,6 +489,115 @@ export const researchProgramRepository = {
     }
     const rows = getDb().prepare("SELECT * FROM program_report_snapshots WHERE program_id = ? ORDER BY created_at DESC").all(programId) as Record<string, unknown>[];
     return rows.map(mapReport);
+  },
+
+  async findProgramReport(reportId: string): Promise<ProgramReportSnapshot | undefined> {
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query("SELECT * FROM program_report_snapshots WHERE program_report_snapshot_id = $1", [reportId]);
+      return result.rows[0] ? mapReport(result.rows[0]) : undefined;
+    }
+    const row = getDb().prepare("SELECT * FROM program_report_snapshots WHERE program_report_snapshot_id = ?").get(reportId) as Record<string, unknown> | undefined;
+    return row ? mapReport(row) : undefined;
+  },
+
+  async saveProgramReport(report: ProgramReportSnapshot): Promise<ProgramReportSnapshot> {
+    if (getDatabaseProvider() === "postgres") {
+      await getPostgresPool().query(
+        `INSERT INTO program_report_snapshots (program_report_snapshot_id, program_id, account_id, report_snapshot_id, title, status, payload_json, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          report.program_report_snapshot_id,
+          report.program_id,
+          report.account_id,
+          report.report_snapshot_id ?? null,
+          report.title,
+          report.status,
+          JSON.stringify(report.payload),
+          report.created_at,
+        ],
+      );
+      return report;
+    }
+    getDb()
+      .prepare(
+        `INSERT INTO program_report_snapshots (program_report_snapshot_id, program_id, account_id, report_snapshot_id, title, status, payload_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        report.program_report_snapshot_id,
+        report.program_id,
+        report.account_id,
+        report.report_snapshot_id ?? null,
+        report.title,
+        report.status,
+        JSON.stringify(report.payload),
+        report.created_at,
+      );
+    return report;
+  },
+
+  async supersedeProgramReports(programId: string, exceptReportId: string): Promise<void> {
+    if (getDatabaseProvider() === "postgres") {
+      await getPostgresPool().query(
+        "UPDATE program_report_snapshots SET status = 'superseded' WHERE program_id = $1 AND status = 'active' AND program_report_snapshot_id <> $2",
+        [programId, exceptReportId],
+      );
+      return;
+    }
+    getDb()
+      .prepare("UPDATE program_report_snapshots SET status = 'superseded' WHERE program_id = ? AND status = 'active' AND program_report_snapshot_id <> ?")
+      .run(programId, exceptReportId);
+  },
+
+  async saveProgramReportShare(share: ProgramReportShareToken): Promise<ProgramReportShareToken> {
+    if (getDatabaseProvider() === "postgres") {
+      await getPostgresPool().query(
+        `INSERT INTO program_report_share_tokens (share_id, token_hash, program_report_snapshot_id, program_id, account_id, created_by_user_id, status, expires_at, revoked_at, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          share.share_id,
+          share.token_hash,
+          share.program_report_snapshot_id,
+          share.program_id,
+          share.account_id,
+          share.created_by_user_id,
+          share.status,
+          share.expires_at ?? null,
+          share.revoked_at ?? null,
+          share.created_at,
+          share.updated_at,
+        ],
+      );
+      return share;
+    }
+    getDb()
+      .prepare(
+        `INSERT INTO program_report_share_tokens (share_id, token_hash, program_report_snapshot_id, program_id, account_id, created_by_user_id, status, expires_at, revoked_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        share.share_id,
+        share.token_hash,
+        share.program_report_snapshot_id,
+        share.program_id,
+        share.account_id,
+        share.created_by_user_id,
+        share.status,
+        share.expires_at ?? null,
+        share.revoked_at ?? null,
+        share.created_at,
+        share.updated_at,
+      );
+    return share;
+  },
+
+  async findProgramReportShareByTokenHash(tokenHash: string): Promise<ProgramReportShareToken | undefined> {
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query("SELECT * FROM program_report_share_tokens WHERE token_hash = $1", [tokenHash]);
+      return result.rows[0] ? mapProgramShare(result.rows[0]) : undefined;
+    }
+    const row = getDb().prepare("SELECT * FROM program_report_share_tokens WHERE token_hash = ?").get(tokenHash) as Record<string, unknown> | undefined;
+    return row ? mapProgramShare(row) : undefined;
   },
 
   async saveClarificationSession(session: ProgramClarificationSession): Promise<ProgramClarificationSession> {
@@ -1000,6 +1141,15 @@ export const researchProgramRepository = {
     return rows.map(mapExperimentPlanItem);
   },
 
+  async findExperimentPlanItem(itemId: string): Promise<ExperimentPlanItemRecord | undefined> {
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query("SELECT * FROM experiment_plan_items WHERE experiment_plan_item_id = $1", [itemId]);
+      return result.rows[0] ? mapExperimentPlanItem(result.rows[0]) : undefined;
+    }
+    const row = getDb().prepare("SELECT * FROM experiment_plan_items WHERE experiment_plan_item_id = ?").get(itemId) as Record<string, unknown> | undefined;
+    return row ? mapExperimentPlanItem(row) : undefined;
+  },
+
   async listExperimentJobs(programId: string): Promise<ExperimentJobRecord[]> {
     if (getDatabaseProvider() === "postgres") {
       const result = await getPostgresPool().query("SELECT * FROM experiment_jobs WHERE program_id = $1 ORDER BY created_at DESC, priority DESC", [programId]);
@@ -1034,6 +1184,94 @@ export const researchProgramRepository = {
     }
     const row = getDb().prepare("SELECT * FROM experiment_jobs WHERE experiment_job_id = ?").get(jobId) as Record<string, unknown> | undefined;
     return row ? mapExperimentJob(row) : undefined;
+  },
+
+  async claimNextExperimentJob(input: { now: string; leaseMs: number }): Promise<ExperimentJobRecord | undefined> {
+    const leasedUntil = new Date(Date.parse(input.now) + input.leaseMs).toISOString();
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query(
+        `WITH candidate AS (
+           SELECT experiment_job_id
+           FROM experiment_jobs
+           WHERE (
+             status = 'queued'
+             OR (status = 'processing' AND leased_until IS NOT NULL AND leased_until <= $1)
+           )
+           AND available_at <= $1
+           AND retry_count < max_attempts
+           ORDER BY priority DESC, created_at ASC
+           LIMIT 1
+           FOR UPDATE SKIP LOCKED
+         )
+         UPDATE experiment_jobs
+         SET status = 'processing',
+             progress_pct = 5,
+             current_step = 'Leased by experiment worker',
+             started_at = COALESCE(started_at, $1),
+             leased_until = $2,
+             updated_at = $1
+         WHERE experiment_job_id = (SELECT experiment_job_id FROM candidate)
+         RETURNING *`,
+        [input.now, leasedUntil],
+      );
+      return result.rows[0] ? mapExperimentJob(result.rows[0]) : undefined;
+    }
+
+    const db = getDb();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const row = db
+        .prepare(
+          `SELECT *
+           FROM experiment_jobs
+           WHERE (
+             status = 'queued'
+             OR (status = 'processing' AND leased_until IS NOT NULL AND leased_until <= ?)
+           )
+           AND available_at <= ?
+           AND retry_count < max_attempts
+           ORDER BY priority DESC, created_at ASC
+           LIMIT 1`,
+        )
+        .get(input.now, input.now) as Record<string, unknown> | undefined;
+      if (!row) {
+        db.exec("COMMIT");
+        return undefined;
+      }
+      db.prepare(
+        `UPDATE experiment_jobs
+         SET status = 'processing',
+             progress_pct = 5,
+             current_step = 'Leased by experiment worker',
+             started_at = COALESCE(started_at, ?),
+             leased_until = ?,
+             updated_at = ?
+         WHERE experiment_job_id = ?`,
+      ).run(input.now, leasedUntil, input.now, row.experiment_job_id);
+      db.exec("COMMIT");
+      return { ...mapExperimentJob(row), status: "processing", progress_pct: 5, current_step: "Leased by experiment worker", leased_until: leasedUntil, updated_at: input.now };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  },
+
+  async listExperimentJobEvents(jobId: string): Promise<ExperimentJobEventRecord[]> {
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query("SELECT * FROM experiment_job_events WHERE experiment_job_id = $1 ORDER BY created_at DESC", [jobId]);
+      return result.rows.map(mapExperimentJobEvent);
+    }
+    const rows = getDb().prepare("SELECT * FROM experiment_job_events WHERE experiment_job_id = ? ORDER BY created_at DESC").all(jobId) as Record<string, unknown>[];
+    return rows.map(mapExperimentJobEvent);
+  },
+
+  async listExperimentJobEventsForProgram(programId: string): Promise<ExperimentJobEventRecord[]> {
+    if (getDatabaseProvider() === "postgres") {
+      const result = await getPostgresPool().query("SELECT * FROM experiment_job_events WHERE program_id = $1 ORDER BY created_at DESC", [programId]);
+      return result.rows.map(mapExperimentJobEvent);
+    }
+    const rows = getDb().prepare("SELECT * FROM experiment_job_events WHERE program_id = ? ORDER BY created_at DESC").all(programId) as Record<string, unknown>[];
+    return rows.map(mapExperimentJobEvent);
   },
 
   async approveExperimentPlan(input: { experiment_plan_id: string; account_id: string; user_id: string; approved_at: string }): Promise<void> {

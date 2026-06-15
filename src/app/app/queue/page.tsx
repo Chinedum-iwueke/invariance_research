@@ -27,18 +27,18 @@ export default async function ExperimentQueuePage() {
   return (
     <AnalysisPageFrame
       title="Experiment Queue"
-      description="Approved falsification jobs for Research Programs. B5 queues them durably; B6 supplies the execution worker."
+      description="Approved falsification jobs for Research Programs. The B6 worker materializes approved experiment contracts and stores auditable artifacts."
     >
       <MetricRow
         metrics={[
           { label: "Queued", value: String(queued.length), tone: queued.length ? "positive" : "neutral", helper: "Waiting for execution" },
-          { label: "Processing", value: String(processing.length), tone: processing.length ? "positive" : "neutral", helper: "B6 worker-owned" },
+          { label: "Processing", value: String(processing.length), tone: processing.length ? "positive" : "neutral", helper: "Experiment worker-owned" },
           { label: "Paused", value: String(paused.length), tone: paused.length ? "warning" : "neutral", helper: "User-held jobs" },
           { label: "Failed", value: String(failed.length), tone: failed.length ? "warning" : "neutral", helper: "Retry candidates" },
         ]}
       />
 
-      <WorkspaceCard title="Queue controls" subtitle="Jobs are prioritized, retryable, and account-scoped. Execution remains blocked until the B6 worker is deployed.">
+      <WorkspaceCard title="Queue controls" subtitle="Jobs are prioritized, retryable, account-scoped, and processed by the external experiment worker.">
         {jobs.length === 0 ? (
           <EmptyState
             title="No experiment jobs queued"

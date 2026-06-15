@@ -5,6 +5,8 @@ import {
   createExperimentPlanFromStrategySpec,
   queueExperimentPlan,
 } from "@/lib/server/research-programs/service";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
+import { isOperationalPauseError } from "@/lib/server/ops/operations-policy";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
@@ -16,6 +18,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   };
 
   try {
+    const limited = await enforceRateLimit({
+      request,
+      route: body.action === "queue" ? "program_experiment_queue" : "program_experiment_plans",
+      kind: body.action === "queue" ? "experiment_queue" : "assistant",
+      userId: session.user_id,
+      accountId: session.account_id,
+    });
+    if (limited) return limited;
+
     if (body.action === "approve") {
       if (!body.experiment_plan_id) {
         return NextResponse.json({ error: { code: "experiment_plan_id_required", message: "Experiment plan is required." } }, { status: 400 });
@@ -54,7 +65,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ plan });
   } catch (error) {
     const message = error instanceof Error ? error.message : "experiment_plan_action_failed";
-    const status = /not_found/.test(message) ? 404 : /required|invalid|not_approved|limit|budget/.test(message) ? 400 : 500;
+    const status = isOperationalPauseError(message) ? 503 : /not_found/.test(message) ? 404 : /required|invalid|not_approved|limit|budget/.test(message) ? 400 : 500;
     return NextResponse.json({ error: { code: message, message } }, { status });
   }
 }

@@ -87,7 +87,7 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
         ))}
       </div>
       <AdminTable>
-        <thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral"><tr><th className="px-3 py-2">Account</th><th>Owner</th><th>Plan</th><th>Override</th><th>Subscription</th><th>Usage</th><th>Entitlements</th><th>Password</th><th>Stripe refs</th></tr></thead>
+        <thead className="border-b bg-surface-panel text-xs uppercase text-text-neutral"><tr><th className="px-3 py-2">Account</th><th>Owner</th><th>Plan</th><th>Override</th><th>Subscription</th><th>Research usage</th><th>Audit usage</th><th>Entitlements</th><th>Password</th><th>Stripe refs</th></tr></thead>
         <tbody>
           {view.rows.map((item) => (
             <tr key={item.account_id} className="border-b border-border-subtle/60 text-xs">
@@ -106,8 +106,17 @@ export default async function AdminAccountsPage({ searchParams }: { searchParams
                 </form>
               </td>
               <td><WebhookStatusBadge value={item.subscription_status} /><div className="text-text-neutral">period end: {item.current_period_end ?? "-"} {item.cancel_at_period_end ? "(canceling)" : ""}</div></td>
-              <td>{item.usage_this_month.analyses_created} analyses / {item.usage_this_month.report_exports} exports</td>
-              <td>{item.entitlement_summary}</td>
+              <td className="min-w-[180px] leading-relaxed">
+                <div>{item.usage_this_month.programs_created} programs / {item.usage_this_month.hypotheses_created} hypotheses</div>
+                <div>{item.usage_this_month.experiments_queued} experiments / {item.usage_this_month.experiment_compute_units} compute units</div>
+                <div>{item.usage_this_month.assistant_calls} assistant calls / {item.usage_this_month.research_desk_requests} desk requests</div>
+              </td>
+              <td className="leading-relaxed">
+                <div>{item.usage_this_month.analyses_created} analyses</div>
+                <div>{item.usage_this_month.artifacts_uploaded} uploads</div>
+                <div>{item.usage_this_month.report_exports} exports / {item.usage_this_month.share_links_created} shares</div>
+              </td>
+              <td className="max-w-[260px] leading-relaxed">{item.entitlement_summary}</td>
               <td>{item.has_password ? "Configured" : "Email-only"}</td>
               <td>{item.stripe_customer_id ?? "-"}<div>{item.stripe_subscription_id ?? "-"}</div></td>
             </tr>

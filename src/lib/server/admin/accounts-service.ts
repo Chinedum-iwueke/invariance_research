@@ -18,7 +18,18 @@ export type AdminAccountOverview = {
   owner_email: string;
   plan_id: string;
   subscription_status: string;
-  usage_this_month: { analyses_created: number; artifacts_uploaded: number; report_exports: number };
+  usage_this_month: {
+    analyses_created: number;
+    artifacts_uploaded: number;
+    report_exports: number;
+    programs_created: number;
+    hypotheses_created: number;
+    experiments_queued: number;
+    experiment_compute_units: number;
+    assistant_calls: number;
+    share_links_created: number;
+    research_desk_requests: number;
+  };
   entitlement_summary: string;
   created_at: string;
   current_period_end?: string;
@@ -71,8 +82,24 @@ export async function listAdminAccounts(filter?: { plan?: string; status?: strin
           analyses_created: usage.analyses_created,
           artifacts_uploaded: usage.artifacts_uploaded,
           report_exports: usage.report_exports,
+          programs_created: usage.programs_created,
+          hypotheses_created: usage.hypotheses_created,
+          experiments_queued: usage.experiments_queued,
+          experiment_compute_units: usage.experiment_compute_units,
+          assistant_calls: usage.assistant_calls,
+          share_links_created: usage.share_links_created,
+          research_desk_requests: usage.research_desk_requests,
         },
-        entitlement_summary: `${entitlements.analyses_per_month}/mo analyses, exports ${entitlements.can_export_report ? "enabled" : "disabled"}`,
+        entitlement_summary: [
+          `${entitlements.programs_limit} programs`,
+          `${entitlements.active_hypotheses_limit} hypotheses`,
+          `${entitlements.queued_experiments_limit} queued experiments`,
+          `${entitlements.concurrent_experiments_limit} concurrent`,
+          `${entitlements.monthly_experiment_compute_units} compute units/mo`,
+          `${entitlements.monthly_assistant_calls} assistant calls/mo`,
+          `${entitlements.memory_retention_days}d memory`,
+          entitlements.can_request_research_desk ? "Research Desk eligible" : "Research Desk locked",
+        ].join(", "),
         created_at: iso(row.created_at),
         current_period_end: row.current_period_end ? iso(row.current_period_end) : undefined,
         cancel_at_period_end: Boolean(row.cancel_at_period_end),

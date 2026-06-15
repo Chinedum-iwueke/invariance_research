@@ -3,7 +3,7 @@ import { postgresWorkerHeartbeatRepository } from "@/lib/server/repositories/pos
 import { sqliteWorkerHeartbeatRepository } from "@/lib/server/repositories/sqlite-worker-heartbeat-repository";
 
 export type WorkerHeartbeat = {
-  worker_type: "analysis" | "export";
+  worker_type: "analysis" | "export" | "experiment";
   instance_id: string;
   status: "idle" | "processing";
   last_seen_at: string;

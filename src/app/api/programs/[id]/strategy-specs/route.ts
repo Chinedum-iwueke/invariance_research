@@ -5,9 +5,13 @@ import {
   createStrategySpecFromHypothesis,
   saveManualStrategySpec,
 } from "@/lib/server/research-programs/service";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
+import { isOperationalPauseError } from "@/lib/server/ops/operations-policy";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireServerSession();
+  const limited = await enforceRateLimit({ request, route: "program_strategy_specs", kind: "assistant", userId: session.user_id, accountId: session.account_id });
+  if (limited) return limited;
   const { id } = await params;
   const body = await request.json().catch(() => ({})) as {
     action?: "generate_from_hypothesis" | "approve" | "save_manual";
@@ -59,7 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ strategy_spec: strategySpec });
   } catch (error) {
     const message = error instanceof Error ? error.message : "strategy_spec_action_failed";
-    const status = /not_found/.test(message) ? 404 : /required|invalid|not_approved/.test(message) ? 400 : 500;
+    const status = isOperationalPauseError(message) ? 503 : /not_found/.test(message) ? 404 : /required|invalid|not_approved|limit/.test(message) ? 400 : 500;
     return NextResponse.json({ error: { code: message, message } }, { status });
   }
 }

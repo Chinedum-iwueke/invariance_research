@@ -17,7 +17,7 @@ export default async function ComingSoonPage({ searchParams }: { searchParams: P
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <p className="font-provenance mt-8 text-xs uppercase tracking-[0.16em] text-brand">Private research access</p>
           <h1 className="font-display mt-4 max-w-3xl text-5xl font-medium leading-none text-text-institutional md:text-7xl">
-            Strategy validation is opening quietly.
+            Invariance Research Desk is opening quietly.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-text-neutral md:text-lg">
             Invariance Research is currently available to invited testers while the research workspace is being hardened. Enter your access password or request a seat.
@@ -31,4 +31,3 @@ export default async function ComingSoonPage({ searchParams }: { searchParams: P
     </main>
   );
 }
-

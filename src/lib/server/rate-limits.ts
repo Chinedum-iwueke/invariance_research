@@ -4,7 +4,7 @@ import { getDatabaseProvider } from "@/lib/server/persistence/provider";
 import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 
-export type RateLimitKind = "auth" | "upload" | "analysis_create" | "export" | "share_create" | "share_access" | "research_desk" | "waitlist";
+export type RateLimitKind = "auth" | "upload" | "analysis_create" | "export" | "share_create" | "share_access" | "research_desk" | "waitlist" | "program_write" | "assistant" | "experiment_queue";
 
 const DEFAULT_MAX: Record<RateLimitKind, number> = {
   auth: 10,
@@ -15,6 +15,9 @@ const DEFAULT_MAX: Record<RateLimitKind, number> = {
   share_access: 120,
   research_desk: 5,
   waitlist: 5,
+  program_write: 30,
+  assistant: 20,
+  experiment_queue: 10,
 };
 
 function enabled() {
@@ -36,6 +39,9 @@ function maxFor(kind: RateLimitKind) {
     share_access: "RATE_LIMIT_SHARE_ACCESS_MAX",
     research_desk: "RATE_LIMIT_RESEARCH_DESK_MAX",
     waitlist: "RATE_LIMIT_WAITLIST_MAX",
+    program_write: "RATE_LIMIT_PROGRAM_WRITE_MAX",
+    assistant: "RATE_LIMIT_ASSISTANT_MAX",
+    experiment_queue: "RATE_LIMIT_EXPERIMENT_QUEUE_MAX",
   };
   const parsed = Number(process.env[envByKind[kind]]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX[kind];

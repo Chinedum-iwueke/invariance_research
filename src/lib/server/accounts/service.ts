@@ -227,7 +227,13 @@ export const accountService = {
     let entitlements = owner && await isUserAdmin(owner)
       ? resolveEntitlementsForPlan(accountId, "research_desk", "admin_override")
       : await repositories.entitlements.get(accountId);
-    if (entitlements.plan_id !== expectedEntitlements.plan_id || entitlements.analyses_per_month !== expectedEntitlements.analyses_per_month) {
+    if (
+      entitlements.plan_id !== expectedEntitlements.plan_id
+      || entitlements.analyses_per_month !== expectedEntitlements.analyses_per_month
+      || entitlements.programs_limit !== expectedEntitlements.programs_limit
+      || entitlements.monthly_experiment_compute_units !== expectedEntitlements.monthly_experiment_compute_units
+      || entitlements.monthly_assistant_calls !== expectedEntitlements.monthly_assistant_calls
+    ) {
       entitlements = await repositories.entitlements.set(expectedEntitlements);
     }
     const subscription = await repositories.subscriptions.findByAccountId(accountId);
@@ -243,8 +249,8 @@ export const accountService = {
     return { ...usage, analyses_created: completedAnalyses };
   },
 
-  async incrementUsage(accountId: string, kind: "analysis" | "upload" | "export") {
-    return getCoreRepositories().usage.increment({ account_id: accountId, kind });
+  async incrementUsage(accountId: string, kind: "analysis" | "upload" | "export" | "program" | "hypothesis" | "experiment" | "experiment_compute" | "assistant" | "share" | "research_desk", increment = 1) {
+    return getCoreRepositories().usage.increment({ account_id: accountId, kind, increment });
   },
 
   async applySubscription(input: {

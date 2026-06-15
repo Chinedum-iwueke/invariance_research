@@ -891,5 +891,125 @@ export const migrations = [
         ON experiment_job_events(experiment_job_id, created_at DESC);
     `,
   },
+  {
+    version: 24,
+    name: "tenant_scoped_research_memory",
+    sql: `
+      CREATE TABLE IF NOT EXISTS research_memory_items (
+        memory_item_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+        memory_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        status TEXT NOT NULL,
+        confidence REAL NOT NULL DEFAULT 0,
+        source_event_id TEXT,
+        source_card_type TEXT,
+        source_json TEXT NOT NULL,
+        tags_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_memory_links (
+        memory_link_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        source_memory_item_id TEXT NOT NULL REFERENCES research_memory_items(memory_item_id),
+        target_type TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        relation TEXT NOT NULL,
+        evidence_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_findings (
+        finding_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        memory_item_id TEXT REFERENCES research_memory_items(memory_item_id),
+        finding_type TEXT NOT NULL,
+        headline TEXT NOT NULL,
+        detail TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        evidence_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS program_recommendations (
+        recommendation_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+        recommendation_type TEXT NOT NULL,
+        recommendation TEXT NOT NULL,
+        status TEXT NOT NULL,
+        confidence REAL NOT NULL DEFAULT 0,
+        evidence_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS similar_run_index (
+        similar_run_index_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+        signature TEXT NOT NULL,
+        features_json TEXT NOT NULL,
+        source_memory_item_id TEXT REFERENCES research_memory_items(memory_item_id),
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_research_memory_items_account_created
+        ON research_memory_items(account_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_memory_items_program_type
+        ON research_memory_items(program_id, memory_type, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_findings_program
+        ON research_findings(program_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_program_recommendations_program_status
+        ON program_recommendations(program_id, status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_similar_run_index_account_signature
+        ON similar_run_index(account_id, signature);
+    `,
+  },
+  {
+    version: 25,
+    name: "program_report_share_tokens",
+    sql: `
+      CREATE TABLE IF NOT EXISTS program_report_share_tokens (
+        share_id TEXT PRIMARY KEY,
+        token_hash TEXT NOT NULL UNIQUE,
+        program_report_snapshot_id TEXT NOT NULL REFERENCES program_report_snapshots(program_report_snapshot_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        status TEXT NOT NULL,
+        expires_at TEXT,
+        revoked_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_program_report_share_tokens_hash
+        ON program_report_share_tokens(token_hash);
+      CREATE INDEX IF NOT EXISTS idx_program_report_share_tokens_report_status
+        ON program_report_share_tokens(program_report_snapshot_id, status);
+    `,
+  },
+  {
+    version: 26,
+    name: "research_throughput_usage",
+    sql: `
+      ALTER TABLE usage_snapshots ADD COLUMN programs_created INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN hypotheses_created INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN experiments_queued INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN experiment_compute_units INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN assistant_calls INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN share_links_created INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE usage_snapshots ADD COLUMN research_desk_requests INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 
 ];

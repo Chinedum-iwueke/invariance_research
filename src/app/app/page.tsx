@@ -82,7 +82,7 @@ export default async function AppHomePage() {
             </div>
             <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
               <p className="font-medium text-text-institutional">3. Build experiments</p>
-              <p className="mt-1 leading-6">Upcoming phases add hypothesis specs and queue runs.</p>
+              <p className="mt-1 leading-6">Approve specs, queue experiments, review verdict cards, and retain what the program learns.</p>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">

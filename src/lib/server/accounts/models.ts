@@ -10,7 +10,7 @@ export interface AccountState {
 
 export interface UsageInput {
   account_id: string;
-  kind: "analysis" | "upload" | "export";
+  kind: "analysis" | "upload" | "export" | "program" | "hypothesis" | "experiment" | "experiment_compute" | "assistant" | "share" | "research_desk";
   increment?: number;
   at?: Date;
 }

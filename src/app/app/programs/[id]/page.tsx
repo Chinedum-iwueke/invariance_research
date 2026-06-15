@@ -8,6 +8,9 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
 import { IdeaIntakePanel } from "@/components/research-programs/idea-intake-panel";
+import { ExperimentVerdictCards } from "@/components/research-programs/experiment-verdict-cards";
+import { ProgramWorkbenchOverview } from "@/components/research-programs/program-workbench-overview";
+import { ResearchMemoryPanel } from "@/components/research-programs/research-memory-panel";
 import { SpecApprovalPanel } from "@/components/research-programs/spec-approval-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { requireServerSession } from "@/lib/server/auth/session";
@@ -16,6 +19,7 @@ import {
   getResearchProgramDetail,
   listAttachableAnalysesForProgram,
 } from "@/lib/server/research-programs/service";
+import { buildProgramWorkbenchSummary } from "@/lib/server/research-programs/workbench";
 
 export const metadata: Metadata = {
   title: "Research Program",
@@ -47,6 +51,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   const { program } = detail;
   const latestBrief = detail.research_briefs[0];
+  const workbenchSummary = buildProgramWorkbenchSummary(detail);
 
   return (
     <AnalysisPageFrame
@@ -77,24 +82,47 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       />
 
       <WorkspaceCard
+        title="Program operating view"
+        subtitle="The current thesis state, active queue, latest verdict, memory signal, and next commands in one place."
+      >
+        <ProgramWorkbenchOverview programId={program.program_id} summary={workbenchSummary} />
+      </WorkspaceCard>
+
+      <WorkspaceCard
         title="Idea intake and clarification"
         subtitle="Turn raw English intuition into a structured research brief before any hypothesis or engine run."
       >
         <IdeaIntakePanel programId={program.program_id} latestBrief={latestBrief} />
       </WorkspaceCard>
 
+      <div id="hypothesis-approval">
+        <WorkspaceCard
+          title="Hypothesis and strategy approval"
+          subtitle="B3/B4 gate vague intuition into approved, auditable specs before any experiment can enter the queue."
+        >
+          <SpecApprovalPanel
+            programId={program.program_id}
+            briefs={detail.research_briefs}
+            hypothesisVersions={detail.hypothesis_versions}
+            strategySpecs={detail.strategy_specs}
+            experimentPlans={detail.experiment_plans}
+            experimentJobs={detail.experiment_jobs}
+          />
+        </WorkspaceCard>
+      </div>
+
       <WorkspaceCard
-        title="Hypothesis and strategy approval"
-        subtitle="B3/B4 gate vague intuition into approved, auditable specs before any experiment can enter the queue."
+        title="Verdict cards and result interpreter"
+        subtitle="B7 turns completed experiment artifacts into a verdict, failure explanation, confidence boundary, and next experiment."
       >
-        <SpecApprovalPanel
-          programId={program.program_id}
-          briefs={detail.research_briefs}
-          hypothesisVersions={detail.hypothesis_versions}
-          strategySpecs={detail.strategy_specs}
-          experimentPlans={detail.experiment_plans}
-          experimentJobs={detail.experiment_jobs}
-        />
+        <ExperimentVerdictCards jobs={detail.experiment_jobs} events={detail.experiment_job_events} />
+      </WorkspaceCard>
+
+      <WorkspaceCard
+        title="Research memory"
+        subtitle="B8 remembers verdicts, failures, findings, next experiments, and similarity signatures inside this account only."
+      >
+        <ResearchMemoryPanel memory={detail.memory} compact />
       </WorkspaceCard>
 
       <div className="grid gap-4 2xl:grid-cols-[1.05fr_0.95fr]">

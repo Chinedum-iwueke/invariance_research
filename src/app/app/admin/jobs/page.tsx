@@ -12,12 +12,13 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Pr
 
   return (
     <AdminPageShell title="Jobs Dashboard" description="Analysis, export, and research experiment queue visibility with safe retry controls.">
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-6">
         <AdminStatCard label="Total" value={view.summary.total} />
         <AdminStatCard label="Queued" value={view.summary.queued} />
         <AdminStatCard label="Processing" value={view.summary.processing} />
         <AdminStatCard label="Failed" value={view.summary.failed} />
         <AdminStatCard label="Stale" value={view.summary.stale} />
+        <AdminStatCard label="Overdue processing" value={view.summary.overdue_processing} />
       </div>
       <AdminFilterBar>
         <Link href="/app/admin/jobs" className="text-xs underline">All</Link>

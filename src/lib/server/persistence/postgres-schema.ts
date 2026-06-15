@@ -50,8 +50,23 @@ CREATE TABLE IF NOT EXISTS usage_snapshots (
   analyses_created INTEGER NOT NULL,
   artifacts_uploaded INTEGER NOT NULL,
   report_exports INTEGER NOT NULL,
+  programs_created INTEGER NOT NULL DEFAULT 0,
+  hypotheses_created INTEGER NOT NULL DEFAULT 0,
+  experiments_queued INTEGER NOT NULL DEFAULT 0,
+  experiment_compute_units INTEGER NOT NULL DEFAULT 0,
+  assistant_calls INTEGER NOT NULL DEFAULT 0,
+  share_links_created INTEGER NOT NULL DEFAULT 0,
+  research_desk_requests INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (account_id, month_bucket)
 );
+
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS programs_created INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS hypotheses_created INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS experiments_queued INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS experiment_compute_units INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS assistant_calls INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS share_links_created INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usage_snapshots ADD COLUMN IF NOT EXISTS research_desk_requests INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS artifacts (
   artifact_id TEXT PRIMARY KEY,
@@ -570,6 +585,24 @@ CREATE INDEX IF NOT EXISTS idx_program_artifacts_program ON program_artifacts(pr
 CREATE UNIQUE INDEX IF NOT EXISTS idx_program_artifacts_unique_analysis ON program_artifacts(program_id, analysis_id) WHERE analysis_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_analyses_program ON analyses(program_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_program_report_snapshots_program ON program_report_snapshots(program_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS program_report_share_tokens (
+  share_id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL UNIQUE,
+  program_report_snapshot_id TEXT NOT NULL REFERENCES program_report_snapshots(program_report_snapshot_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  status TEXT NOT NULL,
+  expires_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_program_report_share_tokens_hash ON program_report_share_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_program_report_share_tokens_report_status ON program_report_share_tokens(program_report_snapshot_id, status);
+
 CREATE INDEX IF NOT EXISTS idx_clarification_sessions_program_created ON program_clarification_sessions(program_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_research_briefs_program_version ON research_briefs(program_id, version DESC);
 
@@ -708,6 +741,79 @@ CREATE INDEX IF NOT EXISTS idx_experiment_plan_items_plan ON experiment_plan_ite
 CREATE INDEX IF NOT EXISTS idx_experiment_jobs_claimable ON experiment_jobs(status, priority DESC, available_at, created_at);
 CREATE INDEX IF NOT EXISTS idx_experiment_jobs_account_status ON experiment_jobs(account_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_experiment_job_events_job ON experiment_job_events(experiment_job_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS research_memory_items (
+  memory_item_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+  memory_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  status TEXT NOT NULL,
+  confidence DOUBLE PRECISION NOT NULL DEFAULT 0,
+  source_event_id TEXT,
+  source_card_type TEXT,
+  source_json JSONB NOT NULL,
+  tags_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS research_memory_links (
+  memory_link_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  source_memory_item_id TEXT NOT NULL REFERENCES research_memory_items(memory_item_id),
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  relation TEXT NOT NULL,
+  evidence_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS research_findings (
+  finding_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  memory_item_id TEXT REFERENCES research_memory_items(memory_item_id),
+  finding_type TEXT NOT NULL,
+  headline TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  evidence_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_recommendations (
+  recommendation_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+  recommendation_type TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  status TEXT NOT NULL,
+  confidence DOUBLE PRECISION NOT NULL DEFAULT 0,
+  evidence_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS similar_run_index (
+  similar_run_index_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  experiment_job_id TEXT REFERENCES experiment_jobs(experiment_job_id),
+  signature TEXT NOT NULL,
+  features_json JSONB NOT NULL,
+  source_memory_item_id TEXT REFERENCES research_memory_items(memory_item_id),
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_memory_items_account_created ON research_memory_items(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_memory_items_program_type ON research_memory_items(program_id, memory_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_research_findings_program ON research_findings(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_program_recommendations_program_status ON program_recommendations(program_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_similar_run_index_account_signature ON similar_run_index(account_id, signature);
 
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
   worker_type TEXT NOT NULL,

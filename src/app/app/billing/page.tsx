@@ -27,7 +27,11 @@ export default async function BillingPage() {
         status={state?.account.subscription_status ?? "trialing"}
         analysesUsed={usage.analyses_created}
         analysesLimit={limit}
+        programsLimit={state?.entitlements.programs_limit}
+        computeUsed={usage.experiment_compute_units}
+        computeLimit={state?.entitlements.monthly_experiment_compute_units}
         retentionDays={retentionDays}
+        memoryRetentionDays={state?.entitlements.memory_retention_days}
         unlimitedAnalyses={isAdmin}
       />
 
@@ -37,6 +41,11 @@ export default async function BillingPage() {
           <p className="text-sm text-text-neutral">Analyses remaining this month: {remaining}</p>
           <p className="mt-2 text-sm text-text-neutral">Uploads this month: {usage.artifacts_uploaded}</p>
           <p className="mt-2 text-sm text-text-neutral">Report exports this month: {usage.report_exports}</p>
+          <p className="mt-2 text-sm text-text-neutral">Programs created this month: {usage.programs_created}</p>
+          <p className="mt-2 text-sm text-text-neutral">Hypotheses drafted this month: {usage.hypotheses_created}</p>
+          <p className="mt-2 text-sm text-text-neutral">Experiments queued this month: {usage.experiments_queued}</p>
+          <p className="mt-2 text-sm text-text-neutral">Experiment compute units: {usage.experiment_compute_units} / {state?.entitlements.monthly_experiment_compute_units ?? 0}</p>
+          <p className="mt-2 text-sm text-text-neutral">Assistant calls: {usage.assistant_calls} / {state?.entitlements.monthly_assistant_calls ?? 0}</p>
           <p className="mt-2 text-sm text-text-neutral">Share links: {state?.entitlements.can_create_share_links ? `${state.entitlements.share_links_per_month}/mo` : "Not included"}</p>
           <p className="mt-2 text-sm text-text-neutral">Seats: {state?.entitlements.max_seats ?? 1}</p>
         </WorkspaceCard>

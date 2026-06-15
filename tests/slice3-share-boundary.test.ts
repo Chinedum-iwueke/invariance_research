@@ -288,7 +288,7 @@ test("share access event retention removes old audit events without deleting sna
     .prepare("UPDATE share_access_events SET created_at = ? WHERE event_id = ?")
     .run("2026-01-01T00:00:00.000Z", events[0].event_id);
 
-  const cleanup = cleanupShareAccessEvents(new Date("2026-05-15T00:00:00.000Z"), 30);
+  const cleanup = await cleanupShareAccessEvents(new Date("2026-05-15T00:00:00.000Z"), 30);
   assert.equal(cleanup.removed, 1);
   assert.ok(await shareTokenRepository.findById(created.share.share_id));
   assert.equal((await resolveSharedReport({ token: created.token })).status, "available");

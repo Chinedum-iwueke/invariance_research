@@ -3,6 +3,7 @@ import { requireServerSession } from "@/lib/server/auth/session";
 import { isBenchmarkId } from "@/lib/benchmarks/benchmark-ids";
 import { createAnalysisFromArtifact, listAnalyses } from "@/lib/server/services/analysis-service";
 import { enforceRateLimit } from "@/lib/server/rate-limits";
+import { assertQueueAccepting, isOperationalPauseError } from "@/lib/server/ops/operations-policy";
 import type { DeclaredStrategyClaim } from "@/lib/server/ingestion";
 
 export async function GET() {
@@ -27,6 +28,12 @@ export async function POST(request: Request) {
   };
   if (!body.artifact_id) {
     return NextResponse.json({ error: { code: "invalid_payload", message: "artifact_id is required" } }, { status: 400 });
+  }
+  try {
+    assertQueueAccepting("analysis");
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "analysis_queue_paused";
+    return NextResponse.json({ error: { code, message: "Analysis queue is temporarily paused. Please retry later." } }, { status: 503 });
   }
 
 
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
     const code = error instanceof Error ? error.message : "artifact_not_eligible";
-    const status = code === "monthly_analysis_limit_reached" ? 429 : code === "artifact_access_denied" ? 403 : 422;
+    const status = isOperationalPauseError(code) ? 503 : code === "monthly_analysis_limit_reached" ? 429 : code === "artifact_access_denied" ? 403 : 422;
     const messageByCode: Record<string, string> = {
       artifact_not_eligible: "Artifact is not eligible for analysis. Re-run upload inspection for validation details.",
       artifact_access_denied: "Artifact access denied for the current account.",

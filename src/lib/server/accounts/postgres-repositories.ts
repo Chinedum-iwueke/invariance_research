@@ -58,6 +58,23 @@ function mapSubscription(row: Record<string, unknown>): Subscription {
   };
 }
 
+function mapUsage(row: Record<string, unknown> | undefined, accountId: string, bucket: string): UsageSnapshot {
+  return {
+    account_id: row ? String(row.account_id) : accountId,
+    month_bucket: row ? String(row.month_bucket) : bucket,
+    analyses_created: Number(row?.analyses_created ?? 0),
+    artifacts_uploaded: Number(row?.artifacts_uploaded ?? 0),
+    report_exports: Number(row?.report_exports ?? 0),
+    programs_created: Number(row?.programs_created ?? 0),
+    hypotheses_created: Number(row?.hypotheses_created ?? 0),
+    experiments_queued: Number(row?.experiments_queued ?? 0),
+    experiment_compute_units: Number(row?.experiment_compute_units ?? 0),
+    assistant_calls: Number(row?.assistant_calls ?? 0),
+    share_links_created: Number(row?.share_links_created ?? 0),
+    research_desk_requests: Number(row?.research_desk_requests ?? 0),
+  };
+}
+
 export const postgresUserRepository = {
   mode: "read-write",
   async findById(userId: string) {
@@ -200,24 +217,7 @@ export const postgresUsageRepository = {
   mode: "read-write",
   async get(accountId: string, bucket: string) {
     const result = await getPostgresPool().query("SELECT * FROM usage_snapshots WHERE account_id = $1 AND month_bucket = $2", [accountId, bucket]);
-    const row = result.rows[0] as Record<string, unknown> | undefined;
-    return (
-      row
-        ? {
-            account_id: String(row.account_id),
-            month_bucket: String(row.month_bucket),
-            analyses_created: Number(row.analyses_created ?? 0),
-            artifacts_uploaded: Number(row.artifacts_uploaded ?? 0),
-            report_exports: Number(row.report_exports ?? 0),
-          }
-        : {
-        account_id: accountId,
-        month_bucket: bucket,
-        analyses_created: 0,
-        artifacts_uploaded: 0,
-        report_exports: 0,
-      }
-    );
+    return mapUsage(result.rows[0] as Record<string, unknown> | undefined, accountId, bucket);
   },
   async increment(input: UsageInput) {
     const bucket = monthBucket(input.at ?? new Date());
@@ -228,14 +228,41 @@ export const postgresUsageRepository = {
       analyses_created: existing.analyses_created + (input.kind === "analysis" ? inc : 0),
       artifacts_uploaded: existing.artifacts_uploaded + (input.kind === "upload" ? inc : 0),
       report_exports: existing.report_exports + (input.kind === "export" ? inc : 0),
+      programs_created: existing.programs_created + (input.kind === "program" ? inc : 0),
+      hypotheses_created: existing.hypotheses_created + (input.kind === "hypothesis" ? inc : 0),
+      experiments_queued: existing.experiments_queued + (input.kind === "experiment" ? inc : 0),
+      experiment_compute_units: existing.experiment_compute_units + (input.kind === "experiment_compute" ? inc : 0),
+      assistant_calls: existing.assistant_calls + (input.kind === "assistant" ? inc : 0),
+      share_links_created: existing.share_links_created + (input.kind === "share" ? inc : 0),
+      research_desk_requests: existing.research_desk_requests + (input.kind === "research_desk" ? inc : 0),
     };
     await getPostgresPool().query(
-      `INSERT INTO usage_snapshots (account_id, month_bucket, analyses_created, artifacts_uploaded, report_exports) VALUES ($1,$2,$3,$4,$5)
+      `INSERT INTO usage_snapshots (account_id, month_bucket, analyses_created, artifacts_uploaded, report_exports, programs_created, hypotheses_created, experiments_queued, experiment_compute_units, assistant_calls, share_links_created, research_desk_requests) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        ON CONFLICT(account_id, month_bucket) DO UPDATE SET
          analyses_created=EXCLUDED.analyses_created,
          artifacts_uploaded=EXCLUDED.artifacts_uploaded,
-         report_exports=EXCLUDED.report_exports`,
-      [next.account_id, next.month_bucket, next.analyses_created, next.artifacts_uploaded, next.report_exports],
+         report_exports=EXCLUDED.report_exports,
+         programs_created=EXCLUDED.programs_created,
+         hypotheses_created=EXCLUDED.hypotheses_created,
+         experiments_queued=EXCLUDED.experiments_queued,
+         experiment_compute_units=EXCLUDED.experiment_compute_units,
+         assistant_calls=EXCLUDED.assistant_calls,
+         share_links_created=EXCLUDED.share_links_created,
+         research_desk_requests=EXCLUDED.research_desk_requests`,
+      [
+        next.account_id,
+        next.month_bucket,
+        next.analyses_created,
+        next.artifacts_uploaded,
+        next.report_exports,
+        next.programs_created,
+        next.hypotheses_created,
+        next.experiments_queued,
+        next.experiment_compute_units,
+        next.assistant_calls,
+        next.share_links_created,
+        next.research_desk_requests,
+      ],
     );
     return next;
   },
