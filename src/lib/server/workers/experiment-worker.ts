@@ -4,7 +4,7 @@ import { getPostgresPool } from "@/lib/server/persistence/postgres";
 import { logger } from "@/lib/server/ops/logger";
 import { getObjectStorage, getObjectStorageProvider } from "@/lib/server/storage/object-storage";
 import { assertWorkerRuntimeConfig } from "@/lib/server/queue/runtime-config";
-import { createWorkerInstanceId, runWorkerLoop } from "@/lib/server/workers/worker-runtime";
+import { createWorkerInstanceId, runWorkerLoop, waitForWorkerDependencies } from "@/lib/server/workers/worker-runtime";
 import { researchProgramRepository } from "@/lib/server/research-programs/repository";
 import { executeExperimentJob, uploadExperimentFailureCards } from "@/lib/server/research-programs/experiment-executor";
 import { ingestExperimentEventIntoMemory } from "@/lib/server/research-memory/service";
@@ -69,7 +69,11 @@ export async function runExperimentWorkerRuntime() {
     concurrency,
     max_active: maxActive,
   });
-  await validateExperimentWorkerDependencies(workerInstanceId);
+  await waitForWorkerDependencies({
+    workerType: "experiment",
+    instanceId: workerInstanceId,
+    validate: () => validateExperimentWorkerDependencies(workerInstanceId),
+  });
   await runWorkerLoop({ workerType: "experiment", processNext: processNextExperimentJob, instanceId: workerInstanceId, concurrency, maxActive });
 }
 

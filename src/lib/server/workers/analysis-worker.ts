@@ -8,7 +8,7 @@ import { runBulletproofAnalysisFromParsedArtifact } from "@/lib/server/engine/bu
 import { computePropEvaluationReadiness, mergePropDiagnostic } from "@/lib/server/prop-evaluation/prop-evaluation-service";
 import { normalizeEngineResultToAnalysisRecord } from "@/lib/server/services/analysis-normalizer";
 import { logger } from "@/lib/server/ops/logger";
-import { createWorkerInstanceId, runWorkerLoop } from "@/lib/server/workers/worker-runtime";
+import { createWorkerInstanceId, runWorkerLoop, waitForWorkerDependencies } from "@/lib/server/workers/worker-runtime";
 import { accountService } from "@/lib/server/accounts/service";
 import { readArtifact } from "@/lib/server/storage/artifact-storage";
 import { getObjectStorage, getObjectStorageProvider } from "@/lib/server/storage/object-storage";
@@ -73,7 +73,11 @@ export async function runAnalysisWorkerRuntime() {
     concurrency,
     max_active: maxActive,
   });
-  await validateAnalysisWorkerDependencies({ databaseProvider, storageProvider, llmProvider, workerInstanceId });
+  await waitForWorkerDependencies({
+    workerType: "analysis",
+    instanceId: workerInstanceId,
+    validate: () => validateAnalysisWorkerDependencies({ databaseProvider, storageProvider, llmProvider, workerInstanceId }),
+  });
   await runWorkerLoop({ workerType: "analysis", processNext: processNextAnalysisJob, instanceId: workerInstanceId, concurrency, maxActive });
 }
 

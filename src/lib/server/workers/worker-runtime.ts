@@ -14,8 +14,62 @@ type WorkerRunInput = {
   maxActive?: number;
 };
 
+const DEFAULT_DEPENDENCY_BACKOFF_MS = 5 * 60 * 1000;
+const DEFAULT_RUNTIME_ERROR_BACKOFF_MS = 60 * 1000;
+
 export function createWorkerInstanceId() {
   return `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`;
+}
+
+function positiveIntegerEnv(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "worker_runtime_error");
+}
+
+export function isDatabaseAuthOrCircuitBreakerError(error: unknown) {
+  const message = errorMessage(error).toLowerCase();
+  const code = typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code ?? "").toUpperCase()
+    : "";
+  return code === "XX000"
+    || message.includes("ecircuitbreaker")
+    || message.includes("too many authentication failures")
+    || message.includes("password authentication failed")
+    || message.includes("self-signed certificate in certificate chain");
+}
+
+export function workerErrorBackoffMs(error: unknown) {
+  if (isDatabaseAuthOrCircuitBreakerError(error)) {
+    return positiveIntegerEnv("INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS", DEFAULT_DEPENDENCY_BACKOFF_MS);
+  }
+  return positiveIntegerEnv("INVARIANCE_WORKER_RUNTIME_ERROR_BACKOFF_MS", DEFAULT_RUNTIME_ERROR_BACKOFF_MS);
+}
+
+export async function waitForWorkerDependencies(input: {
+  workerType: WorkerType;
+  instanceId: string;
+  validate: () => Promise<void>;
+}) {
+  while (true) {
+    try {
+      await input.validate();
+      return;
+    } catch (error) {
+      const message = errorMessage(error);
+      const backoffMs = workerErrorBackoffMs(error);
+      logger.error("worker.dependencies.unavailable", {
+        worker_type: input.workerType,
+        instance_id: input.instanceId,
+        message,
+        backoff_ms: backoffMs,
+      });
+      await sleep(backoffMs);
+    }
+  }
 }
 
 export async function runWorkerLoop(input: WorkerRunInput) {
@@ -48,8 +102,10 @@ export async function runWorkerLoop(input: WorkerRunInput) {
         });
         return didWork;
       } catch (error) {
-        const message = error instanceof Error ? error.message : "worker_runtime_error";
-        logger.error("worker.runtime.loop_failed", { worker_type: input.workerType, instance_id: instanceId, message });
+        const message = errorMessage(error);
+        const backoffMs = workerErrorBackoffMs(error);
+        logger.error("worker.runtime.loop_failed", { worker_type: input.workerType, instance_id: instanceId, message, backoff_ms: backoffMs });
+        await sleep(backoffMs);
         return true;
       }
     })().finally(() => {
@@ -74,9 +130,10 @@ export async function runWorkerLoop(input: WorkerRunInput) {
         await sleep(pollMs);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "worker_runtime_error";
-      logger.error("worker.runtime.loop_failed", { worker_type: input.workerType, instance_id: instanceId, message });
-      await sleep(Math.max(1000, pollMs));
+      const message = errorMessage(error);
+      const backoffMs = Math.max(workerErrorBackoffMs(error), pollMs);
+      logger.error("worker.runtime.loop_failed", { worker_type: input.workerType, instance_id: instanceId, message, backoff_ms: backoffMs });
+      await sleep(backoffMs);
     }
   }
 

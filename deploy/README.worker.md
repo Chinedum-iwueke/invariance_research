@@ -42,6 +42,7 @@ Fill real values for:
 - `DATABASE_PROVIDER=postgres`
 - `DATABASE_URL` using the Supabase production connection string. For Supabase session-pooler compatibility use `sslmode=require&uselibpqcompat=true`.
 - `POSTGRES_POOL_MAX=1` for Vercel/serverless runtime. Worker hosts may use a higher value only after confirming Supabase pool headroom.
+- `INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS=300000` so worker loops pause for five minutes on Supabase auth, TLS, or circuit-breaker failures instead of retrying aggressively.
 - `OBJECT_STORAGE_*` using a Cloudflare R2 key scoped to the production bucket
 - `OBJECT_STORAGE_LIFECYCLE_CONFIGURED=true` only after R2 lifecycle rules have been configured and verified
 - `BENCHMARK_PROVIDER=object_storage`
@@ -138,6 +139,44 @@ Before starting workers:
 4. Confirm the web app uses `INVARIANCE_EMBEDDED_WORKERS=false` in production.
 
 The workers lease jobs from Postgres. Multiple workers are only safe when queue leasing and heartbeat behavior have been verified in staging.
+
+### Supabase auth circuit breaker recovery
+
+Supabase may return `ECIRCUITBREAKER` after repeated failed authentication attempts. Treat this as an active incident: at least one app, worker, or healthcheck is still using bad database credentials or a bad SSL mode.
+
+Immediate recovery:
+
+```bash
+cd /srv/invariance/invariance_research
+
+INVARIANCE_STACK_ROOT=/srv/invariance \
+docker compose -f deploy/docker-compose.worker.yml down
+```
+
+Then verify `deploy/.env.worker` before restarting:
+
+```bash
+grep -E "DATABASE_PROVIDER|DATABASE_URL|POSTGRES_POOL_MAX|POSTGRES_SCHEMA_AUTO_INIT|INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS" deploy/.env.worker
+```
+
+Expected production shape:
+
+```env
+DATABASE_PROVIDER=postgres
+DATABASE_URL=postgresql://postgres.PROJECT_REF:URL_ENCODED_PASSWORD@POOLER_HOST.supabase.com:5432/postgres?sslmode=require&uselibpqcompat=true
+POSTGRES_POOL_MAX=1
+POSTGRES_SCHEMA_AUTO_INIT=false
+INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS=300000
+```
+
+After correcting credentials, wait 5-10 minutes for the Supabase pooler block to cool down, then restart:
+
+```bash
+INVARIANCE_STACK_ROOT=/srv/invariance \
+docker compose -f deploy/docker-compose.worker.yml up -d --build analysis-worker export-worker experiment-worker
+```
+
+Do not repeatedly run `db:init:postgres` during the circuit-breaker window. If schema initialization already printed `Postgres schema is initialized.`, schema is not the problem.
 
 ## Object Storage Readiness
 

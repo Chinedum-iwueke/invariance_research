@@ -28,9 +28,9 @@ services:
         max-file: "5"
     healthcheck:
       test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
-      interval: 30s
+      interval: 2m
       timeout: 10s
-      start_period: 45s
+      start_period: 2m
       retries: 3
 
   export-worker:
@@ -58,9 +58,9 @@ services:
         max-file: "5"
     healthcheck:
       test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
-      interval: 30s
+      interval: 2m
       timeout: 10s
-      start_period: 30s
+      start_period: 2m
       retries: 3
 
   experiment-worker:
@@ -90,9 +90,9 @@ services:
         max-file: "5"
     healthcheck:
       test: ["CMD", "./node_modules/.bin/tsx", "scripts/healthcheck-worker.ts"]
-      interval: 30s
+      interval: 2m
       timeout: 10s
-      start_period: 30s
+      start_period: 2m
       retries: 3
 
   ollama:
