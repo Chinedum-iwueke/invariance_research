@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import { accountService } from "@/lib/server/accounts/service";
 import { logger } from "@/lib/server/ops/logger";
 import { checkRateLimit } from "@/lib/server/rate-limits";
+import { getPostgresRuntimeDiagnostics } from "@/lib/server/persistence/postgres";
 
 export const requiredAuthEnvVars = [
   "NEXTAUTH_URL",
@@ -130,6 +131,7 @@ export const authConfig: NextAuthConfig = {
         logger.error("oauth.user.provision_failed", {
           provider: "google",
           email: user.email,
+          database_runtime: getPostgresRuntimeDiagnostics(),
           ...errorDetails,
         });
         return "/login?error=OAuthProvisioning";

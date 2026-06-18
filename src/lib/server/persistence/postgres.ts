@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { postgresSchemaSql } from "@/lib/server/persistence/postgres-schema";
 
 type PgPool = {
@@ -57,6 +58,44 @@ function getRawPostgresPool(): PgPool {
     allowExitOnIdle: true,
   });
   return rawPool;
+}
+
+function hashValue(value: string) {
+  return createHash("sha256").update(value).digest("hex").slice(0, 12);
+}
+
+export function getPostgresRuntimeDiagnostics(env: NodeJS.ProcessEnv = process.env) {
+  const raw = env.DATABASE_URL;
+  if (!raw) {
+    return {
+      present: false,
+      parseable: false,
+    };
+  }
+
+  try {
+    const url = new URL(raw);
+    return {
+      present: true,
+      parseable: true,
+      hash: hashValue(raw),
+      protocol: url.protocol.replace(":", ""),
+      username: decodeURIComponent(url.username),
+      host: url.hostname,
+      port: url.port || null,
+      database: url.pathname.replace(/^\//, "") || null,
+      sslmode: url.searchParams.get("sslmode"),
+      uselibpqcompat: url.searchParams.get("uselibpqcompat"),
+      has_password: url.password.length > 0,
+    };
+  } catch (error) {
+    return {
+      present: true,
+      parseable: false,
+      hash: hashValue(raw),
+      error: error instanceof Error ? error.message : "database_url_parse_failed",
+    };
+  }
 }
 
 export async function ensurePostgresSchema(): Promise<void> {
