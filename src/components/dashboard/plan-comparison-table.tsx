@@ -32,7 +32,7 @@ const rows = [
   ["Execution sensitivity", "limited", "evidence-gated", "evidence-gated", "broker review"],
   ["Report export", "no", "yes", "yes", "yes"],
   ["Share links", "no", "5/mo", "25/mo", "Scoped"],
-  ["Research Desk request", "no", "no", "yes", "included"],
+  ["Expert Review request", "no", "no", "yes", "included"],
   ["Deferred advanced scope", "Research Desk", "Research Desk", "request eligible", "included"],
   ["Insufficient-evidence escalation", "contact", "add-on", "eligible", "included"],
   ["Seats", "1", "1", "1", "Scoped"],

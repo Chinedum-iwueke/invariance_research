@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getAnalysisWorkflowItems, getAppSecondaryItems, type AppNavItem } from "@/lib/app/navigation";
+import { getAnalysisWorkflowItems, getAppNavigationGroups, type AppNavItem } from "@/lib/app/navigation";
 
 function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -46,7 +46,7 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: AppNavIt
 export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logoutAction: (formData: FormData) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const appSecondaryItems = getAppSecondaryItems(isAdmin);
+  const navigation = getAppNavigationGroups(isAdmin);
   const activeAnalysisId = pathname.match(/^\/app\/analyses\/([^/]+)/)?.[1];
   const analysisWorkflowItems = getAnalysisWorkflowItems(activeAnalysisId);
 
@@ -68,12 +68,14 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
       <aside className="hidden h-screen w-72 shrink-0 border-r border-border-subtle bg-surface-paper lg:sticky lg:top-0 lg:block">
         <div className="flex h-full flex-col px-4 py-6">
           <Link href="/app" className="mb-7 block rounded-sm border border-border-subtle bg-surface-white px-3 py-3 text-sm font-semibold tracking-wide text-text-institutional">
-            <span className="font-provenance block text-[10px] uppercase tracking-[0.14em] text-research-red">IR Labs</span>
-            <span>Research Pipeline</span>
+            <span className="font-provenance block text-[10px] uppercase tracking-[0.14em] text-research-red">Invariance</span>
+            <span>Research Desk</span>
           </Link>
           <div className="space-y-7 overflow-y-auto pb-4">
             {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} /> : null}
-            <NavGroup title="Workspace" items={appSecondaryItems} />
+            <NavGroup title="Research" items={navigation.primary} />
+            <NavGroup title="Tools" items={navigation.tools} />
+            <NavGroup title="Account" items={navigation.account} />
           </div>
           <form action={logoutAction} className="mt-auto px-3 pt-3">
             <button type="submit" className="w-full rounded-sm border border-border-subtle px-3 py-2 text-left text-sm text-text-neutral hover:bg-surface-panel">
@@ -87,11 +89,13 @@ export function AppSidebar({ isAdmin, logoutAction }: { isAdmin: boolean; logout
         <div className="fixed inset-0 z-[60] bg-black/20 lg:hidden" onClick={() => setOpen(false)}>
           <aside className="h-full w-80 border-r bg-surface-white p-4" onClick={(e) => e.stopPropagation()}>
             <Link href="/app" className="mb-6 block px-3 text-sm font-semibold tracking-wide" onClick={() => setOpen(false)}>
-              Research Pipeline
+              Invariance Research Desk
             </Link>
             <div className="space-y-6">
               {analysisWorkflowItems.length > 0 ? <NavGroup title="Validation Workflow" items={analysisWorkflowItems} onNavigate={() => setOpen(false)} /> : null}
-              <NavGroup title="Workspace" items={appSecondaryItems} onNavigate={() => setOpen(false)} />
+              <NavGroup title="Research" items={navigation.primary} onNavigate={() => setOpen(false)} />
+              <NavGroup title="Tools" items={navigation.tools} onNavigate={() => setOpen(false)} />
+              <NavGroup title="Account" items={navigation.account} onNavigate={() => setOpen(false)} />
               <form action={logoutAction} className="px-3 pt-2">
                 <button type="submit" className="w-full rounded-sm border border-border-subtle px-3 py-2 text-left text-sm text-text-neutral hover:bg-surface-panel">
                   Log out

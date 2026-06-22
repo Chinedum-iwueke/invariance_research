@@ -5,8 +5,8 @@ import { PublicShell } from "@/components/public/public-shell";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Audit Import Upload Docs",
-  description: "Canonical audit-import specification for trade CSVs, exchange exports, optional context ZIPs, prop evaluation rules, and runtime assumptions.",
+  title: "Import & Audit Upload Docs",
+  description: "Canonical crypto audit-import specification for normalized trade CSVs, compatible exchange exports, optional context ZIPs, prop evaluation rules, and runtime assumptions.",
 };
 
 const requiredFields = [
@@ -55,7 +55,7 @@ const referenceBundleHref = "/downloads/strategy-truth-room-research-bundle-refe
 const evidencePackages = [
   {
     tier: "Minimum upload path",
-    name: "Trade CSV / exchange export",
+    name: "Normalized crypto trade CSV",
     files: "trades.csv only",
     unlocks: "Prop evaluation preview, first breach, rolling windows, overview, distribution, Monte Carlo, ruin, and report preview/export by plan.",
     limits: "Decision-grade prop evaluation requires exact rule inputs. Broker realism remains limited without execution evidence.",
@@ -71,7 +71,7 @@ const evidencePackages = [
     tier: "Optional enrichment",
     name: "Context ZIP",
     files: "manifest.json, trades.csv, equity curve, assumptions, broker export, benchmark, claims, and provenance files.",
-    unlocks: "Stronger context, provenance, report quality, and Research Desk packet quality.",
+    unlocks: "Stronger context, provenance, report quality, and Expert Review packet quality.",
     limits: "Context ZIPs do not convert incomplete evidence into automated regime, parameter, broker, portfolio, or independent validation proof.",
   },
 ] as const;
@@ -120,10 +120,10 @@ export default function LabDocsPage() {
       <section className="public-hero-band space-y-4 rounded-sm border border-border-subtle p-8">
         <div className="h-1 w-20 rounded-full bg-brand" />
         <p className="font-provenance inline-flex rounded-sm border border-brand/30 bg-brand/5 px-3 py-1 text-xs uppercase tracking-wide text-brand">Audit Import Specification</p>
-        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Audit Import Upload Docs</h1>
-        <p className="text-base text-text-neutral">Accepted trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and how imports fit inside Research Programs.</p>
+        <h1 className="font-display text-5xl font-medium leading-none tracking-tight text-text-institutional">Import & Audit Upload Docs</h1>
+        <p className="text-base text-text-neutral">Accepted crypto trade-history formats, supported fields, prop evaluation rules, runtime assumptions, and how imports fit inside Research Programs.</p>
         <p className="max-w-4xl text-sm text-text-neutral">
-          Audit Import is one path into the research pipeline. Use a trade CSV or exchange export when you already have evidence to audit, then attach the result to a Research Program when it belongs to a larger thesis. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, broker microstructure, portfolio exposure, or independent review.
+          Import & Audit is one path into Research Desk. Use a normalized crypto trade CSV or compatible exchange export when you already have evidence to audit, then attach the result to a Research Program. Optional ZIPs add context and provenance; they do not turn self-serve automation into true parameter stability, regime attribution, exchange microstructure, portfolio exposure, or independent review.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <Link href={referenceBundleHref} className={buttonVariants({ variant: "primary" })}>
@@ -141,7 +141,7 @@ export default function LabDocsPage() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[{
           label: "Minimum",
-          value: "Trade CSV / exchange export",
+          value: "Normalized crypto trade CSV",
           detail: "Closed trades normalized into one ledger",
         }, {
           label: "Recommended",
@@ -169,7 +169,7 @@ export default function LabDocsPage() {
           <p className="font-provenance text-xs uppercase tracking-wide text-brand">Evidence package guide</p>
           <h2 className="mt-2 text-xl font-semibold text-text-institutional">Choose the Upload That Matches the Question</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
-            Audit Import does not treat every upload as equally evidentiary. Start with a trade CSV or exchange export when you already have closed trades, use a rich trade CSV plus exact rules for the strongest self-serve result, and use a context ZIP when you want better provenance or Research Desk handoff quality.
+            Import &amp; Audit does not treat every upload as equally evidentiary. Start with a normalized crypto trade CSV when you already have closed trades, use a rich trade CSV plus exact rules for the strongest self-serve result, and use a context ZIP when you want better provenance or Expert Review quality. Raw native exchange exports are accepted only when their columns match the documented schema; dedicated Binance and Bybit export adapters are not yet claimed.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -223,7 +223,7 @@ export default function LabDocsPage() {
             <p className="mt-2 text-xs text-text-neutral">For: users who want a cleaner audit packet without overclaiming advanced proof.</p>
           </article>
           <article className="rounded-md border border-border-subtle p-4">
-            <h3 className="text-sm font-semibold text-text-institutional">Research Desk packet profile</h3>
+            <h3 className="text-sm font-semibold text-text-institutional">Expert Review packet profile</h3>
             <p className="mt-2 text-xs text-text-neutral">Container: <span className="font-mono">bundle_v1</span> with <span className="font-mono">artifact_type: research_bundle</span></p>
             <p className="mt-2 text-sm text-text-neutral">Not a separate parser route; this is a manifest-level artifact profile under bundle_v1.</p>
             <p className="mt-2 text-xs text-text-neutral">Unlocks: stronger packet quality for reviewer handoff. True parameter stability, portfolio attribution, and broker-level realism route to Research Desk when evidence is insufficient for self-serve automation.</p>
@@ -237,7 +237,7 @@ export default function LabDocsPage() {
           <p className="font-provenance text-xs uppercase tracking-wide text-brand">Bundle Manifest v1</p>
           <h2 className="mt-2 text-xl font-semibold text-text-institutional">Optional Context ZIP Bundle Layout</h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-text-neutral">
-            Upload a root-level ZIP package when you want the Lab to read more than a trade table. The parser currently requires <span className="font-mono">manifest.json</span> and <span className="font-mono">trades.csv</span>. Other files improve prop-rule context, diagnostic confidence, provenance, or Research Desk packet quality.
+            Upload a root-level ZIP package when you want Import &amp; Audit to read more than a trade table. The parser currently requires <span className="font-mono">manifest.json</span> and <span className="font-mono">trades.csv</span>. Other files improve prop-rule context, diagnostic confidence, provenance, or Expert Review packet quality.
           </p>
         </div>
 
@@ -277,7 +277,7 @@ export default function LabDocsPage() {
         <div className="rounded-md border border-research-red/20 bg-research-red/5 p-4 text-sm leading-6 text-text-graphite">
           <p className="font-semibold">Evidence honesty boundary</p>
           <p className="mt-1 text-text-neutral">
-            Upload automation can validate what the submitted artifacts actually expose. When evidence is insufficient for true parameter stability, multi-asset regime attribution, broker-level execution realism, strategy reconstruction from a config/report, portfolio-level exposure analysis, or an independent validation memo, the correct path is Research Desk review rather than an overstated automated verdict.
+            Upload automation can validate what the submitted artifacts actually expose. When evidence is insufficient for true parameter stability, multi-asset regime attribution, broker-level execution realism, strategy reconstruction from a config/report, portfolio-level exposure analysis, or an independent validation memo, the correct path is Expert Review rather than an overstated automated verdict.
           </p>
         </div>
 
@@ -424,8 +424,8 @@ export default function LabDocsPage() {
               <tr><td className="px-4 py-3 font-medium">exit_reason / strategy_tag / setup_tag / session</td><td className="px-4 py-3 text-text-neutral">Cleaner failure attribution by setup/session when supplied. These fields are optional and are not used to infer market regime unless the user explicitly tags state.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle assumptions.json</td><td className="px-4 py-3 text-text-neutral">Documents declared cost, slippage, and execution assumptions so the report can separate evidence from assumptions.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Bundle params.json</td><td className="px-4 py-3 text-text-neutral">Improves baseline parameter context, but does not prove stability on its own.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Research Desk packet quality for Parameter Stability. Automated reports do not claim true stability from upload alone.</td></tr>
-              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Research Desk packet quality. Automated reports do not claim multi-asset regime attribution from upload alone.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">parameter_results.csv + run_manifest.json</td><td className="px-4 py-3 text-text-neutral">Improves Expert Review packet quality for Parameter Stability. Automated reports do not claim true stability from upload alone.</td></tr>
+              <tr><td className="px-4 py-3 font-medium">Bundle ohlcv.csv / ohlcv.parquet</td><td className="px-4 py-3 text-text-neutral">Improves regime context and Expert Review packet quality. Automated reports do not claim multi-asset regime attribution from upload alone.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Runtime account_size + risk_per_trade_pct</td><td className="px-4 py-3 text-text-neutral">Sizing-aware survivability interpretation for ruin diagnostics.</td></tr>
               <tr><td className="px-4 py-3 font-medium">Benchmark selection</td><td className="px-4 py-3 text-text-neutral">Benchmark-relative comparison diagnostics when benchmark data is available.</td></tr>
             </tbody>
@@ -606,9 +606,9 @@ run_manifest.json
       <section className="space-y-3 rounded-md border border-border-subtle bg-surface-white p-8">
         <h2 className="text-xl font-semibold text-text-institutional">Benchmark Selection</h2>
         <ul className="space-y-2 text-sm text-text-neutral">
-          <li>• Supported benchmark IDs: BTC, SPY, XAUUSD, DXY.</li>
+          <li>• Supported product benchmark: BTC.</li>
           <li>• Modes: Auto (asset-class inference), Manual (explicit benchmark ID), None (disable benchmark comparison).</li>
-          <li>• Auto maps: crypto→BTC, equities→SPY, metals→XAUUSD, macro/fx→DXY. Unknown detection keeps benchmark disabled.</li>
+          <li>• Auto selects BTC only when crypto context is detected. Unknown detection keeps benchmark comparison disabled.</li>
           <li>• Engine comparison uses daily frequency, intersection window alignment, and normalization basis <span className="font-mono">100_at_first_common_timestamp</span>.</li>
           <li>• If selected benchmark dataset is missing, benchmark is automatically disabled for that run.</li>
         </ul>
@@ -638,11 +638,11 @@ run_manifest.json
         <h2 className="text-xl font-semibold text-text-institutional">Current Limits</h2>
         <ul className="space-y-2 text-sm text-text-neutral">
           <li>• Upload intake currently accepts only <span className="font-mono">.csv</span> and <span className="font-mono">.zip</span>. Server-side size limits are enforced by account plan; the public client blocks oversized files before upload.</li>
-          <li>• Upload inspection, analysis creation, exports, sharing, and Research Desk requests are protected by route-level rate limits.</li>
+          <li>• Upload inspection, analysis creation, exports, sharing, and Expert Review requests are protected by route-level rate limits.</li>
           <li>• Artifact kinds are currently limited to trade CSV, exchange-export-like CSVs that normalize to trades, and bundle_v1 context ZIPs.</li>
           <li>• Parameter Stability is a Research Desk scope. A single params file adds context but does not prove stability; true stability requires a multi-run sweep and reviewer validation.</li>
           <li>• Regime attribution is a Research Desk scope. Multi-asset attribution requires symbol coverage, timestamp alignment, and explicit regime definitions.</li>
-          <li>• Execution diagnostics can remain limited without richer assumptions/context artifacts. Broker-level realism requires broker fills, fee/spread evidence, and often Research Desk review.</li>
+          <li>• Execution diagnostics can remain limited without richer assumptions/context artifacts. Broker-level realism requires broker fills, fee/spread evidence, and often Expert Review.</li>
           <li>• Strategy reconstruction from configs/reports, portfolio-level exposure analysis, and independent validation memos are Research Desk scopes when the upload evidence is incomplete.</li>
         </ul>
       </section>

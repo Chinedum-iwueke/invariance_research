@@ -27,11 +27,17 @@ export default function SignupPage() {
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(false);
   const [verificationRequired, setVerificationRequired] = useState(true);
+  const [callbackUrl, setCallbackUrl] = useState("/app");
   const mismatch = useMemo(() => confirmPassword.length > 0 && password !== confirmPassword, [password, confirmPassword]);
 
   useEffect(() => {
-    const errorCode = new URLSearchParams(window.location.search).get("error");
+    const params = new URLSearchParams(window.location.search);
+    const errorCode = params.get("error");
+    const requestedCallback = params.get("callbackUrl");
     setOauthError(errorCode === "OAuthProvisioning" || errorCode === "OAuthSession");
+    if (requestedCallback?.startsWith("/") && !requestedCallback.startsWith("//")) {
+      setCallbackUrl(requestedCallback);
+    }
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) { /* unchanged */
@@ -43,7 +49,7 @@ export default function SignupPage() {
       const signupPayload = await parseSignupResponse(signupResponse);
       if (!signupResponse.ok) return void (setError(signupPayload.error?.message ?? "Unable to create account."), setBusy(false));
       if (signupPayload.verification_required === false) {
-        await signIn("credentials", { email, password, callbackUrl: "/app" });
+        await signIn("credentials", { email, password, callbackUrl });
         return;
       }
       setVerificationRequired(Boolean(signupPayload.verification_required ?? true));
@@ -66,13 +72,13 @@ export default function SignupPage() {
         <div className="flex flex-col items-center gap-4 text-center md:gap-5">
           <LogoMonogram className="h-12 w-auto md:h-16" priority />
           <div>
-            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Lab intake</p>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Research Desk access</p>
             <h1 className="font-display mt-2 text-4xl font-medium leading-none">Create account</h1>
-            <p className="mt-2 text-sm text-text-neutral">Start with free diagnostics and request an audit for full validation depth.</p>
+            <p className="mt-2 text-sm text-text-neutral">Open a crypto research program and keep the full experiment history.</p>
           </div>
         </div>
         <button
-          onClick={() => signIn("google", { callbackUrl: "/app" })}
+          onClick={() => signIn("google", { callbackUrl })}
           className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-sm border border-border-subtle bg-white px-4 py-2.5 text-sm font-medium text-text-graphite transition hover:border-neutral-300 hover:shadow-sm"
         >
           <GoogleMark />
@@ -100,7 +106,7 @@ export default function SignupPage() {
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
           <button disabled={busy || mismatch || created} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Creating account..." : created ? (verificationRequired ? "Verification email sent" : "Account created") : "Sign up for free"}</button>
         </form>
-        <p className="text-sm text-neutral-600">Already have an account? <Link href="/login" className="underline">Sign in</Link></p>
+        <p className="text-sm text-neutral-600">Already have an account? <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="underline">Sign in</Link></p>
       </div>
     </main>
   );

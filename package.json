@@ -17,7 +17,7 @@
     "benchmarks:weekly": "npm run benchmarks:update && npm run benchmarks:sync-object-storage",
     "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",
-    "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts tests/b6-experiment-executor.test.ts tests/b8-research-memory.test.ts tests/b9-program-workbench.test.ts tests/b10-program-report.test.ts tests/b11-research-economics.test.ts tests/b12-production-ops.test.ts"
+    "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts tests/b6-experiment-executor.test.ts tests/b8-research-memory.test.ts tests/b9-program-workbench.test.ts tests/b10-program-report.test.ts tests/b11-research-economics.test.ts tests/b12-production-ops.test.ts tests/c0-product-contraction.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.911.0",

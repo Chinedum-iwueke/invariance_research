@@ -1,76 +1,24 @@
 import type { Metadata } from "next";
-import {
-  ClaimAuditPanel,
-  EvidenceDocketShowcase,
-  EvidenceOutcomeGrid,
-  HeroScene,
-  LabDiagnosticWorkbench,
-  RobustnessLabIntro,
-  SectionSceneWrapper,
-  ShareArtifactSection,
-  ValidationDocketRail,
-} from "@/components/public/home-scenes";
-import { SectionHeader } from "@/components/ui/section-header";
 import { PublicShell } from "@/components/public/public-shell";
-import { HomePageScenesShell } from "@/components/public/home-page-scenes-shell";
+import { ResearchStartComposer } from "@/components/research-programs/research-start-composer";
+import { getServerSession } from "@/lib/server/auth/session";
+import { listResearchPrograms } from "@/lib/server/research-programs/service";
 
 export const metadata: Metadata = {
-  title: "Invariance Research | Research Pipeline for Strategy Validation",
-  description:
-    "Turn trading intuition into research programs, experiments, validation reports, and durable strategy memory.",
+  title: "Invariance Research Desk | Crypto Strategy Research",
+  description: "Turn a crypto market intuition into a governed research program, backtest, verdict, and durable research memory.",
 };
 
-const sceneIds = ["hero", "claim", "lab", "artifact"];
+export default async function HomePage() {
+  const session = await getServerSession();
+  const authenticated = Boolean(session?.user?.account_id);
+  const programs = session?.user?.account_id
+    ? await listResearchPrograms(session.user.account_id).catch(() => [])
+    : [];
 
-export default function HomePage() {
   return (
     <PublicShell>
-      <HomePageScenesShell sceneIds={sceneIds}>
-        <HeroScene style={{ transform: "translate3d(0, var(--hero-shift), 0)", opacity: "var(--hero-opacity)" }} />
-        <ValidationDocketRail />
-        <EvidenceDocketShowcase />
-
-        <SectionSceneWrapper
-          id="claim"
-          tone="soft"
-          transition="sheet-reveal"
-          style={{ transform: "translate3d(0, var(--next-shift), 0)", opacity: "var(--next-opacity)" }}
-          className="transform-gpu transition-[transform,opacity] duration-500 ease-out"
-        >
-          <div className="space-y-8">
-            <SectionHeader
-              eyebrow="Claim Discipline"
-              title="Every result is treated like a claim that has to earn trust."
-              description="Start from a thesis or import evidence you already have. Invariance separates declared claims from claims merely implied by the data, showing what survives execution friction, what depends on favorable assumptions, and what should not be deployed yet."
-            />
-            <ClaimAuditPanel />
-            <EvidenceOutcomeGrid />
-          </div>
-        </SectionSceneWrapper>
-
-        <SectionSceneWrapper id="lab" tone="base">
-          <div className="space-y-8">
-            <SectionHeader
-              eyebrow="Strategy Robustness Lab"
-              title="Import existing evidence when the research loop needs an audit."
-              description="The Lab remains the fastest way to audit a trade CSV or exchange export. Research Programs provide the larger workspace for hypotheses, experiments, verdicts, memory, and reports."
-            />
-            <RobustnessLabIntro />
-            <LabDiagnosticWorkbench />
-          </div>
-        </SectionSceneWrapper>
-
-        <SectionSceneWrapper id="artifact" tone="panel" className="border-b border-border-subtle">
-          <div className="space-y-8 lg:space-y-10">
-            <SectionHeader
-              eyebrow="Shareable Evidence"
-              title="A validation report built to travel."
-              description="Export a defensible memo that states the verdict, the evidence behind it, and the limitations a buyer, investor, partner, or internal reviewer should understand."
-            />
-            <ShareArtifactSection />
-          </div>
-        </SectionSceneWrapper>
-      </HomePageScenesShell>
+      <ResearchStartComposer authenticated={authenticated} recentPrograms={programs} />
     </PublicShell>
   );
 }

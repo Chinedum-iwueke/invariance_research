@@ -77,7 +77,7 @@ export function ResearchDeskRequestPanel({
     ));
   }
 
-  const submitLabel = status === "submitting" ? "Creating packet..." : "Create Research Desk packet";
+  const submitLabel = status === "submitting" ? "Creating packet..." : "Request Expert Review";
   const submitDisabled = status === "submitting" || services.length === 0;
 
   return (
@@ -85,7 +85,7 @@ export function ResearchDeskRequestPanel({
       <div className="rounded-md border border-research-red/20 bg-research-red/5 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Research Desk request</p>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Expert Review</p>
             <h3 className="mt-2 text-xl font-semibold tracking-tight text-text-institutional">Turn this limitation into a review packet.</h3>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-text-neutral">
               Create a packet tied to this analysis, report snapshot, source artifact, selected limitation, and reviewer questions.
@@ -94,7 +94,7 @@ export function ResearchDeskRequestPanel({
           <button
             type="submit"
             disabled={submitDisabled}
-            aria-label={submitDisabled ? "Select at least one Research Desk service" : "Create Research Desk packet"}
+            aria-label={submitDisabled ? "Select at least one review service" : "Request Expert Review"}
             className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
           >
             {submitLabel}
@@ -103,7 +103,7 @@ export function ResearchDeskRequestPanel({
         </div>
         {status === "submitted" ? (
           <span className="mt-3 inline-flex items-center gap-2 text-sm text-chart-positive">
-            <CheckCircle2 className="h-4 w-4" /> Queued for Research Desk{requestId ? ` · ${requestId.slice(0, 8)}` : ""}
+            <CheckCircle2 className="h-4 w-4" /> Expert Review requested{requestId ? ` · ${requestId.slice(0, 8)}` : ""}
           </span>
         ) : null}
         {status === "error" ? <span className="mt-3 block text-sm text-chart-negative">Request failed. Refresh and try again.</span> : null}
@@ -122,7 +122,7 @@ export function ResearchDeskRequestPanel({
       </div>
 
       <div className="mt-4 rounded-md border border-research-red/15 bg-research-red/5 p-3 text-xs leading-5 text-text-neutral">
-        <p className="font-semibold text-text-graphite">Always route to Research Desk when upload evidence is insufficient for</p>
+        <p className="font-semibold text-text-graphite">Expert Review is recommended when uploaded evidence cannot support</p>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {evidenceInsufficiencyScopes.map((scope) => (
             <p key={scope} className="rounded-sm border border-research-red/10 bg-surface-white px-3 py-2">{scope}</p>
@@ -133,7 +133,7 @@ export function ResearchDeskRequestPanel({
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <div className="rounded-md border border-border-subtle bg-surface-subtle p-3 text-xs text-text-neutral">
           <p className="font-semibold text-text-graphite">Flow</p>
-          <p className="mt-2">Select the report limitation, choose the review services, add reviewer context, then create the packet. Admin/reviewer workflow picks it up from the Research Desk queue.</p>
+          <p className="mt-2">Select the report limitation, choose the review services, add reviewer context, then create the packet. A reviewer receives the evidence and questions together.</p>
         </div>
 
         <label className="space-y-2">
@@ -184,7 +184,7 @@ export function ResearchDeskRequestPanel({
         <button
           type="submit"
           disabled={submitDisabled}
-          aria-label={submitDisabled ? "Select at least one Research Desk service" : "Create Research Desk packet"}
+          aria-label={submitDisabled ? "Select at least one review service" : "Request Expert Review"}
           className="inline-flex min-h-11 items-center gap-2 rounded-sm bg-research-red px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-research-red/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLabel}
@@ -192,7 +192,7 @@ export function ResearchDeskRequestPanel({
         </button>
         {status === "submitted" ? (
           <span className="inline-flex items-center gap-2 text-sm text-chart-positive">
-            <CheckCircle2 className="h-4 w-4" /> Queued for Research Desk{requestId ? ` · ${requestId.slice(0, 8)}` : ""}
+            <CheckCircle2 className="h-4 w-4" /> Expert Review requested{requestId ? ` · ${requestId.slice(0, 8)}` : ""}
           </span>
         ) : null}
         {status === "error" ? <span className="text-sm text-chart-negative">Request failed. Refresh and try again.</span> : null}

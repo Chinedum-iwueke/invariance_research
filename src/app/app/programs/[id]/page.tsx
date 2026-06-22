@@ -98,7 +98,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       <div id="hypothesis-approval">
         <WorkspaceCard
           title="Hypothesis and strategy approval"
-          subtitle="B3/B4 gate vague intuition into approved, auditable specs before any experiment can enter the queue."
+          subtitle="Turn the research brief into approved, auditable specs before any experiment can enter the queue."
         >
           <SpecApprovalPanel
             programId={program.program_id}
@@ -113,14 +113,14 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
       <WorkspaceCard
         title="Verdict cards and result interpreter"
-        subtitle="B7 turns completed experiment artifacts into a verdict, failure explanation, confidence boundary, and next experiment."
+        subtitle="Completed experiment artifacts become a verdict, failure explanation, confidence boundary, and next experiment."
       >
         <ExperimentVerdictCards jobs={detail.experiment_jobs} events={detail.experiment_job_events} />
       </WorkspaceCard>
 
       <WorkspaceCard
         title="Research memory"
-        subtitle="B8 remembers verdicts, failures, findings, next experiments, and similarity signatures inside this account only."
+        subtitle="Remember verdicts, failures, findings, next experiments, and similarity signatures inside this account only."
       >
         <ResearchMemoryPanel memory={detail.memory} compact />
       </WorkspaceCard>
@@ -192,7 +192,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       </div>
 
       {detail.research_briefs.length > 0 ? (
-        <WorkspaceCard title="Accepted research briefs" subtitle="Versioned briefs are the B2 handoff into hypothesis-spec generation.">
+        <WorkspaceCard title="Accepted research briefs" subtitle="Versioned briefs become the source for hypothesis-spec generation.">
           <div className="space-y-3">
             {detail.research_briefs.map((brief) => (
               <div key={brief.brief_id} className="rounded-md border border-border-subtle bg-surface-subtle p-4">

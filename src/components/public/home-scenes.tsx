@@ -179,7 +179,7 @@ export function EvidenceDocketShowcase() {
             <div className="flex items-center justify-between border-b border-border-subtle pb-3">
               <div>
                 <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Live evidence docket</p>
-                <p className="mt-1 text-sm text-text-neutral">Strategy Robustness Lab preview</p>
+                <p className="mt-1 text-sm text-text-neutral">Import &amp; Audit preview</p>
               </div>
               <div className="font-provenance text-right">
                 <p className="text-3xl leading-none text-text-institutional">{active.score}</p>

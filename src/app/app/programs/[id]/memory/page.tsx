@@ -25,7 +25,7 @@ export default async function ProgramMemoryPage({ params }: { params: Promise<{ 
         <Link href={`/app/programs/${id}`} className={buttonVariants({ size: "sm", variant: "secondary" })}>Back to Program</Link>
         <Link href="/app/memory" className={buttonVariants({ size: "sm", variant: "tertiary" })}>Account Memory</Link>
       </div>
-      <WorkspaceCard title="Program memory" subtitle="B8 memory scoped to this thesis and account boundary.">
+      <WorkspaceCard title="Program memory" subtitle="Verdicts, findings, and next tests scoped to this thesis and account.">
         <ResearchMemoryPanel memory={detail.memory} />
       </WorkspaceCard>
     </AnalysisPageFrame>

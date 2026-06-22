@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, CircleUserRound, LogIn, Menu, X } from "lucide-react";
+import { ChevronDown, CircleUserRound, LogIn, Menu, PanelsTopLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { BrandLogoLink } from "@/components/ui/logo";
@@ -59,13 +59,18 @@ function HeaderDropdowns({ compact }: { compact: boolean }) {
 function AccountArea({ authenticated }: { authenticated: boolean }) {
   if (authenticated) {
     return (
-      <Link
-        href="/account"
-        className="inline-flex h-9 items-center gap-2 rounded-sm border border-border-subtle bg-surface-white px-3 text-sm text-text-graphite hover:bg-surface-panel"
-      >
-        <CircleUserRound className="h-4 w-4" />
-        Account
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link href="/app" className={buttonVariants({ size: "sm", className: "gap-2" })}>
+          <PanelsTopLeft className="h-4 w-4" /> Research Desk
+        </Link>
+        <Link
+          href="/account"
+          aria-label="Account"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border-subtle bg-surface-white text-text-graphite hover:bg-surface-panel"
+        >
+          <CircleUserRound className="h-4 w-4" />
+        </Link>
+      </div>
     );
   }
 
@@ -81,7 +86,7 @@ function AccountArea({ authenticated }: { authenticated: boolean }) {
 
 export function InstitutionalHeader({ authenticated = false }: { authenticated?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "IR LABS": true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -103,12 +108,6 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
         </div>
 
         <div className="hidden items-center gap-2 lg:ml-auto lg:flex">
-          <Link href="/pricing" className={buttonVariants({ size: "sm", variant: "secondary" })}>
-            View Pricing
-          </Link>
-          <Link href="/contact" className={buttonVariants({ size: "sm" })}>
-            Request Audit
-          </Link>
           <AccountArea authenticated={authenticated} />
           <ThemeToggle />
         </div>
@@ -164,17 +163,15 @@ export function InstitutionalHeader({ authenticated = false }: { authenticated?:
             </div>
           ))}
           <div className="grid grid-cols-2 items-center gap-2 pt-4">
-            <Link href="/pricing" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full" })}>
-              View Pricing
-            </Link>
-            <Link href="/contact" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", className: "w-full" })}>
-              Request Audit
-            </Link>
             {authenticated ? (
-              <Link href="/account" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full gap-2" })}>
-                <CircleUserRound className="h-4 w-4" />
-                Account
-              </Link>
+              <>
+                <Link href="/app" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", className: "w-full gap-2" })}>
+                  <PanelsTopLeft className="h-4 w-4" /> Research Desk
+                </Link>
+                <Link href="/account" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full gap-2" })}>
+                  <CircleUserRound className="h-4 w-4" /> Account
+                </Link>
+              </>
             ) : (
               <Link href="/login" onClick={() => setMobileOpen(false)} className={buttonVariants({ size: "sm", variant: "secondary", className: "w-full gap-2" })}>
                 <LogIn className="h-4 w-4" />

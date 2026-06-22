@@ -84,6 +84,7 @@ async function seedStoredArtifact(accountId: string, userId: string, artifactId:
       richness: "trade_only",
       parser_notes: [],
       strategy_metadata: { strategy_name: "Queued only", timeframe: "1H", market: "BTCUSD" },
+      bundle_manifest: { market: "crypto" },
       trades: [],
       validation: { valid: true, errors: [] },
     } as any,

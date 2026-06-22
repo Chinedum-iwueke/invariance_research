@@ -56,7 +56,7 @@ export default async function AssumptionLedgerPage({ params }: { params: Promise
         </WorkspaceCard>
         <WorkspaceCard title="Unsupported claims" subtitle="Claims the artifact cannot yet prove">
           <p className="font-display text-4xl text-text-institutional">{unsupportedClaims.length}</p>
-          <p className="mt-2 text-sm text-text-neutral">Claims that need more evidence, a narrower wording, or Research Desk review.</p>
+          <p className="mt-2 text-sm text-text-neutral">Claims that need more evidence, a narrower wording, or Expert Review.</p>
         </WorkspaceCard>
         <WorkspaceCard title="Evidence facts" subtitle="Accepted facts extracted from the artifact chain">
           <p className="font-display text-4xl text-text-institutional">{evidenceFacts.length}</p>

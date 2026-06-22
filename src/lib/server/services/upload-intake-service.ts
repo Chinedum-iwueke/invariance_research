@@ -10,6 +10,7 @@ import { assertUploadAllowed } from "@/lib/server/entitlements/policy";
 import { buildUploadEvidenceProjection } from "@/lib/server/evidence/evidence-ledger-service";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { saveUploadedArtifact } from "@/lib/server/storage/artifact-storage";
+import { evaluateCryptoArtifactScope } from "@/lib/product/market-scope";
 
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const CSV_PREVIEW_ROW_LIMIT = 50;
@@ -82,6 +83,14 @@ export async function inspectUpload(input: {
 
   if (!parsedResult.parsed.validation.valid) {
     return failedInspection(parsedResult.parsed.validation.errors, [
+      ...(parsedResult.parsed.parser_notes ?? []),
+      ...parsedResult.notes,
+    ]);
+  }
+
+  const marketScope = evaluateCryptoArtifactScope(parsedResult.parsed);
+  if (!marketScope.supported) {
+    return failedInspection([{ code: "unsupported_market", message: marketScope.reason }], [
       ...(parsedResult.parsed.parser_notes ?? []),
       ...parsedResult.notes,
     ]);

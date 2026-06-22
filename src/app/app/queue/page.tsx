@@ -27,7 +27,7 @@ export default async function ExperimentQueuePage() {
   return (
     <AnalysisPageFrame
       title="Experiment Queue"
-      description="Approved falsification jobs for Research Programs. The B6 worker materializes approved experiment contracts and stores auditable artifacts."
+      description="Approved falsification jobs for Research Programs. The experiment worker executes approved contracts and stores auditable artifacts."
     >
       <MetricRow
         metrics={[

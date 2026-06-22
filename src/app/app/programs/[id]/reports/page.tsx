@@ -119,7 +119,7 @@ export default async function ProgramReportsPage({ params }: { params: Promise<{
                   </form>
                   <form action={researchDeskAction}>
                     <input type="hidden" name="report_id" value={report.program_report_snapshot_id} />
-                    <Button type="submit" size="sm" variant="tertiary" disabled={report.status !== "active" || !report.report_snapshot_id}>Request Research Desk</Button>
+                    <Button type="submit" size="sm" variant="tertiary" disabled={report.status !== "active" || !report.report_snapshot_id}>Request Expert Review</Button>
                   </form>
                 </div>
                 {!report.report_snapshot_id ? (

@@ -13,7 +13,7 @@ export function SiteFooter({ groups }: { groups: readonly FooterGroup[] }) {
           <div className="space-y-3 border-b border-border-subtle/70 pb-6 md:border-b-0 md:pb-0">
             <p className="font-display text-3xl leading-none">Invariance Research</p>
             <p className="max-w-md text-sm leading-relaxed text-text-neutral">
-              Evidence-led strategy validation for teams that need every claim, limitation, and diagnostic traceable before capital is deployed.
+              A crypto research companion for turning market intuition into governed experiments, auditable verdicts, and durable research memory.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:contents">

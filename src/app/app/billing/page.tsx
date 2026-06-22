@@ -54,7 +54,7 @@ export default async function BillingPage() {
       <WorkspaceCard title="Subscription controls" subtitle="Self-service where available">
         <div className="flex flex-wrap gap-2">
           <Link className={buttonVariants({ size: "sm" })} href="/app/upgrade">Upgrade options</Link>
-          <Link href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request Research Desk</Link>
+          <Link href="/contact" className={buttonVariants({ size: "sm", variant: "secondary" })}>Request Expert Review</Link>
         </div>
       </WorkspaceCard>
 

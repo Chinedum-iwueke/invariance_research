@@ -11,7 +11,7 @@ type BenchmarkSelectorProps = {
   onChange: (value: BenchmarkSelectionValue) => void;
 };
 
-const MANUAL_BENCHMARKS: BenchmarkId[] = ["BTC", "SPY", "XAUUSD", "DXY"];
+const MANUAL_BENCHMARKS: BenchmarkId[] = ["BTC"];
 
 export function BenchmarkSelector({ value, onChange }: BenchmarkSelectorProps) {
   const selectorValue = value.mode === "manual" ? value.requested_id ?? "BTC" : value.mode;
@@ -40,7 +40,7 @@ export function BenchmarkSelector({ value, onChange }: BenchmarkSelectorProps) {
           <option key={id} value={id}>{id}</option>
         ))}
       </select>
-      <p className="text-xs text-text-neutral">Auto uses detected asset class. None disables benchmark comparison.</p>
+      <p className="text-xs text-text-neutral">Auto uses BTC when crypto context is detected. None disables benchmark comparison.</p>
     </div>
   );
 }

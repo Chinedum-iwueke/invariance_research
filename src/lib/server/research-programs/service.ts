@@ -59,7 +59,7 @@ export function parseCreateProgramForm(formData: FormData, session: { account_id
     owner_user_id: session.user_id,
     title,
     thesis,
-    market: cleanText(formData.get("market")),
+    market: "crypto",
     asset_universe: cleanText(formData.get("asset_universe")),
     timeframe: cleanText(formData.get("timeframe")),
   };

@@ -33,7 +33,7 @@ export function SiteNavbar({ links }: SiteNavbarProps) {
             View Research Standards
           </Link>
           <Link href="/contact" className={buttonVariants({ size: "sm" })}>
-            Request Audit
+            Start Research
           </Link>
         </div>
 
@@ -65,7 +65,7 @@ export function SiteNavbar({ links }: SiteNavbarProps) {
               Standards
             </Link>
             <Link href="/contact" onClick={() => setOpen(false)} className={buttonVariants({ size: "sm" })}>
-              Request Audit
+              Start Research
             </Link>
           </div>
         </div>

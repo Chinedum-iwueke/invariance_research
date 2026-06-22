@@ -25,10 +25,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [callbackUrl, setCallbackUrl] = useState("/app");
 
   useEffect(() => {
-    const errorCode = new URLSearchParams(window.location.search).get("error");
+    const params = new URLSearchParams(window.location.search);
+    const errorCode = params.get("error");
+    const requestedCallback = params.get("callbackUrl");
     setOauthError(errorCode === "OAuthProvisioning" || errorCode === "OAuthSession");
+    if (requestedCallback?.startsWith("/") && !requestedCallback.startsWith("//")) {
+      setCallbackUrl(requestedCallback);
+    }
   }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -41,7 +47,7 @@ export default function LoginPage() {
       setBusy(false);
       return;
     }
-    router.push("/app");
+    router.push(callbackUrl);
     router.refresh();
   }
 
@@ -58,12 +64,12 @@ export default function LoginPage() {
           <div>
             <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-brand">Workspace access</p>
             <h1 className="font-display mt-2 text-4xl font-medium leading-none">Sign in</h1>
-            <p className="mt-2 text-sm text-text-neutral">Access your validation workspace.</p>
+            <p className="mt-2 text-sm text-text-neutral">Continue your crypto research program.</p>
           </div>
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/app" })}
+          onClick={() => signIn("google", { callbackUrl })}
           className="inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded-sm border border-border-subtle bg-white px-4 py-2.5 text-sm font-medium text-text-graphite transition hover:border-neutral-300 hover:shadow-sm"
         >
           <GoogleMark />
@@ -86,7 +92,7 @@ export default function LoginPage() {
           <button disabled={busy} className="min-h-11 w-full rounded-sm bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-70">{busy ? "Signing in..." : "Continue"}</button>
         </form>
         <div className="flex flex-wrap justify-between gap-2 text-sm text-neutral-600">
-          <span>New to the platform? <Link href="/signup" className="underline">Create account</Link></span>
+          <span>New to the platform? <Link href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="underline">Create account</Link></span>
           <Link href="/account/forgot-password" className="underline">Forgot password?</Link>
         </div>
       </div>

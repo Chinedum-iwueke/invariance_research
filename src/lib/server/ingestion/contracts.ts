@@ -66,6 +66,7 @@ export const VALIDATION_ERROR_CODES = [
   "unsupported_artifact_structure",
   "plan_upload_locked",
   "object_storage_unavailable",
+  "unsupported_market",
 ] as const;
 
 export type ArtifactValidationErrorCode = (typeof VALIDATION_ERROR_CODES)[number];

@@ -11,7 +11,7 @@ import { getResearchProgramDetail } from "@/lib/server/research-programs/service
 
 export const metadata: Metadata = {
   title: "Program Imports",
-  description: "Approach A audit imports attached to a research program.",
+  description: "Imported audit evidence attached to a research program.",
 };
 
 export default async function ProgramImportsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +21,7 @@ export default async function ProgramImportsPage({ params }: { params: Promise<{
   if (!detail) notFound();
 
   return (
-    <AnalysisPageFrame title={`${detail.program.title} Imports`} description="Approach A uploads remain useful as audit evidence inside the larger research program loop.">
+    <AnalysisPageFrame title={`${detail.program.title} Imports`} description="Imported trade evidence remains attached to the program, its claims, and its decisions.">
       <div className="flex flex-wrap gap-2">
         <Link href={`/app/programs/${id}`} className={buttonVariants({ size: "sm", variant: "secondary" })}>Back to Program</Link>
         <Link href="/app/new-analysis" className={buttonVariants({ size: "sm" })}>Import New Evidence</Link>

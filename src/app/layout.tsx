@@ -23,12 +23,12 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://invarianceresearch.com"),
+  metadataBase: new URL("https://invarianceresearch.xyz"),
   title: {
     default: "Invariance Research",
     template: "%s | Invariance Research",
   },
-  description: "Independent quantitative validation studio for execution-aware strategy evaluation.",
+  description: "A crypto research companion for turning strategy intuition into falsifiable experiments, evidence, and durable research memory.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Invariance Research",
-    description: "Execution-aware strategy validation and robustness diagnostics.",
+    description: "Turn crypto strategy intuition into falsifiable experiments, evidence, and durable research memory.",
     type: "website",
-    url: "https://invarianceresearch.com",
+    url: "https://invarianceresearch.xyz",
   },
 };
 

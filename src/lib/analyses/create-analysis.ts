@@ -81,9 +81,5 @@ function detectAssetClass(parsedArtifact: ParsedArtifact): DetectedAssetClass {
 
   if (!values) return "unknown";
   if (values.includes("crypto") || values.includes("btc") || values.includes("eth")) return "crypto";
-  if (values.includes("equity") || values.includes("stock") || values.includes("spy") || values.includes("nasdaq")) return "equities";
-  if (values.includes("metal") || values.includes("gold") || values.includes("xau")) return "metals";
-  if (values.includes("dxy") || values.includes("macro") || values.includes("rates")) return "macro";
-  if (values.includes("fx") || values.includes("forex") || values.includes("usd") || values.includes("eur")) return "fx";
   return "unknown";
 }

@@ -29,8 +29,8 @@ export function LabHeroInstrument() {
       <div className="artifact-surface overflow-hidden p-4 shadow-raised">
         <div className="flex items-start justify-between gap-4 border-b border-border-subtle pb-3">
           <div>
-            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">IR Labs / Active room</p>
-            <h2 className="mt-1 text-xl font-semibold leading-tight text-text-graphite">Strategy Robustness Lab</h2>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-brand">Research Desk / Evidence import</p>
+            <h2 className="mt-1 text-xl font-semibold leading-tight text-text-graphite">Import &amp; Audit</h2>
           </div>
           <span className="rounded-full border border-evidence-processing/25 bg-evidence-processing-wash px-2.5 py-1 font-provenance text-[10px] uppercase tracking-[0.1em] text-evidence-processing">
             intake ready

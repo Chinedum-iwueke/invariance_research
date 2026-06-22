@@ -11,7 +11,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { UploadPanel } from "@/components/ui/upload-panel";
 
 export const metadata: Metadata = {
-  title: "Audit Import Lab | Invariance Research",
+  title: "Import & Audit | Invariance Research Desk",
   description: "Trade-history audit mode for strategy robustness, execution drag, survivability stress, distribution quality, and prop evaluation feasibility.",
 };
 
@@ -27,7 +27,7 @@ export default function RobustnessLabPage() {
         <ScrollspyRail sectionIds={sectionIds} />
         <section id="hero">
           <PageHero
-            title="Audit Import Lab"
+            title="Import & Audit"
             description="Import a trade CSV or exchange export into the research pipeline and get a falsification-first workbench: overview, execution, distribution, Monte Carlo, ruin, prop evaluation, assumptions, and report."
             primaryCta={{ label: "Sign up for free", href: "/signup" }}
             secondaryCta={{ label: "View methodology", href: "/methodology" }}
@@ -50,14 +50,14 @@ export default function RobustnessLabPage() {
                   className="h-auto w-full rounded-sm border border-white/10"
                   controls
                   preload="metadata"
-                  aria-label="Strategy Robustness Lab walkthrough demo"
+                  aria-label="Import and Audit walkthrough"
                 >
                   <source src={DEMO_VIDEO_PATH} type="video/mp4" />
                   Your browser does not support the demo video.
                 </video>
               ) : (
                 <div className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-sm border border-dashed border-white/20 bg-black/20 px-6 text-center md:min-h-[440px]">
-                  <p className="text-xs uppercase tracking-[0.14em] text-white/65">Interactive walkthrough coming soon</p>
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/65">Import and Audit</p>
                   <p className="mt-3 max-w-2xl text-sm text-white/80">
                     The Lab is available now. A guided product walkthrough will appear here once the next demo cut is ready.
                   </p>
@@ -72,7 +72,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Artifact Intake"
             title="Audit existing evidence when you already have it."
-            description="The broader product starts with Research Programs. This Lab is the import path for closed trade logs and exchange/broker exports."
+            description="Use this path when you already have crypto trade evidence. Research Desk treats it as supporting evidence inside a larger Research Program."
           />
           <UploadPanel />
         </section>
@@ -81,7 +81,7 @@ export default function RobustnessLabPage() {
           <SectionHeader
             eyebrow="Evidence Console"
             title="Track the investigation from the first click."
-            description="See which diagnostics are supported, whether prop rules are exact or fallback, and which claims require Research Desk review."
+            description="See which diagnostics are supported, whether prop rules are exact or fallback, and which claims require Expert Review."
           />
           <LabEvidenceConsole />
         </section>

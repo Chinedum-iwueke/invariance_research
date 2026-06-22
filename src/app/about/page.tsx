@@ -22,7 +22,7 @@ export default function AboutPage() {
         <section id="hero">
           <PageHero
             title="About Invariance Research"
-            description="Invariance Research is an independent quantitative validation studio focused on execution-aware strategy evaluation, robustness diagnostics, and research systems built around disciplined methodology. The firm develops tools that reflect its validation philosophy — from the Strategy Robustness Lab available today to the forthcoming Invariance Research Desk, an AI-native research environment designed to make backtesting more structured, realistic, and decision-grade."
+            description="Invariance Research builds a crypto research companion for turning market intuition into explicit hypotheses, governed experiments, auditable verdicts, and durable research memory. Import & Audit remains available when a researcher already has trade evidence to challenge."
             primaryCta={{ label: "Read Research Standards", href: "/research-standards" }}
             secondaryCta={{ label: "Contact", href: "/contact" }}
             artifactVariant="report"
@@ -66,9 +66,9 @@ export default function AboutPage() {
         <section id="cta" className="container-shell py-section-md">
           <CtaBanner
             title="Apply a disciplined validation process"
-            description="Use the Strategy Robustness Lab or commission a bespoke strategy review."
+            description="Start a Research Program, import existing crypto evidence, or request an expert review for evidence that needs deeper interpretation."
             primary={{ label: "Explore Lab", href: "/robustness-lab" }}
-            secondary={{ label: "Request Audit", href: "/contact" }}
+            secondary={{ label: "Request Expert Review", href: "/contact" }}
           />
         </section>
       </main>

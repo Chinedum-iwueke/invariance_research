@@ -56,7 +56,7 @@ export function PricingCards() {
         "500 assistant calls",
         "High-volume trade-history validation imports",
         "100 analyses per month",
-        "Research Desk request eligibility when evidence cannot support deeper claims",
+        "Expert Review request eligibility when evidence cannot support deeper claims",
         "25 share links per month",
       ],
     },
@@ -64,7 +64,7 @@ export function PricingCards() {
       title: "Research Desk",
       price: "From $1,000",
       billing: "project based",
-      ctaLabel: "Request Research Desk",
+      ctaLabel: "Request Expert Review",
       ctaHref: "/contact",
       features: [
         "Human and agent-assisted validation engagement",

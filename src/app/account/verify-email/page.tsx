@@ -23,7 +23,7 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
         <h1 className="font-display mt-2 text-4xl font-medium leading-none">{result.ok ? "Email verified" : "Verification link expired"}</h1>
         <p className="mt-3 text-sm text-text-neutral">
           {result.ok
-            ? "Your account is ready. You can now sign in and access the Strategy Robustness Lab."
+            ? "Your account is ready. You can now sign in and open Research Desk."
             : "This verification link is invalid or expired. Request a fresh link with the same email address."}
         </p>
         {result.ok ? (

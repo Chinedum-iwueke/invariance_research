@@ -11,6 +11,7 @@ import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 import { enqueueAnalysisRetry } from "@/lib/server/queue/analysis-queue";
 import { scheduleAnalysisJob } from "@/lib/server/services/analysis-job-runner";
 import { buildPersistedBenchmarkConfig, parseBenchmarkSelectionFromRequest } from "@/lib/analyses/create-analysis";
+import { evaluateCryptoArtifactScope } from "@/lib/product/market-scope";
 
 export async function createAnalysisFromArtifact(
   payload: CreateAnalysisRequest & { owner_user_id: string; account_id: string },
@@ -23,6 +24,10 @@ export async function createAnalysisFromArtifact(
 
   if (artifact.account_id !== payload.account_id) {
     throw new Error("artifact_access_denied");
+  }
+
+  if (!evaluateCryptoArtifactScope(artifact.parsed_artifact).supported) {
+    throw new Error("unsupported_market");
   }
 
   await assertUsageWithinPlan(payload.account_id);

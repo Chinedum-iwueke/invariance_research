@@ -41,6 +41,11 @@ export async function POST(request: Request) {
     ? body.benchmark.mode
     : "auto";
   const rawRequestedId = body.benchmark?.requested_id ?? null;
+  if (benchmarkMode === "manual" && rawRequestedId !== "BTC") {
+    return NextResponse.json({
+      error: { code: "unsupported_benchmark", message: "BTC is the only benchmark supported for the current crypto product." },
+    }, { status: 400 });
+  }
   const requestedId = rawRequestedId && isBenchmarkId(rawRequestedId) ? rawRequestedId : null;
   const benchmark = {
     mode: benchmarkMode,
@@ -76,6 +81,7 @@ export async function POST(request: Request) {
       artifact_not_eligible: "Artifact is not eligible for analysis. Re-run upload inspection for validation details.",
       artifact_access_denied: "Artifact access denied for the current account.",
       monthly_analysis_limit_reached: "Monthly analysis limit reached for this account.",
+      unsupported_market: "This artifact could not be verified as crypto. Add explicit crypto market or exchange metadata and inspect it again.",
     };
     const message = messageByCode[code] ?? "Analysis cannot be started for this account.";
     console.error("[api/analyses] create failed", {

@@ -55,7 +55,7 @@ export function ExperimentVerdictCards({ jobs, events }: { jobs: ExperimentJobRe
   if (cardEvents.length === 0) {
     return (
       <div className="rounded-md border border-border-subtle bg-surface-subtle p-4 text-sm leading-6 text-text-neutral">
-        No verdict cards have been recorded yet. Queue an approved experiment and let the experiment worker materialize the B7 card bundle.
+        No verdict cards have been recorded yet. Queue an approved experiment to produce its verdict packet.
       </div>
     );
   }
@@ -75,7 +75,7 @@ export function ExperimentVerdictCards({ jobs, events }: { jobs: ExperimentJobRe
           <article key={event.experiment_job_event_id} className="overflow-hidden rounded-md border border-border-subtle bg-surface-white">
             <div className="grid gap-4 border-b border-border-subtle bg-surface-subtle p-4 lg:grid-cols-[1fr_auto] lg:items-start">
               <div>
-                <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">B7 verdict packet</p>
+                <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Experiment verdict</p>
                 <h3 className="mt-1 font-medium text-text-institutional">{job?.current_step ?? event.message}</h3>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-text-neutral">{verdict?.summary ?? event.message}</p>
               </div>

@@ -96,7 +96,7 @@ export function ProgramWorkbenchOverview({ programId, summary }: { programId: st
             <CommandButton href={`/app/programs/${programId}/runs`} label="Explain failure" enabled={summary.command_states.can_explain_failure} />
             <CommandButton href={`/app/programs/${programId}/memory`} label="Find similar runs" enabled={summary.command_states.can_find_similar_runs} />
             <CommandButton href={`/app/programs/${programId}/reports`} label="Generate report" enabled={summary.command_states.can_generate_report} />
-            <CommandButton href="/research-desk" label="Research Desk review" enabled={summary.command_states.can_request_research_desk} />
+            <CommandButton href="/contact" label="Request Expert Review" enabled={summary.command_states.can_request_research_desk} />
           </div>
         </div>
       </div>

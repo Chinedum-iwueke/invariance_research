@@ -1,8 +1,5 @@
 export const primaryNav = [
-  { label: "Research Standards", href: "/research-standards" },
-  { label: "Strategy Validation", href: "/strategy-validation" },
-  { label: "Robustness Lab", href: "/robustness-lab" },
-  { label: "Research Desk", href: "/research-desk" },
+  { label: "Research Desk", href: "/" },
   { label: "Research", href: "/research" },
   { label: "Methodology", href: "/methodology" },
   { label: "Pricing", href: "/pricing" },
@@ -13,17 +10,17 @@ export const footerGroups = [
   {
     title: "Platform",
     links: [
-      { label: "Robustness Lab", href: "/robustness-lab" },
-      { label: "Research Desk", href: "/research-desk" },
+      { label: "Start Research", href: "/" },
+      { label: "Import & Audit", href: "/robustness-lab" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Request Audit", href: "/contact" },
+      { label: "Request Expert Review", href: "/contact" },
     ],
   },
   {
     title: "Research",
     links: [
       { label: "Research Standards", href: "/research-standards" },
-      { label: "Case Studies", href: "/research" },
+      { label: "Published Research", href: "/research" },
       { label: "Methodology", href: "/methodology" },
     ],
   },

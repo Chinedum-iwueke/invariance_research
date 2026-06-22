@@ -26,7 +26,7 @@ export function InsightRail({ title = "Analyst Commentary", insights }: InsightR
           Request analyst-led stress testing and report review for committee-level capital decisions.
         </p>
         <a href="/contact" className={cn(buttonVariants({ size: "sm" }), "mt-3 w-full")}>
-          Request Research Desk
+          Request Expert Review
         </a>
       </div>
     </section>

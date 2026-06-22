@@ -3,13 +3,13 @@ import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { NewAnalysisIntake } from "@/components/forms/new-analysis-intake";
 
 export const metadata: Metadata = {
-  title: "Audit Import",
-  description: "Import existing strategy evidence into the research pipeline.",
+  title: "Import & Audit",
+  description: "Import existing crypto strategy evidence into Research Desk.",
 };
 
 export default function NewAnalysisPage() {
   return (
-    <AnalysisPageFrame title="Audit Import" description="Upload existing strategy evidence, inspect what it can and cannot prove, then attach the resulting analysis to a Research Program when useful.">
+    <AnalysisPageFrame title="Import & Audit" description="Upload existing crypto strategy evidence, inspect what it can and cannot prove, then attach the result to a Research Program.">
       <NewAnalysisIntake />
     </AnalysisPageFrame>
   );

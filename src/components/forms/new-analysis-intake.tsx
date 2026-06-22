@@ -73,7 +73,7 @@ export function NewAnalysisIntake() {
     setApiErrorCode(null);
     const extension = fileToInspect.name.split(".").pop()?.toLowerCase();
     if (!extension || !["csv", "zip"].includes(extension)) {
-      setClientError("Unsupported file type. Please upload a trade CSV, exchange export CSV, or optional context ZIP.");
+      setClientError("Unsupported file type. Upload a crypto trade CSV or a compatible crypto evidence ZIP.");
       return;
     }
     if (fileToInspect.size <= 0) {
@@ -81,7 +81,7 @@ export function NewAnalysisIntake() {
       return;
     }
     if (fileToInspect.size > MAX_BROWSER_UPLOAD_BYTES) {
-      setClientError("File exceeds the browser upload limit. Use a smaller evidence package or contact Research Desk.");
+    setClientError("File exceeds the browser upload limit. Use a smaller evidence package or request Expert Review.");
       return;
     }
 
@@ -328,7 +328,7 @@ export function NewAnalysisIntake() {
                 <div>
                   <p className="text-sm font-medium text-text-institutional">Claims to test</p>
                   <p className="mt-1 text-xs leading-5 text-text-neutral">
-                    State what you believe this artifact proves. These claims are carried into the assumption ledger, proof report, share room, and Research Desk packet.
+                    State what you believe this artifact proves. These claims are carried into the assumption ledger, proof report, share room, and any Expert Review packet you request.
                   </p>
                 </div>
                 <span className="rounded-full border border-border-subtle bg-surface-white px-2.5 py-1 text-xs text-text-neutral">{declaredClaims.length}/8 claims</span>
@@ -459,7 +459,7 @@ export function NewAnalysisIntake() {
                 model={buildDiagnosticLockModel({
                   state: "plan_locked",
                   diagnosticTitle: "Context ZIP Upload",
-                  diagnosticPurpose: "Upload optional context bundles for stronger provenance and Research Desk packet quality.",
+                  diagnosticPurpose: "Upload optional context bundles for stronger provenance and Expert Review packet quality.",
                   requiredPlan: "Explorer",
                 })}
               />
@@ -564,7 +564,7 @@ function eligibilityTiles(inspection: UploadInspectionResponse, runtime: { hasRu
 }
 
 function diagnosticLimitedDetail(diagnostic: DiagnosticName) {
-  if (diagnostic === "execution") return "The Lab can show assumptions and sensitivity, but broker-level realism needs richer execution evidence or Research Desk review.";
+  if (diagnostic === "execution") return "Import & Audit can show assumptions and sensitivity, but broker-level realism needs richer execution evidence or Expert Review.";
   if (diagnostic === "prop_evaluation_readiness") return "Fallback rules can be used. Add exact prop rules for a decision-grade prop evaluation.";
   if (diagnostic === "monte_carlo" || diagnostic === "ruin") return "Path stress is available, but confidence depends on trade count, sizing fields, and explicit risk assumptions.";
   return "The diagnostic can be shown, but the report will carry explicit caveats.";
@@ -668,16 +668,7 @@ function suggestBenchmarkFromInspection(inspection: UploadInspectionResponse | n
   if (text.includes("crypto") || text.includes("btc") || text.includes("eth")) {
     return { id: "BTC", reason: "Detected crypto strategy context." };
   }
-  if (text.includes("equit") || text.includes("stock") || text.includes("spy")) {
-    return { id: "SPY", reason: "Detected equities strategy context." };
-  }
-  if (text.includes("metal") || text.includes("gold") || text.includes("xau")) {
-    return { id: "XAUUSD", reason: "Detected metals strategy context." };
-  }
-  if (text.includes("macro") || text.includes("fx") || text.includes("forex") || text.includes("dxy")) {
-    return { id: "DXY", reason: "Detected macro/fx strategy context." };
-  }
-  return { id: null, reason: "Low confidence detection; benchmark will remain disabled unless manually selected." };
+  return { id: null, reason: "Crypto context was not detected with enough confidence; benchmark comparison will remain disabled." };
 }
 
 function parsePositiveNumber(value: string): number | undefined {

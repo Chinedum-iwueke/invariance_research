@@ -89,7 +89,7 @@ export function SpecApprovalPanel({ programId, briefs, hypothesisVersions, strat
         <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">B3</p>
+              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Hypothesis</p>
               <h3 className="mt-1 font-medium text-text-institutional">Hypothesis spec</h3>
             </div>
             {latestHypothesis ? <Pill tone={latestHypothesis.validation_errors.length ? "warn" : latestHypothesis.status === "approved_for_strategy_generation" ? "good" : "neutral"}>{latestHypothesis.status.replace(/_/g, " ")}</Pill> : <Pill>not drafted</Pill>}
@@ -140,7 +140,7 @@ export function SpecApprovalPanel({ programId, briefs, hypothesisVersions, strat
         <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">B4</p>
+              <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Strategy contract</p>
               <h3 className="mt-1 font-medium text-text-institutional">Strategy spec</h3>
             </div>
             {latestStrategy ? <Pill tone={latestStrategy.validation_errors.length ? "warn" : latestStrategy.status === "approved_for_execution" ? "good" : "neutral"}>{latestStrategy.status.replace(/_/g, " ")}</Pill> : <Pill>not proposed</Pill>}
@@ -167,9 +167,9 @@ export function SpecApprovalPanel({ programId, briefs, hypothesisVersions, strat
       <div className="rounded-md border border-border-subtle bg-surface-white p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">B5</p>
+            <p className="font-provenance text-[10px] uppercase tracking-[0.12em] text-text-neutral">Falsification plan</p>
             <h3 className="mt-1 font-medium text-text-institutional">Experiment plan and queue</h3>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-neutral">Turn an approved strategy spec into baseline, cost, slippage, parameter, holdout, benchmark, and state-split falsification jobs. Execution starts in B6; this phase makes the queue durable and governed.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-neutral">Turn an approved strategy spec into baseline, cost, slippage, parameter, holdout, benchmark, and state-split falsification jobs. Only approved plans can enter the durable experiment queue.</p>
           </div>
           {latestPlan ? <Pill tone={latestPlan.status === "queued" ? "good" : "neutral"}>{latestPlan.status}</Pill> : <Pill>not planned</Pill>}
         </div>

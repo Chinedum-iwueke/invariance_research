@@ -26,7 +26,7 @@ export default function PricingPage() {
             eyebrow="Pricing"
             title="Research throughput plans"
             description="Start with a small research program. Upgrade when you need more hypotheses, queued experiments, compute units, assistant calls, memory, reports, shares, or Research Desk escalation."
-            primaryCta={{ label: "Request Research Desk", href: "/contact" }}
+            primaryCta={{ label: "Request Expert Review", href: "/contact" }}
             secondaryCta={{ label: "Explore Lab", href: "/signup" }}
             artifactVariant="lab"
           />
@@ -41,7 +41,7 @@ export default function PricingPage() {
           <SectionHeader title="Plan Comparison" description="Capability matrix for research throughput, assistant usage, memory retention, audit imports, reports, share links, and Research Desk escalation." />
           <PlanComparisonTable />
           <Card className="p-card-md text-sm leading-6 text-text-neutral">
-            Research Desk is the escalation path when automated experiments or audit imports cannot honestly support true parameter stability, multi-asset regime attribution, broker-level execution realism, strategy reconstruction, portfolio exposure analysis, or an independent validation memo. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>
+            Expert Review is the escalation path when automated experiments or imports cannot honestly support true parameter stability, multi-symbol state attribution, exchange-level execution realism, strategy reconstruction, portfolio exposure analysis, or an independent validation memo. <Link href="/contact" className="font-medium text-brand">Discuss scope.</Link>
           </Card>
         </section>
 
@@ -50,7 +50,7 @@ export default function PricingPage() {
             title="Start with one falsifiable research program"
             description="Use imports when they help, but keep the operating loop focused on thesis, hypothesis, experiment, verdict, memory, and the next test."
             primary={{ label: "Sign Up", href: "/signup" }}
-            secondary={{ label: "Request Research Desk", href: "/contact" }}
+            secondary={{ label: "Request Expert Review", href: "/contact" }}
           />
         </section>
       </main>

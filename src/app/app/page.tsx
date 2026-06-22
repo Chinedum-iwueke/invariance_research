@@ -12,8 +12,8 @@ import { listAnalyses } from "@/lib/server/services/analysis-service";
 import { listResearchPrograms } from "@/lib/server/research-programs/service";
 
 export const metadata: Metadata = {
-  title: "Workspace",
-  description: "Authenticated research pipeline workspace.",
+  title: "Research Desk",
+  description: "Crypto strategy research programs, experiments, evidence, and memory.",
 };
 
 export default async function AppHomePage() {
@@ -28,15 +28,15 @@ export default async function AppHomePage() {
 
   return (
     <AnalysisPageFrame
-      title="Research Workspace"
-      description="A command surface for turning market intuition into research programs, falsification runs, durable memory, and validation artifacts."
+      title="Research Desk"
+      description="Turn crypto market intuition into research programs, falsification runs, durable memory, and validation artifacts."
     >
       <section className="artifact-surface overflow-hidden rounded-md border border-border-subtle bg-surface-white shadow-sm">
         <div className="grid gap-5 bg-surface-subtle px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="font-provenance text-[10px] uppercase tracking-[0.14em] text-research-red">Current operating picture</p>
             <h2 className="font-display mt-2 text-[clamp(2rem,5vw,4rem)] font-medium leading-none text-text-institutional">
-              {programs[0]?.title ?? latestCompleted?.strategy_name ?? "Research pipeline"}
+              {programs[0]?.title ?? latestCompleted?.strategy_name ?? "Start with a crypto thesis"}
             </h2>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-text-neutral">
               This workspace is organized around research programs first. Upload audits remain available as imported evidence, but the durable product loop is thesis, hypothesis, experiment, verdict, memory, and report.
@@ -70,7 +70,7 @@ export default async function AppHomePage() {
       </WorkspaceCard>
 
       <div className="grid gap-4 2xl:grid-cols-[1.15fr_0.85fr]">
-        <WorkspaceCard title="Research flow" subtitle="The product path from thesis to evidence-backed decision" note="Approach A upload audits now operate as import mode inside the larger research pipeline.">
+        <WorkspaceCard title="Research flow" subtitle="The path from thesis to an evidence-backed decision" note="Existing evidence can be imported at any point and attached to the relevant program.">
           <div className="grid gap-3 text-sm text-text-neutral md:grid-cols-3">
             <div className="rounded-md border border-border-subtle bg-surface-subtle p-3">
               <p className="font-medium text-text-institutional">1. Start a program</p>

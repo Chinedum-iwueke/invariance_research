@@ -9,8 +9,9 @@ import {
   FileText,
   Gauge,
   GitBranch,
+  Home,
   Inbox,
-  ListChecks ,
+  ListChecks,
   Network,
   Settings,
   ShieldAlert,
@@ -26,14 +27,21 @@ export interface AppNavItem {
   locked?: boolean;
 }
 
-const baseSecondaryItems: AppNavItem[] = [
-  { key: "workspace:home", label: "Workspace Home", href: "/app", icon: Sigma },
-  { key: "workspace:programs", label: "Research Programs", href: "/app/programs", icon: GitBranch },
-  { key: "workspace:queue", label: "Experiment Queue", href: "/app/queue", icon: Network },
+const primaryItems: AppNavItem[] = [
+  { key: "workspace:new-research", label: "New Research", href: "/", icon: Sigma },
+  { key: "workspace:home", label: "Research Desk", href: "/app", icon: Home },
+  { key: "workspace:programs", label: "Programs", href: "/app/programs", icon: GitBranch },
   { key: "workspace:memory", label: "Memory", href: "/app/memory", icon: BrainCircuit },
-  { key: "workspace:reports", label: "Program Reports", href: "/app/reports", icon: FileText },
-  { key: "workspace:new-analysis", label: "Audit Import", href: "/app/new-analysis", icon: Inbox },
-  { key: "workspace:analyses", label: "Audit Analyses", href: "/app/analyses", icon: ListChecks },
+  { key: "workspace:reports", label: "Reports", href: "/app/reports", icon: FileText },
+];
+
+const researchToolItems: AppNavItem[] = [
+  { key: "workspace:queue", label: "Experiment Queue", href: "/app/queue", icon: Network },
+  { key: "workspace:new-analysis", label: "Import & Audit", href: "/app/new-analysis", icon: Inbox },
+  { key: "workspace:analyses", label: "Audit Library", href: "/app/analyses", icon: ListChecks },
+];
+
+const accountItems: AppNavItem[] = [
   { key: "workspace:billing", label: "Billing & Plan", href: "/app/billing", icon: CreditCard },
   { key: "workspace:upgrade", label: "Upgrade", href: "/app/upgrade", icon: ArrowUpCircle },
   { key: "workspace:settings", label: "Settings", href: "/app/settings", icon: Settings },
@@ -59,6 +67,10 @@ export function getAnalysisWorkflowItems(activeAnalysisId?: string): AppNavItem[
   ];
 }
 
-export function getAppSecondaryItems(isAdmin: boolean): AppNavItem[] {
-  return isAdmin ? [...baseSecondaryItems, adminSecondaryItem] : baseSecondaryItems;
+export function getAppNavigationGroups(isAdmin: boolean) {
+  return {
+    primary: primaryItems,
+    tools: researchToolItems,
+    account: isAdmin ? [...accountItems, adminSecondaryItem] : accountItems,
+  };
 }
