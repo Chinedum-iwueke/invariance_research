@@ -27,7 +27,7 @@ export type ObjectStorageMetadata = {
 };
 
 export type ObjectStoragePutInput = {
-  bucket: "uploads" | "exports" | "analysis-artifacts" | "reports" | "publications" | "publication-covers";
+  bucket: "uploads" | "exports" | "analysis-artifacts" | "reports" | "publications" | "publication-covers" | "research-sources";
   file_name: string;
   content_type: string;
   bytes: Uint8Array;

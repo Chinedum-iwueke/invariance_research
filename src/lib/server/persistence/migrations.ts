@@ -1011,5 +1011,157 @@ export const migrations = [
       ALTER TABLE usage_snapshots ADD COLUMN research_desk_requests INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 27,
+    name: "conversational_research_copilot",
+    sql: `
+      CREATE TABLE IF NOT EXISTS research_conversations (
+        conversation_id TEXT PRIMARY KEY,
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_messages (
+        message_id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        parts_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        reply_to_message_id TEXT REFERENCES research_messages(message_id),
+        created_by_user_id TEXT REFERENCES users(user_id),
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_turns (
+        turn_id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        user_message_id TEXT NOT NULL REFERENCES research_messages(message_id),
+        assistant_message_id TEXT REFERENCES research_messages(message_id),
+        provider TEXT NOT NULL,
+        model TEXT,
+        prompt_version TEXT NOT NULL,
+        tool_version TEXT NOT NULL,
+        status TEXT NOT NULL,
+        mode TEXT,
+        prompt_tokens INTEGER,
+        completion_tokens INTEGER,
+        duration_ms INTEGER,
+        error_code TEXT,
+        created_at TEXT NOT NULL,
+        completed_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS research_sources (
+        source_id TEXT PRIMARY KEY,
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        source_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        canonical_url TEXT,
+        file_name TEXT,
+        content_type TEXT NOT NULL,
+        storage_key TEXT,
+        checksum_sha256 TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        metadata_json TEXT NOT NULL,
+        error_summary TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_source_chunks (
+        chunk_id TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL REFERENCES research_sources(source_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        chunk_index INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        anchor_json TEXT NOT NULL,
+        token_estimate INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(source_id, chunk_index)
+      );
+
+      CREATE TABLE IF NOT EXISTS conversation_context_snapshots (
+        context_snapshot_id TEXT PRIMARY KEY,
+        turn_id TEXT NOT NULL REFERENCES research_turns(turn_id),
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        included_message_ids_json TEXT NOT NULL,
+        included_source_chunks_json TEXT NOT NULL,
+        included_artifact_ids_json TEXT NOT NULL,
+        token_estimate INTEGER NOT NULL,
+        policy_version TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS research_tool_calls (
+        tool_call_id TEXT PRIMARY KEY,
+        turn_id TEXT NOT NULL REFERENCES research_turns(turn_id),
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        tool_name TEXT NOT NULL,
+        arguments_json TEXT NOT NULL,
+        result_json TEXT,
+        authorization_decision TEXT NOT NULL,
+        status TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        error_code TEXT,
+        created_at TEXT NOT NULL,
+        completed_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS research_proposals (
+        proposal_id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        source_message_id TEXT NOT NULL REFERENCES research_messages(message_id),
+        proposal_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        title TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        provenance_json TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        content_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        confirmed_at TEXT,
+        confirmed_by_user_id TEXT REFERENCES users(user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS research_decisions (
+        decision_id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES research_conversations(conversation_id),
+        program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        proposal_id TEXT REFERENCES research_proposals(proposal_id),
+        actor_user_id TEXT NOT NULL REFERENCES users(user_id),
+        decision_type TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_research_conversations_program_updated ON research_conversations(program_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_messages_conversation_created ON research_messages(conversation_id, created_at ASC);
+      CREATE INDEX IF NOT EXISTS idx_research_turns_account_created ON research_turns(account_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_sources_program_created ON research_sources(program_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_source_chunks_source ON research_source_chunks(source_id, chunk_index);
+      CREATE INDEX IF NOT EXISTS idx_research_proposals_program_status ON research_proposals(program_id, status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_research_tool_calls_account_created ON research_tool_calls(account_id, created_at DESC);
+    `,
+  },
 
 ];

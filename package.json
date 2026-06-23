@@ -17,7 +17,8 @@
     "benchmarks:weekly": "npm run benchmarks:update && npm run benchmarks:sync-object-storage",
     "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",
-    "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts tests/b6-experiment-executor.test.ts tests/b8-research-memory.test.ts tests/b9-program-workbench.test.ts tests/b10-program-report.test.ts tests/b11-research-economics.test.ts tests/b12-production-ops.test.ts tests/c0-product-contraction.test.ts"
+    "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts tests/b6-experiment-executor.test.ts tests/b8-research-memory.test.ts tests/b9-program-workbench.test.ts tests/b10-program-report.test.ts tests/b11-research-economics.test.ts tests/b12-production-ops.test.ts tests/c0-product-contraction.test.ts",
+    "test:c0.5": "tsx --test --test-concurrency=1 tests/c0_5-conversational-copilot.test.ts tests/c0_5-copilot-integration.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.911.0",
@@ -27,8 +28,9 @@
     "echarts": "^5.6.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.469.0",
-    "next": "^15.1.11",
+    "next": "^15.5.19",
     "next-auth": "^5.0.0-beta.25",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.20.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -38,11 +40,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/pdf-parse": "^1.1.4",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
-    "eslint-config-next": "15.1.0",
+    "eslint-config-next": "^15.5.19",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "tsx": "^4.19.2",

@@ -7,7 +7,7 @@ import { AnalysisStatusBadge } from "@/components/dashboard/analysis-status-badg
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
-import { IdeaIntakePanel } from "@/components/research-programs/idea-intake-panel";
+import { ResearchCopilot } from "@/components/research-programs/research-copilot";
 import { ExperimentVerdictCards } from "@/components/research-programs/experiment-verdict-cards";
 import { ProgramWorkbenchOverview } from "@/components/research-programs/program-workbench-overview";
 import { ResearchMemoryPanel } from "@/components/research-programs/research-memory-panel";
@@ -20,6 +20,7 @@ import {
   listAttachableAnalysesForProgram,
 } from "@/lib/server/research-programs/service";
 import { buildProgramWorkbenchSummary } from "@/lib/server/research-programs/workbench";
+import { getProgramConversationDetail } from "@/lib/server/research-copilot/service";
 
 export const metadata: Metadata = {
   title: "Research Program",
@@ -32,6 +33,8 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   const detail = await getResearchProgramDetail(id, session.account_id);
   if (!detail) notFound();
   const attachableAnalyses = await listAttachableAnalysesForProgram(id, session.account_id);
+  const conversationDetail = await getProgramConversationDetail({ programId: id, accountId: session.account_id, userId: session.user_id });
+  if (!conversationDetail) notFound();
 
   async function attachAnalysisAction(formData: FormData) {
     "use server";
@@ -50,7 +53,6 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
   }
 
   const { program } = detail;
-  const latestBrief = detail.research_briefs[0];
   const workbenchSummary = buildProgramWorkbenchSummary(detail);
 
   return (
@@ -88,12 +90,14 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
         <ProgramWorkbenchOverview programId={program.program_id} summary={workbenchSummary} />
       </WorkspaceCard>
 
-      <WorkspaceCard
-        title="Idea intake and clarification"
-        subtitle="Turn raw English intuition into a structured research brief before any hypothesis or engine run."
-      >
-        <IdeaIntakePanel programId={program.program_id} latestBrief={latestBrief} />
-      </WorkspaceCard>
+      <section aria-label="Research copilot">
+        <ResearchCopilot programId={program.program_id} initialDetail={conversationDetail} />
+      </section>
+
+      <details className="rounded-md border border-border-subtle bg-surface-white px-5 py-4">
+        <summary className="cursor-pointer text-sm font-medium text-text-institutional">Advanced structured intake</summary>
+        <p className="mt-3 text-sm leading-6 text-text-neutral">The previous form-led intake remains available through the clarification API for compatibility while the conversation becomes the default research surface.</p>
+      </details>
 
       <div id="hypothesis-approval">
         <WorkspaceCard

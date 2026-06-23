@@ -19,6 +19,16 @@ export default async function AdminHealthPage() {
         <AdminStatCard label="Overdue processing" value={String((snapshot.jobs as { overdue_processing?: number }).overdue_processing ?? 0)} />
         <AdminStatCard label="Rate-limit events (1h)" value={String(snapshot.rate_limit_events_last_hour)} />
         <AdminStatCard label="Benchmark cache" value={snapshot.benchmark_manifest_cache.cached ? "warm" : "cold"} />
+        <AdminStatCard label="Copilot turns (24h)" value={String(snapshot.copilot.turns_24h)} />
+        <AdminStatCard label="Copilot failures (24h)" value={String(snapshot.copilot.failed_turns_24h)} />
+        <AdminStatCard label="Source failures (24h)" value={String(snapshot.copilot.ingestion_failures_24h)} />
+        <AdminStatCard label="Pending proposals" value={String(snapshot.copilot.pending_proposals)} />
+        <AdminStatCard label="Tool failures (24h)" value={String(snapshot.copilot.failed_tool_calls_24h)} />
+        <AdminStatCard label="LLM tokens (24h)" value={String(snapshot.copilot.prompt_tokens_24h + snapshot.copilot.completion_tokens_24h)} />
+        <AdminStatCard label="Average turn" value={`${snapshot.copilot.average_duration_ms_24h} ms`} />
+        <AdminStatCard label="Estimated LLM cost (24h)" value={`$${snapshot.copilot.estimated_cost_usd_24h.toFixed(2)}`} />
+        <AdminStatCard label="LLM provider" value={snapshot.llm.enabled ? snapshot.llm.provider : "deterministic"} />
+        <AdminStatCard label="LLM circuit" value={snapshot.llm.circuit} />
       </div>
       <div className="rounded-sm border border-border-subtle bg-surface-panel/40 p-3 text-xs text-text-neutral">
         <p className="font-semibold text-text-institutional">Operation controls</p>

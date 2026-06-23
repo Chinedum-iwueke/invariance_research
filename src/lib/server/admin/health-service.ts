@@ -3,6 +3,8 @@ import { getBenchmarkManifestCacheStatus } from "@/lib/benchmarks/benchmark-libr
 import { countRecentRateLimitEvents } from "@/lib/server/rate-limits";
 import { listAdminJobs } from "@/lib/server/admin/jobs-service";
 import { getOperationControls } from "@/lib/server/ops/operations-policy";
+import { getResearchAssistantProviderHealth } from "@/lib/server/llm/chat-provider";
+import { researchCopilotRepository } from "@/lib/server/research-copilot/repository";
 
 export async function getAdminHealthSnapshot() {
   const snapshot = await getHealthSnapshot();
@@ -14,6 +16,7 @@ export async function getAdminHealthSnapshot() {
   const analysisWorker = snapshot.checks.find((check) => check.name === "analysis_worker");
   const exportWorker = snapshot.checks.find((check) => check.name === "export_worker");
   const experimentWorker = snapshot.checks.find((check) => check.name === "experiment_worker");
+  const copilot = await researchCopilotRepository.getOpsSnapshot().catch(() => ({ turns_24h: 0, failed_turns_24h: 0, ingestion_failures_24h: 0, pending_proposals: 0, failed_tool_calls_24h: 0, prompt_tokens_24h: 0, completion_tokens_24h: 0, average_duration_ms_24h: 0, estimated_cost_usd_24h: 0 }));
   return {
     ...snapshot,
     startup_validation_state: snapshot.status,
@@ -28,6 +31,7 @@ export async function getAdminHealthSnapshot() {
     jobs: jobs.summary,
     rate_limit_events_last_hour: rateLimitEventsLastHour,
     benchmark_manifest_cache: benchmarkManifestCache,
-    llm_fallback_failures: "log_only",
+    llm: getResearchAssistantProviderHealth(),
+    copilot,
   };
 }

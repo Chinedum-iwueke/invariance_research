@@ -21,6 +21,10 @@ export function buildExperimentArtifactObjectKey(input: { accountId: string; pro
   return `analysis-artifacts/${safeSegment(input.accountId)}/programs/${safeSegment(input.programId)}/experiments/${safeSegment(input.jobId)}/${normalizeFileName(input.fileName)}`;
 }
 
+export function buildResearchSourceObjectKey(input: { accountId: string; programId: string; sourceId: string; fileName: string }) {
+  return `research-sources/${safeSegment(input.accountId)}/${safeSegment(input.programId)}/${safeSegment(input.sourceId)}/${normalizeFileName(input.fileName)}`;
+}
+
 export function buildReportObjectKey(input: { accountId: string; analysisId: string; fileName: string }) {
   return `reports/${safeSegment(input.accountId)}/${safeSegment(input.analysisId)}/${normalizeFileName(input.fileName)}`;
 }
