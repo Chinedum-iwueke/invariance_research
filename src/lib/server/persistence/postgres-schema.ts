@@ -962,6 +962,300 @@ CREATE INDEX IF NOT EXISTS idx_research_source_chunks_source ON research_source_
 CREATE INDEX IF NOT EXISTS idx_research_proposals_program_status ON research_proposals(program_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_research_tool_calls_account_created ON research_tool_calls(account_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS program_lifecycle_events (
+  event_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  schema_version TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  occurred_at TIMESTAMPTZ NOT NULL,
+  stage TEXT NOT NULL,
+  identity_json JSONB NOT NULL,
+  payload_json JSONB NOT NULL,
+  actor_json JSONB NOT NULL,
+  event_hash TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_program_lifecycle_program_time ON program_lifecycle_events(program_id, occurred_at ASC);
+CREATE INDEX IF NOT EXISTS idx_program_lifecycle_account_type ON program_lifecycle_events(account_id, event_type, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS hypothesis_cards (
+  card_record_id TEXT PRIMARY KEY,
+  card_id TEXT NOT NULL,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  source_proposal_id TEXT REFERENCES research_proposals(proposal_id),
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  card_json JSONB NOT NULL,
+  card_hash TEXT NOT NULL,
+  validation_errors_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  created_at TIMESTAMPTZ NOT NULL,
+  confirmed_at TIMESTAMPTZ,
+  confirmed_by_user_id TEXT REFERENCES users(user_id),
+  UNIQUE(card_id, version),
+  UNIQUE(program_id, card_hash)
+);
+
+CREATE TABLE IF NOT EXISTS research_spec_bundles (
+  spec_bundle_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  card_record_id TEXT NOT NULL REFERENCES hypothesis_cards(card_record_id),
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  bundle_json JSONB NOT NULL,
+  bundle_hash TEXT NOT NULL,
+  compile_status TEXT NOT NULL,
+  compiler_version TEXT NOT NULL,
+  validation_errors_json JSONB NOT NULL,
+  generated_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  generated_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  approved_by_user_id TEXT REFERENCES users(user_id),
+  UNIQUE(card_record_id, version),
+  UNIQUE(program_id, bundle_hash)
+);
+
+CREATE TABLE IF NOT EXISTS strategy_implementation_tasks (
+  task_id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  spec_bundle_id TEXT NOT NULL REFERENCES research_spec_bundles(spec_bundle_id),
+  status TEXT NOT NULL,
+  task_json JSONB NOT NULL,
+  evidence_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ,
+  approved_by_user_id TEXT REFERENCES users(user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_hypothesis_cards_program_version ON hypothesis_cards(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_spec_bundles_program_version ON research_spec_bundles(program_id, generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_implementation_tasks_program_status ON strategy_implementation_tasks(program_id, status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS deployment_qualifications (
+  qualification_id TEXT PRIMARY KEY, program_id TEXT NOT NULL REFERENCES research_programs(program_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  spec_bundle_id TEXT NOT NULL REFERENCES research_spec_bundles(spec_bundle_id), experiment_job_id TEXT, status TEXT NOT NULL,
+  strategy_spec_hash TEXT NOT NULL, risk_policy_hash TEXT NOT NULL, config_hash TEXT NOT NULL, snapshot_hash TEXT NOT NULL UNIQUE,
+  snapshot_json JSONB NOT NULL, created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL,
+  approved_at TIMESTAMPTZ, approved_by_user_id TEXT REFERENCES users(user_id)
+);
+CREATE TABLE IF NOT EXISTS program_artifact_catalog (
+  catalog_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  artifact_type TEXT NOT NULL, object_id TEXT NOT NULL, sensitivity TEXT NOT NULL, content_hash TEXT NOT NULL,
+  lineage_json JSONB NOT NULL, summary TEXT NOT NULL, searchable_text TEXT NOT NULL, anchors_json JSONB NOT NULL, table_schema_json JSONB NOT NULL,
+  query_payload_json JSONB NOT NULL, units_json JSONB NOT NULL, storage_key TEXT, status TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(program_id, artifact_type, object_id, content_hash)
+);
+CREATE TABLE IF NOT EXISTS artifact_context_snapshots (
+  artifact_context_snapshot_id TEXT PRIMARY KEY, turn_id TEXT NOT NULL REFERENCES research_turns(turn_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program_id TEXT NOT NULL REFERENCES research_programs(program_id), query_json JSONB NOT NULL, result_json JSONB NOT NULL,
+  included_catalog_ids_json JSONB NOT NULL, token_estimate INTEGER NOT NULL, truncated BOOLEAN NOT NULL, policy_version TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pine_exports (
+  pine_export_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  spec_bundle_id TEXT NOT NULL REFERENCES research_spec_bundles(spec_bundle_id), status TEXT NOT NULL, compatibility_status TEXT NOT NULL,
+  parity_status TEXT NOT NULL, bundle_hash TEXT NOT NULL, storage_prefix TEXT NOT NULL, manifest_json JSONB NOT NULL,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL, superseded_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS pine_export_jobs (
+  pine_export_job_id TEXT PRIMARY KEY, pine_export_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  spec_bundle_id TEXT NOT NULL REFERENCES research_spec_bundles(spec_bundle_id), status TEXT NOT NULL, progress_pct INTEGER NOT NULL,
+  error_code TEXT, created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL,
+  started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS pine_imports (
+  pine_import_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  source_hash TEXT NOT NULL, storage_key TEXT NOT NULL, report_json JSONB NOT NULL, status TEXT NOT NULL, created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pine_parity_results (
+  parity_result_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  pine_export_id TEXT NOT NULL REFERENCES pine_exports(pine_export_id), report_json JSONB NOT NULL, verdict TEXT NOT NULL, report_hash TEXT NOT NULL UNIQUE,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tradingview_webhook_credentials (
+  credential_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  pine_export_id TEXT NOT NULL REFERENCES pine_exports(pine_export_id), token_hash TEXT NOT NULL UNIQUE, status TEXT NOT NULL, expires_at TIMESTAMPTZ,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id), created_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS tradingview_signal_observations (
+  observation_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  pine_export_id TEXT NOT NULL REFERENCES pine_exports(pine_export_id), idempotency_key TEXT NOT NULL UNIQUE, payload_hash TEXT NOT NULL,
+  observation_json JSONB NOT NULL, verification_status TEXT NOT NULL, received_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_qualifications_program_created ON deployment_qualifications(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_artifact_catalog_program_type ON program_artifact_catalog(program_id, artifact_type, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_artifact_context_turn ON artifact_context_snapshots(turn_id);
+CREATE INDEX IF NOT EXISTS idx_pine_exports_program_created ON pine_exports(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pine_export_jobs_program_created ON pine_export_jobs(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pine_export_jobs_status_created ON pine_export_jobs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_pine_credentials_export_status ON tradingview_webhook_credentials(pine_export_id, status);
+CREATE INDEX IF NOT EXISTS idx_pine_observations_export_received ON tradingview_signal_observations(pine_export_id, received_at DESC);
+
+CREATE TABLE IF NOT EXISTS exchange_connectors (
+  connector_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  venue TEXT NOT NULL, environment TEXT NOT NULL, label TEXT NOT NULL, status TEXT NOT NULL,
+  credential_ciphertext TEXT NOT NULL, credential_key_version TEXT NOT NULL, api_key_hint TEXT NOT NULL,
+  permissions_json JSONB NOT NULL, doctor_json JSONB NOT NULL, last_checked_at TIMESTAMPTZ, last_used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL, product_type TEXT NOT NULL DEFAULT 'perpetual',
+  UNIQUE(account_id, venue, environment, label)
+);
+CREATE TABLE IF NOT EXISTS strategy_deployments (
+  deployment_id TEXT PRIMARY KEY, program_id TEXT NOT NULL REFERENCES research_programs(program_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  connector_id TEXT NOT NULL REFERENCES exchange_connectors(connector_id), qualification_id TEXT NOT NULL REFERENCES deployment_qualifications(qualification_id),
+  venue TEXT NOT NULL, environment TEXT NOT NULL, status TEXT NOT NULL, symbols_json JSONB NOT NULL,
+  strategy_spec_hash TEXT NOT NULL, risk_policy_hash TEXT NOT NULL, config_hash TEXT NOT NULL,
+  risk_policy_json JSONB NOT NULL, live_canary_approved BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by_user_id TEXT NOT NULL REFERENCES users(user_id), approved_by_user_id TEXT, approved_at TIMESTAMPTZ,
+  last_heartbeat_at TIMESTAMPTZ, last_reconciled_at TIMESTAMPTZ, frozen_reason TEXT, started_at TIMESTAMPTZ, stopped_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL, product_type TEXT NOT NULL DEFAULT 'perpetual'
+);
+CREATE TABLE IF NOT EXISTS deployment_commands (
+  command_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), command_type TEXT NOT NULL, status TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL UNIQUE, payload_json JSONB NOT NULL, requested_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+  available_at TIMESTAMPTZ NOT NULL, leased_until TIMESTAMPTZ, attempt_count INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 3,
+  error_code TEXT, created_at TIMESTAMPTZ NOT NULL, processed_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS deployment_events (
+  deployment_event_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), event_type TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE,
+  correlation_id TEXT NOT NULL, causation_id TEXT, payload_json JSONB NOT NULL, occurred_at TIMESTAMPTZ NOT NULL, ingested_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deployment_projections (
+  deployment_id TEXT PRIMARY KEY REFERENCES strategy_deployments(deployment_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  health_json JSONB NOT NULL, balances_json JSONB NOT NULL, positions_json JSONB NOT NULL, orders_json JSONB NOT NULL, fills_json JSONB NOT NULL,
+  incidents_json JSONB NOT NULL, snapshot_hash TEXT NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exchange_connectors_account ON exchange_connectors(account_id, venue, environment, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deployments_program ON strategy_deployments(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deployment_commands_claim ON deployment_commands(status, available_at, leased_until);
+CREATE INDEX IF NOT EXISTS idx_deployment_events_timeline ON deployment_events(deployment_id, occurred_at DESC);
+ALTER TABLE exchange_connectors ADD COLUMN IF NOT EXISTS product_type TEXT NOT NULL DEFAULT 'perpetual';
+ALTER TABLE strategy_deployments ADD COLUMN IF NOT EXISTS product_type TEXT NOT NULL DEFAULT 'perpetual';
+CREATE INDEX IF NOT EXISTS idx_exchange_connectors_product ON exchange_connectors(account_id, venue, environment, product_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deployments_product ON strategy_deployments(account_id, venue, environment, product_type, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS decision_state_snapshots (
+  state_snapshot_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  stage TEXT NOT NULL, strategy_spec_hash TEXT NOT NULL, run_id TEXT, deployment_id TEXT, symbol TEXT NOT NULL,
+  decision_at TIMESTAMPTZ NOT NULL, captured_at TIMESTAMPTZ NOT NULL, features_json JSONB NOT NULL, feature_timestamps_json JSONB NOT NULL,
+  missing_features_json JSONB NOT NULL, provenance_json JSONB NOT NULL, future_enriched BOOLEAN NOT NULL DEFAULT FALSE,
+  snapshot_hash TEXT NOT NULL UNIQUE, created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS trade_episodes (
+  episode_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  stage TEXT NOT NULL, run_id TEXT, deployment_id TEXT, strategy_spec_hash TEXT NOT NULL, venue TEXT, environment TEXT, product_type TEXT NOT NULL,
+  symbol TEXT NOT NULL, side TEXT NOT NULL, opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ, quantity DOUBLE PRECISION NOT NULL,
+  entry_price DOUBLE PRECISION, exit_price DOUBLE PRECISION, gross_pnl DOUBLE PRECISION, fees DOUBLE PRECISION NOT NULL DEFAULT 0, net_pnl DOUBLE PRECISION,
+  status TEXT NOT NULL, decision_state_snapshot_id TEXT REFERENCES decision_state_snapshots(state_snapshot_id),
+  source_event_ids_json JSONB NOT NULL, source_fill_ids_json JSONB NOT NULL, data_quality_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS trade_memory_fill_ledger (
+  fill_identity TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  deployment_id TEXT NOT NULL, episode_id TEXT, fill_json JSONB NOT NULL, processed_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS memory_assessments (
+  assessment_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  strategy_spec_hash TEXT NOT NULL, current_state_snapshot_id TEXT NOT NULL REFERENCES decision_state_snapshots(state_snapshot_id),
+  assessment TEXT NOT NULL, reason_codes_json JSONB NOT NULL, support_count INTEGER NOT NULL, strategy_support_count INTEGER NOT NULL,
+  cross_strategy_support_count INTEGER NOT NULL, state_similarity_score DOUBLE PRECISION, drift_ratio DOUBLE PRECISION, expected_net_pnl DOUBLE PRECISION,
+  downside_p10_net_pnl DOUBLE PRECISION, empirical_positive_rate DOUBLE PRECISION, uncertainty_interval_json JSONB NOT NULL, calibration_json JSONB NOT NULL,
+  source_episode_ids_json JSONB NOT NULL, missing_state_features_json JSONB NOT NULL, advisory_only BOOLEAN NOT NULL DEFAULT TRUE,
+  outcome_episode_id TEXT REFERENCES trade_episodes(episode_id), actual_positive BOOLEAN, created_at TIMESTAMPTZ NOT NULL, calibrated_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS canonical_memory_entries (
+  canonical_memory_entry_id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(account_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  entry_type TEXT NOT NULL, source_type TEXT NOT NULL, source_id TEXT NOT NULL, status TEXT NOT NULL,
+  payload_json JSONB NOT NULL, lineage_json JSONB NOT NULL, content_hash TEXT NOT NULL,
+  confirmed_by_user_id TEXT, confirmed_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(account_id, source_type, source_id, content_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_state_snapshots_account_strategy ON decision_state_snapshots(account_id, strategy_spec_hash, decision_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trade_episodes_account_symbol ON trade_episodes(account_id, symbol, closed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trade_episodes_program_stage ON trade_episodes(program_id, stage, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memory_assessments_program_created ON memory_assessments(program_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_canonical_memory_program_type ON canonical_memory_entries(program_id, entry_type, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS deployment_promotions (
+  promotion_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), from_stage TEXT NOT NULL, to_stage TEXT NOT NULL, status TEXT NOT NULL,
+  evidence_json JSONB NOT NULL, checks_json JSONB NOT NULL, unresolved_json JSONB NOT NULL, evidence_hash TEXT NOT NULL,
+  approved_by_user_id TEXT, approved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deployment_safety_policies (
+  deployment_id TEXT PRIMARY KEY REFERENCES strategy_deployments(deployment_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  policy_json JSONB NOT NULL, policy_hash TEXT NOT NULL, status TEXT NOT NULL, approved_by_user_id TEXT, approved_at TIMESTAMPTZ,
+  kill_switch_tested_at TIMESTAMPTZ, recovery_drill_passed_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deployment_incidents (
+  incident_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), incident_type TEXT NOT NULL, severity TEXT NOT NULL, status TEXT NOT NULL,
+  summary TEXT NOT NULL, details_json JSONB NOT NULL, source_event_id TEXT, created_at TIMESTAMPTZ NOT NULL, resolved_at TIMESTAMPTZ, resolved_by_user_id TEXT
+);
+CREATE TABLE IF NOT EXISTS external_alert_deliveries (
+  alert_delivery_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL REFERENCES deployment_incidents(incident_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  channel TEXT NOT NULL, destination_hint TEXT NOT NULL, status TEXT NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+  error_code TEXT, created_at TIMESTAMPTZ NOT NULL, sent_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS deployment_recovery_drills (
+  recovery_drill_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  status TEXT NOT NULL, steps_json JSONB NOT NULL, evidence_json JSONB NOT NULL, requested_by_user_id TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL, completed_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS connector_credential_use_audit (
+  credential_use_id TEXT PRIMARY KEY, connector_id TEXT NOT NULL REFERENCES exchange_connectors(connector_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  worker_instance_id TEXT NOT NULL, purpose TEXT NOT NULL, outcome TEXT NOT NULL, used_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_promotions_deployment_created ON deployment_promotions(deployment_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_incidents_deployment_status ON deployment_incidents(deployment_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alert_deliveries_status ON external_alert_deliveries(status, created_at);
+
+CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+  portfolio_snapshot_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), source_event_id TEXT NOT NULL REFERENCES deployment_events(deployment_event_id),
+  equity DOUBLE PRECISION, available_balance DOUBLE PRECISION, margin_used DOUBLE PRECISION, realized_pnl DOUBLE PRECISION, unrealized_pnl DOUBLE PRECISION, drawdown_pct DOUBLE PRECISION,
+  exposure_json JSONB NOT NULL, risk_json JSONB NOT NULL, freshness_json JSONB NOT NULL, snapshot_hash TEXT NOT NULL UNIQUE,
+  observed_at TIMESTAMPTZ NOT NULL, ingested_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deployment_audit_actions (
+  audit_action_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), action_type TEXT NOT NULL, actor_user_id TEXT NOT NULL,
+  payload_json JSONB NOT NULL, occurred_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_program_time ON portfolio_snapshots(program_id, observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deployment_events_program_cursor ON deployment_events(program_id, occurred_at, deployment_event_id);
+
+CREATE TABLE IF NOT EXISTS memory_policy_configs (
+  memory_policy_id TEXT PRIMARY KEY, deployment_id TEXT NOT NULL UNIQUE REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), mode TEXT NOT NULL, status TEXT NOT NULL, thresholds_json JSONB NOT NULL,
+  policy_hash TEXT NOT NULL, approved_by_user_id TEXT, approved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
+);
+CREATE TABLE IF NOT EXISTS memory_policy_evaluations (
+  memory_policy_evaluation_id TEXT PRIMARY KEY, memory_policy_id TEXT NOT NULL REFERENCES memory_policy_configs(memory_policy_id),
+  deployment_id TEXT NOT NULL REFERENCES strategy_deployments(deployment_id), program_id TEXT NOT NULL REFERENCES research_programs(program_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id), assessment_id TEXT REFERENCES memory_assessments(assessment_id), order_intent_id TEXT NOT NULL,
+  mode TEXT NOT NULL, would_block BOOLEAN NOT NULL, applied_block BOOLEAN NOT NULL, reason_codes_json JSONB NOT NULL,
+  requested_quantity DOUBLE PRECISION NOT NULL, effective_quantity DOUBLE PRECISION NOT NULL, source_episode_ids_json JSONB NOT NULL,
+  outcome TEXT, false_block BOOLEAN, missed_risk BOOLEAN, evaluated_at TIMESTAMPTZ NOT NULL, resolved_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_memory_policy_eval_deployment_time ON memory_policy_evaluations(deployment_id, evaluated_at DESC);
+
+CREATE TABLE IF NOT EXISTS connector_stream_sessions (
+  stream_session_id TEXT PRIMARY KEY, connector_id TEXT NOT NULL REFERENCES exchange_connectors(connector_id), account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  venue TEXT NOT NULL, environment TEXT NOT NULL, product_type TEXT NOT NULL, status TEXT NOT NULL, private_stream_ready BOOLEAN NOT NULL,
+  last_event_at TIMESTAMPTZ, last_reconciled_at TIMESTAMPTZ, reconnect_count INTEGER NOT NULL DEFAULT 0, details_json JSONB NOT NULL, started_at TIMESTAMPTZ NOT NULL, stopped_at TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS connector_certifications (
+  connector_certification_id TEXT PRIMARY KEY, venue TEXT NOT NULL, environment TEXT NOT NULL, product_type TEXT NOT NULL,
+  adapter_version TEXT NOT NULL, status TEXT NOT NULL, checks_json JSONB NOT NULL, fault_tests_json JSONB NOT NULL,
+  certification_hash TEXT NOT NULL UNIQUE, certified_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_stream_sessions_connector_started ON connector_stream_sessions(connector_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_connector_certifications_scope ON connector_certifications(venue, environment, product_type, certified_at DESC);
+
 CREATE TABLE IF NOT EXISTS worker_heartbeats (
   worker_type TEXT NOT NULL,
   instance_id TEXT NOT NULL,

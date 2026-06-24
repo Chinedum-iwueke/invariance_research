@@ -46,6 +46,7 @@ export async function runStartupValidation(): Promise<StartupCheck[]> {
   checks.push(await getWorkerCheck("analysis"));
   checks.push(await getWorkerCheck("export"));
   checks.push(await getWorkerCheck("experiment"));
+  checks.push(await getWorkerCheck("execution"));
 
   logger.info("startup.validation.completed", { checks });
   return checks;
@@ -189,31 +190,34 @@ async function getQueueCheck(): Promise<StartupCheck> {
     const row =
       provider === "postgres"
         ? (
-            await getPostgresPool().query<{ analysis_backlog: number | string; export_backlog: number | string; experiment_backlog: number | string }>(`SELECT
+            await getPostgresPool().query<{ analysis_backlog: number | string; export_backlog: number | string; experiment_backlog: number | string; execution_backlog: number | string }>(`SELECT
       (SELECT COUNT(*)::int FROM analysis_jobs WHERE status IN ('queued','processing')) as analysis_backlog,
       (SELECT COUNT(*)::int FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog,
-      (SELECT COUNT(*)::int FROM experiment_jobs WHERE status IN ('queued','processing')) as experiment_backlog`)
+      (SELECT COUNT(*)::int FROM experiment_jobs WHERE status IN ('queued','processing')) as experiment_backlog,
+      (SELECT COUNT(*)::int FROM deployment_commands WHERE status IN ('queued','processing')) as execution_backlog`)
           ).rows[0]
         : (getSqliteRuntimeDb().prepare(`SELECT
       (SELECT COUNT(*) FROM analysis_jobs WHERE status IN ('queued','processing')) as analysis_backlog,
       (SELECT COUNT(*) FROM export_jobs WHERE status IN ('queued','processing')) as export_backlog,
-      (SELECT COUNT(*) FROM experiment_jobs WHERE status IN ('queued','processing')) as experiment_backlog`).get() as { analysis_backlog: number; export_backlog: number; experiment_backlog: number });
+      (SELECT COUNT(*) FROM experiment_jobs WHERE status IN ('queued','processing')) as experiment_backlog,
+      (SELECT COUNT(*) FROM deployment_commands WHERE status IN ('queued','processing')) as execution_backlog`).get() as { analysis_backlog: number; export_backlog: number; experiment_backlog: number; execution_backlog: number });
 
     const analysisBacklog = Number(row?.analysis_backlog ?? 0);
     const exportBacklog = Number(row?.export_backlog ?? 0);
     const experimentBacklog = Number(row?.experiment_backlog ?? 0);
-    const totalBacklog = analysisBacklog + exportBacklog + experimentBacklog;
+    const executionBacklog = Number(row?.execution_backlog ?? 0);
+    const totalBacklog = analysisBacklog + exportBacklog + experimentBacklog + executionBacklog;
     if (totalBacklog > 50) {
-      return { name: "queue", status: "degraded", detail: "queue_backlog_high", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog, experiment_backlog: experimentBacklog } };
+      return { name: "queue", status: "degraded", detail: "queue_backlog_high", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog, experiment_backlog: experimentBacklog, execution_backlog: executionBacklog } };
     }
 
-    return { name: "queue", status: "healthy", detail: "db_backed_queue", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog, experiment_backlog: experimentBacklog } };
+    return { name: "queue", status: "healthy", detail: "db_backed_queue", meta: { provider, analysis_backlog: analysisBacklog, export_backlog: exportBacklog, experiment_backlog: experimentBacklog, execution_backlog: executionBacklog } };
   } catch (error) {
     return { name: "queue", status: "unhealthy", detail: error instanceof Error ? error.message : "queue_check_error" };
   }
 }
 
-async function getWorkerCheck(workerType: "analysis" | "export" | "experiment"): Promise<StartupCheck> {
+async function getWorkerCheck(workerType: "analysis" | "export" | "experiment" | "execution"): Promise<StartupCheck> {
   const staleMs = getWorkerHeartbeatStaleMs();
   const heartbeats = await workerHeartbeatRepository.list(workerType);
   if (heartbeats.length === 0) {

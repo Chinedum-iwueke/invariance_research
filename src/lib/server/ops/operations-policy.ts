@@ -1,10 +1,11 @@
-export type QueueKind = "analysis" | "export" | "experiment";
+export type QueueKind = "analysis" | "export" | "experiment" | "execution";
 
 export type OperationControls = {
   global_paused: boolean;
   analysis_queue_paused: boolean;
   export_queue_paused: boolean;
   experiment_queue_paused: boolean;
+  execution_queue_paused: boolean;
   assistant_paused: boolean;
 };
 
@@ -19,6 +20,7 @@ export function getOperationControls(): OperationControls {
     analysis_queue_paused: globalPaused || parseBool(process.env.INVARIANCE_ANALYSIS_QUEUE_PAUSED),
     export_queue_paused: globalPaused || parseBool(process.env.INVARIANCE_EXPORT_QUEUE_PAUSED),
     experiment_queue_paused: globalPaused || parseBool(process.env.INVARIANCE_EXPERIMENT_QUEUE_PAUSED),
+    execution_queue_paused: globalPaused || parseBool(process.env.INVARIANCE_EXECUTION_QUEUE_PAUSED),
     assistant_paused: globalPaused || parseBool(process.env.INVARIANCE_ASSISTANT_PAUSED),
   };
 }
@@ -34,6 +36,7 @@ export function assertQueueAccepting(kind: QueueKind) {
   if (kind === "analysis" && controls.analysis_queue_paused) throw new Error("analysis_queue_paused");
   if (kind === "export" && controls.export_queue_paused) throw new Error("export_queue_paused");
   if (kind === "experiment" && controls.experiment_queue_paused) throw new Error("experiment_queue_paused");
+  if (kind === "execution" && controls.execution_queue_paused) throw new Error("execution_queue_paused");
 }
 
 export function assertAssistantAccepting() {
@@ -44,5 +47,6 @@ export function isOperationalPauseError(code: string) {
   return code === "analysis_queue_paused"
     || code === "export_queue_paused"
     || code === "experiment_queue_paused"
+    || code === "execution_queue_paused"
     || code === "assistant_paused";
 }

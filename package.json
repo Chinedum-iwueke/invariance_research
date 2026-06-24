@@ -10,6 +10,7 @@
     "worker:analysis": "tsx scripts/run-analysis-worker.ts",
     "worker:export": "tsx scripts/run-export-worker.ts",
     "worker:experiment": "tsx scripts/run-experiment-worker.ts",
+    "worker:execution": "tsx scripts/run-execution-worker.ts",
     "db:init:postgres": "tsx scripts/init-postgres-schema.ts",
     "usage:recalculate": "tsx scripts/recalculate-usage.ts",
     "benchmarks:update": "python3 scripts/benchmarks/update_benchmark_library.py",
@@ -18,7 +19,12 @@
     "migrate:postgres": "tsx scripts/migrate-sqlite-to-postgres.ts",
     "migrate:object-storage": "tsx scripts/migrate-local-files-to-object-storage.ts",
     "test:deployment-contracts": "tsx --test tests/deployment-readiness-contracts.test.ts tests/migration-dry-run.test.ts tests/deployment-phase2-phase3.test.ts tests/b6-experiment-executor.test.ts tests/b8-research-memory.test.ts tests/b9-program-workbench.test.ts tests/b10-program-report.test.ts tests/b11-research-economics.test.ts tests/b12-production-ops.test.ts tests/c0-product-contraction.test.ts",
-    "test:c0.5": "tsx --test --test-concurrency=1 tests/c0_5-conversational-copilot.test.ts tests/c0_5-copilot-integration.test.ts"
+    "test:c0.5": "tsx --test --test-concurrency=1 tests/c0_5-conversational-copilot.test.ts tests/c0_5-copilot-integration.test.ts",
+    "test:c1": "tsx --test --test-concurrency=1 tests/c1-c1_5-contracts.test.ts",
+    "test:c2": "tsx --test --test-concurrency=1 tests/c2-research-pipeline.test.ts"
+    ,"test:c3": "tsx --test --test-concurrency=1 tests/c3-exchange-deployment.test.ts",
+    "test:c4": "tsx --test --test-concurrency=1 tests/c4-unified-trade-memory.test.ts",
+    "test:c5-c8": "tsx --test --test-concurrency=1 tests/c5-c8-execution-command.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.911.0",
@@ -36,6 +42,7 @@
     "react-dom": "19.0.0",
     "stripe": "^17.5.0",
     "tailwind-merge": "^2.5.5",
+    "yaml": "^2.9.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

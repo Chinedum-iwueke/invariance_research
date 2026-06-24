@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { requireServerSession } from "@/lib/server/auth/session";
+import { enforceRateLimit } from "@/lib/server/rate-limits";
+import { proposeArtifactAnswerAction } from "@/lib/server/research-copilot/service";
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const s=await requireServerSession(),limited=await enforceRateLimit({request,route:"artifact_answer_action",kind:"program_write",userId:s.user_id,accountId:s.account_id});if(limited)return limited;const{id}=await params,b=await request.json().catch(()=>({})) as {message_id?:string;proposal_type?:"research_note"|"next_experiment"};if(!b.message_id||!b.proposal_type)return NextResponse.json({error:{code:"action_invalid"}},{status:400});try{return NextResponse.json({proposal:await proposeArtifactAnswerAction({programId:id,accountId:s.account_id,userId:s.user_id,messageId:b.message_id,proposalType:b.proposal_type})});}catch(error){const message=error instanceof Error?error.message:"artifact_action_failed";return NextResponse.json({error:{code:message,message}},{status:400});}}

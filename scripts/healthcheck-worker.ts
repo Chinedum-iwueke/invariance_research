@@ -28,6 +28,14 @@ async function main() {
       throw new Error(probe.stderr || probe.stdout || "bt_experiment_contract_unavailable");
     }
   }
+  if ((process.env.INVARIANCE_WORKER_KIND ?? "") === "execution-worker") {
+    if (!process.env.EXCHANGE_CREDENTIAL_ENCRYPTION_KEY) throw new Error("exchange_credential_encryption_key_missing");
+    const python = process.env.INVARIANCE_PYTHON_BIN || "python3";
+    const probe = spawnSync(python, ["-c", "import bt.exec.cli.connector_bridge"], {
+      cwd: process.env.INVARIANCE_BULLETPROOF_ROOT || "/opt/bulletproof_bt", encoding: "utf8", timeout: 10_000,
+    });
+    if (probe.status !== 0) throw new Error(probe.stderr || "connector_bridge_unavailable");
+  }
 }
 
 main()

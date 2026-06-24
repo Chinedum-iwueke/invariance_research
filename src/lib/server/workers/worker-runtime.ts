@@ -4,7 +4,7 @@ import { logger } from "@/lib/server/ops/logger";
 import { getWorkerPollIntervalMs } from "@/lib/server/queue/runtime-config";
 import { workerHeartbeatRepository } from "@/lib/server/repositories/worker-heartbeat-repository";
 
-type WorkerType = "analysis" | "export" | "experiment";
+type WorkerType = "analysis" | "export" | "experiment" | "execution";
 
 type WorkerRunInput = {
   workerType: WorkerType;

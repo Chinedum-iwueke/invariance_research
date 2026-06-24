@@ -99,7 +99,7 @@ export async function structuredChat(options: StructuredChatOptions): Promise<St
           response_format: { type: "json_object" },
           messages: [{ role: "user", content: options.prompt }],
         }),
-        signal: options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`openai_http_${response.status}`);
       const payload = await response.json() as {
@@ -161,7 +161,7 @@ export async function researchChat(options: ResearchChatOptions): Promise<Struct
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: config.ollamaModel, stream: false, format: options.jsonSchema ?? "json", messages: options.messages, options: { temperature: 0.15 } }),
-        signal: controller.signal,
+        signal: options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
       });
       if (!response.ok) throw new Error(`ollama_http_${response.status}`);
       const payload = await response.json() as { message?: { content?: string }; model?: string; prompt_eval_count?: number; eval_count?: number; total_duration?: number };

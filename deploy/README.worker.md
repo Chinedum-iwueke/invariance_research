@@ -1,6 +1,6 @@
 # Production Worker Stack
 
-This stack runs the external `analysis-worker`, `export-worker`, and `experiment-worker` services for the Vercel web app. Production analysis must not depend on Vercel request lifetimes or embedded workers.
+This stack runs the external `analysis-worker`, `export-worker`, `experiment-worker`, and `execution-worker` services for the Vercel web app. Production analysis and exchange supervision must not depend on Vercel request lifetimes or embedded workers.
 
 The launch target is:
 
@@ -9,6 +9,7 @@ The launch target is:
 - Cloudflare R2 as object storage for uploads, reports, exports, and benchmark library objects.
 - Locally hosted worker containers with `bulletproof_bt` installed into the image.
 - The experiment worker materializes approved Research Program experiment contracts through `bt experiment execute` and stores the run-config, manifest, verdict, and log artifacts.
+- The execution worker validates encrypted Binance/Bybit spot or perpetual connectors in demo or bounded live-canary environments, consumes idempotent deployment commands, and reconciles exchange-authoritative balances, orders, fills, and positions.
 - Optional local Ollama only when LLM synthesis is explicitly enabled.
 
 ## Repository Layout
@@ -135,7 +136,7 @@ Before starting workers:
    ```
 
    Keep `POSTGRES_SCHEMA_AUTO_INIT=false` for normal web and worker runtime. The command above performs an explicit one-shot schema initialization; request-time schema mutation should stay disabled in production.
-3. Confirm queue tables exist: `analysis_jobs`, `export_jobs`, `experiment_jobs`, `experiment_job_events`, and `worker_heartbeats`.
+3. Confirm queue/control tables exist: `analysis_jobs`, `export_jobs`, `experiment_jobs`, `exchange_connectors`, `strategy_deployments`, `deployment_commands`, `deployment_events`, `deployment_projections`, and `worker_heartbeats`.
 4. Confirm the web app uses `INVARIANCE_EMBEDDED_WORKERS=false` in production.
 
 The workers lease jobs from Postgres. Multiple workers are only safe when queue leasing and heartbeat behavior have been verified in staging.
@@ -173,7 +174,7 @@ After correcting credentials, wait 5-10 minutes for the Supabase pooler block to
 
 ```bash
 INVARIANCE_STACK_ROOT=/srv/invariance \
-docker compose -f deploy/docker-compose.worker.yml up -d --build analysis-worker export-worker experiment-worker
+docker compose -f deploy/docker-compose.worker.yml up -d --build analysis-worker export-worker experiment-worker execution-worker
 ```
 
 Do not repeatedly run `db:init:postgres` during the circuit-breaker window. If schema initialization already printed `Postgres schema is initialized.`, schema is not the problem.
@@ -195,7 +196,7 @@ For launch, use a dedicated R2 access key for the worker host. Do not reuse a pe
 Run from this `deploy/` directory:
 
 ```bash
-docker compose -f docker-compose.worker.yml up -d --build analysis-worker export-worker experiment-worker
+docker compose -f docker-compose.worker.yml up -d --build analysis-worker export-worker experiment-worker execution-worker
 ```
 
 Check containers:
@@ -217,6 +218,25 @@ docker logs -f invariance-export-worker
 ```bash
 docker logs -f invariance-experiment-worker
 ```
+
+```bash
+docker logs -f invariance-execution-worker
+```
+
+## Exchange Connector Safety
+
+- Use different API keys for demo/testnet and live. Endpoint/environment crossing is rejected.
+- Enable read and trade permission only. Withdrawal permission must remain disabled.
+- Restrict keys by the execution worker's egress IP where supported.
+- Set `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` to the same dedicated random value on Vercel and the execution worker. Rotating it requires re-encrypting existing connector records.
+- Exchange API keys are not worker or Vercel environment variables. Each user enters an API key and secret through the connector form; the values are encrypted before persistence, never returned to the browser, and only decrypted inside the execution worker. Credential rotation is write-only and replaces both values atomically.
+- Create separate connectors when an exchange issues different credentials for spot, perpetual, demo/testnet, or live. Product type and environment are immutable parts of the connector identity, so a demo key cannot be silently reused against a live endpoint.
+- Apply Postgres migrations 33 through 38 before starting the updated execution worker. Migrations 35-38 add canary promotion evidence, approved safety policies, incidents and alert delivery, recovery drills, immutable portfolio/audit state, memory-policy evaluation, private-stream sessions, and connector certification.
+- Connector secrets are encrypted before persistence, never returned by APIs, and passed to `bulletproof_bt` over child-process stdin rather than command arguments.
+- Live remains a bounded canary: approved qualification, a successful demo promotion, exact hash pinning, explicit `LIVE CANARY` confirmation, clean reconciliation, an authenticated private stream, a tested emergency freeze, and conservative risk limits are mandatory.
+- REST remains the authoritative restart/reconciliation source. Binance and Bybit connector diagnosis now authenticates the real private stream; a connector is blocked when private authentication fails.
+- Set `EXECUTION_INCIDENT_WEBHOOK_URL` and a random `EXECUTION_INCIDENT_WEBHOOK_SECRET` to deliver critical incidents outside the app. Receivers must verify `x-invariance-signature` against the raw body and deduplicate `x-invariance-delivery`.
+- Follow [INCIDENT_RUNBOOK_EXECUTION.md](./INCIDENT_RUNBOOK_EXECUTION.md) for freeze, reconciliation, recovery, and credential incidents.
 
 ## Optional Ollama
 

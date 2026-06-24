@@ -1,4 +1,18 @@
-export type ResearchMemoryType = "verdict" | "failure" | "next_experiment" | "run_quality" | "execution_drag" | "state_dependency" | "parameter_fragility" | "null_comparison";
+export type ResearchMemoryType =
+  | "verdict"
+  | "failure"
+  | "next_experiment"
+  | "run_quality"
+  | "execution_drag"
+  | "state_dependency"
+  | "parameter_fragility"
+  | "null_comparison"
+  | "tradingview_observation"
+  | "demo_execution"
+  | "live_execution"
+  | "execution_incident"
+  | "confirmed_reasoning"
+  | "pine_lineage";
 
 export type ResearchMemoryItem = {
   memory_item_id: string;
@@ -22,7 +36,12 @@ export type ResearchMemoryLink = {
   memory_link_id: string;
   account_id: string;
   source_memory_item_id: string;
-  target_type: "program" | "experiment_job" | "experiment_plan" | "card" | "artifact";
+  target_type:
+    | "program"
+    | "experiment_job"
+    | "experiment_plan"
+    | "card"
+    | "artifact";
   target_id: string;
   relation: string;
   evidence: Record<string, unknown>;

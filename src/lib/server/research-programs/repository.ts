@@ -481,6 +481,12 @@ export const researchProgramRepository = {
     const rows = getDb().prepare("SELECT * FROM program_notes WHERE program_id = ? ORDER BY created_at DESC").all(programId) as Record<string, unknown>[];
     return rows.map(mapNote);
   },
+  async saveNote(note: ProgramNote): Promise<ProgramNote> {
+    const params = [note.note_id, note.program_id, note.account_id, note.author_user_id, note.note_type, note.body, note.created_at, note.updated_at];
+    if (getDatabaseProvider() === "postgres") await getPostgresPool().query("INSERT INTO program_notes (note_id,program_id,account_id,author_user_id,note_type,body,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)", params);
+    else getDb().prepare("INSERT INTO program_notes (note_id,program_id,account_id,author_user_id,note_type,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").run(...params);
+    return note;
+  },
 
   async listProgramReports(programId: string): Promise<ProgramReportSnapshot[]> {
     if (getDatabaseProvider() === "postgres") {
