@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileUp, FlaskConical, History, ShieldCheck } from "lucide-react";
+import { ArrowRight, FileText, FileUp, FlaskConical, History, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +27,45 @@ function authenticatedPath(path: string, authenticated: boolean) {
 
 export function ResearchStartComposer({ authenticated, recentPrograms }: { authenticated: boolean; recentPrograms: RecentProgram[] }) {
   const [idea, setIdea] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  function startResearch() {
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem("invariance_research_draft");
+    if (saved && !idea) setIdea(saved);
+  }, [idea]);
+
+  async function createResearchThread(options?: { source?: boolean }) {
     const normalized = idea.trim();
-    if (normalized.length < 10) return;
-    const path = `/app/programs/new?idea=${encodeURIComponent(normalized)}`;
-    router.push(authenticatedPath(path, authenticated));
+    const sourceSeed = "I want to upload a paper, transcript, or source document and extract testable crypto trading hypotheses from it.";
+    const content = options?.source && normalized.length < 10 ? sourceSeed : normalized;
+    if (content.length < 10 || busy) return;
+    if (!authenticated) {
+      window.sessionStorage.setItem("invariance_research_draft", content);
+      router.push(`/login?callbackUrl=${encodeURIComponent("/")}`);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/programs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          content,
+          open_source_uploader: options?.source === true,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error?.message ?? "program_create_failed");
+      window.sessionStorage.removeItem("invariance_research_draft");
+      router.push(payload.redirect_url);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not start the research thread.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const importPath = authenticatedPath("/app/new-analysis", authenticated);
@@ -57,28 +89,39 @@ export function ResearchStartComposer({ authenticated, recentPrograms }: { authe
               value={idea}
               onChange={(event) => setIdea(event.target.value)}
               onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") startResearch();
+                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") void createResearchThread();
               }}
               rows={5}
-              maxLength={2000}
-              placeholder="Describe what you think happens, where it should work, and what would prove you wrong."
+              maxLength={20000}
+              placeholder="Paste a rough idea, full hypothesis card, paper summary, transcript notes, or strategy description. The assistant will help turn it into a falsifiable crypto research program."
               aria-label="Crypto strategy research idea"
               className="w-full resize-none border-0 bg-transparent px-5 py-5 text-base leading-7 text-text-institutional outline-none placeholder:text-text-muted focus:ring-0 sm:px-6 sm:py-6"
             />
             <div className="flex flex-col gap-3 border-t border-border-subtle bg-surface-subtle px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <Link href={importPath} className={buttonVariants({ size: "sm", variant: "tertiary", className: "gap-2" })}>
-                <FileUp className="h-4 w-4" /> Import existing evidence
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void createResearchThread({ source: true })}
+                  disabled={busy}
+                  className={cn(buttonVariants({ size: "sm", variant: "secondary", className: "gap-2" }), "disabled:cursor-not-allowed disabled:opacity-45")}
+                >
+                  <FileText className="h-4 w-4" /> Upload paper or transcript
+                </button>
+                <Link href={importPath} className={buttonVariants({ size: "sm", variant: "tertiary", className: "gap-2" })}>
+                  <FileUp className="h-4 w-4" /> Import audit CSV
+                </Link>
+              </div>
               <button
                 type="button"
-                onClick={startResearch}
-                disabled={idea.trim().length < 10}
+                onClick={() => void createResearchThread()}
+                disabled={busy || idea.trim().length < 10}
                 className={cn(buttonVariants({ size: "sm", className: "gap-2" }), "disabled:cursor-not-allowed disabled:opacity-45")}
               >
-                Start research <ArrowRight className="h-4 w-4" />
+                {busy ? "Opening thread..." : "Start research"} <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>
+          {error ? <p className="mt-3 text-center text-sm text-chart-negative">{error}</p> : null}
 
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {examples.map((example) => (

@@ -119,10 +119,12 @@ export function ResearchCopilot({
   programId,
   initialDetail,
   artifacts = [],
+  initialSourceOpen = false,
 }: {
   programId: string;
   initialDetail: CopilotConversationDetail;
   artifacts?: CatalogEntry[];
+  initialSourceOpen?: boolean;
 }) {
   const [detail, setDetail] = useState(initialDetail);
   const [content, setContent] = useState("");
@@ -131,7 +133,7 @@ export function ResearchCopilot({
   const [streamingText, setStreamingText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sourceOpen, setSourceOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(initialSourceOpen);
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceText, setSourceText] = useState("");
   const [sourceTitle, setSourceTitle] = useState("");
@@ -260,6 +262,11 @@ export function ResearchCopilot({
       setSourceTitle("");
       setYoutubeUrl("");
       setSelectedSources([payload.source.source_id]);
+      if (!content.trim()) {
+        setContent(
+          "Extract the testable trading hypotheses from the selected source. Separate direct claims from inferred assumptions, cite the source chunks, and propose only hypotheses that can become a falsifiable crypto strategy test.",
+        );
+      }
       await reload();
       setSourceOpen(false);
     } catch (caught) {
@@ -269,6 +276,12 @@ export function ResearchCopilot({
     } finally {
       setSourceBusy(false);
     }
+  }
+  function draftSourceExtractionPrompt() {
+    setContent(
+      "Extract the testable trading hypotheses from the selected source. Separate direct claims from inferred assumptions, cite the source chunks, identify missing data, and propose candidate Hypothesis Cards only where the evidence supports them.",
+    );
+    composerRef.current?.focus();
   }
   async function proposeArtifactAction(
     messageId: string,
@@ -312,8 +325,7 @@ export function ResearchCopilot({
                 Research conversation
               </p>
               <p className="mt-1 text-xs text-text-neutral">
-                Suggestions stay provisional until you confirm a research
-                object.
+                Upload papers, transcripts, notes, or screenshots here. Suggestions stay provisional until you confirm a research object.
               </p>
             </div>
             <Button
@@ -326,6 +338,9 @@ export function ResearchCopilot({
           </div>
           {sourceOpen ? (
             <div className="mt-4 grid gap-3 border-t border-border-subtle pt-4 md:grid-cols-2">
+              <div className="rounded-sm border border-border-subtle bg-surface-subtle px-3 py-2 text-xs leading-5 text-text-neutral md:col-span-2">
+                Add a PDF paper, pasted transcript, Markdown/text note, screenshot, or YouTube caption source. The assistant treats source content as untrusted evidence and can extract candidate hypotheses with citations after upload.
+              </div>
               <input
                 value={sourceTitle}
                 onChange={(event) => setSourceTitle(event.target.value)}
@@ -341,6 +356,7 @@ export function ResearchCopilot({
               <input
                 type="file"
                 accept=".pdf,.txt,.md,image/*"
+                aria-label="Upload paper, transcript, note, or screenshot"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 className="text-xs text-text-neutral"
               />
@@ -499,12 +515,19 @@ export function ResearchCopilot({
 
         <div className="border-t border-border-subtle bg-surface-subtle p-3 sm:p-4">
           {selectedSources.length || selectedArtifacts.length ? (
-            <p className="mb-2 text-xs text-text-neutral">
-              Using {selectedSources.length} source
-              {selectedSources.length === 1 ? "" : "s"} and{" "}
-              {selectedArtifacts.length} artifact
-              {selectedArtifacts.length === 1 ? "" : "s"} in this turn.
-            </p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-text-neutral">
+                Using {selectedSources.length} source
+                {selectedSources.length === 1 ? "" : "s"} and{" "}
+                {selectedArtifacts.length} artifact
+                {selectedArtifacts.length === 1 ? "" : "s"} in this turn.
+              </p>
+              {selectedSources.length ? (
+                <Button size="sm" variant="tertiary" onClick={draftSourceExtractionPrompt}>
+                  Extract hypotheses from source
+                </Button>
+              ) : null}
+            </div>
           ) : null}
           <div className="flex items-end gap-2 rounded-md border border-border-strong bg-surface-white p-2 shadow-sm">
             <textarea

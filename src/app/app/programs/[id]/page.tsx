@@ -42,10 +42,13 @@ export const metadata: Metadata = {
 
 export default async function ProgramDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ source?: string }>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
   const session = await requireServerSession();
   const detail = await getResearchProgramDetail(id, session.account_id);
   if (!detail) notFound();
@@ -159,6 +162,7 @@ export default async function ProgramDetailPage({
           programId={program.program_id}
           initialDetail={conversationDetail}
           artifacts={c2Detail.catalog}
+          initialSourceOpen={resolvedSearchParams?.source === "1"}
         />
       </section>
 

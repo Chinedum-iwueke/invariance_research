@@ -17,19 +17,22 @@ function suggestedTitle(idea: string) {
   return words.length > 72 ? `${words.slice(0, 69)}...` : words;
 }
 
-export default async function NewProgramPage({ searchParams }: { searchParams?: Promise<{ idea?: string }> }) {
-  const idea = String((await searchParams)?.idea ?? "").trim().slice(0, 2000);
+export default async function NewProgramPage({ searchParams }: { searchParams?: Promise<{ idea?: string; source?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const idea = String(resolvedSearchParams?.idea ?? "").trim().slice(0, 2000);
+  const openSourceUploader = resolvedSearchParams?.source === "paper";
   async function createProgramAction(formData: FormData) {
     "use server";
     const session = await requireServerSession();
     const program = await createResearchProgram(parseCreateProgramForm(formData, session));
-    redirect(`/app/programs/${program.program_id}`);
+    const wantsSourceUploader = String(formData.get("open_source_uploader") ?? "") === "1";
+    redirect(`/app/programs/${program.program_id}${wantsSourceUploader ? "?source=1" : ""}`);
   }
 
   return (
     <AnalysisPageFrame
       title="Start Research Program"
-      description="Create the durable container for a thesis, hypotheses, imports, engine runs, verdicts, memory, and reports."
+      description={openSourceUploader ? "Create a research program, then attach the paper, transcript, or source document for hypothesis extraction." : "Create the durable container for a thesis, hypotheses, imports, engine runs, verdicts, memory, and reports."}
     >
       <div className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
         <WorkspaceCard title="Program brief" subtitle="State the crypto market idea, where it should work, and what would prove it wrong.">
@@ -58,6 +61,7 @@ export default async function NewProgramPage({ searchParams }: { searchParams?: 
               />
             </label>
             <input type="hidden" name="market" value="crypto" />
+            {openSourceUploader ? <input type="hidden" name="open_source_uploader" value="1" /> : null}
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block text-sm font-medium text-text-institutional">
                 Asset universe
@@ -71,12 +75,15 @@ export default async function NewProgramPage({ searchParams }: { searchParams?: 
             <p className="rounded-sm border border-border-subtle bg-surface-subtle px-3 py-2 text-xs leading-5 text-text-neutral">
               Market scope: crypto. Bybit and Binance market data are supported for research; exchange deployment is introduced only after connector qualification.
             </p>
-            <Button type="submit">Create Program</Button>
+            <Button type="submit">{openSourceUploader ? "Create Program and Add Source" : "Create Program"}</Button>
           </form>
         </WorkspaceCard>
 
         <WorkspaceCard title="What this unlocks" subtitle="One durable record for the idea, experiments, evidence, decisions, and memory.">
           <div className="space-y-3 text-sm leading-6 text-text-neutral">
+            {openSourceUploader ? (
+              <p><span className="font-medium text-text-institutional">Paper intake:</span> after the program opens, upload a PDF, transcript, Markdown, text file, or screenshot, then ask the assistant to extract testable hypotheses with citations.</p>
+            ) : null}
             <p><span className="font-medium text-text-institutional">Research:</span> clarify the intuition, approve the hypothesis and strategy contract, then queue falsification experiments.</p>
             <p><span className="font-medium text-text-institutional">Evidence:</span> attach existing analyses and keep every verdict, limitation, and next test connected to the thesis.</p>
             <p><span className="font-medium text-text-institutional">Guardrail:</span> the app should not invent research context. Missing assumptions stay visible until a user or reviewer supplies them.</p>
