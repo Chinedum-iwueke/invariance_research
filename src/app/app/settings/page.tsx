@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalysisPageFrame } from "@/components/dashboard/analysis-page-frame";
 import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { LlmProviderSettings } from "@/components/settings/llm-provider-settings";
 import { requireServerSession } from "@/lib/server/auth/session";
+import { listLlmProviderConnections } from "@/lib/server/llm-connections/service";
 import { getCoreRepositories } from "@/lib/server/persistence/repositories";
 
 export const metadata: Metadata = {
@@ -12,7 +14,10 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const session = await requireServerSession();
-  const user = await getCoreRepositories().users.findById(session.user_id);
+  const [user, llmConnections] = await Promise.all([
+    getCoreRepositories().users.findById(session.user_id),
+    listLlmProviderConnections(session.account_id),
+  ]);
 
   return (
     <AnalysisPageFrame title="Settings">
@@ -25,6 +30,9 @@ export default async function SettingsPage() {
               Reset password
             </Link>
           </div>
+        </WorkspaceCard>
+        <WorkspaceCard title="AI Provider" subtitle="Use hosted Invariance inference or connect your own OpenAI API key for Research Desk assistant turns.">
+          <LlmProviderSettings connections={llmConnections.connections} />
         </WorkspaceCard>
       </div>
     </AnalysisPageFrame>

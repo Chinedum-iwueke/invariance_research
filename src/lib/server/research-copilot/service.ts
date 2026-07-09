@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { accountService } from "@/lib/server/accounts/service";
 import { assertAssistantCallAllowed } from "@/lib/server/entitlements/research-policy";
-import { getResearchAssistantConfig } from "@/lib/server/llm/chat-provider";
+import { resolveResearchAssistantRuntime } from "@/lib/server/llm/chat-provider";
 import { assertAssistantAccepting } from "@/lib/server/ops/operations-policy";
 import { researchProgramRepository } from "@/lib/server/research-programs/repository";
 import { researchCopilotRepository } from "@/lib/server/research-copilot/repository";
@@ -123,7 +123,7 @@ export async function sendProgramCopilotMessage(input: {
     conversation.conversation_id,
     now,
   );
-  const config = getResearchAssistantConfig();
+  const runtime = await resolveResearchAssistantRuntime(input.accountId);
   const turnId = randomUUID();
   await researchCopilotRepository.saveTurn({
     turn_id: turnId,
@@ -131,7 +131,8 @@ export async function sendProgramCopilotMessage(input: {
     program_id: input.programId,
     account_id: input.accountId,
     user_message_id: userMessage.message_id,
-    provider: config.enabled ? config.provider : "deterministic",
+    provider: runtime.enabled ? runtime.providerLabel : "deterministic",
+    model: runtime.model,
     prompt_version: COPILOT_PROMPT_VERSION,
     tool_version: COPILOT_TOOL_VERSION,
     status: "processing",
@@ -236,7 +237,8 @@ export async function sendProgramCopilotMessage(input: {
           prompt_tokens: undefined,
           completion_tokens: undefined,
         }
-      : await runCopilotReasoning({
+        : await runCopilotReasoning({
+          accountId: input.accountId,
           message: content,
           mode,
           messages: contextMessages,

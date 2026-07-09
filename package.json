@@ -24,7 +24,8 @@
     "test:c2": "tsx --test --test-concurrency=1 tests/c2-research-pipeline.test.ts"
     ,"test:c3": "tsx --test --test-concurrency=1 tests/c3-exchange-deployment.test.ts",
     "test:c4": "tsx --test --test-concurrency=1 tests/c4-unified-trade-memory.test.ts",
-    "test:c5-c8": "tsx --test --test-concurrency=1 tests/c5-c8-execution-command.test.ts"
+    "test:c5-c8": "tsx --test --test-concurrency=1 tests/c5-c8-execution-command.test.ts",
+    "test:cx": "tsx --test --test-concurrency=1 tests/cx-assistant-provider-layer.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.911.0",

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  getResearchAssistantConfig,
+  isResearchAssistantEnabledForAccount,
   researchChat,
 } from "@/lib/server/llm/chat-provider";
 import type {
@@ -243,6 +243,7 @@ JSON shape: {"schema_version":"research_copilot_turn_v1","mode":"exploratory|dir
 }
 
 export async function runCopilotReasoning(input: {
+  accountId?: string;
   message: string;
   mode: CopilotMode;
   messages: ResearchMessage[];
@@ -251,8 +252,7 @@ export async function runCopilotReasoning(input: {
   toolContext: unknown;
   signal?: AbortSignal;
 }) {
-  const config = getResearchAssistantConfig();
-  if (!config.enabled)
+  if (!(await isResearchAssistantEnabledForAccount(input.accountId)))
     return {
       output: deterministicOutput(input),
       provider: "deterministic",
@@ -277,6 +277,7 @@ export async function runCopilotReasoning(input: {
     }));
   try {
     const result = await researchChat({
+      accountId: input.accountId,
       messages: [
         { role: "system", content: systemPrompt() },
         ...history,

@@ -1523,4 +1523,40 @@ export const migrations = [
       CREATE INDEX IF NOT EXISTS idx_connector_certifications_scope ON connector_certifications(venue, environment, product_type, certified_at DESC);
     `,
   },
+  {
+    version: 39,
+    name: "cx_assistant_provider_layer",
+    sql: `
+      CREATE TABLE IF NOT EXISTS llm_provider_connections (
+        connection_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        created_by_user_id TEXT NOT NULL REFERENCES users(user_id),
+        provider TEXT NOT NULL,
+        label TEXT NOT NULL,
+        status TEXT NOT NULL,
+        credential_ciphertext TEXT NOT NULL,
+        credential_key_version TEXT NOT NULL,
+        api_key_hint TEXT NOT NULL,
+        default_model TEXT NOT NULL,
+        usage_mode TEXT NOT NULL,
+        last_checked_at TEXT,
+        last_error TEXT,
+        last_used_at TEXT,
+        revoked_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS llm_provider_audit_events (
+        event_id TEXT PRIMARY KEY,
+        connection_id TEXT NOT NULL REFERENCES llm_provider_connections(connection_id),
+        account_id TEXT NOT NULL REFERENCES accounts(account_id),
+        actor_user_id TEXT NOT NULL REFERENCES users(user_id),
+        event_type TEXT NOT NULL,
+        metadata_json TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_llm_provider_connections_account_status ON llm_provider_connections(account_id, provider, status, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_llm_provider_audit_account_created ON llm_provider_audit_events(account_id, created_at DESC);
+    `,
+  },
 ];

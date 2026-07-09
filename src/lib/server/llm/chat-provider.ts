@@ -1,4 +1,6 @@
 import { OllamaClient } from "@/lib/server/llm/ollama-client";
+import { decryptLlmProviderCredential } from "@/lib/server/llm-connections/credential-vault";
+import { llmProviderConnectionRepository } from "@/lib/server/llm-connections/repository";
 
 export type StructuredChatResult = {
   content: string;
@@ -21,6 +23,7 @@ export type ResearchChatOptions = {
   jsonSchema?: unknown;
   timeoutMs?: number;
   signal?: AbortSignal;
+  accountId?: string;
 };
 
 const providerFailures = new Map<string, { count: number; openedAt?: number }>();
@@ -57,6 +60,46 @@ export function getResearchAssistantConfig() {
     openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini",
     timeoutMs: parseTimeout(process.env.LLM_RESEARCH_ASSISTANT_TIMEOUT_MS ?? process.env.LLM_INSIGHTS_TIMEOUT_MS, 20000),
   };
+}
+
+export type ResolvedResearchAssistantRuntime = {
+  enabled: boolean;
+  provider: "openai" | "ollama" | string;
+  providerLabel: string;
+  model?: string;
+  source: "account_byok" | "hosted" | "disabled";
+  apiKey?: string;
+  connectionId?: string;
+};
+
+export async function resolveResearchAssistantRuntime(accountId?: string, includeSecret = false): Promise<ResolvedResearchAssistantRuntime> {
+  const config = getResearchAssistantConfig();
+  if (accountId) {
+    const connection = await llmProviderConnectionRepository.findActiveForAccount(accountId, "openai", includeSecret).catch(() => undefined);
+    if (connection) {
+      return {
+        enabled: true,
+        provider: "openai",
+        providerLabel: "openai_byok",
+        model: connection.default_model || config.openaiModel,
+        source: "account_byok",
+        apiKey: includeSecret && connection.credential_ciphertext ? decryptLlmProviderCredential(connection.credential_ciphertext).api_key : undefined,
+        connectionId: connection.connection_id,
+      };
+    }
+  }
+  if (!config.enabled) return { enabled: false, provider: config.provider, providerLabel: "deterministic", source: "disabled" };
+  return {
+    enabled: true,
+    provider: config.provider,
+    providerLabel: config.provider,
+    model: config.provider === "openai" ? config.openaiModel : config.ollamaModel,
+    source: "hosted",
+  };
+}
+
+export async function isResearchAssistantEnabledForAccount(accountId?: string) {
+  return (await resolveResearchAssistantRuntime(accountId)).enabled;
 }
 
 export async function structuredChat(options: StructuredChatOptions): Promise<StructuredChatResult> {
@@ -126,22 +169,24 @@ export async function structuredChat(options: StructuredChatOptions): Promise<St
 
 export async function researchChat(options: ResearchChatOptions): Promise<StructuredChatResult> {
   const config = getResearchAssistantConfig();
-  if (!config.enabled) throw new Error("llm_research_assistant_disabled");
-  assertCircuitClosed(config.provider);
+  const runtime = await resolveResearchAssistantRuntime(options.accountId, true);
+  if (!runtime.enabled) throw new Error("llm_research_assistant_disabled");
+  const circuitKey = `${runtime.providerLabel}:${options.accountId ?? "hosted"}`;
+  assertCircuitClosed(circuitKey);
   const timeoutMs = options.timeoutMs ?? config.timeoutMs;
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error(`llm_timeout_${timeoutMs}ms`)), timeoutMs);
 
   try {
-    if (config.provider === "openai") {
-      const apiKey = process.env.OPENAI_API_KEY?.trim();
+    if (runtime.provider === "openai") {
+      const apiKey = runtime.apiKey ?? process.env.OPENAI_API_KEY?.trim();
       if (!apiKey) throw new Error("openai_api_key_missing");
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: config.openaiModel,
+          model: runtime.model ?? config.openaiModel,
           temperature: 0.15,
           response_format: { type: "json_object" },
           messages: options.messages,
@@ -152,28 +197,34 @@ export async function researchChat(options: ResearchChatOptions): Promise<Struct
       const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
       const content = payload.choices?.[0]?.message?.content;
       if (!content) throw new Error("openai_empty_response");
-      recordProviderResult(config.provider, true);
-      return { content, provider: "openai", model: config.openaiModel, duration_ms: Date.now() - startedAt, prompt_tokens: payload.usage?.prompt_tokens, completion_tokens: payload.usage?.completion_tokens };
+      recordProviderResult(circuitKey, true);
+      if (runtime.connectionId && options.accountId) {
+        await llmProviderConnectionRepository.updateHealth(runtime.connectionId, options.accountId, { ok: true, used: true }).catch(() => undefined);
+      }
+      return { content, provider: runtime.providerLabel, model: runtime.model ?? config.openaiModel, duration_ms: Date.now() - startedAt, prompt_tokens: payload.usage?.prompt_tokens, completion_tokens: payload.usage?.completion_tokens };
     }
 
-    if (config.provider === "ollama") {
+    if (runtime.provider === "ollama") {
       const response = await fetch(`${config.ollamaBaseUrl.replace(/\/$/, "")}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: config.ollamaModel, stream: false, format: options.jsonSchema ?? "json", messages: options.messages, options: { temperature: 0.15 } }),
+        body: JSON.stringify({ model: runtime.model ?? config.ollamaModel, stream: false, format: options.jsonSchema ?? "json", messages: options.messages, options: { temperature: 0.15 } }),
         signal: options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal,
       });
       if (!response.ok) throw new Error(`ollama_http_${response.status}`);
       const payload = await response.json() as { message?: { content?: string }; model?: string; prompt_eval_count?: number; eval_count?: number; total_duration?: number };
       const content = payload.message?.content;
       if (!content) throw new Error("ollama_empty_response");
-      recordProviderResult(config.provider, true);
-      return { content, provider: "ollama", model: payload.model ?? config.ollamaModel, duration_ms: payload.total_duration ? Math.round(payload.total_duration / 1_000_000) : Date.now() - startedAt, prompt_tokens: payload.prompt_eval_count, completion_tokens: payload.eval_count };
+      recordProviderResult(circuitKey, true);
+      return { content, provider: runtime.providerLabel, model: payload.model ?? runtime.model ?? config.ollamaModel, duration_ms: payload.total_duration ? Math.round(payload.total_duration / 1_000_000) : Date.now() - startedAt, prompt_tokens: payload.prompt_eval_count, completion_tokens: payload.eval_count };
     }
 
-    throw new Error(`unsupported_llm_provider_${config.provider}`);
+    throw new Error(`unsupported_llm_provider_${runtime.provider}`);
   } catch (error) {
-    recordProviderResult(config.provider, false);
+    recordProviderResult(circuitKey, false);
+    if (runtime.connectionId && options.accountId) {
+      await llmProviderConnectionRepository.updateHealth(runtime.connectionId, options.accountId, { ok: false, error: error instanceof Error ? error.message : "provider_failed" }).catch(() => undefined);
+    }
     throw error;
   } finally {
     clearTimeout(timeout);

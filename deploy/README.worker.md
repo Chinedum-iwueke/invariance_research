@@ -5,7 +5,7 @@ This stack runs the external `analysis-worker`, `export-worker`, `experiment-wor
 The launch target is:
 
 - Web app on Vercel.
-- Supabase Postgres as the shared queue, account, analysis, export, and share database.
+- On-prem Postgres as the shared queue, account, analysis, export, and share database. See [ON_PREM_POSTGRES_RUNBOOK.md](./ON_PREM_POSTGRES_RUNBOOK.md) for the VM/PgBouncer design and cutover procedure.
 - Cloudflare R2 as object storage for uploads, reports, exports, and benchmark library objects.
 - Locally hosted worker containers with `bulletproof_bt` installed into the image.
 - The experiment worker materializes approved Research Program experiment contracts through `bt experiment execute` and stores the run-config, manifest, verdict, and log artifacts.
@@ -41,9 +41,9 @@ cp deploy/.env.worker.example deploy/.env.worker
 Fill real values for:
 
 - `DATABASE_PROVIDER=postgres`
-- `DATABASE_URL` using the Supabase production connection string. For Supabase session-pooler compatibility use `sslmode=require&uselibpqcompat=true`.
-- `POSTGRES_POOL_MAX=1` for Vercel/serverless runtime. Worker hosts may use a higher value only after confirming Supabase pool headroom.
-- `INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS=300000` so worker loops pause for five minutes on Supabase auth, TLS, or circuit-breaker failures instead of retrying aggressively.
+- `DATABASE_URL` using the on-prem PgBouncer runtime endpoint, for example `postgresql://invariance_worker:URL_ENCODED_WORKER_PASSWORD@db.invarianceresearch.xyz:6432/invariance_research?sslmode=require&uselibpqcompat=true`.
+- `POSTGRES_POOL_MAX=2` for the worker host until on-prem pool capacity is measured. Keep Vercel at `POSTGRES_POOL_MAX=1`.
+- `INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS=300000` so worker loops pause for five minutes on database auth, TLS, DNS, or connection failures instead of retrying aggressively.
 - `OBJECT_STORAGE_*` using a Cloudflare R2 key scoped to the production bucket
 - `OBJECT_STORAGE_LIFECYCLE_CONFIGURED=true` only after R2 lifecycle rules have been configured and verified
 - `BENCHMARK_PROVIDER=object_storage`
@@ -51,10 +51,35 @@ Fill real values for:
 - `BENCHMARK_MANIFEST_OBJECT_KEY`
 - `EMAIL_PROVIDER`, `EMAIL_FROM`, and provider API key if worker-side email is enabled
 - `LLM_INSIGHTS_ENABLED=false` for the first production wedge unless Ollama has been explicitly provisioned
+- `LLM_CREDENTIAL_ENCRYPTION_KEY` if any worker or server process needs to decrypt user-supplied LLM provider keys. Use the same 32+ character secret on Vercel and any trusted worker that performs assistant inference. Do not put quotes around the value in Vercel.
 
 Benchmark env vars must be set on both Vercel and the worker host. Vercel resolves and persists the selected benchmark; the worker materializes the actual dataset and passes its worker-local path to the engine. If the worker host is missing `BENCHMARK_PROVIDER=object_storage` or R2 credentials, selected benchmarks will be disabled during analysis even when the UI accepted the selection.
 
 Keep `deploy/.env.worker` untracked. Rotate any key that was copied into logs, screenshots, chat, or a shared machine.
+
+## Assistant Provider Layer
+
+Research Desk supports two inference modes at this stage:
+
+- Hosted Invariance inference: set `LLM_RESEARCH_ASSISTANT_ENABLED=true`, `LLM_PROVIDER=openai`, `OPENAI_API_KEY`, and `OPENAI_MODEL` on Vercel. Assistant turns use the platform key unless the account has an active BYOK connector.
+- OpenAI BYOK: a signed-in user opens `Settings -> AI Provider`, pastes an OpenAI API key, chooses a model such as `gpt-4.1-mini`, and clicks `Save and use OpenAI`. The app verifies the key, stores only encrypted ciphertext plus a key hint, and routes future Research Desk copilot turns for that account through the user's key.
+
+Required Vercel variables for BYOK:
+
+```env
+LLM_CREDENTIAL_ENCRYPTION_KEY=your-32-plus-character-random-secret
+```
+
+Required Vercel variables for hosted inference:
+
+```env
+LLM_RESEARCH_ASSISTANT_ENABLED=true
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+If hosted inference is disabled and no BYOK connector exists, the Research Desk assistant falls back to deterministic research drafts. Invariance still owns source retrieval, citations, tool authorization, typed object validation, and approval gates; the model provider only supplies reasoning text and structured proposals.
 
 ## B12 Production Controls
 
@@ -69,7 +94,7 @@ INVARIANCE_EXPERIMENT_QUEUE_PAUSED=true  # pause new research experiments
 INVARIANCE_ASSISTANT_PAUSED=true         # pause assistant-generated briefs/specs/plans
 ```
 
-Use these switches before risky deploys, during worker incidents, when Supabase pool saturation appears, or when R2 writes are failing. Existing records remain inspectable; the switches stop new intake rather than deleting queued work.
+Use these switches before risky deploys, during worker incidents, when database pool saturation appears, or when R2 writes are failing. Existing records remain inspectable; the switches stop new intake rather than deleting queued work.
 
 Rate limits are enabled by default. For first users keep these conservative:
 
@@ -124,7 +149,7 @@ Expected result: local benchmark parquet files are refreshed, `manifest.v1.yaml`
 
 Before starting workers:
 
-1. Confirm Vercel production and workers point at the same Supabase production database.
+1. Confirm Vercel production and workers point at the same on-prem production database.
 2. Apply the production schema before accepting jobs:
 
    ```bash
@@ -141,9 +166,9 @@ Before starting workers:
 
 The workers lease jobs from Postgres. Multiple workers are only safe when queue leasing and heartbeat behavior have been verified in staging.
 
-### Supabase auth circuit breaker recovery
+### Database auth and connection recovery
 
-Supabase may return `ECIRCUITBREAKER` after repeated failed authentication attempts. Treat this as an active incident: at least one app, worker, or healthcheck is still using bad database credentials or a bad SSL mode.
+If Postgres or PgBouncer returns repeated auth, DNS, TLS, or connection failures, treat this as an active incident: at least one app, worker, or healthcheck is still using bad database credentials, a bad host, a bad SSL mode, or stale deployment environment variables.
 
 Immediate recovery:
 
@@ -164,13 +189,13 @@ Expected production shape:
 
 ```env
 DATABASE_PROVIDER=postgres
-DATABASE_URL=postgresql://postgres.PROJECT_REF:URL_ENCODED_PASSWORD@POOLER_HOST.supabase.com:5432/postgres?sslmode=require&uselibpqcompat=true
-POSTGRES_POOL_MAX=1
+DATABASE_URL=postgresql://invariance_worker:URL_ENCODED_WORKER_PASSWORD@db.invarianceresearch.xyz:6432/invariance_research?sslmode=require&uselibpqcompat=true
+POSTGRES_POOL_MAX=2
 POSTGRES_SCHEMA_AUTO_INIT=false
 INVARIANCE_WORKER_DB_ERROR_BACKOFF_MS=300000
 ```
 
-After correcting credentials, wait 5-10 minutes for the Supabase pooler block to cool down, then restart:
+After correcting credentials, confirm the database endpoint is reachable, then restart:
 
 ```bash
 INVARIANCE_STACK_ROOT=/srv/invariance \
