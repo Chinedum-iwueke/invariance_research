@@ -13,7 +13,3 @@ pnpm-debug.log*
 .data/
 .debug-analysis/
 .gstack/
-
-# Local/private infrastructure runbooks.
-deploy/ON_PREM_POSTGRES_RUNBOOK.md
-deploy/on_prem_postgres_runbook.md
