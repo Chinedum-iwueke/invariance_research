@@ -6,73 +6,78 @@ The acceptance criterion is concrete:
 
 > A user opens `https://www.invarianceresearch.xyz`, reaches the website through Cloudflare, signs in, uses the product, queues work, receives results, and exports artifacts while no request or deployment depends on Vercel.
 
-This runbook is paired with [ON_PREM_POSTGRES_RUNBOOK.md](./ON_PREM_POSTGRES_RUNBOOK.md). The database runbook remains authoritative for Postgres, PgBouncer, database roles, backups, and database recovery. This document is authoritative for the public edge, app VM, Next.js containers, release process, DNS cutover, and web-runtime operations.
+This runbook is paired with [ON_PREM_POSTGRES_RUNBOOK.md](./ON_PREM_POSTGRES_RUNBOOK.md). The database runbook remains authoritative for Postgres, database roles, backups, and database recovery. This document overrides its multi-VM topology and public PgBouncer guidance when the resource-constrained colocated profile is selected. It is authoritative for the public edge, shared deployment VM, service isolation, Next.js containers, release process, DNS cutover, and web-runtime operations.
 
 ## Decision
 
-For the first 100 users, use this production topology:
+For the first 100 users under the current resource constraint, use this production topology:
 
 - Cloudflare remains the public DNS, proxy, DDoS protection, TLS edge, and WAF.
-- A dedicated application VM runs Caddy on the host and two identical Next.js containers.
+- One shared deployment VM runs Caddy on the host, two identical Next.js containers, two narrowly scoped PgBouncer endpoints, and Postgres.
 - Caddy is the only public origin process. The Next.js containers bind only to loopback.
-- The application VM reaches PgBouncer over a private WireGuard network.
-- Postgres and PgBouncer remain on the dedicated database VM.
-- Analysis, export, experiment, and execution workers remain on the dedicated worker VM.
+- The web containers reach `pgbouncer-app` only through an internal Docker data network.
+- Postgres publishes no public port. Optional host administration binds direct Postgres only to `127.0.0.1`.
+- External workers reach `pgbouncer-worker` only through WireGuard. If workers must also share this VM temporarily, they join the internal data network with strict resource limits.
+- App and database use separate Compose projects, directories, credentials, restart operations, and deployment lifecycles.
 - Cloudflare R2 remains the source of truth for uploads, reports, exports, benchmark objects, research sources, and other large artifacts.
 - Postgres remains the source of truth for users, accounts, entitlements, queues, programs, metadata, billing state, audit logs, and operational state.
 - App releases are immutable container images identified by a Git commit and image digest.
 - Schema changes are explicit one-shot operations. Web containers never initialize or mutate the schema at request time.
 
-Do not place Postgres, workers, and the public app on one VM for production. That creates a single security boundary, allows a public web compromise to reach database storage directly, and lets backtest resource spikes impair public requests.
+Colocation increases blast radius: a host compromise or host failure affects both the public app and its database. Containers do not eliminate that host-level risk. The controls in this profile make colocation acceptable for controlled early production, but off-host encrypted backups, resource ceilings, private database networking, and a tested fresh-VM recovery are mandatory. Keep compute-heavy workers off this VM whenever an existing worker VM is available.
 
 ## Target Topology
 
 ```text
-                                      outbound HTTPS
-                              +--------------------------> Cloudflare R2
-                              |
-Browser                       |                  private WireGuard network
-   |                          |             10.77.0.0/24, no public DB port
-   | HTTPS                    |                          |
-   v                          |                          v
-Cloudflare DNS / CDN / WAF / TLS                DB VM: 10.77.0.10
-   |                                              PgBouncer :6432
-   | HTTPS to origin, Full (strict)                    |
-   v                                                   v
-App VM: public 443, WireGuard 10.77.0.20           Postgres :5432
-   Caddy on host
-      |                    |
-      | loopback only      | loopback only
-      v                    v
-   web-a :3101          web-b :3102
-      |                    |
-      +----------+---------+
-                 |
-                 | Postgres through PgBouncer, R2 through HTTPS
-                 |
-Worker VM: WireGuard 10.77.0.30
-   analysis-worker
-   export-worker
-   experiment-worker
-   execution-worker
-   optional Ollama
+Browser
+   |
+   | HTTPS
+   v
+Cloudflare DNS / CDN / WAF / TLS
+   |
+   | HTTPS to origin, Full (strict)
+   v
+Shared deployment VM: public 443, WireGuard 10.77.0.20
+   |
+   +-- Caddy on host
+   |      | loopback only        | loopback only
+   |      v                      v
+   |   web-a :3101            web-b :3102
+   |      |                      |
+   |      +----------+-----------+
+   |                 |
+   |                 | internal Docker data network
+   |                 v
+   |          pgbouncer-app :6432
+   |                 |
+   |                 v
+   |            Postgres :5432
+   |
+   +-- pgbouncer-worker :6432 bound only to WireGuard
+   |
+   +-----------------------------> Cloudflare R2 over outbound HTTPS
+
+External worker VM, when available: WireGuard 10.77.0.30
+   analysis / export / experiment / execution workers
 ```
 
-Cloudflare is an edge and security dependency, but it is not the application host. The website and app execute on the app VM. Removing Vercel does not require giving up Cloudflare, and retaining Cloudflare materially reduces the exposure of a small public origin.
+Cloudflare is an edge and security dependency, but it is not the application host. The website, app, and database execute on the shared deployment VM. Removing Vercel does not require giving up Cloudflare, and retaining Cloudflare materially reduces the exposure of a small public origin.
 
 ## Why This Is The Right First-100 Architecture
 
 This design deliberately avoids Kubernetes. At the current scale, Kubernetes would add control-plane, secret-management, ingress, storage, and upgrade complexity without removing the main single-region risks.
 
-Two app containers on one VM provide:
+Two app containers plus separately managed database containers on one VM provide:
 
 - process redundancy
 - safe rolling restarts
 - health-based routing
 - enough Node capacity for the first 100 users
 - one simple public origin to patch and monitor
+- app releases that do not recreate the database
+- a database endpoint that is invisible on the public interface
 
-They do not provide host-level high availability. If the app VM or its provider fails, the site is unavailable. That risk is acceptable during controlled testing if there are tested backups, a rebuild procedure, an external monitor, and a warm replacement VM plan. Add a second app VM only after usage justifies the added network and deployment complexity.
+They do not provide host-level high availability or a true security boundary between a compromised host and database files. If the shared VM or its provider fails, both the site and database are unavailable. That risk is acceptable during controlled testing only when encrypted off-host database backups, a rebuild procedure, an external monitor, and a warm replacement VM plan are proven. The first infrastructure expansion should move Postgres to a dedicated VM; the second should add another app origin.
 
 ## Current Repository Fit And Mandatory Gaps
 
@@ -108,31 +113,44 @@ Next.js recommends a reverse proxy in front of a self-hosted server and document
 
 ## Capacity Target
 
-### Application VM
+### Shared Deployment VM
 
-Recommended:
+Minimum controlled-testing profile:
 
 - Ubuntu 24.04 LTS or Debian 12
 - 4 vCPU
 - 8 GB RAM
-- 80-100 GB NVMe SSD
-- 2-4 GB swap
+- 150 GB NVMe SSD
+- 4 GB swap
 - 1 Gbps network when available
 - provider-level snapshots enabled
 
-Initial web container limits:
+Recommended profile for approaching 100 active users:
 
-- `web-a`: 1.5 CPU, 2 GB memory
-- `web-b`: 1.5 CPU, 2 GB memory
-- Caddy and host: remaining CPU and memory
+- 8 vCPU
+- 16 GB RAM
+- 200 GB NVMe plus a separate attached SSD/block volume for Postgres when available
+- 4 GB swap
 
-The app VM should not run engine workers, Ollama, Postgres, Grafana, or benchmark generation.
+Initial limits for an 8 GB host:
+
+- `web-a`: 1.25 CPU, 1.5 GB memory
+- `web-b`: 1.25 CPU, 1.5 GB memory
+- `postgres`: 2 CPU, 3 GB memory
+- `pgbouncer-app`: 0.25 CPU, 256 MB memory
+- `pgbouncer-worker`: 0.25 CPU, 256 MB memory
+- Caddy, Docker, backup tooling, and host: remaining memory and CPU
+
+Use the 4 GB Postgres profile from the database runbook: `shared_buffers=1GB`, `effective_cache_size=3GB`, `maintenance_work_mem=256MB`, and `work_mem=8MB`. Keep PgBouncer server pools bounded so two web replicas cannot consume every database connection.
+
+Do not run Ollama, benchmark generation, Grafana, or large grid experiments on this shared VM. If workers must temporarily share it, set concurrency to one, assign hard CPU/memory limits, keep the execution worker independent from research jobs, and monitor database latency during every run.
 
 ### Upgrade Triggers
 
 Scale or split the app tier when any of these remain true for normal traffic:
 
 - host CPU exceeds 60% for 15 minutes
+- database disk exceeds 60% or total disk exceeds 70%
 - either web container exceeds 75% of its memory limit
 - p95 public request latency exceeds 750 ms excluding deliberate long-poll or stream routes
 - event-loop lag exceeds 100 ms repeatedly
@@ -140,6 +158,7 @@ Scale or split the app tier when any of these remain true for normal traffic:
 - app restarts more than once in 24 hours without an intentional deploy
 - Postgres connection wait time becomes visible at `POSTGRES_POOL_MAX=5` per replica
 - upload concurrency causes memory pressure
+- a worker run causes public p95 latency or database query latency to breach its SLO
 
 ## Domain And Canonical URL
 
@@ -175,53 +194,80 @@ A     www   APP_VM_IP      Proxied
 A     @     APP_VM_IP      Proxied
 ```
 
-Do not create a DNS-only record containing the app VM IP. Review historical and auxiliary DNS records so the origin IP is not unnecessarily disclosed.
+Do not create a DNS-only record containing the shared deployment VM IP. Review historical and auxiliary DNS records so the origin IP is not unnecessarily disclosed.
 
 Keep the Vercel records available in a written rollback note until the new origin completes its soak period. Do not leave active conflicting `A`, `AAAA`, or `CNAME` records for `www`.
 
 ## Network Segmentation
 
-Use WireGuard between the app, database, and worker VMs.
+The shared host still requires network segmentation. Use two Docker networks and one optional WireGuard path:
 
-Suggested addresses:
+- `web-internal`: normal bridge network for web-container egress and service traffic.
+- `invariance-data-private`: Docker `internal` network shared only by web containers, PgBouncer, Postgres, and any colocated workers that require database access.
+- WireGuard: private path for an external worker VM. It is not needed for web-to-database traffic on the same host.
+
+Create the data network once, outside either Compose project:
+
+```bash
+docker network create \
+  --driver bridge \
+  --internal \
+  --subnet 172.29.0.0/24 \
+  invariance-data-private
+```
+
+Because the network is external to Compose, an app deployment cannot delete it. Postgres, `pgbouncer-app`, and the web containers join it by explicit service configuration.
+
+Suggested WireGuard addresses when workers remain external:
 
 ```text
-Database VM  10.77.0.10
-App VM       10.77.0.20
-Worker VM    10.77.0.30
+Shared deployment VM  10.77.0.20
+Worker VM             10.77.0.30
 ```
 
-The database VM should allow PgBouncer only from the app and worker VPN addresses:
+Bind `pgbouncer-worker` only to the shared host's WireGuard address:
+
+```yaml
+ports:
+  - "10.77.0.20:6432:6432"
+```
+
+Allow only the worker peer:
 
 ```bash
-sudo ufw allow in on wg0 from 10.77.0.20 to any port 6432 proto tcp
-sudo ufw allow in on wg0 from 10.77.0.30 to any port 6432 proto tcp
+sudo ufw allow in on wg0 from 10.77.0.30 to 10.77.0.20 port 6432 proto tcp
 ```
 
-After Vercel is removed, close public PgBouncer access:
+Docker-published ports can bypass ordinary UFW input rules. Binding to the WireGuard IP prevents a listener on the public interface, but also add a `DOCKER-USER` policy or provider firewall rule that permits the worker VPN source and drops every other source to the published PgBouncer port. Verify the exact interface and container address before applying persistent packet-filter rules.
 
-```bash
-sudo ufw delete allow 6432/tcp
-```
+The app does not use that published endpoint. It connects to `pgbouncer-app:6432` over `invariance-data-private`.
 
-Verify it is not public before declaring cutover complete:
+After Vercel is removed, no PgBouncer endpoint may bind the public address or `0.0.0.0`. Verify before declaring cutover complete:
 
 ```bash
 sudo ss -lntp | rg ':5432|:6432'
 sudo ufw status numbered
+docker ps --format 'table {{.Names}}\t{{.Ports}}'
 ```
 
-Raw Postgres `5432` must remain private to the database host or internal database network. App and worker runtimes should use PgBouncer `6432`.
+Expected:
 
-If the database TLS certificate is issued for `db.invarianceresearch.xyz`, map that name to the WireGuard address on the app and worker hosts:
+- no `0.0.0.0:5432`, `[::]:5432`, `0.0.0.0:6432`, or `[::]:6432`
+- optional `127.0.0.1:5432` for host-only maintenance
+- optional `10.77.0.20:6432` for the external worker endpoint
+- no public DNS record for the database
+
+Raw Postgres `5432` must remain internal or loopback-only. App and worker runtimes use PgBouncer.
+
+If the external worker database TLS certificate is issued for `db.invarianceresearch.xyz`, map that name to the shared host's WireGuard address on the worker host:
 
 ```text
-10.77.0.10 db.invarianceresearch.xyz
+10.77.0.20 db.invarianceresearch.xyz
 ```
 
-Then use `sslmode=verify-full`. This preserves hostname verification while routing over the private tunnel.
+Use `sslmode=verify-full` for both application and worker URLs. The internal app certificate contains `pgbouncer-app`; the external worker certificate contains `db.invarianceresearch.xyz`. Both clients trust only the database CA documented below. A private Docker network reduces exposure but does not replace certificate verification.
 
-## App VM OS Preparation
+## Shared Deployment VM OS Preparation
 
 Run as a non-root sudo user:
 
@@ -326,11 +372,13 @@ If you need SSH tunnels for a specific maintenance operation, temporarily overri
 
 ```bash
 sudo mkdir -p /srv/invariance/app/{compose,releases,cache,logs}
+sudo mkdir -p /srv/invariance/postgres/{data,backups,archive,certs,conf,pgbouncer,init,logs}
 sudo mkdir -p /etc/invariance/app
 sudo mkdir -p /etc/caddy/certs
 sudo chown -R "$USER:$USER" /srv/invariance/app
 sudo chown root:root /etc/invariance/app /etc/caddy/certs
 sudo chmod 750 /etc/invariance/app /etc/caddy/certs
+sudo chmod 700 /srv/invariance/postgres/data /srv/invariance/postgres/backups /srv/invariance/postgres/certs
 ```
 
 Final layout:
@@ -342,6 +390,18 @@ Final layout:
     release.env
   releases/
   cache/
+  logs/
+
+/srv/invariance/postgres/
+  docker-compose.postgres.yml
+  .env.postgres
+  data/
+  backups/
+  archive/
+  certs/
+  conf/
+  pgbouncer/
+  init/
   logs/
 
 /etc/invariance/app/
@@ -356,6 +416,310 @@ Final layout:
 
 Secrets must not live in the Git checkout, image, Compose file, shell history, or `/srv` release directory.
 
+Place `/srv/invariance/postgres` on a separate mounted SSD/block volume when the provider permits it. If one physical disk is unavoidable, create separate filesystems or LVM logical volumes for Docker data, Postgres data, and backups. A runaway Caddy log, image build, or Docker layer must not be able to consume the final bytes required for Postgres WAL and checkpoints.
+
+Suggested allocation on a 150 GB single disk:
+
+```text
+OS and system logs       25 GB
+Docker images/cache      35 GB
+Postgres data/WAL        60 GB
+local backup staging     20 GB
+operational reserve      10 GB
+```
+
+Local backup staging is not a backup. Every successful database backup must be encrypted and copied off this VM.
+
+## Colocated Database Isolation
+
+Keep the database in the separate Compose project defined by the Postgres runbook. Never merge Postgres into `docker-compose.app.yml`; app release commands must have no authority to recreate, stop, or delete the database service.
+
+For the colocated profile, modify the database Compose contract as follows:
+
+1. Attach Postgres and both PgBouncer services to the external `invariance-data-private` network.
+2. Bind direct Postgres only to loopback, or remove its `ports` section entirely.
+3. Replace the single public PgBouncer with `pgbouncer-app` and optional `pgbouncer-worker`.
+4. Give `pgbouncer-app` only the `invariance_app` credential and no published port.
+5. Give `pgbouncer-worker` only the `invariance_worker` credential and bind it only to the WireGuard address.
+6. Apply hard resource limits and independent log rotation.
+
+The resulting shape should be:
+
+```yaml
+name: invariance-postgres
+
+services:
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    env_file:
+      - .env.postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./conf/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./certs:/etc/postgresql/certs:ro
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - ./archive:/var/lib/postgresql/archive
+      - ./logs:/var/log/postgresql
+    networks:
+      - data-private
+    mem_limit: 3g
+    cpus: 2.0
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  pgbouncer-app:
+    image: bitnami/pgbouncer:1.24.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.postgres
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: ${INVARIANCE_DB}
+      POSTGRESQL_USERNAME: invariance_app
+      POSTGRESQL_PASSWORD: ${INVARIANCE_APP_PASSWORD}
+      PGBOUNCER_DATABASE: ${INVARIANCE_DB}
+      PGBOUNCER_PORT: "6432"
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "100"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "12"
+      PGBOUNCER_MIN_POOL_SIZE: "2"
+      PGBOUNCER_RESERVE_POOL_SIZE: "3"
+      PGBOUNCER_AUTH_TYPE: scram-sha-256
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits
+      PGBOUNCER_SERVER_RESET_QUERY: DISCARD ALL
+      PGBOUNCER_CLIENT_TLS_SSLMODE: require
+      PGBOUNCER_CLIENT_TLS_CA_FILE: /etc/pgbouncer-tls/ca.crt
+      PGBOUNCER_CLIENT_TLS_CERT_FILE: /etc/pgbouncer-tls/pgbouncer-app.crt
+      PGBOUNCER_CLIENT_TLS_KEY_FILE: /etc/pgbouncer-tls/pgbouncer-app.key
+      PGBOUNCER_SERVER_TLS_SSLMODE: verify-full
+      PGBOUNCER_SERVER_TLS_CA_FILE: /etc/pgbouncer-tls/ca.crt
+    volumes:
+      - ./certs/ca.crt:/etc/pgbouncer-tls/ca.crt:ro
+      - ./certs/pgbouncer-app.crt:/etc/pgbouncer-tls/pgbouncer-app.crt:ro
+      - ./certs/pgbouncer-app.key:/etc/pgbouncer-tls/pgbouncer-app.key:ro
+    networks:
+      - data-private
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "PGSSLMODE=verify-full PGSSLROOTCERT=/etc/pgbouncer-tls/ca.crt PGPASSWORD=$${INVARIANCE_APP_PASSWORD} psql -h pgbouncer-app -p 6432 -U invariance_app -d $${INVARIANCE_DB} -c 'SELECT 1' >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  pgbouncer-worker:
+    image: bitnami/pgbouncer:1.24.1
+    profiles:
+      - external-workers
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.postgres
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: ${INVARIANCE_DB}
+      POSTGRESQL_USERNAME: invariance_worker
+      POSTGRESQL_PASSWORD: ${INVARIANCE_WORKER_PASSWORD}
+      PGBOUNCER_DATABASE: ${INVARIANCE_DB}
+      PGBOUNCER_PORT: "6432"
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "100"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "8"
+      PGBOUNCER_MIN_POOL_SIZE: "1"
+      PGBOUNCER_RESERVE_POOL_SIZE: "2"
+      PGBOUNCER_AUTH_TYPE: scram-sha-256
+      PGBOUNCER_IGNORE_STARTUP_PARAMETERS: extra_float_digits
+      PGBOUNCER_SERVER_RESET_QUERY: DISCARD ALL
+      PGBOUNCER_CLIENT_TLS_SSLMODE: require
+      PGBOUNCER_CLIENT_TLS_CA_FILE: /etc/pgbouncer-tls/ca.crt
+      PGBOUNCER_CLIENT_TLS_CERT_FILE: /etc/pgbouncer-tls/pgbouncer-worker.crt
+      PGBOUNCER_CLIENT_TLS_KEY_FILE: /etc/pgbouncer-tls/pgbouncer-worker.key
+      PGBOUNCER_SERVER_TLS_SSLMODE: verify-full
+      PGBOUNCER_SERVER_TLS_CA_FILE: /etc/pgbouncer-tls/ca.crt
+    volumes:
+      - ./certs/ca.crt:/etc/pgbouncer-tls/ca.crt:ro
+      - ./certs/pgbouncer-worker.crt:/etc/pgbouncer-tls/pgbouncer-worker.crt:ro
+      - ./certs/pgbouncer-worker.key:/etc/pgbouncer-tls/pgbouncer-worker.key:ro
+    networks:
+      - data-private
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "PGSSLMODE=verify-full PGSSLROOTCERT=/etc/pgbouncer-tls/ca.crt PGPASSWORD=$${INVARIANCE_WORKER_PASSWORD} psql -h pgbouncer-worker -p 6432 -U invariance_worker -d $${INVARIANCE_DB} -c 'SELECT 1' >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+networks:
+  data-private:
+    external: true
+    name: invariance-data-private
+```
+
+The base database Compose file intentionally publishes no worker port. When workers run on an external VM, create `/srv/invariance/postgres/docker-compose.worker-endpoint.yml`:
+
+```yaml
+services:
+  pgbouncer-worker:
+    ports:
+      - "10.77.0.20:6432:6432"
+```
+
+Use this override only with the `external-workers` profile and only after WireGuard is healthy. Colocated workers use the base service over `invariance-data-private`, so they create no host listener.
+
+Use immutable image digests after the first verified boot. Before upgrading Postgres or PgBouncer, read the release notes, take a verified backup, and test restore compatibility.
+
+The app role must not own the schema, create roles, create databases, or read worker-only encrypted connector material beyond what existing product contracts require. The worker role must not own auth or billing tables. Apply grants deliberately and test both denial paths.
+
+### Database TLS On The Shared Host
+
+Use one private database CA and three distinct leaf certificates. This keeps certificate identity explicit even though the services share a host:
+
+| Service | Certificate names |
+|---|---|
+| Postgres | `postgres` |
+| App PgBouncer | `pgbouncer-app` |
+| Worker PgBouncer | `pgbouncer-worker`, `db.invarianceresearch.xyz`, and `10.77.0.20` |
+
+Store the CA private key offline after signing. The shared deployment VM needs only `ca.crt` and the service leaf certificates and keys. The web and worker containers receive only `ca.crt`; they must never receive a leaf private key.
+
+Create the following files under `/srv/invariance/postgres/certs` using an internal PKI tool or OpenSSL:
+
+```text
+ca.crt
+server.crt
+server.key
+pgbouncer-app.crt
+pgbouncer-app.key
+pgbouncer-worker.crt
+pgbouncer-worker.key
+```
+
+The Postgres certificate must include `DNS:postgres`. The app PgBouncer certificate must include `DNS:pgbouncer-app`. The worker PgBouncer certificate must include `DNS:pgbouncer-worker`, `DNS:db.invarianceresearch.xyz`, and `IP:10.77.0.20`. Set leaf validity to no more than 397 days, alert 30 days before expiry, and rotate without changing the CA when possible.
+
+On a secured administration workstation, one OpenSSL workflow is:
+
+```bash
+umask 077
+mkdir -p invariance-db-pki
+cd invariance-db-pki
+
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out ca.key
+openssl req -x509 -new -sha256 -days 3650 \
+  -key ca.key \
+  -subj "/CN=Invariance Research Database CA" \
+  -out ca.crt
+
+issue_server_cert() {
+  name="$1"
+  san="$2"
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "${name}.key"
+  openssl req -new -sha256 \
+    -key "${name}.key" \
+    -subj "/CN=${name}" \
+    -out "${name}.csr"
+  printf '%s\n' \
+    "subjectAltName=${san}" \
+    "extendedKeyUsage=serverAuth" \
+    "keyUsage=digitalSignature,keyEncipherment" > "${name}.ext"
+  openssl x509 -req -sha256 -days 397 \
+    -in "${name}.csr" \
+    -CA ca.crt \
+    -CAkey ca.key \
+    -CAcreateserial \
+    -extfile "${name}.ext" \
+    -out "${name}.crt"
+}
+
+issue_server_cert server "DNS:postgres"
+issue_server_cert pgbouncer-app "DNS:pgbouncer-app"
+issue_server_cert pgbouncer-worker \
+  "DNS:pgbouncer-worker,DNS:db.invarianceresearch.xyz,IP:10.77.0.20"
+
+openssl verify -CAfile ca.crt server.crt pgbouncer-app.crt pgbouncer-worker.crt
+```
+
+Transfer only `ca.crt`, the three leaf certificates, and the three leaf keys to `/srv/invariance/postgres/certs`. Keep `ca.key` encrypted and offline. Delete the certificate signing requests and extension files after recording certificate serial numbers and expiry dates.
+
+Confirm the runtime UID/GID used by the pinned images before assigning key ownership:
+
+```bash
+docker run --rm --entrypoint id postgres:16-bookworm postgres
+docker run --rm --entrypoint id bitnami/pgbouncer:1.24.1
+```
+
+Keep each private key mode `0640` or stricter and readable only by root and the exact container runtime group that needs it. Keep `ca.crt` and leaf certificates mode `0644`. Never make a private key world-readable to solve a mount-permission error.
+
+Set Postgres to use `server.crt` and `server.key`, and retain the `hostssl` rules from the Postgres runbook:
+
+```conf
+ssl = on
+ssl_cert_file = '/etc/postgresql/certs/server.crt'
+ssl_key_file = '/etc/postgresql/certs/server.key'
+```
+
+The preceding PgBouncer Compose definition requires TLS at each client endpoint. Each client verifies the PgBouncer hostname against `ca.crt`, and PgBouncer verifies the Postgres hostname against the same CA. This is required for the documented `sslmode=verify-full` URLs to work. After startup, prove each path rather than relying only on container health state:
+
+```bash
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml exec postgres psql \
+  "host=postgres port=5432 dbname=invariance_research user=invariance_app sslmode=verify-full sslrootcert=/etc/postgresql/certs/ca.crt" \
+  -c 'SELECT current_user, ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid();'
+
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml exec pgbouncer-app \
+  sh -lc 'PGSSLMODE=verify-full PGSSLROOTCERT=/etc/pgbouncer-tls/ca.crt PGPASSWORD="$INVARIANCE_APP_PASSWORD" psql -h pgbouncer-app -p 6432 -U invariance_app -d "$INVARIANCE_DB" -c "SELECT 1"'
+```
+
+The first command prompts for the app password unless a temporary protected password file is supplied. Do not put the password in shell history. The query must return `ssl = t`; the second command must complete with certificate verification enabled.
+
 ## Cloudflare Origin TLS
 
 Create a Cloudflare Origin CA certificate covering:
@@ -365,7 +729,7 @@ invarianceresearch.xyz
 *.invarianceresearch.xyz
 ```
 
-Store it on the app VM:
+Store it on the shared deployment VM:
 
 ```text
 /etc/caddy/certs/origin.pem
@@ -398,7 +762,7 @@ sudo ufw allow OpenSSH
 sudo ufw allow 51820/udp
 ```
 
-Replace the broad `OpenSSH` rule with a rule scoped to your fixed administration IP or VPN as soon as that path is verified. If WireGuard peers have fixed public IPs, scope UDP `51820` to those IPs. Do not use a blanket `allow in on wg0` rule on the public app VM. Add only the private inbound ports that a documented service actually needs; normal app-to-database traffic is outbound from the app VM.
+Replace the broad `OpenSSH` rule with a rule scoped to your fixed administration IP or VPN as soon as that path is verified. If WireGuard peers have fixed public IPs, scope UDP `51820` to those IPs. Do not use a blanket `allow in on wg0` rule on the shared deployment VM. Add only the private inbound ports that a documented service actually needs. Web-to-database traffic stays inside `invariance-data-private` and needs no host firewall opening.
 
 Allow TCP `443` only from current Cloudflare IPv4 and IPv6 ranges. Retrieve the source lists from:
 
@@ -541,8 +905,8 @@ x-web-common: &web-common
   security_opt:
     - no-new-privileges:true
   pids_limit: 512
-  mem_limit: 2g
-  cpus: 1.5
+  mem_limit: 1500m
+  cpus: 1.25
   healthcheck:
     test:
       - CMD
@@ -555,6 +919,7 @@ x-web-common: &web-common
     retries: 3
   networks:
     - web-internal
+    - data-private
   logging:
     driver: json-file
     options:
@@ -568,6 +933,7 @@ services:
       - "127.0.0.1:3101:3000"
     volumes:
       - web-a-cache:/app/.next/cache
+      - /srv/invariance/postgres/certs/ca.crt:/etc/invariance/db-ca.crt:ro
 
   web-b:
     <<: *web-common
@@ -575,10 +941,14 @@ services:
       - "127.0.0.1:3102:3000"
     volumes:
       - web-b-cache:/app/.next/cache
+      - /srv/invariance/postgres/certs/ca.crt:/etc/invariance/db-ca.crt:ro
 
 networks:
   web-internal:
     driver: bridge
+  data-private:
+    external: true
+    name: invariance-data-private
 
 volumes:
   web-a-cache:
@@ -586,6 +956,8 @@ volumes:
 ```
 
 Do not add `container_name`. Compose-generated names allow controlled recreation and avoid collisions.
+
+The web containers need `web-internal` for outbound HTTPS to R2, Stripe, Google, Resend, and configured LLM providers. They need `data-private` only for `pgbouncer-app`. Postgres and PgBouncer must never join `web-internal`.
 
 ## Runtime Environment
 
@@ -617,7 +989,8 @@ PREVIEW_GATE_PASSWORD=SET_A_PRIVATE_PREVIEW_PASSWORD
 PREVIEW_GATE_COOKIE_SECRET=GENERATE_A_SEPARATE_RANDOM_SECRET
 
 DATABASE_PROVIDER=postgres
-DATABASE_URL=postgresql://invariance_app:URL_ENCODED_PASSWORD@db.invarianceresearch.xyz:6432/invariance_research?sslmode=verify-full
+DATABASE_URL=postgresql://invariance_app:URL_ENCODED_PASSWORD@pgbouncer-app:6432/invariance_research?sslmode=verify-full
+NODE_EXTRA_CA_CERTS=/etc/invariance/db-ca.crt
 POSTGRES_SCHEMA_AUTO_INIT=false
 POSTGRES_POOL_MAX=5
 POSTGRES_IDLE_TIMEOUT_MS=10000
@@ -709,6 +1082,20 @@ openssl rand -base64 48
 Do not reuse the auth, preview cookie, LLM credential, exchange credential, database, or webhook secrets.
 
 Both web replicas must receive identical auth, preview-cookie, encryption, Stripe, and URL values.
+
+An external worker VM uses its existing worker environment with a distinct database role and the VPN-resolved hostname:
+
+```env
+DATABASE_PROVIDER=postgres
+DATABASE_URL=postgresql://invariance_worker:URL_ENCODED_WORKER_PASSWORD@db.invarianceresearch.xyz:6432/invariance_research?sslmode=verify-full
+NODE_EXTRA_CA_CERTS=/etc/invariance/db-ca.crt
+POSTGRES_SCHEMA_AUTO_INIT=false
+POSTGRES_POOL_MAX=2
+```
+
+On the worker VM, `db.invarianceresearch.xyz` must resolve to `10.77.0.20`, the worker PgBouncer certificate must contain that hostname, and `/etc/invariance/db-ca.crt` must be a read-only copy of the database CA certificate. Do not point workers at `pgbouncer-app` or give them the app database password.
+
+If workers are colocated temporarily, attach them to `invariance-data-private`, remove any published worker PgBouncer endpoint, and use `pgbouncer-worker:6432` as their database host with `sslmode=verify-full`. Mount the same CA certificate read-only into each worker container and retain the distinct worker database role. Their Compose project remains separate from both app and database projects.
 
 ## Caddy Configuration
 
@@ -917,7 +1304,7 @@ CI sequence:
 
 Pin third-party GitHub Actions by commit SHA, protect `main`, require review for workflow changes, and do not expose production SSH or registry credentials to pull-request jobs.
 
-Log in on the app VM without placing the token in shell history:
+Log in on the shared deployment VM without placing the token in shell history:
 
 ```bash
 read -rsp 'GHCR token: ' GHCR_TOKEN
@@ -926,7 +1313,7 @@ unset GHCR_TOKEN
 chmod 600 "$HOME/.docker/config.json"
 ```
 
-Use a read-packages token only. The app VM must not have a token that can push images or modify the repository.
+Use a read-packages token only. The shared deployment VM must not have a token that can push images or modify the repository.
 
 ## Release File
 
@@ -934,9 +1321,10 @@ Create `/srv/invariance/app/compose/release.env`:
 
 ```env
 APP_IMAGE=ghcr.io/OWNER/invariance-research-web@sha256:REPLACE_WITH_DIGEST
+MIGRATION_IMAGE=ghcr.io/OWNER/invariance-research-worker@sha256:REPLACE_WITH_DIGEST
 ```
 
-This file is not a secret, but it is production state and should be root/operator writable only:
+Both images must come from the same tested Git commit. The worker image is used only as a one-shot migration tool on this host; its long-running worker commands remain on the worker VM. This file is not a secret, but it is production state and should be root/operator writable only:
 
 ```bash
 chmod 640 /srv/invariance/app/compose/release.env
@@ -954,7 +1342,29 @@ Record every promotion with:
 
 ## First Deployment
 
-From `/srv/invariance/app/compose`:
+Create the external data network, then start and verify the database project before the app project:
+
+```bash
+docker network inspect invariance-data-private >/dev/null 2>&1 \
+  || docker network create --driver bridge --internal --subnet 172.29.0.0/24 invariance-data-private
+
+cd /srv/invariance/postgres
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml config
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml up -d postgres pgbouncer-app
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml ps
+docker logs --tail=100 invariance-postgres
+```
+
+If workers are external, start the VPN-bound endpoint only after `wg0` owns `10.77.0.20`:
+
+```bash
+ip address show dev wg0
+docker compose --env-file .env.postgres -f docker-compose.postgres.yml \
+  -f docker-compose.worker-endpoint.yml \
+  --profile external-workers up -d pgbouncer-worker
+```
+
+Then start the app from `/srv/invariance/app/compose`:
 
 ```bash
 docker compose --env-file release.env -f docker-compose.app.yml config
@@ -972,7 +1382,7 @@ curl -fsS http://127.0.0.1:3101/api/health/ready | jq
 curl -fsS http://127.0.0.1:3102/api/health/ready | jq
 ```
 
-Test Caddy from the app VM while setting the production host and resolving it locally:
+Test Caddy from the shared deployment VM while setting the production host and resolving it locally:
 
 ```bash
 curl --resolve www.invarianceresearch.xyz:443:127.0.0.1 \
@@ -984,13 +1394,36 @@ If you use a Cloudflare Origin CA certificate, ordinary direct `curl` trust will
 
 ## Systemd Boot Contract
 
+Create `/etc/systemd/system/invariance-postgres.service`:
+
+```ini
+[Unit]
+Description=Invariance Research colocated Postgres and app PgBouncer
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/invariance/postgres
+ExecStartPre=/bin/sh -c '/usr/bin/docker network inspect invariance-data-private >/dev/null 2>&1 || /usr/bin/docker network create --driver bridge --internal --subnet 172.29.0.0/24 invariance-data-private'
+ExecStart=/usr/bin/docker compose --env-file .env.postgres -f docker-compose.postgres.yml up -d postgres pgbouncer-app
+ExecStop=/usr/bin/docker compose --env-file .env.postgres -f docker-compose.postgres.yml stop pgbouncer-app postgres
+TimeoutStartSec=180
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
+```
+
 Create `/etc/systemd/system/invariance-web.service`:
 
 ```ini
 [Unit]
 Description=Invariance Research web containers
-Requires=docker.service
-After=docker.service network-online.target wg-quick@wg0.service
+Requires=docker.service invariance-postgres.service
+After=docker.service invariance-postgres.service network-online.target
 Wants=network-online.target
 
 [Service]
@@ -1010,10 +1443,45 @@ Enable it:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable invariance-web
+sudo systemctl enable invariance-postgres invariance-web
+sudo systemctl start invariance-postgres
 sudo systemctl start invariance-web
+sudo systemctl status invariance-postgres --no-pager
 sudo systemctl status invariance-web --no-pager
 ```
+
+If external workers require `pgbouncer-worker`, create `/etc/systemd/system/invariance-worker-db-endpoint.service`:
+
+```ini
+[Unit]
+Description=Invariance Research WireGuard-only worker PgBouncer
+Requires=docker.service invariance-postgres.service wg-quick@wg0.service
+After=docker.service invariance-postgres.service wg-quick@wg0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/invariance/postgres
+ExecStartPre=/usr/bin/test -d /sys/class/net/wg0
+ExecStartPre=/bin/sh -c '/usr/sbin/ip address show dev wg0 | /usr/bin/grep -q "10.77.0.20"'
+ExecStart=/usr/bin/docker compose --env-file .env.postgres -f docker-compose.postgres.yml -f docker-compose.worker-endpoint.yml --profile external-workers up -d pgbouncer-worker
+ExecStop=/usr/bin/docker compose --env-file .env.postgres -f docker-compose.postgres.yml -f docker-compose.worker-endpoint.yml --profile external-workers stop pgbouncer-worker
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable this unit only when external workers are in use:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now invariance-worker-db-endpoint
+sudo systemctl status invariance-worker-db-endpoint --no-pager
+```
+
+Keeping the endpoint separate prevents a WireGuard failure from stopping the local web application's database path.
 
 Test one controlled reboot before DNS cutover:
 
@@ -1021,7 +1489,7 @@ Test one controlled reboot before DNS cutover:
 sudo reboot
 ```
 
-After reconnecting, verify WireGuard, Docker, both web containers, Caddy, and readiness.
+After reconnecting, verify Docker, Postgres, both PgBouncer endpoints that are enabled, WireGuard if used, both web containers, Caddy, and readiness.
 
 ## Rolling Deployment
 
@@ -1060,9 +1528,36 @@ Follow expand-and-contract migrations:
 4. Backfill if needed.
 5. Remove old schema only in a later release after rollback compatibility expires.
 
-Never run schema initialization from both web replicas.
+Never run schema initialization from either web replica. The standalone web image intentionally excludes migration tooling.
 
-Use the database runbook's one-shot command and keep:
+Create a temporary root-only `/etc/invariance/app/migration.env` containing the owner connection, with an encoded password and the internal Postgres service hostname:
+
+```env
+DATABASE_PROVIDER=postgres
+DATABASE_URL=postgresql://invariance_owner:URL_ENCODED_OWNER_PASSWORD@postgres:5432/invariance_research?sslmode=verify-full
+NODE_EXTRA_CA_CERTS=/etc/invariance/db-ca.crt
+POSTGRES_SCHEMA_AUTO_INIT=true
+```
+
+Pause queues, take a verified backup, load the pinned migration image from `release.env`, and run the schema operation exactly once on `invariance-data-private`:
+
+```bash
+cd /srv/invariance/app/compose
+set -a
+. ./release.env
+set +a
+
+sudo docker run --rm \
+  --network invariance-data-private \
+  --env-file /etc/invariance/app/migration.env \
+  --mount type=bind,src=/srv/invariance/postgres/certs/ca.crt,dst=/etc/invariance/db-ca.crt,readonly \
+  "$MIGRATION_IMAGE" \
+  npm run db:init:postgres
+```
+
+Review the command output and schema state before resuming queues. Remove the temporary owner environment file after the migration; recreate it only for an approved schema operation. The runtime `invariance_app` and `invariance_worker` roles must not be able to perform this command successfully.
+
+Keep:
 
 ```env
 POSTGRES_SCHEMA_AUTO_INIT=false
@@ -1078,7 +1573,7 @@ in every long-running container.
 - Start both web replicas.
 - Validate liveness and readiness locally.
 - Validate Caddy config.
-- Validate database access over WireGuard.
+- Validate web database access over `invariance-data-private` and external worker access over WireGuard if workers are remote.
 - Validate R2, Stripe config, email config, and worker heartbeats in full platform health.
 - Confirm the on-prem database is current and backed up.
 - Confirm workers use the same on-prem database and R2 bucket.
@@ -1091,11 +1586,11 @@ in every long-running container.
 - Take a Postgres backup and verify its checksum.
 - Record the currently deployed image digest.
 - Set all queue pause switches to `true` if data migration or schema work is still occurring.
-- Confirm a tested rollback DNS target exists.
+- Confirm the previous app image digest is deployable on the shared host. Treat Vercel as a rollback target only if it already has a tested, restricted route to the same on-prem database; do not create public database access for rollback convenience.
 
 ### Phase 3: Switch DNS
 
-- Change `www` and apex records to the app VM and keep them proxied.
+- Change `www` and apex records to the shared deployment VM and keep them proxied.
 - Confirm Cloudflare Full (strict) succeeds.
 - Confirm apex redirects to `www`.
 - Confirm the certificate shown to a browser is the Cloudflare edge certificate.
@@ -1128,7 +1623,7 @@ Use a dedicated canary account:
 
 ### Phase 5: Soak
 
-Keep Vercel available as a rollback target, but do not route production traffic to it, for 72 hours.
+Keep the Vercel project intact for 72 hours, but regard it as a live rollback target only if it can reach the same on-prem database through a pre-existing secured path. The default rollback for this private-database topology is the previous application image on the shared host, followed by a replacement VM restored from backup if the host itself fails.
 
 During the soak, track:
 
@@ -1172,7 +1667,7 @@ curl -fsS https://www.invarianceresearch.xyz/api/health/ready | jq
 
 Operational evidence:
 
-- DNS origin is the app VM, proxied by Cloudflare.
+- DNS origin is the shared deployment VM, proxied by Cloudflare.
 - Caddy access logs show the requests.
 - One of `web-a` or `web-b` logs the requests.
 - Vercel request logs remain empty during the test.
@@ -1209,7 +1704,9 @@ curl -fsS http://127.0.0.1:3102/api/health/ready | jq
 
 ### Infrastructure Rollback To Vercel
 
-During the 72-hour soak only:
+This option exists during the 72-hour soak only when Vercel connectivity to the same on-prem database was tested before cutover. Never publish Postgres or PgBouncer to the internet solely to make this rollback possible.
+
+When that prerequisite is satisfied:
 
 1. Pause new queues if database compatibility is uncertain.
 2. Restore the recorded Vercel DNS target.
@@ -1219,11 +1716,14 @@ During the 72-hour soak only:
 
 Do not roll Vercel back to a different database after accepting writes on the on-prem database. That would create split-brain product state.
 
+When the prerequisite is not satisfied, restore the previous image digest on the shared host. If the host is unavailable, provision the warm replacement VM, restore the latest verified off-host database backup, restore encrypted application configuration, deploy the pinned image digest, and then change the Cloudflare origin. That is the supported infrastructure rollback for the single-VM profile.
+
 ## Observability
 
 At minimum, collect:
 
-- app VM CPU, memory, disk, load, network, and reboot events
+- shared deployment VM CPU, memory, disk, load, network, and reboot events
+- Postgres process memory, WAL growth, checkpoint behavior, disk latency, and replication/backup state
 - Docker container state, restart count, CPU, memory, and health
 - Caddy request count, status, latency, upstream, and client country/IP metadata as permitted
 - Postgres and PgBouncer metrics from the database runbook
@@ -1233,7 +1733,7 @@ At minimum, collect:
 - Stripe webhook failures
 - authentication failures without logging tokens or credentials
 
-Use an external uptime monitor, not one running only on the app VM. Monitor:
+Use an external uptime monitor, not one running only on the shared deployment VM. Monitor:
 
 ```text
 GET https://www.invarianceresearch.xyz/api/health/live
@@ -1272,8 +1772,8 @@ Do not back up container writable layers as a recovery strategy.
 
 Recovery targets for the first 100 users:
 
-- app VM RTO: 2 hours
-- database RTO: as defined in the Postgres runbook
+- shared deployment VM RTO: 2 hours
+- database RTO: as defined in the Postgres runbook and included in the same-host recovery drill
 - database RPO: 15 minutes or better
 - R2 recovery: version/lifecycle dependent
 
@@ -1281,12 +1781,13 @@ Perform a quarterly app-host rebuild drill on a fresh VM:
 
 1. install host dependencies
 2. restore encrypted configuration
-3. establish WireGuard
-4. pull the pinned image
-5. start both replicas
-6. restore Caddy configuration
-7. point a temporary hostname at the VM
-8. complete a smoke test
+3. restore Postgres from an off-host backup and verify it
+4. establish WireGuard if workers are external
+5. pull the pinned web image
+6. start both replicas
+7. restore Caddy configuration
+8. point a temporary hostname at the VM
+9. complete a smoke test
 
 ## Security Threat Model
 
@@ -1345,7 +1846,7 @@ Threats:
 
 Controls:
 
-- WireGuard-only PgBouncer
+- internal-only app PgBouncer and WireGuard-only worker PgBouncer
 - separate app and worker roles
 - TLS hostname verification
 - bounded pools
@@ -1363,7 +1864,7 @@ Threats:
 
 Controls:
 
-- workers on separate VM
+- workers on a separate VM when available; otherwise strict worker resource ceilings and one-job concurrency
 - encrypted connector credentials
 - execution key shared only where contractually required
 - idempotent commands
@@ -1386,7 +1887,7 @@ Controls:
 - pinned CI actions
 - image scanning and SBOM
 - digest promotion
-- read-only registry token on app VM
+- read-only registry token on the shared deployment VM
 - branch and workflow protection
 
 ## Data Classification
@@ -1424,7 +1925,7 @@ Public:
 - public research publications
 - intentionally shared validation reports
 
-The app VM should have only the restricted data required to serve web requests. Exchange credential decryption must remain constrained by the existing worker and server contracts, with audit records for use.
+The web containers should receive only the restricted data required to serve web requests. The host necessarily contains database files in this profile, so root access to the shared VM is equivalent to database-administrator access. Exchange credential decryption must remain constrained by the existing worker and server contracts, with audit records for use.
 
 ## Incident Procedures
 
@@ -1440,20 +1941,22 @@ The app VM should have only the restricted data required to serve web requests. 
 ### Database Unreachable
 
 1. Set platform or queue pause controls where possible.
-2. Check WireGuard.
-3. Check PgBouncer and Postgres health.
+2. Check the `invariance-data-private` network and `pgbouncer-app` service discovery.
+3. Check PgBouncer and Postgres health; check WireGuard separately if only external workers are failing.
 4. Check certificate validity and hostname resolution.
 5. Check bounded pool usage.
 6. Follow the Postgres incident runbook.
 
 ### Suspected Web Host Compromise
 
-1. Remove the app VM from Cloudflare origin routing.
+1. Remove the shared deployment VM from Cloudflare origin routing and pause every queue.
 2. Preserve provider and host snapshots for investigation.
-3. Rotate app database, R2, auth, OAuth, Stripe, email, preview, LLM, and exchange-envelope credentials according to exposure.
-4. Rebuild a fresh VM from a known image; do not clean and reuse the compromised host.
-5. Deploy a known-good digest.
-6. audit account, billing, connector, admin, and object-storage activity during the exposure window.
+3. Treat Postgres data, database credentials, local backups, R2, auth, OAuth, Stripe, email, preview, LLM, and exchange-envelope credentials as potentially exposed.
+4. Rotate credentials according to exposure and preserve forensic snapshots.
+5. Rebuild a fresh VM from a known image; do not clean and reuse the compromised host.
+6. Restore Postgres from a verified backup or validate the preserved data under incident-response supervision.
+7. Deploy a known-good digest.
+8. Audit account, billing, connector, admin, database, and object-storage activity during the exposure window.
 
 ### R2 Failure
 
@@ -1506,49 +2009,55 @@ Repository: `invariance_research`
 
 Exit: the image runs locally with no worker or Python runtime and passes liveness/readiness tests.
 
-### H1 - App VM Foundation
+### H1 - Shared Deployment VM Foundation
 
-Infrastructure: app VM
+Infrastructure: shared deployment VM
 
 - provision VM
 - patch OS
 - install Docker and Caddy
 - harden SSH
 - configure UFW and fail2ban
-- configure WireGuard
-- create directories and permissions
+- configure WireGuard if workers are external
+- create separate app and database directories, mounts, permissions, and disk alerts
+- create the internal data network
 
-Exit: only SSH, Cloudflare-origin HTTPS, and WireGuard are reachable as intended.
+Exit: only scoped SSH, Cloudflare-origin HTTPS, and optional WireGuard are reachable; no database service is public.
 
 ### H2 - Secrets And Private Dependencies
 
-Infrastructure: app VM, DB VM, worker VM
+Infrastructure: shared deployment VM and optional worker VM
 
 - create app DB role or verify existing role
-- move PgBouncer access to WireGuard
+- create internal `pgbouncer-app`
+- bind optional `pgbouncer-worker` only to WireGuard
+- issue distinct Postgres and PgBouncer leaf certificates under the offline database CA
+- verify hostname-checked TLS on every database path
+- keep app and database in separate Compose projects and systemd units
 - install root-owned app env
 - verify R2 and database permissions
 - verify encryption-key parity where required
+- verify encrypted off-host backups and a restore
 
-Exit: both app replicas can reach Postgres and R2 without any public database endpoint.
+Exit: both app replicas reach Postgres through the internal data network, workers reach their constrained path, and no public database endpoint exists.
 
 ### H3 - Image Pipeline
 
 Repository and CI
 
-- build immutable image
+- build immutable web and migration images from the same commit
 - run tests
-- scan dependencies and image
+- scan dependencies and both images
 - create SBOM
-- push commit tag
-- record digest
+- push commit tags
+- record both digests
 - protect workflow and registry permissions
 
-Exit: the app VM can pull a digest with read-only credentials.
+Exit: the shared deployment VM can pull both pinned digests with read-only credentials and the migration image contains the one-shot schema command.
 
 ### H4 - Origin Runtime
 
-Infrastructure: app VM and Cloudflare
+Infrastructure: shared deployment VM and Cloudflare
 
 - start both web replicas
 - install Origin CA cert
@@ -1590,7 +2099,7 @@ Operations
 - complete 72-hour soak
 - confirm SLOs and no hidden Vercel traffic
 - disable Vercel callbacks and production domain
-- close public PgBouncer
+- confirm every public PgBouncer path is closed
 - remove stale secrets
 
 Exit: disabling Vercel has no observable effect on the product.
@@ -1599,13 +2108,15 @@ Exit: disabling Vercel has no observable effect on the product.
 
 Operations
 
-- rebuild app on a clean VM
+- rebuild the shared app and database host on a clean VM
 - restore encrypted configuration
-- deploy pinned digest
+- restore Postgres from the latest verified off-host backup
+- deploy pinned web and migration digests
+- reconnect and verify external workers through WireGuard when used
 - perform smoke test on temporary host
 - record RTO
 
-Exit: app recovery is demonstrated, not assumed.
+Exit: complete shared-host recovery, including database restore, is demonstrated within the stated RTO.
 
 ## Final Acceptance Checklist
 
@@ -1620,8 +2131,16 @@ Exit: app recovery is demonstrated, not assumed.
 - [ ] Web liveness does not depend on Python or local workers.
 - [ ] Web readiness confirms the required web dependencies.
 - [ ] Full platform health reports DB, R2, queues, and workers accurately.
-- [ ] The app reaches PgBouncer over WireGuard.
+- [ ] App and database are managed by separate Compose projects and systemd units.
+- [ ] Both web replicas reach only `pgbouncer-app` over `invariance-data-private`.
+- [ ] External workers, if present, reach only `pgbouncer-worker` over WireGuard.
 - [ ] Public `5432` and `6432` are closed.
+- [ ] App-to-PgBouncer, worker-to-PgBouncer, and PgBouncer-to-Postgres paths use verified TLS.
+- [ ] The database CA private key is offline; runtime containers receive only the minimum leaf key or CA certificate they require.
+- [ ] Database certificate expiry monitoring alerts at least 30 days before expiry.
+- [ ] Postgres, PgBouncer, and database data have explicit CPU, memory, disk, and log ceilings.
+- [ ] Database storage cannot be exhausted by Docker images or web logs without an alert firing first.
+- [ ] An encrypted off-host database backup and fresh-VM restore have succeeded.
 - [ ] `POSTGRES_SCHEMA_AUTO_INIT=false` in web and worker runtime.
 - [ ] R2 is the durable object source of truth.
 - [ ] Upload size behavior matches the product and edge limits.
@@ -1636,7 +2155,7 @@ Exit: app recovery is demonstrated, not assumed.
 - [ ] App logs contain no secrets or raw user artifacts.
 - [ ] External liveness and readiness monitoring alert correctly.
 - [ ] Image rollback has been tested.
-- [ ] App VM rebuild has been tested.
+- [ ] Shared deployment VM rebuild, including database restore, has been tested.
 - [ ] Vercel receives no production requests.
 - [ ] Disabling the Vercel deployment does not affect production.
 
