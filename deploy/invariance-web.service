@@ -1,7 +1,7 @@
 [Unit]
 Description=Invariance Research web containers
-Requires=docker.service invariance-postgres.service
-After=docker.service invariance-postgres.service network-online.target
+Requires=docker.service
+After=docker.service network-online.target
 Wants=network-online.target
 ConditionPathExists=/srv/invariance/app/compose/docker-compose.app.yml
 ConditionPathExists=/srv/invariance/app/compose/release.env

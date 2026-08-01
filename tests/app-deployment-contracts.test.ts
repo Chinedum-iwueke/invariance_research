@@ -83,7 +83,8 @@ test("operations image and service unit support explicit migrations and boot rec
   const service = source("deploy/invariance-web.service");
   assert.match(dockerfile, /CMD \["npm", "run", "db:init:postgres"\]/);
   assert.match(release, /^MIGRATION_IMAGE=/m);
-  assert.match(service, /Requires=docker\.service invariance-postgres\.service/);
+  assert.match(service, /^Requires=docker\.service$/m);
+  assert.doesNotMatch(service, /invariance-postgres\.service/);
   assert.match(service, /ExecStartPre=.*config --quiet/);
   assert.match(service, /ExecStart=.*up -d --remove-orphans/);
   assert.match(service, /ConditionPathExists=\/etc\/invariance\/app\/app\.env/);
