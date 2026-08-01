@@ -112,10 +112,15 @@ test("application Compose contract exposes only loopback web ports and private d
 
 test("Caddy routes only to loopback replicas and checks dependency-free liveness", () => {
   const caddy = source("deploy/Caddyfile.app");
+  const hardening = source("deploy/caddy.service.override.conf");
   assert.match(caddy, /reverse_proxy 127\.0\.0\.1:3101 127\.0\.0\.1:3102/);
   assert.match(caddy, /health_uri \/api\/health\/live/);
   assert.match(caddy, /max_size 55MB/);
   assert.match(caddy, /tls \/etc\/caddy\/certs\/origin\.pem/);
+  assert.match(hardening, /CapabilityBoundingSet=CAP_NET_BIND_SERVICE/);
+  assert.match(hardening, /NoNewPrivileges=true/);
+  assert.match(hardening, /ProtectSystem=strict/);
+  assert.doesNotMatch(hardening, /CAP_NET_ADMIN/);
 });
 
 test("liveness is process-local and always reports the web service identity", () => {
