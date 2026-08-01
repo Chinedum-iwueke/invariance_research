@@ -26,6 +26,57 @@ For the first 100 users under the current resource constraint, use this producti
 
 Colocation increases blast radius: a host compromise or host failure affects both the public app and its database. Containers do not eliminate that host-level risk. The controls in this profile make colocation acceptable for controlled early production, but off-host encrypted backups, resource ceilings, private database networking, and a tested fresh-VM recovery are mandatory. Keep compute-heavy workers off this VM whenever an existing worker VM is available.
 
+## Deployment Checkpoint: 2026-08-01
+
+The private application stack is operational on VM2, but public cutover has not
+occurred. This checkpoint records evidence already obtained so later operators do not
+repeat completed phases or mistake private readiness for public availability.
+
+Completed and verified:
+
+- PostgreSQL 16 is healthy with server TLS enabled; the application route uses the
+  dedicated `pgbouncer-app` endpoint and the legacy worker pooler remains intact.
+- The application schema was initialized with 98 public tables after a verified
+  pre-schema backup was recorded at
+  `/srv/invariance/postgres/backups/pre-app-schema-20260801T220652Z.dump`.
+- `/etc/invariance/app/app.env` passed the repository deployment validator with no
+  missing variables or placeholders. Secrets remain outside source control.
+- Immutable application image `invariance-research-app:4c8874b61f46`, sourced from
+  commit `4c8874b61f4628300421ad535a30668de2df2751`, started as two healthy loopback-only
+  replicas on ports 3101 and 3102.
+- A local replica failover was exercised successfully. Both liveness and readiness
+  reported healthy database, schema, runtime, and storage configuration.
+- `invariance-web.service` is enabled and active. Caddy is enabled and active with
+  only `CAP_NET_BIND_SERVICE`, a Cloudflare Origin certificate, canonical apex-to-www
+  redirect, and healthy local HTTPS proxying.
+- The host firewall defaults to deny incoming traffic and permits public HTTP/HTTPS
+  only from the configured Cloudflare address ranges. SSH remains separately allowed.
+
+Not yet completed:
+
+- Cloudflare DNS has not been cut over to VM2, and no public browser acceptance test
+  has passed. The application is therefore private-ready, not publicly released.
+- Router administration was unavailable during this phase, so inbound NAT for ports
+  80 and 443 has not been proven. Prefer a named Cloudflare Tunnel for the initial
+  controlled release instead of weakening the firewall or exposing the origin.
+- Cloudflare Tunnel installation, authenticated tunnel credentials, DNS routing,
+  external health probes, and a tested DNS/tunnel rollback remain outstanding.
+- End-to-end sign-in, uploads, queued work, result delivery, artifact export, Stripe
+  webhook replay, off-host backup restore, and fresh-VM recovery remain release gates.
+- Production Stripe activation and broader user access remain intentionally deferred.
+
+Next governed steps:
+
+1. Rehearse a named Cloudflare Tunnel against the local Caddy HTTPS origin without
+   changing public DNS.
+2. Record tunnel identity, credential location, configuration digest, health evidence,
+   and rollback commands in the deployment evidence bundle.
+3. Obtain explicit founder approval for DNS cutover, then route only the approved
+   hostnames through Cloudflare and run the complete public acceptance suite.
+4. Roll back DNS/tunnel immediately if readiness, authentication, database access,
+   uploads, or artifact delivery fails.
+5. Do not remove Vercel or old DNS recovery records until the rollback window closes.
+
 ## Target Topology
 
 ```text
