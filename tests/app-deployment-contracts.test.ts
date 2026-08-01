@@ -19,6 +19,7 @@ function source(relativePath: string) {
 function validProductionEnv(): NodeJS.ProcessEnv {
   return {
     NODE_ENV: "production",
+    APP_DEPLOYMENT_STAGE: "production",
     APP_URL: "https://www.invarianceresearch.xyz",
     AUTH_URL: "https://www.invarianceresearch.xyz",
     NEXTAUTH_URL: "https://www.invarianceresearch.xyz",
@@ -153,6 +154,20 @@ test("production configuration validator accepts the intended deployment contrac
   const result = validateAppDeploymentConfig(validProductionEnv());
   assert.equal(result.ok, true, JSON.stringify(result.issues));
   assert.deepEqual(result.issues, []);
+});
+
+test("preview configuration requires Stripe test mode", () => {
+  const env = validProductionEnv();
+  env.APP_DEPLOYMENT_STAGE = "preview";
+  env.STRIPE_SECRET_KEY = "sk_test_9351abcdef";
+
+  const result = validateAppDeploymentConfig(env);
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+
+  env.STRIPE_SECRET_KEY = "sk_live_9351abcdef";
+  const unsafe = validateAppDeploymentConfig(env);
+  assert.equal(unsafe.ok, false);
+  assert.equal(unsafe.issues.some((issue) => issue.code === "stripe_not_test"), true);
 });
 
 test("production configuration validator rejects unsafe deployment state", () => {

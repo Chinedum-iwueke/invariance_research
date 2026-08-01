@@ -59,6 +59,17 @@ function addIssue(
 export function validateAppDeploymentConfig(env: DeploymentEnvironment): DeploymentConfigValidation {
   const issues: DeploymentConfigIssue[] = [];
 
+  const deploymentStage = normalized(env.APP_DEPLOYMENT_STAGE).toLowerCase();
+  if (deploymentStage !== "preview" && deploymentStage !== "production") {
+    addIssue(
+      issues,
+      "error",
+      "deployment_stage_invalid",
+      "APP_DEPLOYMENT_STAGE must be preview or production.",
+      "APP_DEPLOYMENT_STAGE",
+    );
+  }
+
   for (const variable of REQUIRED_VALUES) {
     const value = normalized(env[variable]);
     if (!value) {
@@ -141,8 +152,12 @@ export function validateAppDeploymentConfig(env: DeploymentEnvironment): Deploym
   if (normalized(env.EMAIL_PROVIDER).toLowerCase() !== "resend") {
     addIssue(issues, "error", "email_provider_invalid", "Production email must use the configured Resend provider.", "EMAIL_PROVIDER");
   }
-  if (!normalized(env.STRIPE_SECRET_KEY).startsWith("sk_live_")) {
-    addIssue(issues, "error", "stripe_not_live", "STRIPE_SECRET_KEY must be a live-mode key.", "STRIPE_SECRET_KEY");
+  const stripeSecret = normalized(env.STRIPE_SECRET_KEY);
+  if (deploymentStage === "production" && !stripeSecret.startsWith("sk_live_")) {
+    addIssue(issues, "error", "stripe_not_live", "Production requires a live-mode STRIPE_SECRET_KEY.", "STRIPE_SECRET_KEY");
+  }
+  if (deploymentStage === "preview" && !stripeSecret.startsWith("sk_test_")) {
+    addIssue(issues, "error", "stripe_not_test", "Preview requires a test-mode STRIPE_SECRET_KEY.", "STRIPE_SECRET_KEY");
   }
   if (!normalized(env.STRIPE_WEBHOOK_SECRET).startsWith("whsec_")) {
     addIssue(issues, "error", "stripe_webhook_secret_invalid", "STRIPE_WEBHOOK_SECRET must be a Stripe signing secret.", "STRIPE_WEBHOOK_SECRET");
