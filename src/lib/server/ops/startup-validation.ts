@@ -7,7 +7,7 @@ import { getSqliteRuntimeDb } from "@/lib/server/persistence/sqlite-runtime";
 import { getObjectStorage } from "@/lib/server/storage/object-storage";
 import { getBulletproofBridgeConfig, probeBulletproofEngine } from "@/lib/server/engine/bulletproof-client";
 import { logger } from "@/lib/server/ops/logger";
-import { assertWorkerRuntimeConfig, getWorkerHeartbeatStaleMs } from "@/lib/server/queue/runtime-config";
+import { assertWorkerRuntimeConfig, getWorkerHeartbeatStaleMs, getWorkerMode } from "@/lib/server/queue/runtime-config";
 import { workerHeartbeatRepository } from "@/lib/server/repositories/worker-heartbeat-repository";
 import { getOperationControls, pausedOperationNames } from "@/lib/server/ops/operations-policy";
 
@@ -147,6 +147,8 @@ function getOperationControlsCheck(): StartupCheck {
 }
 
 async function getEngineChecks(): Promise<StartupCheck[]> {
+  if (getWorkerMode() === "external") return getDelegatedEngineChecks();
+
   const checks: StartupCheck[] = [];
   const { pythonBin, bridgeScriptPath } = getBulletproofBridgeConfig();
 
@@ -182,6 +184,49 @@ async function getEngineChecks(): Promise<StartupCheck[]> {
   }
 
   return checks;
+}
+
+async function getDelegatedEngineChecks(): Promise<StartupCheck[]> {
+  try {
+    const staleMs = getWorkerHeartbeatStaleMs();
+    const [analysisHeartbeats, experimentHeartbeats] = await Promise.all([
+      workerHeartbeatRepository.list("analysis"),
+      workerHeartbeatRepository.list("experiment"),
+    ]);
+    const freshest = [...analysisHeartbeats, ...experimentHeartbeats]
+      .sort((left, right) => Date.parse(right.last_seen_at) - Date.parse(left.last_seen_at))[0];
+    const fresh = Boolean(freshest) && Date.now() - Date.parse(freshest.last_seen_at) <= staleMs;
+    const delegatedMeta = {
+      delegated: true,
+      worker_mode: "external",
+      freshest_worker_type: freshest?.worker_type,
+      freshest_worker_at: freshest?.last_seen_at,
+    };
+
+    return [
+      { name: "engine_python", status: "healthy", detail: "delegated_to_external_worker", meta: delegatedMeta },
+      { name: "engine_bridge", status: "healthy", detail: "delegated_to_external_worker", meta: delegatedMeta },
+      {
+        name: "engine_probe",
+        status: fresh ? "healthy" : "degraded",
+        detail: fresh ? "external_engine_worker_heartbeat_fresh" : "external_engine_worker_heartbeat_missing_or_stale",
+        meta: delegatedMeta,
+      },
+      {
+        name: "engine_seam",
+        status: fresh ? "healthy" : "degraded",
+        detail: fresh ? "external_engine_execution_available" : "external_engine_execution_unconfirmed",
+        meta: delegatedMeta,
+      },
+    ];
+  } catch {
+    return [
+      { name: "engine_python", status: "healthy", detail: "delegated_to_external_worker", meta: { delegated: true, worker_mode: "external" } },
+      { name: "engine_bridge", status: "healthy", detail: "delegated_to_external_worker", meta: { delegated: true, worker_mode: "external" } },
+      { name: "engine_probe", status: "degraded", detail: "external_engine_worker_health_unavailable" },
+      { name: "engine_seam", status: "degraded", detail: "external_engine_health_error" },
+    ];
+  }
 }
 
 async function getQueueCheck(): Promise<StartupCheck> {

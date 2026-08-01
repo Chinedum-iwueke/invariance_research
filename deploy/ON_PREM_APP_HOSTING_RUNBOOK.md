@@ -79,7 +79,7 @@ Two app containers plus separately managed database containers on one VM provide
 
 They do not provide host-level high availability or a true security boundary between a compromised host and database files. If the shared VM or its provider fails, both the site and database are unavailable. That risk is acceptable during controlled testing only when encrypted off-host database backups, a rebuild procedure, an external monitor, and a warm replacement VM plan are proven. The first infrastructure expansion should move Postgres to a dedicated VM; the second should add another app origin.
 
-## Current Repository Fit And Mandatory Gaps
+## Current Repository Fit And Remaining Deployment Work
 
 The current repository already supports this separation:
 
@@ -92,19 +92,28 @@ The current repository already supports this separation:
 - Stripe webhook events are signature checked and persisted through the application billing contract.
 - `/api/health` provides a platform-level health snapshot.
 
-The following gaps must be closed before production cutover:
+Repository deployment artifacts are now implemented:
 
-1. Set `output: "standalone"` in `next.config.ts` so the production image can contain only traced runtime dependencies.
-2. Add a lightweight `/api/health/live` endpoint that returns `200` when the Next.js process can serve requests without querying Postgres, R2, workers, Stripe, email, or the Python engine.
-3. Add `/api/health/ready` for web readiness. It should verify Postgres and required web dependencies, but it must not require a local Python engine because the web runtime intentionally delegates engine work to external workers.
-4. Keep `/api/health` as platform health for Admin Ops and external operational diagnosis.
-5. Disable production debug routes by leaving `DEBUG_RUNTIME_ENV_TOKEN` unset. A temporary token may be enabled only during an incident and must be removed immediately afterward.
-6. Confirm all durable publication and upload paths use R2. The legacy local publication route must not be the production source of truth.
-7. Align browser upload messaging with the actual product limits. The current request path buffers the multipart body in Node memory. Do not enable 100-250 MB uploads on this path for the first 100 users.
-8. Test multi-instance Next.js caching. Dynamic authenticated pages are already forced dynamic in key app layouts, but any ISR or mutable server cache must either be replica-safe or explicitly disabled for correctness-sensitive pages.
-9. Make full platform health worker-mode aware. When `WORKER_MODE=external`, the absence of Python and `bulletproof_bt` in the web image must be reported as `delegated_to_external_worker`, not as a failed local engine. Engine availability should be derived from fresh worker heartbeat/capability evidence.
+1. `next.config.ts` emits standalone output and excludes local state and worker-only code from the runtime trace.
+2. `Dockerfile.app` builds a non-root, read-only-compatible web image without Python, `bulletproof_bt`, tests, local databases, or user artifacts.
+3. `.dockerignore` excludes secrets, local state, generated output, tests, and worker build inputs.
+4. `/api/health/live` is dependency-free process liveness; `/api/health/ready` performs bounded, cached database, schema, runtime, and storage-configuration checks.
+5. `deploy/docker-compose.app.yml` defines two loopback-only web replicas with explicit limits, dropped capabilities, read-only filesystems, private database networking, and rotated local logs.
+6. `deploy/Caddyfile.app`, `deploy/invariance-web.service`, environment templates, release template, preflight validator, standalone validator, and deployment-contract tests are present.
+7. `Dockerfile.app` includes a separate non-root `operations` target for explicit one-shot schema commands; migration tooling is absent from the web runtime image.
+8. Full platform health is worker-mode aware and derives external engine availability from worker heartbeat evidence.
+9. Production diagnostics return `404` unless a time-boxed `DEBUG_RUNTIME_ENV_TOKEN` is deliberately configured.
 
-These are launch blockers, not optional polish.
+The remaining work is deployment-environment execution and acceptance testing:
+
+1. Provision and harden the deployment VM, database, PgBouncer, private Docker network, R2, Caddy, DNS, certificates, and off-host backups.
+2. Populate `/etc/invariance/app/app.env`, run the repository preflight validator, and initialize/migrate the schema through the dedicated migration procedure.
+3. Build or pull an immutable application image from the exact tested commit and start both replicas.
+4. Confirm all durable publication and upload paths use R2. The legacy local publication route must not be the production source of truth.
+5. Keep the browser upload body limit at 50 MB until direct-to-object-storage multipart upload exists; the current request path buffers multipart bodies in Node memory.
+6. Execute multi-replica auth, rate-limit, cache, queue, Stripe replay, failover, backup-restore, and rollback acceptance tests before public DNS cutover.
+
+These acceptance checks remain release blockers.
 
 Next.js recommends a reverse proxy in front of a self-hosted server and documents standalone output for minimal production images. It also warns that each instance has its own default disk and memory cache, so multi-instance cache behavior must be deliberate:
 
@@ -1417,7 +1426,7 @@ TimeoutStopSec=120
 WantedBy=multi-user.target
 ```
 
-Create `/etc/systemd/system/invariance-web.service`:
+Install the repository-owned `deploy/invariance-web.service` as `/etc/systemd/system/invariance-web.service`. Its effective contract is:
 
 ```ini
 [Unit]
@@ -1425,14 +1434,19 @@ Description=Invariance Research web containers
 Requires=docker.service invariance-postgres.service
 After=docker.service invariance-postgres.service network-online.target
 Wants=network-online.target
+ConditionPathExists=/srv/invariance/app/compose/docker-compose.app.yml
+ConditionPathExists=/srv/invariance/app/compose/release.env
+ConditionPathExists=/etc/invariance/app/app.env
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/srv/invariance/app/compose
-ExecStart=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml up -d
-ExecStop=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml stop
-TimeoutStartSec=180
+ExecStartPre=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml config --quiet
+ExecStart=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml up -d --remove-orphans
+ExecReload=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml stop --timeout 30
+TimeoutStartSec=300
 TimeoutStopSec=90
 
 [Install]
@@ -1999,13 +2013,14 @@ Pass criteria:
 
 Repository: `invariance_research`
 
-- enable Next.js standalone output
-- add liveness and web-readiness endpoints
-- add production app Dockerfile and `.dockerignore`
-- add deployment-contract tests
-- ensure no production durable local-file dependency
-- verify forwarded-host and canonical URL behavior
-- verify multi-replica auth and rate limiting
+- [x] enable Next.js standalone output
+- [x] add liveness and web-readiness endpoints
+- [x] add production app Dockerfile and `.dockerignore`
+- [x] add deployment Compose, Caddy, environment, and release templates
+- [x] add deployment preflight, standalone validation, and contract tests
+- [x] exclude local durable state and worker runtimes from the web image
+- [ ] verify forwarded-host and canonical URL behavior on the deployment VM
+- [ ] verify multi-replica auth and rate limiting against production Postgres
 
 Exit: the image runs locally with no worker or Python runtime and passes liveness/readiness tests.
 

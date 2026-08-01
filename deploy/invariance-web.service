@@ -1,0 +1,22 @@
+[Unit]
+Description=Invariance Research web containers
+Requires=docker.service invariance-postgres.service
+After=docker.service invariance-postgres.service network-online.target
+Wants=network-online.target
+ConditionPathExists=/srv/invariance/app/compose/docker-compose.app.yml
+ConditionPathExists=/srv/invariance/app/compose/release.env
+ConditionPathExists=/etc/invariance/app/app.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/invariance/app/compose
+ExecStartPre=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml config --quiet
+ExecStart=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml up -d --remove-orphans
+ExecReload=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file release.env -f docker-compose.app.yml stop --timeout 30
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

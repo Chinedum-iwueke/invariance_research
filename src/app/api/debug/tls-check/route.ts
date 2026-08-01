@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import https from "https";
 
 type TestResult = {
@@ -17,7 +17,20 @@ type ApiResponse = {
   tests: Record<string, TestResult>;
 };
 
-export async function GET() {
+function readToken(request: NextRequest) {
+  const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  return bearer || request.nextUrl.searchParams.get("token") || "";
+}
+
+export async function GET(request: NextRequest) {
+  const requiredToken = process.env.DEBUG_RUNTIME_ENV_TOKEN;
+  if (!requiredToken && process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (requiredToken && readToken(request) !== requiredToken) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const testUrls = ["https://accounts.google.com", "https://oauth2.googleapis.com"] as const;
   const results: ApiResponse = {
     timestamp: new Date().toISOString(),

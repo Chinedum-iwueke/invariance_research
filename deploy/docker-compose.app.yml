@@ -1,0 +1,74 @@
+name: invariance-web
+
+x-web-common: &web-common
+  image: ${APP_IMAGE:?APP_IMAGE must be an immutable digest or commit-tagged image reference}
+  init: true
+  env_file:
+    - ${APP_ENV_FILE:-/etc/invariance/app/app.env}
+  environment:
+    APP_RELEASE_VERSION: ${APP_RELEASE_VERSION:-unknown}
+    APP_GIT_SHA: ${APP_GIT_SHA:-unknown}
+    APP_IMAGE_DIGEST: ${APP_IMAGE}
+  restart: unless-stopped
+  stop_grace_period: 30s
+  read_only: true
+  tmpfs:
+    - /tmp:size=256m,mode=1777,noexec,nosuid,nodev
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 512
+  mem_limit: 1500m
+  mem_reservation: 768m
+  cpus: 1.25
+  ulimits:
+    nofile:
+      soft: 4096
+      hard: 8192
+  healthcheck:
+    test:
+      - CMD
+      - node
+      - -e
+      - "fetch('http://127.0.0.1:3000/api/health/live').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1));"
+    interval: 15s
+    timeout: 5s
+    start_period: 30s
+    retries: 3
+  networks:
+    - web-egress
+    - data-private
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  web-a:
+    <<: *web-common
+    ports:
+      - "127.0.0.1:3101:3000"
+    volumes:
+      - web-a-cache:/app/.next/cache
+      - ${DATABASE_CA_CERT_PATH:-/srv/invariance/postgres/certs/ca.crt}:/etc/invariance/db-ca.crt:ro
+
+  web-b:
+    <<: *web-common
+    ports:
+      - "127.0.0.1:3102:3000"
+    volumes:
+      - web-b-cache:/app/.next/cache
+      - ${DATABASE_CA_CERT_PATH:-/srv/invariance/postgres/certs/ca.crt}:/etc/invariance/db-ca.crt:ro
+
+networks:
+  web-egress:
+    driver: bridge
+  data-private:
+    external: true
+    name: invariance-data-private
+
+volumes:
+  web-a-cache:
+  web-b-cache:
